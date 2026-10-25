@@ -92,6 +92,7 @@ jobs:
       - name: Install browser
         run: cd "$DSH_INSTALL/dsh" && pnpm --filter @deepseek-ai/dsh-web-frontend exec playwright install --with-deps chromium webkit
       - name: Browser regressions without model credentials
+        id: browser_regressions
         run: |
           cd "$DSH_INSTALL/dsh"
           pnpm exec vitest run --config vitest.web.config.ts apps/web/tests/hmr-live.e2e.ts
@@ -122,3 +123,20 @@ jobs:
             apps/web/tests/auto-review-denial.e2e.ts \
             apps/web/tests/bash-abort-row.e2e.ts \
             apps/web/tests/official-subagent-bundle.e2e.ts
+      - name: Collect browser failure screenshots
+        if: failure() && steps.browser_regressions.outcome == 'failure'
+        run: |
+          mkdir -p "$RUNNER_TEMP/browser-failures"
+          shopt -s nullglob
+          for screenshot in "$DSH_INSTALL/dsh/.artifacts/"*.png; do
+            cp "$screenshot" "$RUNNER_TEMP/browser-failures/"
+          done
+      - name: Upload browser failure screenshots
+        if: failure() && steps.browser_regressions.outcome == 'failure'
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: browser-failures-${{ github.run_id }}
+          path: ${{ runner.temp }}/browser-failures/*.png
+          if-no-files-found: ignore
+          compression-level: 0
+          retention-days: 3

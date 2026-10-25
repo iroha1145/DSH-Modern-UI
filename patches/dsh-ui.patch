@@ -1113,10 +1113,30 @@ index 27619f0bf144db1504408da60fa0b412cb7465c0..2df7f98206b80804f1fb0f054ceb1fc4
      await menu.waitFor({ state: 'detached' })
      await trigger.click()
 diff --git a/apps/web/tests/default-model.e2e.ts b/apps/web/tests/default-model.e2e.ts
-index 96253332875b7ab0ef6e1c5dbee253d4a4f02061..0bae339b01c508658143eeac3ea95b58c14e088f 100644
+index 96253332875b7ab0ef6e1c5dbee253d4a4f02061..9e584639ac19f770732d2509b096f2b12717f582 100644
 --- a/apps/web/tests/default-model.e2e.ts
 +++ b/apps/web/tests/default-model.e2e.ts
-@@ -67,7 +67,8 @@ describe('web e2e: the composer model switch is the default for later sessions',
+@@ -30,6 +30,19 @@ const START_MODEL = 'origin-large'
+ const ROUTE = 'acme-gateway'
+ const MODEL = 'acme-large'
+ 
++/** Wait for current picker motion to finish naturally before measuring its geometry. */
++async function settlePickerMotion(surface: Locator): Promise<void> {
++  await surface.evaluate(async (element) => {
++    const current = () => element.getAnimations().filter(animation =>
++      animation.pending || animation.playState === 'running' || animation.playState === 'paused')
++    let animations = current()
++    while (animations.length > 0) {
++      await Promise.all(animations.map(animation => animation.finished))
++      animations = current()
++    }
++  })
++}
++
+ describe('web e2e: the composer model switch is the default for later sessions', () => {
+   let scaffold: WebScaffold
+   let browser: Browser
+@@ -67,7 +80,8 @@ describe('web e2e: the composer model switch is the default for later sessions',
            displayName: 'Origin Gateway',
            api: 'openai-completions',
            baseURL: 'https://gateway.origin.example/v1',
@@ -1126,7 +1146,7 @@ index 96253332875b7ab0ef6e1c5dbee253d4a4f02061..0bae339b01c508658143eeac3ea95b58
          },
          [ROUTE]: {
            displayName: 'Acme Gateway',
-@@ -107,10 +108,10 @@ describe('web e2e: the composer model switch is the default for later sessions',
+@@ -107,10 +121,10 @@ describe('web e2e: the composer model switch is the default for later sessions',
      await expect.poll(() => readLabels(trigger)).toEqual([current])
      try {
        await trigger.click()
@@ -1141,7 +1161,7 @@ index 96253332875b7ab0ef6e1c5dbee253d4a4f02061..0bae339b01c508658143eeac3ea95b58
        await compareOrRefreshGolden(
          fileURLToPath(new URL('./expected/default-model/model-labels.expected.md', import.meta.url)),
          JSON.stringify(await readLabels(menu), null, 2),
-@@ -122,16 +123,16 @@ describe('web e2e: the composer model switch is the default for later sessions',
+@@ -122,16 +136,16 @@ describe('web e2e: the composer model switch is the default for later sessions',
      }
    })
  
@@ -1161,7 +1181,7 @@ index 96253332875b7ab0ef6e1c5dbee253d4a4f02061..0bae339b01c508658143eeac3ea95b58
        const original = await surface.boundingBox()
        expect(original).not.toBeNull()
        // A Slot descendant can resize independently of ModelSelect's props and state.
-@@ -141,7 +142,7 @@ describe('web e2e: the composer model switch is the default for later sessions',
+@@ -141,7 +155,7 @@ describe('web e2e: the composer model switch is the default for later sessions',
          badge.textContent = ' — Provider identification badge with a long channel name'
          node.appendChild(badge)
        })
@@ -1170,7 +1190,7 @@ index 96253332875b7ab0ef6e1c5dbee253d4a4f02061..0bae339b01c508658143eeac3ea95b58
        await expect.poll(async () => {
          const box = (await surface.boundingBox())!
          return box.x >= 12 && box.x + box.width <= 378
-@@ -159,6 +160,7 @@ describe('web e2e: the composer model switch is the default for later sessions',
+@@ -159,6 +173,7 @@ describe('web e2e: the composer model switch is the default for later sessions',
    it('keeps command popup search borders transparent in both palettes', async () => {
      const composer = page.locator('[data-composer-input]').first()
      await page.getByRole('button', { name: '添加文件或调用指令', exact: true }).click()
@@ -1178,7 +1198,7 @@ index 96253332875b7ab0ef6e1c5dbee253d4a4f02061..0bae339b01c508658143eeac3ea95b58
      const commandMenuBounds = await page.locator('[data-trigger-menu]').boundingBox()
      await page.getByRole('option', { name: /^模型/ }).click()
      const search = page.getByRole('textbox', { name: '筛选选项', exact: true })
-@@ -170,7 +172,7 @@ describe('web e2e: the composer model switch is the default for later sessions',
+@@ -170,7 +185,7 @@ describe('web e2e: the composer model switch is the default for later sessions',
        expect(popupBounds!.width).toBeCloseTo(commandMenuBounds!.width)
        expect(popupBounds!.x).toBeCloseTo(commandMenuBounds!.x)
        expect(await search.getAttribute('placeholder')).toBe('搜索模型…')
@@ -1187,7 +1207,7 @@ index 96253332875b7ab0ef6e1c5dbee253d4a4f02061..0bae339b01c508658143eeac3ea95b58
        await compareOrRefreshGolden(
          fileURLToPath(new URL('./expected/default-model/command-picker.expected.md', import.meta.url)),
          await captureStableAria(page, '[aria-label="/model 选项"]', scaffold.workspaceCwd),
-@@ -263,21 +265,21 @@ describe('web e2e: the composer model switch is the default for later sessions',
+@@ -263,21 +278,21 @@ describe('web e2e: the composer model switch is the default for later sessions',
          observations.push(`${action}: ${focused}`)
        }
        await trigger.click()
@@ -1221,7 +1241,7 @@ index 96253332875b7ab0ef6e1c5dbee253d4a4f02061..0bae339b01c508658143eeac3ea95b58
        await devicePage.keyboard.press('Escape')
        await expect.poll(() => trigger.evaluate(element => document.activeElement === element)).toBe(true)
        await observeFocus('Close')
-@@ -293,10 +295,10 @@ describe('web e2e: the composer model switch is the default for later sessions',
+@@ -293,10 +308,10 @@ describe('web e2e: the composer model switch is the default for later sessions',
    })
  
    it('shares provider order, fuzzy result order and sticky header material between both model pickers', async () => {
@@ -1234,7 +1254,7 @@ index 96253332875b7ab0ef6e1c5dbee253d4a4f02061..0bae339b01c508658143eeac3ea95b58
        })), role)
      const checkSticky = async (surface: Locator, viewport: Locator) => {
        // Bound only this test's list viewport so native scrolling can cross a heading.
-@@ -317,13 +319,13 @@ describe('web e2e: the composer model switch is the default for later sessions',
+@@ -317,13 +332,13 @@ describe('web e2e: the composer model switch is the default for later sessions',
      }
      try {
        await page.getByRole('button', { name: /^选择模型/ }).click()
@@ -1254,7 +1274,7 @@ index 96253332875b7ab0ef6e1c5dbee253d4a4f02061..0bae339b01c508658143eeac3ea95b58
        await menuSearch.press('Escape')
        await page.keyboard.press('Escape')
        await page.getByRole('button', { name: '添加文件或调用指令', exact: true }).click()
-@@ -334,7 +336,7 @@ describe('web e2e: the composer model switch is the default for later sessions',
+@@ -334,7 +349,7 @@ describe('web e2e: the composer model switch is the default for later sessions',
        expect(await checkSticky(popup, popup.getByRole('listbox'))).toEqual(sticky)
        const popupSearch = page.getByRole('textbox', { name: '筛选选项', exact: true })
        await popupSearch.fill('  ACMLG  ')
@@ -1263,7 +1283,7 @@ index 96253332875b7ab0ef6e1c5dbee253d4a4f02061..0bae339b01c508658143eeac3ea95b58
        expect(await popupSearch.evaluate(node => node === node.ownerDocument.activeElement)).toBe(true)
      } finally {
        await page.keyboard.press('Escape')
-@@ -343,9 +345,9 @@ describe('web e2e: the composer model switch is the default for later sessions',
+@@ -343,9 +358,9 @@ describe('web e2e: the composer model switch is the default for later sessions',
      }
    })
  
@@ -1275,7 +1295,7 @@ index 96253332875b7ab0ef6e1c5dbee253d4a4f02061..0bae339b01c508658143eeac3ea95b58
      const setModels = (expanded: boolean) => scaffold.ctx.settings.update('llm-pi-ai', {
        providers: { [ROUTE]: {
          displayName: 'Acme Gateway', api: 'openai-completions', baseURL: 'https://gateway.acme.example/v1',
-@@ -356,15 +358,15 @@ describe('web e2e: the composer model switch is the default for later sessions',
+@@ -356,15 +371,15 @@ describe('web e2e: the composer model switch is the default for later sessions',
      try {
        await setModels(false)
        await trigger.click()
@@ -1298,7 +1318,7 @@ index 96253332875b7ab0ef6e1c5dbee253d4a4f02061..0bae339b01c508658143eeac3ea95b58
        await page.keyboard.press('Enter')
        await expect.poll(() => trigger.evaluate(node => node === node.ownerDocument.activeElement)).toBe(true)
        expect(await trigger.evaluate(node => getComputedStyle(node).boxShadow)).toBe('none')
-@@ -381,8 +383,7 @@ describe('web e2e: the composer model switch is the default for later sessions',
+@@ -381,8 +396,7 @@ describe('web e2e: the composer model switch is the default for later sessions',
        await page.keyboard.press('Escape')
        await setModels(true)
        await trigger.click()
@@ -1308,7 +1328,7 @@ index 96253332875b7ab0ef6e1c5dbee253d4a4f02061..0bae339b01c508658143eeac3ea95b58
        await search.waitFor()
        await search.press('Escape')
        await page.keyboard.press('Escape')
-@@ -396,15 +397,14 @@ describe('web e2e: the composer model switch is the default for later sessions',
+@@ -396,15 +410,23 @@ describe('web e2e: the composer model switch is the default for later sessions',
        platform: document.documentElement.getAttribute('data-platform'),
        theme: document.body.getAttribute('data-ds-dark-theme'),
      }))
@@ -1318,17 +1338,36 @@ index 96253332875b7ab0ef6e1c5dbee253d4a4f02061..0bae339b01c508658143eeac3ea95b58
 -    const search = page.getByRole('searchbox', { name: '搜索模型…' })
 +    const search = page.getByRole('combobox', { name: '搜索模型…' })
      try {
-       await page.setViewportSize({ width: 1680, height: 220 })
+-      await page.setViewportSize({ width: 1680, height: 220 })
++      await page.setViewportSize({ width: 1680, height: 600 })
        await trigger.click()
 -      await page.getByRole('menuitem', { name: /模型/ }).click()
 -      const scroller = page.getByRole('menu', { name: '模型', exact: true })
 -      const headings = surface.locator('section[role="group"] > div')
++      await settlePickerMotion(surface)
 +      const scroller = page.getByRole('listbox', { name: '模型', exact: true })
++      // Keep a real scroll viewport while leaving the first heading and option visible after clear.
++      await scroller.evaluate((node) => { node.style.maxHeight = '80px' })
++      await expect.poll(() => scroller.evaluate(node => node.clientHeight)).toBe(80)
++      expect(await scroller.evaluate((node) => {
++        const heading = node.querySelector<HTMLElement>('[data-menu-group-heading]')!
++        const option = node.querySelector<HTMLElement>('[role="option"]')!
++        return node.clientHeight >= option.offsetTop - heading.offsetTop + option.offsetHeight
++      })).toBe(true)
 +      const headings = surface.locator('[data-menu-group-heading]')
        const readPinned = () => headings.evaluateAll(nodes => nodes.map(node => node.hasAttribute('data-stuck')))
        const resetScroll = async (): Promise<void> => {
          await scroller.evaluate((node) => { node.scrollTop = 0 })
-@@ -428,7 +428,7 @@ describe('web e2e: the composer model switch is the default for later sessions',
+@@ -421,14 +443,14 @@ describe('web e2e: the composer model switch is the default for later sessions',
+           expect(await headings.evaluateAll(nodes => [...new Set(nodes.map(node => getComputedStyle(node).backgroundColor))]))
+             .toEqual(['rgba(0, 0, 0, 0)'])
+           const secondTop = await scroller.evaluate((node) => {
+-            const second = node.querySelectorAll('section')[1]!
+-            return Math.ceil(second.getBoundingClientRect().top - node.getBoundingClientRect().top) + 1
++            const groups = node.querySelectorAll<HTMLElement>('section')
++            return groups[1]!.offsetTop - groups[0]!.offsetTop + 1
+           })
+           expect(await scroller.evaluate(node => node.scrollHeight - node.clientHeight)).toBeGreaterThanOrEqual(secondTop)
            await scroller.evaluate((node) => { node.scrollTop = 10 })
            await expect.poll(readPinned).toEqual([true, false, false])
            expect(await headings.first().evaluate(node => getComputedStyle(node).backgroundColor))
@@ -1337,7 +1376,7 @@ index 96253332875b7ab0ef6e1c5dbee253d4a4f02061..0bae339b01c508658143eeac3ea95b58
            await scroller.evaluate((node, top) => { node.scrollTop = top }, secondTop)
            await expect.poll(readPinned).toEqual([false, true, false])
            await scroller.evaluate((node) => { node.scrollTop = 10 })
-@@ -439,8 +439,8 @@ describe('web e2e: the composer model switch is the default for later sessions',
+@@ -439,8 +461,8 @@ describe('web e2e: the composer model switch is the default for later sessions',
        await scroller.evaluate((node) => { node.scrollTop = 10 })
        await expect.poll(readPinned).toEqual([true, false, false])
        await search.fill('Origin Large')
@@ -1348,7 +1387,7 @@ index 96253332875b7ab0ef6e1c5dbee253d4a4f02061..0bae339b01c508658143eeac3ea95b58
        await page.getByRole('button', { name: '清除搜索', exact: true }).click()
        await expect.poll(readPinned).toEqual([false, false, false])
        await search.fill('zzzz')
-@@ -450,7 +450,6 @@ describe('web e2e: the composer model switch is the default for later sessions',
+@@ -450,12 +472,12 @@ describe('web e2e: the composer model switch is the default for later sessions',
        await search.press('Escape')
        await page.keyboard.press('Escape')
        await trigger.click()
@@ -1356,7 +1395,13 @@ index 96253332875b7ab0ef6e1c5dbee253d4a4f02061..0bae339b01c508658143eeac3ea95b58
        expect(await search.inputValue()).toBe('')
        await resetScroll()
      } finally {
-@@ -478,22 +477,14 @@ describe('web e2e: the composer model switch is the default for later sessions',
+       if (await surface.count()) await search.press('Escape')
+       if (await trigger.getAttribute('aria-expanded') === 'true') await page.keyboard.press('Escape')
++      await surface.waitFor({ state: 'detached' })
+       await page.setViewportSize(originalViewport)
+       await page.evaluate(({ platform, theme }) => {
+         if (platform === null) document.documentElement.removeAttribute('data-platform')
+@@ -478,22 +500,16 @@ describe('web e2e: the composer model switch is the default for later sessions',
  
      const trigger = page.getByRole('button', { name: /^选择模型/ })
      await trigger.waitFor({ timeout: 15_000 })
@@ -1364,8 +1409,10 @@ index 96253332875b7ab0ef6e1c5dbee253d4a4f02061..0bae339b01c508658143eeac3ea95b58
 +    expect(await trigger.evaluate(element => getComputedStyle(element).fontWeight)).toBe('500')
      await trigger.click()
 -    const modelMenuBounds = await page.getByRole('menu', { name: '模型与推理等级', exact: true }).boundingBox()
-+    await expect.poll(() => page.getByRole('dialog', { name: '模型与推理等级', exact: true }).evaluate(node => getComputedStyle(node).transform)).toBe('none')
-+    const modelMenuBounds = await page.getByRole('dialog', { name: '模型与推理等级', exact: true }).boundingBox()
++    const modelMenu = page.getByRole('dialog', { name: '模型与推理等级', exact: true })
++    await settlePickerMotion(modelMenu)
++    await expect.poll(() => modelMenu.evaluate(node => getComputedStyle(node).transform)).toBe('none')
++    const modelMenuBounds = await modelMenu.boundingBox()
      const composerBounds = await page.locator('[data-composer-card]').first().boundingBox()
      expect(modelMenuBounds!.width).toBeLessThan(composerBounds!.width)
 -    const modelCell = page.getByRole('menuitem', { name: /模型/ })
@@ -1384,7 +1431,7 @@ index 96253332875b7ab0ef6e1c5dbee253d4a4f02061..0bae339b01c508658143eeac3ea95b58
      const initialHighlight = rowIds.indexOf(await search.getAttribute('aria-activedescendant') ?? '')
      expect(initialHighlight).toBeGreaterThanOrEqual(0)
      for (let step = 1; step <= rowIds.length + 1; step++) {
-@@ -506,12 +497,14 @@ describe('web e2e: the composer model switch is the default for later sessions',
+@@ -506,12 +522,14 @@ describe('web e2e: the composer model switch is the default for later sessions',
      const searchStyle = await search.evaluate((input) => {
        const wrapper = input.parentElement!
        const caption = input.ownerDocument.createElement('span')
@@ -1400,7 +1447,7 @@ index 96253332875b7ab0ef6e1c5dbee253d4a4f02061..0bae339b01c508658143eeac3ea95b58
            iconCount: wrapper.querySelectorAll('svg').length,
            background: getComputedStyle(wrapper).backgroundColor,
            radius: getComputedStyle(wrapper).borderRadius,
-@@ -524,15 +517,17 @@ describe('web e2e: the composer model switch is the default for later sessions',
+@@ -524,15 +542,17 @@ describe('web e2e: the composer model switch is the default for later sessions',
      })
      expect(searchStyle.placeholderColor).toBe(searchStyle.captionColor)
      expect(searchStyle.iconCount).toBe(0)
@@ -1425,7 +1472,7 @@ index 96253332875b7ab0ef6e1c5dbee253d4a4f02061..0bae339b01c508658143eeac3ea95b58
        const html = menu.ownerDocument.documentElement
        const body = menu.ownerDocument.body
        const previousPlatform = html.getAttribute('data-platform')
-@@ -542,13 +537,13 @@ describe('web e2e: the composer model switch is the default for later sessions',
+@@ -542,13 +562,13 @@ describe('web e2e: the composer model switch is the default for later sessions',
            if (platform === 'web') html.removeAttribute('data-platform')
            else html.setAttribute('data-platform', platform)
            body.toggleAttribute('data-ds-dark-theme', dark)
@@ -1441,7 +1488,7 @@ index 96253332875b7ab0ef6e1c5dbee253d4a4f02061..0bae339b01c508658143eeac3ea95b58
              menuFill: getComputedStyle(menu.querySelector(':scope > [aria-hidden="true"]')!).backgroundColor,
              searchBorder: getComputedStyle(menu.querySelector('input')!.parentElement!).borderColor,
            }
-@@ -566,21 +561,22 @@ describe('web e2e: the composer model switch is the default for later sessions',
+@@ -566,21 +586,22 @@ describe('web e2e: the composer model switch is the default for later sessions',
        expect(palette.menuFill).toBe(palette.dark ? 'rgba(67, 69, 74, 0.45)' : 'rgba(248, 249, 250, 0.58)')
        expect(palette.searchBorder).toBe('rgba(0, 0, 0, 0)')
        expect(palette.positions).toEqual(['sticky'])
@@ -1468,7 +1515,7 @@ index 96253332875b7ab0ef6e1c5dbee253d4a4f02061..0bae339b01c508658143eeac3ea95b58
        webSnapshotMode(),
      )
      const entered = Promise.withResolvers<undefined>()
-@@ -594,7 +590,7 @@ describe('web e2e: the composer model switch is the default for later sessions',
+@@ -594,7 +615,7 @@ describe('web e2e: the composer model switch is the default for later sessions',
        await search.press('ArrowDown')
        await expect.poll(() => search.evaluate(input => input === input.ownerDocument.activeElement)).toBe(true)
        expect(await search.getAttribute('aria-activedescendant'))
@@ -1477,7 +1524,27 @@ index 96253332875b7ab0ef6e1c5dbee253d4a4f02061..0bae339b01c508658143eeac3ea95b58
        await page.keyboard.press('Enter')
        await expect.poll(() => trigger.getAttribute('aria-busy')).toBe('false')
        await expect.poll(() => trigger.textContent()).toContain('Acme Large')
-@@ -651,7 +647,7 @@ describe('web e2e: the composer model switch is the default for later sessions',
+@@ -637,6 +658,19 @@ describe('web e2e: the composer model switch is the default for later sessions',
+     const box = page.locator('[data-composer-input]').first()
+     await expect.poll(async () => box.isEnabled(), { timeout: 10_000 }).toBe(true)
+ 
++    // Establish the saved route independently of the preceding UI-save scenario.
++    await scaffold.ctx.agentDefaultModel.saveSelection({ provider: ROUTE, model: MODEL })
++    await expect.poll(() => scaffold.ctx.agentDefaultModel.currentSelection()).toEqual({ provider: ROUTE, model: MODEL })
++    const picker = page.getByRole('dialog', { name: '模型与推理等级', exact: true })
++    const trigger = page.getByRole('button', { name: /^选择模型/ })
++    if (await trigger.getAttribute('aria-expanded') === 'true') await page.keyboard.press('Escape')
++    await picker.waitFor({ state: 'detached' })
++    await trigger.click()
++    await expect.poll(() => trigger.textContent()).toContain('Acme Large')
++    await expect.poll(() => picker.getByRole('option', { name: 'Acme Large', exact: true }).getAttribute('aria-selected')).toBe('true')
++    await page.keyboard.press('Escape')
++    await picker.waitFor({ state: 'detached' })
++
+     // Removing the selected provider preserves the other route and the saved
+     // selection. A merge update would retain the removed profile.
+     await scaffold.ctx.settings.replace('llm-pi-ai', { providers: {
+@@ -651,7 +685,7 @@ describe('web e2e: the composer model switch is the default for later sessions',
      const aria = await captureStableAria(page, '[data-composer-card]', scaffold.workspaceCwd)
      await compareOrRefreshGolden(fileURLToPath(new URL('./expected/default-model/unselected.expected.md', import.meta.url)), aria, webSnapshotMode())
      await seat.click()
