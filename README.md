@@ -21,7 +21,7 @@ DSH-UI 是 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)�
 
 需要：
 
-- macOS，或使用 glibc 的 Linux（Alpine 这类 musl 系统不行）。Windows 有 PowerShell 脚本，但还没有实测。
+- macOS，或使用 glibc 的 Linux（Alpine 这类 musl 系统不行）。Windows 提供 PowerShell 5.1 及以上版本脚本；持续集成检查准备、续装和启动参数，完整 Windows 构建尚未验收。
 - `curl`、`tar`，以及 `git`（没有可用的 git 时用 `patch`）。
 - C 编译器。构建时要编译一个原生模块：macOS 装 Xcode 命令行工具（`xcode-select --install`），Linux 装 `build-essential`（或 gcc、clang）。个别依赖没有预编译包时还会用到 `python3`。
 - 约 3 GB 磁盘空间，能访问 GitHub、nodejs.org 和 npm。
@@ -40,7 +40,7 @@ cd DSH-Modern-UI
 curl -fsSL https://raw.githubusercontent.com/iroha1145/DSH-Modern-UI/main/scripts/install.sh | bash
 ```
 
-Windows（未实测）：
+Windows（PowerShell 5.1 或以上，完整构建尚未验收）：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\install.ps1
@@ -142,7 +142,7 @@ dsh-context 自带一个编队标签，和 DSH-UI 的编队页重复。启动器
 dsh-ui.json                      官方版本、补丁校验值、Node 和 pnpm 版本、插件清单
 patches/dsh-ui.patch             从官方 22ddee37 到 DSH-UI 的全部改动
 scripts/install.sh               安装脚本（macOS、Linux）
-scripts/install.ps1              安装脚本（Windows，未实测）
+scripts/install.ps1              安装脚本（Windows，完整构建尚未验收）
 scripts/plugins.mjs              插件检测与安装，两个安装脚本共用
 scripts/launch.sh、launch.ps1    启动器模板，安装时复制到安装目录
 tests/installers.py              不联网的安装、续装、故障恢复与启动参数回归测试

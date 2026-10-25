@@ -43,7 +43,8 @@ function Invoke-Checked([string]$What, [scriptblock]$Block) {
 function Get-Sha256([string]$Path) { (Get-FileHash -Algorithm SHA256 -Path $Path).Hash.ToLower() }
 function Publish-Config([string]$TemporaryPath, [string]$DestinationPath) {
   if ([IO.File]::Exists($DestinationPath)) {
-    [IO.File]::Replace($TemporaryPath, $DestinationPath, $null)
+    # A CLR null string avoids PowerShell converting $null into an empty backup path.
+    [IO.File]::Replace($TemporaryPath, $DestinationPath, [NullString]::Value)
   } else {
     [IO.File]::Move($TemporaryPath, $DestinationPath)
   }

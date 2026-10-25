@@ -61,7 +61,7 @@ python3 tests/installers.py
 bash -n scripts/install.sh scripts/launch.sh
 ```
 
-Windows 使用 `tests/windows-prepare.ps1` 检查真实私有运行时准备、数据隔离、准备后续装、部分运行时恢复和启动参数转发。持续集成在 Windows 运行该脚本；Bash 夹具在 Linux 和 macOS 运行。
+Windows 使用 `tests/windows-prepare.ps1` 检查真实私有运行时准备、数据隔离、准备后续装、部分运行时恢复和启动参数转发。持续集成在 Windows PowerShell 5.1 和 PowerShell 7 分别运行该脚本，包含已有数据备份的解包及逐字节核对；Bash 夹具在 Linux 和 macOS 运行。
 
 源码检查使用还原后的独立目录：冻结锁文件安装、完整构建及宿主／客户端类型检查、界面回归、对应宿主服务测试、无密钥会话重放，以及 Chromium／WebKit 浏览器检查。工作流先执行会修改工作区的两个浏览器用例，再并行执行本轮涉及的 25 个浏览器测试文件；完整上游浏览器测试集不作为本次已通过的证明。本地两项串行用例共 7 项通过，25 文件的并行组共 164 项通过；其中一处旧模型资料区预期核对后单独重验 2 项，其余结果复用。合计 27 个文件、171 项通过，包含 Chromium 与 WebKit 的推理选择器验证。
 

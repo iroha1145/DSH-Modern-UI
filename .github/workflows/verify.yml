@@ -42,6 +42,10 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: ./tests/windows-prepare.ps1
+      - name: Windows PowerShell 5.1 preparation and recovery
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: ./tests/windows-prepare.ps1
 
   source:
     runs-on: ubuntu-latest

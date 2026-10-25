@@ -29,7 +29,19 @@ try {
 
   $custom = Join-Path $scratch 'custom install'
   $data = Join-Path $scratch 'research data'
+  New-Item -ItemType Directory -Path $data | Out-Null
+  $importedSession = Join-Path $data 'original-session.jsonl'
+  Set-Content -Path $importedSession -Value '{"fixture":"imported-original"}'
+  $importedHash = (Get-FileHash $importedSession).Hash
   Prepare -InstallerArgs @('-Dir', $custom, '-DshHome', $data, '-DshProfile', 'research')
+  $backups = @(Get-ChildItem -Path (Join-Path $custom 'data-backups/*/data.tar.gz'))
+  Assert-True ($backups.Count -eq 1) 'The existing data home was not backed up.'
+  $restored = Join-Path $scratch 'restored backup'
+  New-Item -ItemType Directory -Path $restored | Out-Null
+  & tar -xzf ($backups[0].FullName) -C $restored
+  Assert-True ($LASTEXITCODE -eq 0) 'The data backup could not be extracted.'
+  Assert-True ((Get-FileHash (Join-Path $restored 'original-session.jsonl')).Hash -eq $importedHash) 'The data backup changed session bytes.'
+  Assert-True ((Get-FileHash $importedSession).Hash -eq $importedHash) 'The imported original changed.'
   Prepare -InstallerArgs @('-Dir', $custom)
   $intent = Get-Content -Raw (Join-Path $custom 'install.json') | ConvertFrom-Json
   Assert-True ($intent.home -eq $data -and $intent.profile -eq 'research') 'Continuation lost the selected home/profile.'
@@ -65,7 +77,7 @@ try {
     Assert-True (($captured.args | ConvertTo-Json -Compress) -eq ($case.Expected | ConvertTo-Json -Compress)) 'The launcher changed CLI arguments.'
     Assert-True ($captured.home -eq $data) 'The launcher changed the selected data home.'
   }
-  Write-Host 'Windows preparation: isolation, resume, partial-runtime recovery and CLI forwarding passed.'
+  Write-Host 'Windows preparation: isolation, data backup, resume, partial-runtime recovery and CLI forwarding passed.'
 } finally {
   if ($null -eq $oldHome) { Remove-Item Env:DSH_HOME -ErrorAction SilentlyContinue } else { $env:DSH_HOME = $oldHome }
   Remove-Item -Recurse -Force $scratch -ErrorAction SilentlyContinue
