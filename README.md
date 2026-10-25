@@ -7,9 +7,11 @@ DSH-UI 是 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)�
 ## 改了什么
 
 - **模型选择器**：输入框里的模型卡片显示厂商的黑白图标（对不上时显示首字母，可以在设置里改），按模型显示它支持的推理等级，并列出速度、质量、成本和 models.dev 上的价格。
+- **模型设置**：内置提供商上出现了比内置模型表更新的模型（例如 Kimi K3.1 Pro）时，可以在设置里为它声明推理等级。
 - **编队页**：会话标签栏新增「编队」，用树状图显示子智能体的状态、模型、用量和耗时。
-- **回答**：思考过程可以折叠，来源显示为编号标签，末尾有相关问题，可以开关网页搜索，回答里的交互组件显示正常。交互组件里的链接要在页面上点确认才会打开，超过高度上限的组件可以在内部滚动。
+- **回答**：思考过程可以折叠，来源显示为编号标签，末尾有相关问题，可以开关网页搜索（开关时对话里不会多出记录行），回答里的交互组件显示正常。交互组件里的链接要在页面上点确认才会打开，超过高度上限的组件可以在内部滚动。
 - **输入框**：下方的读数垫了一层毛玻璃，经过的正文不会和它叠在一起。
+- **图标**：工具调用的图标换成了扳手。鼠标悬停或用键盘选中按钮时，按钮上的图标会动一下，动作参照 [lucide-animated](https://lucide-animated.com)：对勾逐笔描出，复制的两张纸错开，垃圾桶盖抬起，齿轮转半圈。系统开了「减少动态效果」时图标不动。
 - **排版**：按 [TypeUI](https://www.typeui.sh/) 的规则调整了行高、换行、阅读宽度、等宽数字和间距。回答正文每行最多 65 个字符宽（约 41 个汉字），行高 1.6；代码块和表格仍占满整栏。字族、字号、字重都没有改。
 - 以及之前的一批界面修复。
 
@@ -135,21 +137,26 @@ overlays/context-fleet-tab.yml   启动时叠加的配置，隐藏 dsh-context �
 - 中断后接着装、另一个版本已装好、目录不是安装器建的、重跑时沿用上次的数据目录，这几条分支都按说明工作。
 - 启动器（包括通过符号链接调用）能启动 DSH，三个插件都加载，dsh-context 的编队标签被隐藏。
 - 2026 年 10 月 25 日做过一轮前端审查，查出的 8 个问题修好了 7 个，修复后的前端测试和浏览器测试都通过。
+- 2026 年 10 月 26 日，推理等级和联网开关的改动又做了一轮独立审查。查出的 6 个问题里，5 个改了代码；另 1 个是手动输入的 `/web on`、`/web off` 也不再留下记录行，保留了这个行为并写进文档。改完后前端测试 12131 项全部通过。
+- 全部 98 个图标的悬停动画在运行中的页面上逐帧截图核对过，只在 Chromium 里看过。
 
 没有验证过：
 
 - 在一台全新的机器上从零完整安装里「装依赖并构建」这一步。作者机器磁盘空间不够，这一步是在内容相同、已有依赖的源码树上验证的，构建和测试都通过。
 - Linux，以及 Windows 脚本（只做过代码审查，没有运行过）。
+- 图标动画在 Safari 和 Firefox 里的表现。
 
 已知问题：在设置里保存模型资料时，DSH 会把这个模型配置的整段基础资料一起写进你的配置文件。之后基础资料再改动，这个模型不会跟着变。这是 DSH 配置编辑器原有的写法，这一版还没有改。
 
+另外，官方的浏览器测试（`apps/web` 里的 e2e）在这个改版上有一批不通过。抽查的 9 个测试文件里有 40 项失败，在本轮改动之前的源码上一项不差地同样失败：一部分是界面改版后测试里记下的页面结构和样式数值没有跟着更新，一部分需要本机没装的 WebKit，其余超时的原因还没有逐项查清。
+
 ## 许可证
 
-MIT，见 [LICENSE](LICENSE)。DeepSeek Harness 本身也是 MIT 许可证，版权归 DeepSeek。补丁里带的 Lobe Icons 图标是 MIT 许可证，说明在补丁新增的 `THIRD_PARTY_NOTICES.md` 和 `licenses/` 里。三个社区插件由各自作者发布，许可证以它们的仓库为准。
+MIT，见 [LICENSE](LICENSE)。DeepSeek Harness 本身也是 MIT 许可证，版权归 DeepSeek。补丁里带的 Lobe Icons 图标是 MIT 许可证，说明在补丁新增的 `THIRD_PARTY_NOTICES.md` 和 `licenses/` 里。图标动画参照 lucide-animated（MIT）的动作设计，用 CSS 重新实现，没有复制它的代码。三个社区插件由各自作者发布，许可证以它们的仓库为准。
 
 ## English
 
-DSH-UI is a UI rework of [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness), shipped as one patch against the official commit `22ddee37` (0.2.1-rc.3). The installer downloads that source, applies `patches/dsh-ui.patch`, runs `pnpm install --frozen-lockfile` and `pnpm run build`, installs three community plugins (dsh-context, dsh-better-sidebar, dsh-plugins-store) at tested versions, and writes a launcher.
+DSH-UI is a UI rework of [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness), shipped as one patch against the official commit `22ddee37` (0.2.1-rc.3). The installer downloads that source, applies `patches/dsh-ui.patch`, runs `pnpm install --frozen-lockfile` and `pnpm run build`, installs three community plugins (dsh-context, dsh-better-sidebar, dsh-plugins-store) at tested versions, and writes a launcher. Among the UI changes, tool calls show a wrench, and product icons play a short hover motion modeled on lucide-animated unless reduced motion is on.
 
 ```bash
 git clone https://github.com/iroha1145/DSH-Modern-UI.git && cd DSH-Modern-UI && ./scripts/install.sh
