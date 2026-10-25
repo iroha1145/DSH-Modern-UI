@@ -5,12 +5,12 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 class Installer(unittest.TestCase):
  def setUp(self):
   self.tmp=tempfile.TemporaryDirectory(); self.base=pathlib.Path(self.tmp.name)
-  self.repo=self.base/'repo'; shutil.copytree(ROOT/'scripts',self.repo/'scripts')
+  self.repo=self.base/'repo'; shutil.copytree(ROOT/'scripts',self.repo/'scripts'); self.commit='a'*40
   self.install=self.base/'install'; self.home=self.base/'user'; self.home.mkdir()
   self.bin=self.base/'bin'; self.bin.mkdir(); self.download=self.base/'download'; self.download.mkdir()
   patch=b'diff --git a/example b/example\n--- a/example\n+++ b/example\n@@ -1 +1 @@\n-old\n+new\n'
   (self.repo/'patch').write_bytes(patch)
-  (self.repo/'dsh-ui.json').write_text(json.dumps({'commit':'abc','tarball':'fixture/source.tar.gz','file':'patch','sha256':hashlib.sha256(patch).hexdigest(),'runtime':'24.13.0','pnpm':'11.28.5','profile':'web'},indent=2))
+  (self.repo/'dsh-ui.json').write_text(json.dumps({'commit':self.commit,'tarball':'fixture/source.tar.gz','file':'patch','sha256':hashlib.sha256(patch).hexdigest(),'runtime':'24.13.0','pnpm':'11.28.5','profile':'web'},indent=2))
   source=self.base/'source'; source.mkdir(); (source/'example').write_text('old\n')
   self.archive(source,self.download/'source.tar.gz')
   manifest=json.loads((self.repo/'dsh-ui.json').read_text())
@@ -35,6 +35,10 @@ cp "$FAKE_PNPM" "$3/node_modules/.bin/pnpm"
 if [ "$1" = -v ]; then echo 11.28.5; exit; fi
 if [ "$1" = install ] && [ "$FAIL_INSTALL" = yes ]; then exit 23; fi
 if [ "$1" = run ] && [ "$FAIL_BUILD" = yes ]; then exit 24; fi
+if [ "$1" = run ]; then
+ test ! -e .git && test "$DSH_CLIENT_COMMIT_HASH" = "$EXPECTED_COMMIT" || exit 25
+ printf '%s' "$DSH_CLIENT_COMMIT_HASH" > "$CAPTURE_BUILD_METADATA"
+fi
 ''')
   system=subprocess.check_output(['uname','-s'],text=True).strip().lower(); arch=subprocess.check_output(['uname','-m'],text=True).strip(); arch='arm64' if arch in ('arm64','aarch64') else 'x64'
   self.node_name=f'node-v24.13.0-{system}-{arch}.tar.gz'; self.archive(self.node,self.download/self.node_name)
@@ -45,7 +49,7 @@ while [ $# -gt 0 ]; do case "$1" in -o) out="$2"; shift 2;; --retry) shift 2;; -
 file="$DOWNLOAD/${url##*/}"
 if [ -n "$out" ]; then cp "$file" "$out"; else cat "$file"; fi
 ''')
-  self.env={**os.environ,'HOME':str(self.home),'DSH_HOME':str(self.base/'official'),'PATH':str(self.bin)+':'+os.environ['PATH'],'DOWNLOAD':str(self.download),'FAKE_PNPM':str(self.bin/'fake-pnpm'),'CAPTURE':str(self.base/'argv'),'DSH_UI_NODE_MIRROR':'fixture'}
+  self.env={**os.environ,'HOME':str(self.home),'DSH_HOME':str(self.base/'official'),'PATH':str(self.bin)+':'+os.environ['PATH'],'DOWNLOAD':str(self.download),'FAKE_PNPM':str(self.bin/'fake-pnpm'),'CAPTURE':str(self.base/'argv'),'DSH_UI_NODE_MIRROR':'fixture','EXPECTED_COMMIT':self.commit,'CAPTURE_BUILD_METADATA':str(self.base/'build-commit')}
  def tearDown(self): self.tmp.cleanup()
  def executable(self,p,s): p.write_text(s); p.chmod(0o755)
  def archive(self,p,d):
@@ -66,6 +70,9 @@ if [ -n "$out" ]; then cp "$file" "$out"; else cat "$file"; fi
  def test_rejects_install_directory_as_data_home(self):
   self.run_install('--home',str(self.install),ok=False)
   self.assertFalse((self.install/'install.conf').exists())
+ def test_archive_build_uses_pinned_commit(self):
+  self.run_install(DSH_CLIENT_COMMIT_HASH='b'*40)
+  self.assertEqual((self.base/'build-commit').read_text(),self.commit)
  def test_default_isolation_backup_and_argv(self):
   self.run_install(); self.assertFalse((self.base/'official').exists()); self.assertIn(str(self.install/'data'),(self.install/'launch.conf').read_text())
   data=self.base/'shared'; data.mkdir(); (data/'session').write_text('old')
@@ -93,7 +100,7 @@ if [ -n "$out" ]; then cp "$file" "$out"; else cat "$file"; fi
   archive=self.download/'source.tar.gz'; valid=archive.read_bytes(); archive.write_bytes(b'corrupt')
   self.run_install('--prepare-only',ok=False)
   self.assertFalse((self.install/'dsh').exists())
-  self.assertFalse((self.install/'upstream-abc.tar.gz').exists())
+  self.assertFalse((self.install/f'upstream-{self.commit}.tar.gz').exists())
   archive.write_bytes(valid); self.run_install('--prepare-only')
   self.assertEqual((self.install/'dsh/example').read_text(),'new\n')
 if __name__=='__main__': unittest.main(verbosity=2)

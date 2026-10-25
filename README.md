@@ -58,7 +58,7 @@ powershell -ExecutionPolicy Bypass -File scripts\install.ps1
 
 1. 准备私有的 Node 24.13 和 pnpm 11.28.5（已经有了就跳过）。
 2. 从 GitHub 下载官方源码包，打上 `patches/dsh-ui.patch`。源码包和补丁分别核对清单中的 SHA-256；自定义镜像也必须提供相同字节。在 macOS 和 Linux 上，有 git 时还会核对源码包对应的提交。
-3. 用 `pnpm install --frozen-lockfile` 装依赖，再运行 `pnpm run build`。
+3. 用 `pnpm install --frozen-lockfile` 装依赖，再运行 `pnpm run build`。源码包没有 Git 历史，安装器会通过 `DSH_CLIENT_COMMIT_HASH` 提供清单中的官方基线提交；完整改版由同一清单中的补丁摘要标识。
 4. 在安装目录里放启动器 `dsh-ui`，记下数据目录和配置名。
 5. 安装社区插件，已经装过的跳过（规则见下）。插件这一步出错时，启动器已经在了。
 

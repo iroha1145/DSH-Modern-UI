@@ -248,12 +248,20 @@ if (-not $Force -and $state -eq "done $stamp") {
   }
   Set-Content -Path $stateFile -Value "building $stamp"
   Write-Host '安装依赖并构建（第一次要几分钟）…'
+  $previousClientCommit = $env:DSH_CLIENT_COMMIT_HASH
+  $previousBuildGitCeiling = $env:GIT_CEILING_DIRECTORIES
   Push-Location $dsh
   try {
     $env:LEFTHOOK = '0'
     Invoke-Checked 'pnpm install' { & $pnpmCmd install --frozen-lockfile }
+    $env:DSH_CLIENT_COMMIT_HASH = $commit
+    $env:GIT_CEILING_DIRECTORIES = $Dir
     Invoke-Checked 'pnpm run build' { & $pnpmCmd run build }
   } finally {
+    if ($null -eq $previousClientCommit) { Remove-Item Env:DSH_CLIENT_COMMIT_HASH -ErrorAction SilentlyContinue }
+    else { $env:DSH_CLIENT_COMMIT_HASH = $previousClientCommit }
+    if ($null -eq $previousBuildGitCeiling) { Remove-Item Env:GIT_CEILING_DIRECTORIES -ErrorAction SilentlyContinue }
+    else { $env:GIT_CEILING_DIRECTORIES = $previousBuildGitCeiling }
     Remove-Item Env:LEFTHOOK -ErrorAction SilentlyContinue
     Pop-Location
   }

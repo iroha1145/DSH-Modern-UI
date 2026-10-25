@@ -43,7 +43,10 @@ test('checks actual applied files and rejects a missing or altered patch', () =>
   mkdirSync(source)
   writeFileSync(resolve(source, 'example'), 'old\n')
   assert.throws(() => verifyRelease(root, source))
-  execFileSync('git', ['apply', resolve(root, 'patch')], { cwd: source, env: { ...process.env, GIT_CEILING_DIRECTORIES: root } })
+  execFileSync('git', ['-c', 'core.autocrlf=false', '-c', 'core.eol=lf', 'apply', resolve(root, 'patch')], {
+    cwd: source, env: { ...process.env, GIT_CEILING_DIRECTORIES: root },
+  })
+  assert.equal(readFileSync(resolve(source, 'example'), 'utf8'), 'new\n')
   assert.equal(verifyRelease(root, source).appliedSource, source)
   writeFileSync(resolve(source, 'example'), 'changed\n')
   assert.throws(() => verifyRelease(root, source))

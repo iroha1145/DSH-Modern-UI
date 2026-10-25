@@ -65,8 +65,11 @@ jobs:
           cd "$DSH_INSTALL/dsh"
           pnpm install --frozen-lockfile
           pnpm audit --prod
-      - name: Compile artifacts and aggregate types
-        run: cd "$DSH_INSTALL/dsh" && pnpm run build
+      - name: Complete installation and compile artifacts and aggregate types
+        run: |
+          bash scripts/install.sh --dir "$DSH_INSTALL" --skip-plugins
+          "$DSH_INSTALL/dsh-ui" web --dump-default-config > "$RUNNER_TEMP/dsh-default-config.yml"
+          test -s "$RUNNER_TEMP/dsh-default-config.yml"
       - name: GUI, recovery and network regressions
         run: |
           cd "$DSH_INSTALL/dsh"

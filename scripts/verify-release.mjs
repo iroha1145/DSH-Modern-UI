@@ -27,7 +27,7 @@ export function verifyRelease(root, appliedSource) {
   }
   if (appliedSource !== undefined) {
     const source = resolve(appliedSource)
-    execFileSync('git', ['-c', 'core.autocrlf=false', 'apply', '--reverse', '--check', '--whitespace=nowarn', patch], {
+    execFileSync('git', ['-c', 'core.autocrlf=false', '-c', 'core.eol=lf', 'apply', '--reverse', '--check', '--whitespace=nowarn', patch], {
       cwd: source,
       env: { ...process.env, GIT_CEILING_DIRECTORIES: dirname(source) },
       stdio: ['ignore', 'pipe', 'pipe'],

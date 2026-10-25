@@ -276,7 +276,8 @@ else
   printf 'building %s\n' "$STAMP" > "$STATE_FILE"
   say "安装依赖并构建（第一次要几分钟）…"
   # lefthook's install hook needs a git checkout; this tree is a plain download.
-  (cd "$DSH" && LEFTHOOK=0 pnpm install --frozen-lockfile && pnpm run build)
+  (cd "$DSH" && LEFTHOOK=0 pnpm install --frozen-lockfile \
+    && GIT_CEILING_DIRECTORIES="$DIR" DSH_CLIENT_COMMIT_HASH="$COMMIT" pnpm run build)
   printf 'done %s\n' "$STAMP" > "$STATE_FILE"
 fi
 
