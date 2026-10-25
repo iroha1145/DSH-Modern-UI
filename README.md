@@ -52,12 +52,12 @@ powershell -ExecutionPolicy Bypass -File scripts\install.ps1
 ~/.dsh-ui/dsh-ui
 ```
 
-它会打印一个带 token 的本机地址，用浏览器打开即可。后面加的参数会交给 DSH 命令行，比如 `~/.dsh-ui/dsh-ui web --port 3090`；启动器只会在配置名后面插入一个隐藏编队标签的叠加层（见下文）。DSH 在你的主目录里运行，参数里的相对路径从主目录算起。
+它会打印一个带 token 的本机地址，用浏览器打开即可。后面加的参数会交给 DSH 命令行，比如 `~/.dsh-ui/dsh-ui web --port 3090`，启动器不添加配置覆盖参数。DSH 在你的主目录里运行，参数里的相对路径从主目录算起。
 
 ### 安装脚本做了什么
 
 1. 准备私有的 Node 24.13 和 pnpm 11.28.5（已经有了就跳过）。
-2. 从 GitHub 下载官方源码包，打上 `patches/dsh-ui.patch`。打补丁前会核对补丁文件的校验值；在 macOS 和 Linux 上，有 git 时还会核对源码包对应的提交。
+2. 从 GitHub 下载官方源码包，打上 `patches/dsh-ui.patch`。源码包和补丁分别核对清单中的 SHA-256；自定义镜像也必须提供相同字节。在 macOS 和 Linux 上，有 git 时还会核对源码包对应的提交。
 3. 用 `pnpm install --frozen-lockfile` 装依赖，再运行 `pnpm run build`。
 4. 在安装目录里放启动器 `dsh-ui`，记下数据目录和配置名。
 5. 安装社区插件，已经装过的跳过（规则见下）。插件这一步出错时，启动器已经在了。
@@ -69,7 +69,7 @@ powershell -ExecutionPolicy Bypass -File scripts\install.ps1
 | 选项 | 说明 |
 |---|---|
 | `--dir <目录>` | 安装目录，默认 `~/.dsh-ui` |
-| `--home <目录>` | DSH 数据目录（`DSH_HOME`）。默认沿用上次安装记下的；第一次安装用 `$DSH_HOME`，没有则 `~/.dsh` |
+| `--home <目录>` | DSH 数据目录（`DSH_HOME`）。默认沿用上次安装记下的；首次安装用 `<安装目录>/data`，忽略环境变量 `$DSH_HOME`；已有数据会先备份 |
 | `--profile <名称>` | 插件装进哪个配置。默认沿用上次的；第一次安装用 `web` |
 | `--skip-plugins` | 不装社区插件 |
 | `--prepare-only` | 只准备 Node、pnpm，下载源码并打补丁，不装依赖、不构建；再运行一次脚本会接着装 |
@@ -99,20 +99,42 @@ powershell -ExecutionPolicy Bypass -File scripts\install.ps1
 只想看看现在装了什么，可以运行：
 
 ```bash
-node scripts/plugins.mjs --check --home ~/.dsh
+node scripts/plugins.mjs --check --home ~/.dsh-ui/data
 ```
 
-dsh-context 自带一个编队标签，和 DSH-UI 的编队页重复。启动器在 dsh-context 装着时会叠加 `overlays/context-fleet-tab.yml` 把它隐藏，不改你的配置文件。想保留它，启动前设置 `DSH_UI_CONTEXT_FLEET_TAB=show`。
+dsh-context 自带一个编队标签，和 DSH-UI 的编队页重复。启动器不再注入 `context-fleet-tab.yml` 或强制隐藏标签，提示词、历史窗口及其他插件设置保持原值。需要隐藏重复标签时，通过 dsh-context 自身的 `fleetTab` 设置选择 `hide`。
 
-## 数据目录
+## 数据目录与回退
 
-默认和官方 DSH 共用 `~/.dsh`，会话、设置和插件都在这里。如果你同时还在用其他版本的 DSH，建议用 `--home` 给 DSH-UI 单独指定一个目录。启动器总是用安装时记下的数据目录，不受环境变量 `DSH_HOME` 影响；要换目录，带上新的 `--home` 重跑安装脚本。
+首次安装默认使用 `<安装目录>/data`（通常是 `~/.dsh-ui/data`），不会读取环境变量 `DSH_HOME` 指向的官方数据。已有安装继续使用记录的数据目录。启动器始终使用安装记录的目录。
+
+**会话不是双向兼容的。** DSH-UI 写入的 `web/search` 是必须识别的事件，记录联网开关的语义。固定的官方 0.2.1-rc.3 无法打开包含该事件的会话；不能通过删除事件或把它改成可忽略事件来回退，否则可能丢失关闭联网的意图。
+
+- 全新使用：按默认选项安装，官方 `~/.dsh` 保持独立。
+- 导入官方数据：停止所有使用原目录的 DSH，先把原目录完整复制到一个**不存在的、独立的新目录**，再用 `--home <新目录>` 安装（Windows 为 `-DshHome <新目录>`）。不要把副本放进原目录内部，不要合并覆盖已有目录。原目录保留作回退副本；导入后的两套数据独立演进。
+- 明确共用：停止使用该目录的所有 DSH 后，传 `--home ~/.dsh`（Windows 为 `-DshHome "$HOME\.dsh"`）。安装器在首次使用或显式指定已有非空目录时，先生成 `<安装目录>/data-backups/home-*/data.tar.gz`，并打印准确路径。请保留该备份；只有备份完成后才保存安装意图和继续安装。安装期间及备份期间不能有其他进程写入该目录。不要给 `--home` 传整个用户主目录或包含安装目录的父目录。
+
+实际兼容夹具位于还原源码的 `packages/session/session-persistence/tests/modern-ui-compatibility.spec.ts`；它使用固定官方版本的真实校验器与事件类型表，不改动全局注册表。
+
+| 数据 | 官方 0.2.1-rc.3 读取 | DSH-UI 读取 |
+|---|---|---|
+| 官方会话事件 | 通过 | 通过 |
+| 含必需 `web/search` 的会话 | 明确拒绝 | 通过 |
+| 导入后保留的原件、写入新事件前的备份 | 通过，内容未变 | 通过 |
+
+该夹具验证会话事件校验与文件复制隔离，不代表真实用户数据库的所有历史版本均可迁移。
+
+回退时，先停止所有使用目标目录的 DSH，保留当前数据另作副本，把安装前备份解压到一个空的新目录，然后让原版 DSH 使用这个新目录。不要直接覆盖当前数据。回退副本只包含备份时的数据，之后在 DSH-UI 中新增或修改的会话不会自动合并回去。
+
+安装意图在准备源码、下载运行时和构建之前写入 `install.conf`（Windows 为 `install.json`）。中断或 `--prepare-only` 后续装保留目录和配置名；显式参数优先。已有的 `launch.conf` / `launch.json` 只在构建成功后更新，因此未完成的安装不会提前切换启动参数。这不保证失败升级后的源码仍可启动：`--force` 会先把旧源码移至 `dsh.old-*`，构建失败后应续装，或停止程序后恢复保留的旧源码目录。
+
+运行时先解压到独立临时目录，核验 Node、npm、完成标记以及 macOS/Linux 构建需要的头文件后才切换。下载或解压失败时原运行时仍保留；重跑可修复缺文件的安装。Windows 的原生构建跳过此平台，不额外下载未使用的头文件。
 
 ## 更新和卸载
 
 更新：拉取本仓库的新版本后再运行一次安装脚本。版本变了时脚本会提示加 `--force`，旧目录会改名保留，确认没问题后可以删掉。
 
-卸载：删掉安装目录 `~/.dsh-ui`。插件留在数据目录的配置里，要移除可以运行 `~/.dsh-ui/dsh-ui plugin --profile web remove <插件名>`（先移除插件，再删安装目录）。
+卸载前先把要保留的数据和 `data-backups` 移到安装目录外；默认数据也在 `~/.dsh-ui` 内，删除安装目录会一并删除它们。使用外部数据目录时，插件留在该目录的配置里，要移除可以运行 `~/.dsh-ui/dsh-ui plugin --profile web remove <插件名>`（先移除插件，再删安装目录）。
 
 ## 仓库结构
 
@@ -123,32 +145,18 @@ scripts/install.sh               安装脚本（macOS、Linux）
 scripts/install.ps1              安装脚本（Windows，未实测）
 scripts/plugins.mjs              插件检测与安装，两个安装脚本共用
 scripts/launch.sh、launch.ps1    启动器模板，安装时复制到安装目录
-overlays/context-fleet-tab.yml   启动时叠加的配置，隐藏 dsh-context 的编队标签
+tests/installers.py              不联网的安装、续装、故障恢复与启动参数回归测试
 ```
 
 ## 验证情况
 
-在 macOS（Apple 芯片）上验证过：
+审计条目、翻译修复、验证方法和上游依赖限制见 [审计修复与验收](docs/audit-remediation.md)。
 
-- 在中文和英文 UTF-8 终端里、只用系统自带工具，脚本能下载官方 Node 和 pnpm，下载源码包并打上补丁；结果和作者正在运行的源码逐字节一致。
-- 用这个私有 Node 能编译构建里的原生模块。
-- pnpm 11.28.5 按打完补丁的依赖重新解析，锁文件没有任何变化，并通过它的供应链检查。
-- 在全新的数据目录里，脚本能初始化配置并装上三个插件；再运行一次三个都跳过，配置文件不变。装了别的版本、声明了但缺文件这两种情况只提示、不动它们；pnpm 仓库对不上时，在调用 pnpm 之前停下。
-- 中断后接着装、另一个版本已装好、目录不是安装器建的、重跑时沿用上次的数据目录，这几条分支都按说明工作。
-- 启动器（包括通过符号链接调用）能启动 DSH，三个插件都加载，dsh-context 的编队标签被隐藏。
-- 2026 年 10 月 25 日做过一轮前端审查，查出的 8 个问题修好了 7 个，修复后的前端测试和浏览器测试都通过。
-- 2026 年 10 月 26 日，推理等级和联网开关的改动又做了一轮独立审查。查出的 6 个问题里，5 个改了代码；另 1 个是手动输入的 `/web on`、`/web off` 也不再留下记录行，保留了这个行为并写进文档。改完后前端测试 12131 项全部通过。
-- 全部 98 个图标的悬停动画在运行中的页面上逐帧截图核对过，只在 Chromium 里看过。
+本轮在独立源码目录和隔离依赖仓库中验证指定 Node / pnpm 的依赖安装、原生模块、完整构建及宿主与客户端类型检查。界面测试覆盖配置保存、并发编辑、会话与控件行为；联网开关另有真实服务恢复和无密钥会话重放。翻译回归使用本地端点和受控模型流，检查空白译文、重试、缓存及窄屏显示，不调用付费模型。
 
-没有验证过：
+发行仓库提供摘要检查、安装中断与续装夹具，并在持续集成中运行 Linux、macOS 和 Windows 检查。浏览器检查使用 Chromium 与 WebKit；会改动工作区的两个用例先单独运行，再并行执行本轮涉及的 25 个测试文件。完整上游浏览器测试集的已知失败另记在验收说明中。具体通过结果应以对应提交的检查记录为准。
 
-- 在一台全新的机器上从零完整安装里「装依赖并构建」这一步。作者机器磁盘空间不够，这一步是在内容相同、已有依赖的源码树上验证的，构建和测试都通过。
-- Linux，以及 Windows 脚本（只做过代码审查，没有运行过）。
-- 图标动画在 Safari 和 Firefox 里的表现。
-
-已知问题：在设置里保存模型资料时，DSH 会把这个模型配置的整段基础资料一起写进你的配置文件。之后基础资料再改动，这个模型不会跟着变。这是 DSH 配置编辑器原有的写法，这一版还没有改。
-
-另外，官方的浏览器测试（`apps/web` 里的 e2e）在这个改版上有一批不通过。抽查的 9 个测试文件里有 40 项失败，在本轮改动之前的源码上一项不差地同样失败：一部分是界面改版后测试里记下的页面结构和样式数值没有跟着更新，一部分需要本机没装的 WebKit，其余超时的原因还没有逐项查清。
+数据兼容夹具验证官方事件可读、新增必需事件被旧版明确拒绝，以及原件与备份保留；它不代表所有历史数据库都已验证迁移。原生桌面版本的 Electron 兼容性和未发布修复的构建依赖告警单独记录，不把浏览器版验收扩大为桌面安全认证。
 
 ## 许可证
 
@@ -163,4 +171,11 @@ git clone https://github.com/iroha1145/DSH-Modern-UI.git && cd DSH-Modern-UI && 
 ~/.dsh-ui/dsh-ui
 ```
 
-Plugins already present in the profile are skipped. A different installed version, or one declared without its files, is reported and left alone. When something has to be installed, the installer first stops if the profile's `node_modules` was linked from another pnpm store. Re-running is safe: an interrupted install resumes, a finished one is not rebuilt, and the recorded data directory and profile are kept. Node does not need to be preinstalled: the installer fetches the official Node 24.13 release (checked against its SHASUMS256.txt) and pnpm 11.28.5 into the install directory. It needs curl, tar, git or patch, a C compiler (Xcode Command Line Tools or build-essential), glibc on Linux, and about 3 GB of disk. Tested on macOS (Apple silicon) except the dependency install and build of a from-scratch run; Linux and the Windows script are untested.
+Plugins already present in the profile are skipped. A different installed version, or one declared without its files, is reported and left alone. When something has to be installed, the installer first stops if the profile's `node_modules` was linked from another pnpm store. Re-running is safe: an interrupted install resumes, a finished one is not rebuilt, and the recorded data directory and profile are kept. Node does not need to be preinstalled: the installer fetches the official Node 24.13 release (checked against its SHASUMS256.txt) and pnpm 11.28.5 into the install directory. It needs curl, tar, git or patch, a C compiler (Xcode Command Line Tools or build-essential), glibc on Linux, and about 3 GB of disk. The reconstructed source and isolated dependency store are checked on macOS (Apple silicon). CI runs the POSIX installer fixtures on Linux/macOS and real pinned-runtime preparation, resume and launcher checks on Windows; check the results for the exact commit. The browser release does not certify the native Electron application.
+
+
+### Installer regression fixtures
+
+Run `python3 tests/installers.py`. These tests execute the real Bash scripts with isolated homes, real tar extraction and patch application, and fake downloads/Node/pnpm subprocesses. They cover preparation and failed dependency/build retries, explicit overrides, active versus desired settings, fresh default isolation, backup contents, partial runtimes, corrupt archives, interrupted runtime switching, and CLI argument preservation. They do not certify a full cold build or Windows execution. Windows changes require a Windows runner; the Bash fixture does not substitute for that check.
+
+Fresh installs use `<install-dir>/data`, ignoring ambient `DSH_HOME`. Use `--home` / `-DshHome` explicitly to share or import data. Stop every writer before copying or backing up a data home. The installer snapshots existing nonempty data before first mutation; retain the printed `data-backups` archive. Stock 0.2.1-rc.3 cannot read sessions containing required `web/search` events. For rollback, restore the pre-install snapshot into a new empty directory and point stock DSH there; post-snapshot changes remain only in the modern copy. Default data and backups live inside the install directory: preserve them before uninstalling.

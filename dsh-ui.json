@@ -4,11 +4,12 @@
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
     "version": "0.2.1-rc.3",
     "commit": "22ddee3792402c3e70ec5f86a63c3e3e895a2f60",
-    "tarball": "https://codeload.github.com/deepseek-ai/deepseek-harness/tar.gz/22ddee3792402c3e70ec5f86a63c3e3e895a2f60"
+    "tarball": "https://codeload.github.com/deepseek-ai/deepseek-harness/tar.gz/22ddee3792402c3e70ec5f86a63c3e3e895a2f60",
+    "tarballSha256": "aac1a309de68ada068d9658ac173caabcfb3ed21e638bdf192f0abe37bb14d0b"
   },
   "patch": {
     "file": "patches/dsh-ui.patch",
-    "sha256": "c068e00b5c08c25c2efd8c54ba87ce5ce7f0578c904e998c184c267b490772cc"
+    "sha256": "3490b2fd6cb44596de3a68595f16405153a9fbfcc1a563465d77e74cc65e6f13"
   },
   "node": {
     "minimum": "24.9.0",
