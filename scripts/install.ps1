@@ -45,7 +45,7 @@ function Get-Sha256([string]$Path) { (Get-FileHash -Algorithm SHA256 -Path $Path
 # Run from a checkout of this repository; otherwise fetch it and run the fetched copy.
 $Root = if ($PSScriptRoot) { Split-Path -Parent $PSScriptRoot } else { '' }
 if (-not $Root -or -not (Test-Path (Join-Path $Root 'dsh-ui.json'))) {
-  $repoUrl = if ($env:DSH_UI_REPO_URL) { $env:DSH_UI_REPO_URL } else { 'https://codeload.github.com/iroha1145/DSH-UI/zip/main' }
+  $repoUrl = if ($env:DSH_UI_REPO_URL) { $env:DSH_UI_REPO_URL } else { 'https://codeload.github.com/iroha1145/DSH-Modern-UI/zip/main' }
   $fetched = Join-Path ([System.IO.Path]::GetTempPath()) ('dsh-ui-' + [guid]::NewGuid())
   New-Item -ItemType Directory -Path $fetched | Out-Null
   Write-Host '下载 DSH-UI 仓库 …'

@@ -43,7 +43,7 @@ if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
 fi
 if [ -z "$ROOT" ] || [ ! -f "$ROOT/dsh-ui.json" ]; then
   need curl; need tar
-  REPO_URL="${DSH_UI_REPO_URL:-https://codeload.github.com/iroha1145/DSH-UI/tar.gz/main}"
+  REPO_URL="${DSH_UI_REPO_URL:-https://codeload.github.com/iroha1145/DSH-Modern-UI/tar.gz/main}"
   FETCHED="$(mktemp -d)"
   trap 'rm -rf "$FETCHED"' EXIT
   say "下载 DSH-UI 仓库 …"

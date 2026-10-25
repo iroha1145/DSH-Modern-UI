@@ -27,15 +27,15 @@ DSH-UI 是 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)�
 不用预先装 Node.js：安装脚本会从 nodejs.org 下载官方的 Node 24.13，核对官方校验值后放进安装目录，再用它装 pnpm 11.28.5，不改动系统里的 Node。
 
 ```bash
-git clone https://github.com/iroha1145/DSH-UI.git
-cd DSH-UI
+git clone https://github.com/iroha1145/DSH-Modern-UI.git
+cd DSH-Modern-UI
 ./scripts/install.sh
 ```
 
 也可以不克隆，直接运行：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/iroha1145/DSH-UI/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/iroha1145/DSH-Modern-UI/main/scripts/install.sh | bash
 ```
 
 Windows（未实测）：
@@ -152,7 +152,7 @@ MIT，见 [LICENSE](LICENSE)。DeepSeek Harness 本身也是 MIT 许可证，版
 DSH-UI is a UI rework of [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness), shipped as one patch against the official commit `22ddee37` (0.2.1-rc.3). The installer downloads that source, applies `patches/dsh-ui.patch`, runs `pnpm install --frozen-lockfile` and `pnpm run build`, installs three community plugins (dsh-context, dsh-better-sidebar, dsh-plugins-store) at tested versions, and writes a launcher.
 
 ```bash
-git clone https://github.com/iroha1145/DSH-UI.git && cd DSH-UI && ./scripts/install.sh
+git clone https://github.com/iroha1145/DSH-Modern-UI.git && cd DSH-Modern-UI && ./scripts/install.sh
 ~/.dsh-ui/dsh-ui
 ```
 
