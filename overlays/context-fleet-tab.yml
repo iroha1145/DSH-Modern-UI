@@ -1,0 +1,7 @@
+# DSH-UI ships its own 编队 (agents) view. This overlay hides dsh-context's fleet tab so the two
+# don't show side by side. The launcher adds it only when dsh-context is installed; set
+# DSH_UI_CONTEXT_FLEET_TAB=show to keep the tab.
+- id: dsh-context
+  name: dsh-context
+  config:
+    fleetTab: hide

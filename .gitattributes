@@ -1,0 +1,8 @@
+# The patch is checked by its sha256 and applied byte for byte; never let git rewrite its line endings.
+*.patch -text
+*.sh text eol=lf
+*.mjs text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+*.ps1 text eol=crlf

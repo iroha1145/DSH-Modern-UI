@@ -1,0 +1,36 @@
+{
+  "name": "DSH-UI",
+  "upstream": {
+    "repository": "https://github.com/deepseek-ai/deepseek-harness",
+    "version": "0.2.1-rc.3",
+    "commit": "22ddee3792402c3e70ec5f86a63c3e3e895a2f60",
+    "tarball": "https://codeload.github.com/deepseek-ai/deepseek-harness/tar.gz/22ddee3792402c3e70ec5f86a63c3e3e895a2f60"
+  },
+  "patch": {
+    "file": "patches/dsh-ui.patch",
+    "sha256": "5c9813a08f1cec758ae1003c77440e5b59deee21e0069526f81027af58577622"
+  },
+  "node": {
+    "minimum": "24.9.0",
+    "runtime": "24.13.0"
+  },
+  "pnpm": "11.28.5",
+  "profile": "web",
+  "plugins": [
+    {
+      "name": "dsh-context",
+      "version": "0.75.1",
+      "repository": "https://github.com/bowenliang123/dsh-context"
+    },
+    {
+      "name": "dsh-better-sidebar",
+      "version": "0.28.0",
+      "repository": "https://github.com/omdsh-dev/DSH-better-sidebar"
+    },
+    {
+      "name": "dsh-plugins-store",
+      "version": "0.1.4",
+      "repository": "https://github.com/ZASENJC/dsh-plugins-store"
+    }
+  ]
+}
