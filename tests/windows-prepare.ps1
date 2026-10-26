@@ -243,7 +243,7 @@ try {
   $loader = Join-Path $custom 'dsh/node_modules/tsx/dist/esm'
   New-Item -ItemType Directory -Force -Path $loader | Out-Null
   Set-Content -Path (Join-Path $loader 'index.mjs') -Value 'export {};'
-  Set-Content -Path (Join-Path $custom 'dsh/apps/cli/src/bin.ts') -Value 'console.log(JSON.stringify({args: process.argv.slice(2), home: process.env.DSH_HOME}));'
+  Set-Content -Path (Join-Path $custom 'dsh/apps/cli/src/bin.ts') -Value 'console.log(JSON.stringify({args: process.argv.slice(2), home: process.env.DSH_HOME, cwd: process.cwd()}));'
   foreach ($profile in @('research', 'web')) {
     New-Item -ItemType Directory -Force -Path (Join-Path $data "profiles/$profile/node_modules/dsh-context") | Out-Null
   }
@@ -264,6 +264,15 @@ try {
     Assert-True (($captured.args | ConvertTo-Json -Compress) -eq ($case.Expected | ConvertTo-Json -Compress)) 'The launcher changed CLI arguments.'
     Assert-True ($captured.home -eq $data) 'The launcher changed the selected data home.'
   }
+  # powershell.exe 5.1 has no -WorkingDirectory; start in $HOME from an explicit command.
+  $launcherPath = (Join-Path $custom 'dsh-ui.ps1').Replace("'", "''")
+  $homePath = $HOME.Replace("'", "''")
+  $homeLaunch = & $shell -NoProfile -ExecutionPolicy Bypass -Command "Set-Location -LiteralPath '$homePath'; & '$launcherPath'"
+  Assert-True ($LASTEXITCODE -eq 0) 'The launcher failed when started from the home directory.'
+  $homeLaunch = $homeLaunch | ConvertFrom-Json
+  $expectedWorkspace = [IO.Path]::GetFullPath((Join-Path $data 'workspace'))
+  Assert-True ([string]::Equals([IO.Path]::GetFullPath($homeLaunch.cwd), $expectedWorkspace, [StringComparison]::OrdinalIgnoreCase)) "Starting from home left cwd at $($homeLaunch.cwd)."
+  Assert-True (-not [string]::Equals([IO.Path]::GetFullPath($homeLaunch.cwd), [IO.Path]::GetFullPath($HOME), [StringComparison]::OrdinalIgnoreCase)) 'The launcher kept the real home as its workspace root.'
   Write-Host 'Windows preparation: isolation, data backup, resume, partial-runtime recovery and CLI forwarding passed.'
 } finally {
   if ($null -eq $oldHome) { Remove-Item Env:DSH_HOME -ErrorAction SilentlyContinue } else { $env:DSH_HOME = $oldHome }

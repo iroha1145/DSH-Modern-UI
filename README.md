@@ -52,7 +52,7 @@ powershell -ExecutionPolicy Bypass -File scripts\install.ps1
 ~/.dsh-ui/dsh-ui
 ```
 
-它会打印一个带 token 的本机地址，用浏览器打开即可。后面加的参数会交给 DSH 命令行，比如 `~/.dsh-ui/dsh-ui web --port 3090`，启动器不添加配置覆盖参数。DSH 在你的主目录里运行，参数里的相对路径从主目录算起。
+它会打印一个带 token 的本机地址，用浏览器打开即可。后面加的参数会交给 DSH 命令行，比如 `~/.dsh-ui/dsh-ui web --port 3090`，启动器不添加配置覆盖参数。网页配置把进程的当前目录当作 workspace-write 的工作区根。启动器保持你启动时所在的目录；若那个目录就是主目录，则改到数据目录下的 `workspace`，因此默认的 ask 不会把整个主目录（含 `.ssh`）当作可写工作区。参数里的相对路径从该工作区算起。在界面里另行选定工程目录后，可写范围才是那个目录。
 
 ### 安装脚本做了什么
 
@@ -171,7 +171,7 @@ git clone https://github.com/iroha1145/DSH-Modern-UI.git && cd DSH-Modern-UI && 
 ~/.dsh-ui/dsh-ui
 ```
 
-Plugins already present in the profile are skipped. A different installed version, or one declared without its files, is reported and left alone. When something has to be installed, the installer first stops if the profile's `node_modules` was linked from another pnpm store. Re-running is safe: an interrupted install resumes, a finished one is not rebuilt, and the recorded data directory and profile are kept. Node does not need to be preinstalled: the installer fetches the official Node 24.13 release (checked against its SHASUMS256.txt) and pnpm 11.28.5 into the install directory. It needs curl, tar, working Git (checked before installation writes; binary patch changes cannot use POSIX patch), a C compiler (Xcode Command Line Tools or build-essential), glibc on Linux, and about 3 GB of disk. The reconstructed source and isolated dependency store are checked on macOS (Apple silicon). CI runs the POSIX installer fixtures on Linux/macOS and real pinned-runtime preparation, resume and launcher checks on Windows; check the results for the exact commit. The browser release does not certify the native Electron application.
+The launcher leaves the working directory where you started it. The web profile uses that directory as the `workspace-write` root, so starting in your home directory would make the default ask mode able to write through the whole home, including `.ssh`. In that case the launcher switches to `<data>/workspace` instead. Relative arguments resolve from that directory. Choosing another project directory in the UI scopes writes to the directory you picked. Plugins already present in the profile are skipped. A different installed version, or one declared without its files, is reported and left alone. When something has to be installed, the installer first stops if the profile's `node_modules` was linked from another pnpm store. Re-running is safe: an interrupted install resumes, a finished one is not rebuilt, and the recorded data directory and profile are kept. Node does not need to be preinstalled: the installer fetches the official Node 24.13 release (checked against its SHASUMS256.txt) and pnpm 11.28.5 into the install directory. It needs curl, tar, working Git (checked before installation writes; binary patch changes cannot use POSIX patch), a C compiler (Xcode Command Line Tools or build-essential), glibc on Linux, and about 3 GB of disk. The reconstructed source and isolated dependency store are checked on macOS (Apple silicon). CI runs the POSIX installer fixtures on Linux/macOS and real pinned-runtime preparation, resume and launcher checks on Windows; check the results for the exact commit. The browser release does not certify the native Electron application.
 
 
 ### Installer regression fixtures

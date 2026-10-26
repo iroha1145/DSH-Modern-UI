@@ -24,7 +24,7 @@ if [ "$1" = -p ]; then
  case "$2" in process.versions.node) echo 24.13.0;; *) echo file:///fixture-loader;; esac
 elif [ "$1" = -v ]; then echo v24.13.0
 elif [[ "$1" == */npm-cli.js ]]; then echo 10.0.0
-else printf '%s\\n' "$@" > "$CAPTURE"; fi
+else printf '%s\\n' "$@" > "$CAPTURE"; pwd -P > "$CAPTURE.cwd"; fi
 ''')
   self.executable(self.node/'bin/npm','''#!/bin/bash
 if [ "$1" = --version ]; then echo 10.0.0; exit; fi
@@ -175,4 +175,32 @@ if [ -n "$out" ]; then cp "$file" "$out"; else cat "$file"; fi
   self.assertFalse((self.install/f'upstream-{self.commit}.tar.gz').exists())
   archive.write_bytes(valid); self.run_install('--prepare-only')
   self.assertEqual((self.install/'dsh/example').read_text(),'new\n')
+ def test_launcher_workspace_is_not_the_home_directory(self):
+  self.run_install()
+  ssh=self.home/'.ssh'; ssh.mkdir(); marker=ssh/'authorized_keys'; marker.write_text('preexisting\n')
+  probe=self.home/'probe'
+  def contained(root, path):
+   try: pathlib.Path(path).resolve().relative_to(pathlib.Path(root).resolve()); return True
+   except ValueError: return False
+  launched=subprocess.run([str(self.install/'dsh-ui')],cwd=self.home,env=self.env,text=True,capture_output=True)
+  self.assertEqual(launched.returncode,0,launched.stdout+launched.stderr)
+  cwd=pathlib.Path((self.base/'argv.cwd').read_text().strip()).resolve()
+  workspace=(self.install/'data'/'workspace').resolve()
+  self.assertEqual(cwd,workspace)
+  self.assertNotEqual(cwd,self.home.resolve())
+  self.assertFalse(contained(cwd,probe))
+  self.assertFalse(contained(cwd,marker))
+  self.assertTrue(contained(cwd,workspace/'probe'))
+  self.assertFalse(probe.exists())
+  self.assertEqual(marker.read_text(),'preexisting\n')
+  project=self.base/'project'; project.mkdir()
+  subprocess.run([str(self.install/'dsh-ui')],cwd=project,env=self.env,check=True)
+  self.assertEqual(pathlib.Path((self.base/'argv.cwd').read_text().strip()).resolve(),project.resolve())
+  self.assertFalse(contained(project,marker))
+  workspace.rmdir(); workspace.symlink_to(self.home,target_is_directory=True)
+  refused=subprocess.run([str(self.install/'dsh-ui')],cwd=self.home,env=self.env,text=True,capture_output=True)
+  self.assertNotEqual(refused.returncode,0,refused.stdout+refused.stderr)
+  self.assertIn('主目录',refused.stderr)
+  self.assertFalse(probe.exists())
+  self.assertEqual(marker.read_text(),'preexisting\n')
 if __name__=='__main__': unittest.main(verbosity=2)

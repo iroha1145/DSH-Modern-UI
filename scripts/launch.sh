@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Start DSH-UI. The installer copies this file to <install dir>/dsh-ui, next to launch.conf.
 # Arguments go to the dsh CLI; with none it boots the profile chosen at install (normally web).
-# DSH runs from the home directory, so relative paths in arguments resolve from there.
+# The web profile's workspace-write root is process.cwd(). Keep the caller's directory when
+# that is a project; if the caller is the real home, use <data>/workspace instead so the
+# default root is not $HOME and does not include ~/.ssh. Relative paths resolve from there.
 set -euo pipefail
 
 # Follow symlinks so a link placed on PATH still finds the install directory.
@@ -34,5 +36,14 @@ export TSX_TSCONFIG_PATH="$DIR/dsh/tsconfig.json"
 [ $# -gt 0 ] || set -- "${DSH_UI_PROFILE:-web}"
 # --import takes a URL; a path with # or % in it would not survive as a bare specifier.
 loader="$("$node" -p 'require("node:url").pathToFileURL(process.argv[1]).href' "$DIR/dsh/node_modules/tsx/dist/esm/index.mjs")"
-cd "$HOME"
+home_dir="$(CDPATH= cd -- "$HOME" && pwd -P)"
+if [ "$(pwd -P)" = "$home_dir" ]; then
+  workspace="$DSH_HOME/workspace"
+  mkdir -p -- "$workspace"
+  CDPATH= cd -- "$workspace"
+  if [ "$(pwd -P)" = "$home_dir" ]; then
+    printf 'dsh-ui: 默认工作区不能是主目录\n' >&2
+    exit 1
+  fi
+fi
 exec "$node" --import "$loader" "$DIR/dsh/apps/cli/src/bin.ts" "$@"
