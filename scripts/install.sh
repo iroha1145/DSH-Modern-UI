@@ -372,7 +372,9 @@ else
           rm -rf "$DSH" ;;
         done*)
           [ "$FORCE" = yes ] || die "${DSH} 里装的是另一个版本。加 --force 重新安装，旧目录会改名保留"
-          backup="$DSH.old-$(date +%Y%m%d%H%M%S)"
+          # Reserve a unique sibling even when several reinstalls share a second.
+          backup="$(mktemp -d "$DSH.old-$(date +%Y%m%d%H%M%S)-XXXXXXXX")"
+          rmdir -- "$backup"
           mv "$DSH" "$backup"
           say "旧目录已改名为 ${backup}，确认新版本没问题后可以删掉" ;;
         *)

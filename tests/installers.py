@@ -272,6 +272,28 @@ if [ -n "$out" ]; then cp "$file" "$out"; else cat "$file"; fi
    self.assertEqual(session.read_bytes(),b'active\x00original')
    self.run_install();self.run_install('--force','--prepare-only');self.run_install()
    self.assertEqual(session.read_bytes(),b'active\x00original')
+ def test_repeated_force_with_frozen_time_preserves_each_source_tree(self):
+  self.executable(self.bin/'date','#!/bin/bash\necho 20000101000000\n')
+  self.run_install()
+  data=self.install/'data/session';data.write_bytes(b'active-original')
+  legacy=self.install/'dsh.old-20000101000000';legacy.mkdir();(legacy/'keep').write_bytes(b'old-backup')
+  for revision in range(3):
+   source=self.install/'dsh'
+   (source/'revision').write_text(str(revision))
+   (source/'nested').mkdir();(source/'nested/content').write_bytes(b'complete-source')
+   self.run_install('--force')
+   self.assertEqual((source/'example').read_text(),'new\n')
+   self.assertFalse((source/'revision').exists())
+   self.assertEqual(data.read_bytes(),b'active-original')
+  backups=[p for p in self.install.glob('dsh.old-*') if p!=legacy]
+  self.assertEqual(len(backups),3)
+  self.assertEqual(sorted((p/'revision').read_text() for p in backups),['0','1','2'])
+  for backup in backups:
+   self.assertEqual((backup/'nested/content').read_bytes(),b'complete-source')
+   self.assertEqual((backup/'example').read_text(),'new\n')
+   self.assertFalse((backup/'dsh').exists())
+  self.assertEqual((legacy/'keep').read_bytes(),b'old-backup')
+  self.assertEqual(list(legacy.iterdir()),[legacy/'keep'])
  def test_recorded_home_has_exact_physical_path_without_double_root(self):
   self.run_install()
   expected=str((self.install/'data').resolve())

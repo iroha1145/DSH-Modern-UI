@@ -61,6 +61,9 @@ function Move-RuntimeDirectory([string]$Source, [string]$Destination) {
       $cause = $_.Exception
       while ($cause.InnerException) { $cause = $cause.InnerException }
       $code = $cause.HResult -band 0xffff
+      if ($attempt -eq 0) {
+        Write-Warning ("Runtime rename failed: source={0}; destination={1}; type={2}; HResult=0x{3:X8}; Win32={4}; PowerShell={5}" -f $Source, $Destination, $cause.GetType().FullName, $cause.HResult, $code, $PSVersionTable.PSVersion)
+      }
       if (-not ($cause -is [IO.IOException]) -or ($code -ne 32 -and $code -ne 33)) { throw }
       if ($attempt -eq 8) {
         throw [IO.IOException]::new("Node directory is still in use after bounded retries: ${Source}. Close the process using this installation and rerun the installer.", $cause)
@@ -212,18 +215,67 @@ $arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'x64' }
 $nodeDir = Join-Path $runtime 'node'
 $nodeExe = Join-Path $nodeDir 'node.exe'
 New-Item -ItemType Directory -Force -Path $runtime | Out-Null
+# Keep command discovery and native validation entirely in a short-lived process.
+# The verifier exits and its process handle is disposed before directory publication.
+function Invoke-RuntimeValidationProcess([string]$Path) {
+  $validation = @'
+$ErrorActionPreference = 'Stop'
+try {
+  $node = Join-Path $env:DSH_VALIDATE_RUNTIME 'node.exe'
+  $npm = Join-Path $env:DSH_VALIDATE_RUNTIME 'node_modules\npm\bin\npm-cli.js'
+  $version = & $node -p 'process.versions.node'
+  if ($LASTEXITCODE -ne 0 -or $version -ne $env:DSH_VALIDATE_NODE_VERSION) { exit 1 }
+  & $node $npm --version *> $null
+  if ($LASTEXITCODE -ne 0) { exit 1 }
+  & (Join-Path $env:DSH_VALIDATE_RUNTIME 'npm.cmd') --version *> $null
+  if ($LASTEXITCODE -ne 0) { exit 1 }
+  exit 0
+} catch {
+  [Console]::Error.WriteLine($_.Exception.ToString())
+  exit 1
+}
+'@
+  $hostProcess = [Diagnostics.Process]::GetCurrentProcess()
+  try { $shellPath = $hostProcess.MainModule.FileName } finally { $hostProcess.Dispose() }
+  $process = New-Object Diagnostics.Process
+  $started = $false
+  try {
+    $process.StartInfo.FileName = $shellPath
+    $process.StartInfo.Arguments = '-NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand ' + [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($validation))
+    $process.StartInfo.UseShellExecute = $false
+    $process.StartInfo.CreateNoWindow = $true
+    $process.StartInfo.WorkingDirectory = [IO.Path]::GetTempPath()
+    $process.StartInfo.RedirectStandardOutput = $true
+    $process.StartInfo.RedirectStandardError = $true
+    $process.StartInfo.EnvironmentVariables['DSH_VALIDATE_RUNTIME'] = $Path
+    $process.StartInfo.EnvironmentVariables['DSH_VALIDATE_NODE_VERSION'] = $nodeVersion
+    $started = $process.Start()
+    if (-not $started) { throw 'Could not start the runtime validation process.' }
+    # Drain both streams concurrently so neither pipe can block process completion.
+    $output = $process.StandardOutput.ReadToEndAsync()
+    $errors = $process.StandardError.ReadToEndAsync()
+    $process.WaitForExit()
+    return @{ exitCode = $process.ExitCode; output = $output.GetAwaiter().GetResult(); error = $errors.GetAwaiter().GetResult() }
+  } finally {
+    # Even a stream/read failure must not leave the verifier running during rename.
+    try { if ($started) { $process.WaitForExit() } } finally { $process.Dispose() }
+  }
+}
 function Test-Runtime([string]$Path) {
   $exe = Join-Path $Path 'node.exe'
   $npm = Join-Path $Path 'node_modules\npm\bin\npm-cli.js'
   if (-not (Test-Path $exe) -or -not (Test-Path $npm) -or -not (Test-Path (Join-Path $Path 'npm.cmd'))) { return $false }
   try {
-    $version = & $exe -p 'process.versions.node'
-    if ($LASTEXITCODE -ne 0 -or $version -ne $nodeVersion) { return $false }
-    & $exe $npm --version *> $null
-    if ($LASTEXITCODE -ne 0) { return $false }
-    & (Join-Path $Path 'npm.cmd') --version *> $null
-    return ($LASTEXITCODE -eq 0)
-  } catch { return $false }
+    $result = Invoke-RuntimeValidationProcess $Path
+    if ($result.exitCode -ne 0) {
+      Write-Warning "Runtime validation failed: $($result.error)"
+      return $false
+    }
+    return $true
+  } catch {
+    Write-Warning "Runtime validation could not complete: $($_.Exception.ToString())"
+    return $false
+  }
 }
 $previous = Join-Path $runtime 'node.previous'
 if (-not (Test-Path $nodeDir) -and (Test-Path $previous)) { Move-RuntimeDirectory $previous $nodeDir }
@@ -288,8 +340,9 @@ if (-not $Force -and $state -eq "done $stamp") {
         Remove-Item -Recurse -Force $dsh
       } elseif ($state -like 'done*') {
         if (-not $Force) { Fail "${dsh} 里装的是另一个版本。加 -Force 重新安装，旧目录会改名保留" }
-        $backup = "${dsh}.old-$(Get-Date -Format yyyyMMddHHmmss)"
-        Move-Item $dsh $backup
+        $backup = "${dsh}.old-$(Get-Date -Format yyyyMMddHHmmss)-$([guid]::NewGuid().ToString('N'))"
+        # Directory.Move fails if the destination exists; it never nests source trees.
+        [IO.Directory]::Move($dsh, $backup)
         Write-Host "旧目录已改名为 ${backup}，确认新版本没问题后可以删掉"
       } else {
         Fail "${dsh} 已经存在，但不是本安装器建的，为安全起见不覆盖。换一个 -Dir，或先把它移走"

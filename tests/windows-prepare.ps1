@@ -17,8 +17,8 @@ $parseErrors = $null
 $tokens = $null
 $installerAst = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $root 'scripts/install.ps1'), [ref]$tokens, [ref]$parseErrors)
 Assert-True ($parseErrors.Count -eq 0) 'The installer has PowerShell syntax errors.'
-$helpers = $installerAst.FindAll({ param($item) $item -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $item.Name -in @('Move-RuntimeDirectory', 'Switch-RuntimeDirectory') }, $true)
-Assert-True ($helpers.Count -eq 2) 'Expected the production runtime switch helpers.'
+$helpers = $installerAst.FindAll({ param($item) $item -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $item.Name -in @('Move-RuntimeDirectory', 'Switch-RuntimeDirectory', 'Invoke-RuntimeValidationProcess', 'Test-Runtime') }, $true)
+Assert-True ($helpers.Count -eq 4) 'Expected the production runtime switch and validation helpers.'
 foreach ($helper in $helpers) { . ([scriptblock]::Create($helper.Extent.Text)) }
 Add-Type -TypeDefinition @'
 using System;
@@ -181,8 +181,127 @@ function Test-DataHomeGuards([string]$Install) {
   Prepare -InstallerArgs @('-Dir', $Install, '-Force')
   Assert-True ((Get-FileHash $session).Hash -eq ($before -split ',')[0]) 'Source replacement changed active session.'
 }
+function Test-RuntimeAccessDenied {
+  $fixture = Join-Path $scratch 'runtime-permission'
+  $candidate = Join-Path $fixture 'candidate'
+  $destination = Join-Path $fixture 'destination'
+  New-Item -ItemType Directory -Path $candidate | Out-Null
+  Set-Content -LiteralPath (Join-Path $candidate 'node.exe') -Value 'keep-permission-fixture'
+  $before = (Get-FileHash (Join-Path $candidate 'node.exe')).Hash
+  $parentAcl = Get-Acl -LiteralPath $fixture
+  $candidateAcl = Get-Acl -LiteralPath $candidate
+  $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+  try { $sid = $identity.User } finally { $identity.Dispose() }
+  try {
+    $denyParent = Get-Acl -LiteralPath $fixture
+    $denyParent.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid, [Security.AccessControl.FileSystemRights]::DeleteSubdirectoriesAndFiles, [Security.AccessControl.AccessControlType]::Deny))
+    Set-Acl -LiteralPath $fixture -AclObject $denyParent
+    $denyCandidate = Get-Acl -LiteralPath $candidate
+    $denyCandidate.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid, [Security.AccessControl.FileSystemRights]::Delete, [Security.AccessControl.AccessControlType]::Deny))
+    Set-Acl -LiteralPath $candidate -AclObject $denyCandidate
+    $failure = $null
+    try { Move-RuntimeDirectory $candidate $destination } catch { $failure = $_ }
+    Write-Host ('Runtime permission evidence: ' + ((Get-RuntimeFailureEvidence $failure) | ConvertTo-Json -Depth 8 -Compress))
+    Assert-True ($null -ne $failure) 'A real delete-permission denial was ignored.'
+    $cause = $failure.Exception
+    while ($cause.InnerException) { $cause = $cause.InnerException }
+    Assert-True (($cause.HResult -band 0xffff) -eq 5) 'The permission fixture did not produce Win32 access denied.'
+    Assert-True ($failure.Exception.Message -notmatch 'bounded retries') 'Access denied was treated as a retryable sharing violation.'
+    Assert-True ((Get-FileHash (Join-Path $candidate 'node.exe')).Hash -eq $before) 'Permission failure changed the source runtime.'
+    Assert-True (-not (Test-Path -LiteralPath $destination)) 'Permission failure published a destination.'
+  } finally {
+    Set-Acl -LiteralPath $fixture -AclObject $parentAcl
+    Set-Acl -LiteralPath $candidate -AclObject $candidateAcl
+  }
+}
+function Test-RuntimeValidationPublication([string]$Install) {
+  $current = Join-Path $Install 'runtime/node'
+  $temporary = Join-Path $Install 'runtime/validated-rename'
+  $before = (Get-FileHash (Join-Path $current 'node.exe')).Hash
+  foreach ($iteration in 1..3) {
+    Assert-True (Test-Runtime $current) 'Isolated native runtime validation failed.'
+    Move-RuntimeDirectory $current $temporary
+    Assert-True (Test-Runtime $temporary) 'Validation failed after moving the runtime.'
+    Move-RuntimeDirectory $temporary $current
+    Assert-True ((Get-FileHash (Join-Path $current 'node.exe')).Hash -eq $before) 'Validation/publication changed the executable.'
+  }
+  Write-Host "Runtime validation/publication passed three immediate rename cycles under PowerShell $($PSVersionTable.PSVersion)."
+}
+function Test-RunningProcessDirectory([string]$Install) {
+  $candidate = Join-Path $scratch 'process-current-directory'
+  $destination = Join-Path $scratch 'process-current-directory-moved'
+  New-Item -ItemType Directory -Path $candidate | Out-Null
+  $process = New-Object Diagnostics.Process
+  $started = $false
+  try {
+    $process.StartInfo.FileName = Join-Path $Install 'runtime/node/node.exe'
+    $process.StartInfo.Arguments = '-e "console.log(''ready'');setInterval(()=>{},1000)"'
+    $process.StartInfo.WorkingDirectory = $candidate
+    $process.StartInfo.UseShellExecute = $false
+    $process.StartInfo.RedirectStandardOutput = $true
+    $process.StartInfo.CreateNoWindow = $true
+    $started = $process.Start()
+    Assert-True $started 'Could not start controlled runtime process.'
+    $ready = $process.StandardOutput.ReadLineAsync()
+    Assert-True ($ready.Wait(10000) -and $ready.Result -eq 'ready') 'Controlled process did not become ready.'
+    $failure = $null
+    try { Move-RuntimeDirectory $candidate $destination } catch { $failure = $_ }
+    Write-Host ('Runtime process-directory evidence: ' + ((Get-RuntimeFailureEvidence $failure) | ConvertTo-Json -Depth 8 -Compress))
+    Assert-True ($null -ne $failure) 'The live process did not hold its current directory.'
+    Assert-True (Test-Path -LiteralPath $candidate) 'A failed process-held rename removed the candidate.'
+    Assert-True (-not (Test-Path -LiteralPath $destination)) 'A failed process-held rename published a destination.'
+  } finally {
+    try { if ($started -and -not $process.HasExited) { $process.Kill(); $process.WaitForExit() } } finally { $process.Dispose() }
+  }
+  Move-RuntimeDirectory $candidate $destination
+  Assert-True (Test-Path -LiteralPath $destination) 'Releasing the process did not release its directory.'
+}
+function Test-RepeatedSourceBackups([string]$Install) {
+  $wrapper = Join-Path $scratch 'fixed-date-install.ps1'
+  @'
+param([string]$Installer, [string]$Target)
+function global:Get-Date { param([string]$Format) '20000101000000' }
+& $Installer -Dir $Target -SkipPlugins -PrepareOnly -Force
+exit $LASTEXITCODE
+'@ | Set-Content -Encoding UTF8 $wrapper
+  $manifest = Get-Content -Raw (Join-Path $root 'dsh-ui.json') | ConvertFrom-Json
+  $source = Join-Path $Install 'dsh'
+  $packageHash = (Get-FileHash (Join-Path $source 'package.json')).Hash
+  $session = Join-Path $Install 'data/active-session'
+  $sessionHash = (Get-FileHash $session).Hash
+  $legacy = Join-Path $Install 'dsh.old-20000101000000'
+  New-Item -ItemType Directory -Path $legacy | Out-Null
+  Set-Content -LiteralPath (Join-Path $legacy 'keep') -Value 'old-backup'
+  $legacyHash = (Get-FileHash (Join-Path $legacy 'keep')).Hash
+  foreach ($revision in 0..2) {
+    Set-Content -LiteralPath (Join-Path $source 'fixture-revision') -Value $revision
+    New-Item -ItemType Directory -Path (Join-Path $source 'fixture-nested') | Out-Null
+    Set-Content -LiteralPath (Join-Path $source 'fixture-nested/content') -Value 'complete-source'
+    # Exercise the production done-to-replacement branch without building the app.
+    Set-Content -LiteralPath (Join-Path $Install 'dsh-ui.state') -Value "done $($manifest.upstream.commit) $($manifest.patch.sha256)"
+    & $shell -NoProfile -ExecutionPolicy Bypass -File $wrapper (Join-Path $root 'scripts/install.ps1') $Install
+    Assert-True ($LASTEXITCODE -eq 0) 'Repeated source replacement failed with frozen time.'
+    Assert-True ((Get-FileHash (Join-Path $source 'package.json')).Hash -eq $packageHash) 'Fresh source is incomplete.'
+    Assert-True (-not (Test-Path (Join-Path $source 'fixture-revision'))) 'Old source stayed active.'
+    Assert-True ((Get-FileHash $session).Hash -eq $sessionHash) 'Source replacement changed data.'
+  }
+  $backups = @(Get-ChildItem -LiteralPath $Install -Directory -Filter 'dsh.old-*' | Where-Object { $_.FullName -ne $legacy })
+  Assert-True ($backups.Count -eq 3) 'Repeated replacements did not retain three separate source trees.'
+  $revisions = @()
+  foreach ($backup in $backups) {
+    $revisions += (Get-Content -Raw (Join-Path $backup.FullName 'fixture-revision')).Trim()
+    Assert-True ((Get-Content -Raw (Join-Path $backup.FullName 'fixture-nested/content')).Trim() -eq 'complete-source') 'A retained source tree lost nested contents.'
+    Assert-True ((Get-FileHash (Join-Path $backup.FullName 'package.json')).Hash -eq $packageHash) 'A retained source tree is incomplete.'
+    Assert-True (-not (Test-Path (Join-Path $backup.FullName 'dsh'))) 'A source backup was nested into another.'
+  }
+  Assert-True ((($revisions | Sort-Object) -join ',') -eq '0,1,2') 'Source generations were overwritten.'
+  Assert-True ((Get-FileHash (Join-Path $legacy 'keep')).Hash -eq $legacyHash) 'The pre-existing backup changed.'
+  Assert-True (@(Get-ChildItem -LiteralPath $legacy).Count -eq 1) 'A source tree was moved into the pre-existing backup.'
+}
 try {
   Test-RuntimeDirectoryLocks
+  Test-RuntimeAccessDenied
+  $nodeVersion = (Get-Content -Raw (Join-Path $root 'dsh-ui.json') | ConvertFrom-Json).node.runtime
   $official = Join-Path $scratch 'official-data'
   New-Item -ItemType Directory -Path $official | Out-Null
   $sentinel = Join-Path $official 'original-session.jsonl'
@@ -197,7 +316,10 @@ try {
   Assert-True ((Get-FileHash $sentinel).Hash -eq $originalHash) 'The original data changed.'
   Assert-True (-not (Test-Path (Join-Path $isolated 'launch.json'))) 'Preparation activated an unfinished installation.'
 
+  Test-RuntimeValidationPublication $isolated
+  Test-RunningProcessDirectory $isolated
   Test-DataHomeGuards $isolated
+  Test-RepeatedSourceBackups $isolated
 
   $custom = Join-Path $scratch 'custom install'
   $data = Join-Path $scratch 'research data'
