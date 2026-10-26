@@ -22,7 +22,7 @@ DSH-UI 是 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)�
 需要：
 
 - macOS，或使用 glibc 的 Linux（Alpine 这类 musl 系统不行）。Windows 提供 PowerShell 5.1 及以上版本脚本；持续集成检查准备、续装和启动参数，完整 Windows 构建尚未验收。
-- `curl`、`tar`，以及 `git`（没有可用的 git 时用 `patch`）。
+- `curl`、`tar`，以及可正常执行 `git --version` 的 Git。发行补丁包含二进制文件删除，不能用 `patch` 替代；安装器会在创建安装目录、备份数据或下载运行时之前检查 Git。
 - C 编译器。构建时要编译一个原生模块：macOS 装 Xcode 命令行工具（`xcode-select --install`），Linux 装 `build-essential`（或 gcc、clang）。个别依赖没有预编译包时还会用到 `python3`。
 - 约 3 GB 磁盘空间，能访问 GitHub、nodejs.org 和 npm。
 
@@ -57,7 +57,7 @@ powershell -ExecutionPolicy Bypass -File scripts\install.ps1
 ### 安装脚本做了什么
 
 1. 准备私有的 Node 24.13 和 pnpm 11.28.5（已经有了就跳过）。
-2. 从 GitHub 下载官方源码包，打上 `patches/dsh-ui.patch`。源码包和补丁分别核对清单中的 SHA-256；自定义镜像也必须提供相同字节。在 macOS 和 Linux 上，有 git 时还会核对源码包对应的提交。
+2. 从 GitHub 下载官方源码包，打上 `patches/dsh-ui.patch`。源码包和补丁分别核对清单中的 SHA-256；自定义镜像也必须提供相同字节。在 macOS 和 Linux 上，还会用 Git 检查源码包携带的提交标识。
 3. 用 `pnpm install --frozen-lockfile` 装依赖，再运行 `pnpm run build`。源码包没有 Git 历史，安装器会通过 `DSH_CLIENT_COMMIT_HASH` 提供清单中的官方基线提交；完整改版由同一清单中的补丁摘要标识。
 4. 在安装目录里放启动器 `dsh-ui`，记下数据目录和配置名。
 5. 安装社区插件，已经装过的跳过（规则见下）。插件这一步出错时，启动器已经在了。
@@ -171,11 +171,11 @@ git clone https://github.com/iroha1145/DSH-Modern-UI.git && cd DSH-Modern-UI && 
 ~/.dsh-ui/dsh-ui
 ```
 
-Plugins already present in the profile are skipped. A different installed version, or one declared without its files, is reported and left alone. When something has to be installed, the installer first stops if the profile's `node_modules` was linked from another pnpm store. Re-running is safe: an interrupted install resumes, a finished one is not rebuilt, and the recorded data directory and profile are kept. Node does not need to be preinstalled: the installer fetches the official Node 24.13 release (checked against its SHASUMS256.txt) and pnpm 11.28.5 into the install directory. It needs curl, tar, git or patch, a C compiler (Xcode Command Line Tools or build-essential), glibc on Linux, and about 3 GB of disk. The reconstructed source and isolated dependency store are checked on macOS (Apple silicon). CI runs the POSIX installer fixtures on Linux/macOS and real pinned-runtime preparation, resume and launcher checks on Windows; check the results for the exact commit. The browser release does not certify the native Electron application.
+Plugins already present in the profile are skipped. A different installed version, or one declared without its files, is reported and left alone. When something has to be installed, the installer first stops if the profile's `node_modules` was linked from another pnpm store. Re-running is safe: an interrupted install resumes, a finished one is not rebuilt, and the recorded data directory and profile are kept. Node does not need to be preinstalled: the installer fetches the official Node 24.13 release (checked against its SHASUMS256.txt) and pnpm 11.28.5 into the install directory. It needs curl, tar, working Git (checked before installation writes; binary patch changes cannot use POSIX patch), a C compiler (Xcode Command Line Tools or build-essential), glibc on Linux, and about 3 GB of disk. The reconstructed source and isolated dependency store are checked on macOS (Apple silicon). CI runs the POSIX installer fixtures on Linux/macOS and real pinned-runtime preparation, resume and launcher checks on Windows; check the results for the exact commit. The browser release does not certify the native Electron application.
 
 
 ### Installer regression fixtures
 
-Run `python3 tests/installers.py`. These tests execute the real Bash scripts with isolated homes, real tar extraction and patch application, and fake downloads/Node/pnpm subprocesses. They cover preparation and failed dependency/build retries, explicit overrides, active versus desired settings, fresh default isolation, backup contents, partial runtimes, corrupt archives, interrupted runtime switching, and CLI argument preservation. They do not certify a full cold build or Windows execution. Windows changes require a Windows runner; the Bash fixture does not substitute for that check.
+Run `python3 tests/installers.py`. These tests execute the real Bash scripts with isolated homes, real tar extraction and Git binary patch application, and fake downloads/Node/pnpm subprocesses. They cover early failure without usable Git, unchanged existing installs on that failure, standalone help and bootstrap argument forwarding, binary PNG deletion, preparation and failed dependency/build retries, explicit overrides, active versus desired settings, fresh default isolation, backup contents, partial runtimes, corrupt archives, interrupted runtime switching, and CLI argument preservation. They do not certify a full cold build or Windows execution. Windows changes require a Windows runner; the Bash fixture does not substitute for that check.
 
 Fresh installs use `<install-dir>/data`, ignoring ambient `DSH_HOME`. Use `--home` / `-DshHome` explicitly to share or import data. Stop every writer before copying or backing up a data home. The installer snapshots existing nonempty data before first mutation; retain the printed `data-backups` archive. Stock 0.2.1-rc.3 cannot read sessions containing required `web/search` events. For rollback, restore the pre-install snapshot into a new empty directory and point stock DSH there; post-snapshot changes remain only in the modern copy. Default data and backups live inside the install directory: preserve them before uninstalling.

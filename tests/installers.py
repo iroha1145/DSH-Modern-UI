@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Offline subprocess fixtures for the production Bash installer and launcher."""
-import hashlib, json, os, pathlib, shutil, subprocess, tarfile, tempfile, unittest
+import base64, hashlib, json, os, pathlib, shutil, subprocess, tarfile, tempfile, unittest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 class Installer(unittest.TestCase):
  def setUp(self):
@@ -58,6 +58,78 @@ if [ -n "$out" ]; then cp "$file" "$out"; else cat "$file"; fi
  def run_install(self,*args,ok=True,**env):
   p=subprocess.run(['bash',str(self.repo/'scripts/install.sh'),'--dir',str(self.install),'--skip-plugins',*args],env={**self.env,**env},text=True,capture_output=True)
   self.assertEqual(p.returncode==0,ok,p.stdout+p.stderr); return p
+ def gitless_path(self,unusable=False):
+  isolated=self.base/('unusable-git' if unusable else 'missing-git'); isolated.mkdir()
+  (isolated/'bash').symlink_to(shutil.which('bash'))
+  (isolated/'cat').symlink_to(shutil.which('cat'))
+  self.executable(isolated/'curl','#!/bin/bash\nprintf called > "$DOWNLOAD_CALLED"\nexit 99\n')
+  if unusable: self.executable(isolated/'git','#!/bin/bash\nexit 77\n')
+  return str(isolated)
+ def snapshot(self,path):
+  return {str(p.relative_to(path)):(p.lstat().st_mode,p.read_bytes() if p.is_file() else None) for p in path.rglob('*')}
+ def test_missing_or_unusable_git_fails_before_installation_writes(self):
+  for unusable in [False,True]:
+   with self.subTest(unusable=unusable):
+    path=self.gitless_path(unusable)
+    marker=self.base/'download-called'
+    p=self.run_install('--prepare-only',ok=False,PATH=path,DOWNLOAD_CALLED=str(marker))
+    self.assertIn('需要可用的 Git',p.stderr)
+    self.assertIn('二进制',p.stderr)
+    self.assertFalse(self.install.exists())
+    self.assertFalse(marker.exists())
+    self.assertFalse((self.base/'official').exists())
+ def test_missing_or_unusable_git_preserves_existing_data_runtime_and_settings(self):
+  self.run_install()
+  (self.install/'data/session.json').write_text('{"fixture":"keep"}')
+  before=self.snapshot(self.install)
+  for unusable in [False,True]:
+   with self.subTest(unusable=unusable):
+    marker=self.base/'download-called'
+    self.run_install('--force','--home',str(self.install/'data'),'--profile','changed',ok=False,PATH=self.gitless_path(unusable),DOWNLOAD_CALLED=str(marker))
+    self.assertEqual(self.snapshot(self.install),before)
+    self.assertFalse(marker.exists())
+ def test_help_without_git_or_repository_does_not_download(self):
+  standalone=self.base/'standalone'; standalone.mkdir()
+  script=standalone/'install.sh'; shutil.copyfile(self.repo/'scripts/install.sh',script)
+  marker=self.base/'download-called'
+  for flag in ['--help','-h']:
+   p=subprocess.run([shutil.which('bash'),str(script),flag],env={**self.env,'PATH':self.gitless_path(flag=='-h'),'DOWNLOAD_CALLED':str(marker)},text=True,capture_output=True)
+   self.assertEqual(p.returncode,0,p.stdout+p.stderr)
+   self.assertIn('用法',p.stdout)
+   self.assertFalse(self.install.exists())
+   self.assertFalse(marker.exists())
+ def test_bootstrap_preserves_arguments_and_accepts_no_arguments(self):
+  standalone=self.base/'standalone'; standalone.mkdir()
+  script=standalone/'install.sh'; shutil.copyfile(self.repo/'scripts/install.sh',script)
+  self.archive(self.repo,self.download/'repo.tar.gz')
+  data=self.base/'custom # data'
+  for args,target in [(['--dir',str(self.install),'--home',str(data),'--profile','research','--prepare-only'],self.install),([],self.home/'.dsh-ui')]:
+   with self.subTest(args=args):
+    p=subprocess.run(['/bin/bash',str(script),*args],env={**self.env,'DSH_UI_REPO_URL':'fixture/repo.tar.gz'},text=True,capture_output=True)
+    self.assertEqual(p.returncode,0,p.stdout+p.stderr)
+    self.assertEqual((target/'dsh/example').read_text(),'new\n')
+  self.assertIn('research',(self.install/'install.conf').read_text())
+  self.assertTrue(data.is_dir())
+ def test_git_applies_binary_png_deletion(self):
+  source=self.base/'source'; binary=source/'running-whale.png'
+  data=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aK1cAAAAASUVORK5CYII=')
+  binary.write_bytes(data)
+  subprocess.run(['git','init','-q',str(source)],check=True)
+  subprocess.run(['git','-C',str(source),'add','running-whale.png'],check=True)
+  binary.unlink()
+  deletion=subprocess.check_output(['git','-C',str(source),'-c','core.autocrlf=false','diff','--binary','--','running-whale.png'])
+  self.assertIn(b'GIT binary patch',deletion)
+  self.assertIn(b'literal 0',deletion)
+  binary.write_bytes(data); shutil.rmtree(source/'.git')
+  self.archive(source,self.download/'source.tar.gz')
+  patch=(self.repo/'patch').read_bytes()+deletion; (self.repo/'patch').write_bytes(patch)
+  manifest=json.loads((self.repo/'dsh-ui.json').read_text())
+  manifest['sha256']=hashlib.sha256(patch).hexdigest()
+  manifest['tarballSha256']=hashlib.sha256((self.download/'source.tar.gz').read_bytes()).hexdigest()
+  (self.repo/'dsh-ui.json').write_text(json.dumps(manifest,indent=2))
+  self.run_install('--prepare-only')
+  self.assertFalse((self.install/'dsh/running-whale.png').exists())
+  self.assertEqual((self.install/'dsh/example').read_text(),'new\n')
  def test_resume_and_explicit_override(self):
   data=self.base/'custom data'; self.run_install('--home',str(data),'--profile','research','--prepare-only')
   self.assertFalse((self.install/'launch.conf').exists())

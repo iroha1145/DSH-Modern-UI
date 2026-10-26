@@ -36,23 +36,7 @@ need() { command -v "$1" >/dev/null 2>&1 || die "需要 ${1}，请先安装"; }
 # macOS without the Command Line Tools has stub git and cc that only open an install prompt.
 usable() { "$1" --version >/dev/null 2>&1; }
 
-# Run from a checkout of this repository; when piped from curl, fetch the repository first.
-ROOT=""
-if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
-  ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-fi
-if [ -z "$ROOT" ] || [ ! -f "$ROOT/dsh-ui.json" ]; then
-  need curl; need tar
-  REPO_URL="${DSH_UI_REPO_URL:-https://codeload.github.com/iroha1145/DSH-Modern-UI/tar.gz/main}"
-  FETCHED="$(mktemp -d)"
-  trap 'rm -rf "$FETCHED"' EXIT
-  say "下载 DSH-UI 仓库 …"
-  curl -fsSL --retry 3 "$REPO_URL" | tar -xz -C "$FETCHED" --strip-components 1
-  bash "$FETCHED/scripts/install.sh" "$@"
-  exit 0
-fi
-MANIFEST="$ROOT/dsh-ui.json"
-
+INSTALL_ARGS=("$@")
 DIR="$HOME/.dsh-ui"
 HOME_ARG=""
 PROFILE_ARG=""
@@ -71,6 +55,26 @@ while [ $# -gt 0 ]; do
     *) die "不认识的参数 ${1}（--help 查看用法）" ;;
   esac
 done
+
+# Binary additions/deletions in the release patch require git apply; POSIX patch cannot apply them.
+usable git || die "需要可用的 Git（git --version 必须成功）：发行补丁包含二进制文件变更，不能使用 patch 替代。macOS 请安装 Xcode 命令行工具（xcode-select --install）；Linux 请安装 git。"
+
+# Run from a checkout of this repository; when piped from curl, fetch the repository first.
+ROOT=""
+if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
+  ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+fi
+if [ -z "$ROOT" ] || [ ! -f "$ROOT/dsh-ui.json" ]; then
+  need curl; need tar
+  REPO_URL="${DSH_UI_REPO_URL:-https://codeload.github.com/iroha1145/DSH-Modern-UI/tar.gz/main}"
+  FETCHED="$(mktemp -d)"
+  trap 'rm -rf "$FETCHED"' EXIT
+  say "下载 DSH-UI 仓库 …"
+  curl -fsSL --retry 3 "$REPO_URL" | tar -xz -C "$FETCHED" --strip-components 1
+  bash "$FETCHED/scripts/install.sh" ${INSTALL_ARGS[@]+"${INSTALL_ARGS[@]}"}
+  exit 0
+fi
+MANIFEST="$ROOT/dsh-ui.json"
 
 # Values sit one per line in dsh-ui.json, so a plain match is enough before Node is available.
 json_value() { sed -n "s/.*\"$1\": *\"\([^\"]*\)\".*/\1/p" "$MANIFEST" | head -n 1; }
@@ -246,26 +250,19 @@ else
       rm -f "$tarball"
       die "官方源码包的校验值不对；已清除不完整缓存，重新运行安装器可重试"
     fi
-    if usable git; then
-      got="$(gzip -dc "$tarball" | git get-tar-commit-id 2>/dev/null || true)"
-      if [ -n "$got" ] && [ "$got" != "$COMMIT" ]; then
-        rm -f "$tarball"
-        die "下载到的源码包对应提交 ${got}，不是 ${COMMIT}"
-      fi
+    got="$(gzip -dc "$tarball" | git get-tar-commit-id 2>/dev/null || true)"
+    if [ -n "$got" ] && [ "$got" != "$COMMIT" ]; then
+      rm -f "$tarball"
+      die "下载到的源码包对应提交 ${got}，不是 ${COMMIT}"
     fi
     printf 'extracting %s\n' "$STAMP" > "$STATE_FILE"
     mkdir -p "$DSH"
     tar -xzf "$tarball" -C "$DSH" --strip-components 1
     say "打补丁 …"
-    if usable git; then
-      # The ceiling keeps git from treating an enclosing repository as the patch root; the
-      # config keeps the patched files byte for byte.
-      (cd "$DSH" && GIT_CEILING_DIRECTORIES="$DIR" git -c core.autocrlf=false -c core.eol=lf \
-        apply --whitespace=nowarn "$PATCH_FILE")
-    else
-      need patch
-      (cd "$DSH" && patch -p1 --forward --silent < "$PATCH_FILE")
-    fi
+    # The ceiling keeps git from treating an enclosing repository as the patch root; the
+    # config keeps the patched files byte for byte, including binary file deletions.
+    (cd "$DSH" && GIT_CEILING_DIRECTORIES="$DIR" git -c core.autocrlf=false -c core.eol=lf \
+      apply --whitespace=nowarn "$PATCH_FILE")
     printf 'prepared %s\n' "$STAMP" > "$STATE_FILE"
     rm -f "$tarball"
   fi
