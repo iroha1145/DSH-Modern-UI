@@ -168,8 +168,8 @@ $Dir = Resolve-PhysicalDirectory $Dir
 
 # The install directory holds only what this script writes; refuse to spread into anything else.
 $allowed = '^(data|data-backups|install\.json(\.tmp)?|runtime|dsh|dsh\.old-.*|dsh-ui\.ps1|dsh-ui\.cmd|dsh-ui\.state|launch\.json(\.tmp)?|overlays|upstream-.*\.tar\.gz(\.part)?)$'
-if (Test-Path $Dir) {
-  foreach ($entry in Get-ChildItem -Force -Path $Dir) {
+if (Test-Path -LiteralPath $Dir) {
+  foreach ($entry in Get-ChildItem -Force -LiteralPath $Dir) {
     if ($entry.Name -notmatch $allowed) { Fail "${Dir} 里已经有别的文件（$($entry.Name)），不像是 DSH-UI 的安装目录。换一个 -Dir" }
   }
 }
@@ -199,7 +199,7 @@ foreach ($managedPath in $managedPaths) {
   if ((Test-Within $DshHome $physical) -or (Test-Within $physical $DshHome)) { Fail "数据目录不能与安装器管理的目录重叠：$physical" }
 }
 New-Item -ItemType Directory -Force -Path $Dir, $DshHome | Out-Null
-if ((-not (Test-Path $intent) -or $explicitHome) -and (Get-ChildItem -Force $DshHome | Select-Object -First 1)) {
+if ((-not (Test-Path $intent) -or $explicitHome) -and (Get-ChildItem -Force -LiteralPath $DshHome | Select-Object -First 1)) {
   $backup = Join-Path $Dir ('data-backups\home-' + [guid]::NewGuid())
   New-Item -ItemType Directory -Force $backup | Out-Null
   Invoke-Checked '备份数据' { tar -czf (Join-Path $backup 'data.tar.gz.part') -C $DshHome . }

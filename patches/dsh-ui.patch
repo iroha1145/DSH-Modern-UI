@@ -8091,7 +8091,7 @@ index 5cca3ee174d8079487f136bad9bfd8b52dbaa995..c1351e9a1f199215fd6e4670fff7f4b3
     * Register one client command contribution; effect disposer. Duplicate
     * names throw at registration.
 diff --git a/packages/client/ui-commands/src/client/directory.ts b/packages/client/ui-commands/src/client/directory.ts
-index 524e0352b9885db33e25d6b314a3b5d6ca37211f..7415bc8926a00ae718440ba15fc266dc6790681f 100644
+index 524e0352b9885db33e25d6b314a3b5d6ca37211f..75a675c109413112943f84024cc6af4e8dfb01ba 100644
 --- a/packages/client/ui-commands/src/client/directory.ts
 +++ b/packages/client/ui-commands/src/client/directory.ts
 @@ -7,6 +7,7 @@
@@ -8126,15 +8126,22 @@ index 524e0352b9885db33e25d6b314a3b5d6ca37211f..7415bc8926a00ae718440ba15fc266dc
    /**
     * Current cache status for one session.
     * @param sessionId - session key.
-@@ -107,6 +118,7 @@ export class CommandDirectory {
+@@ -107,7 +118,13 @@ export class CommandDirectory {
    async refresh(sessionId: SessionId): Promise<void> {
      const entry = this.entry(sessionId)
      const epoch = ++entry.epoch
-+    entry.view.set(undefined)
-     if (entry.state !== 'ready') entry.state = 'pending'
+-    if (entry.state !== 'ready') entry.state = 'pending'
++    // A soft refresh keeps a ready catalog visible, so controls built from it do
++    // not vanish and drop keyboard focus for a round trip; only unknown
++    // capabilities (cold, failed, or reset) hide it.
++    if (entry.state !== 'ready') {
++      entry.view.set(undefined)
++      entry.state = 'pending'
++    }
      try {
        const commands = await this.fetchCommands(sessionId)
-@@ -120,7 +132,10 @@ export class CommandDirectory {
+       if (epoch !== entry.epoch) return
+@@ -120,7 +137,10 @@ export class CommandDirectory {
        entry.state = 'failed'
        entry.lastError = error
      } finally {
@@ -8169,14 +8176,14 @@ index f2b52604b276dfe019907d1f85f529e72d465738..96eb24145d450e24f12301bac29bc8f3
     * Register one client command contribution; effect disposer (rides the
     * caller's fiber). Duplicate names throw.
 diff --git a/packages/client/ui-commands/tests/directory.client.spec.ts b/packages/client/ui-commands/tests/directory.client.spec.ts
-index 85c0d55967af64bd441e87af56e2a934659c00e0..ee6f8ca5b0ead309a94935ac9f40d6a6071d70d0 100644
+index 85c0d55967af64bd441e87af56e2a934659c00e0..a326edb4c4d23235d8a0e608afa848d45fe4a309 100644
 --- a/packages/client/ui-commands/tests/directory.client.spec.ts
 +++ b/packages/client/ui-commands/tests/directory.client.spec.ts
-@@ -53,6 +53,32 @@ function bench() {
+@@ -53,6 +53,34 @@ function bench() {
  }
  
  describe('status and resolve (per key)', () => {
-+  it('publishes current per-Session capabilities and hides them during refresh or failure', async () => {
++  it('publishes current per-Session capabilities, keeps them through a soft refresh, and hides them on reset or failure', async () => {
 +    const { dir, pull, countOf } = bench()
 +    const source = dir.catalogFor(S1)
 +    expect(source.getSnapshot()).toBeUndefined()
@@ -8196,7 +8203,9 @@ index 85c0d55967af64bd441e87af56e2a934659c00e0..ee6f8ca5b0ead309a94935ac9f40d6a6
 +    await replacement
 +    expect(source.getSnapshot()?.map(command => command.name)).toEqual(['plan', 'goal'])
 +    const failed = dir.refresh(S1)
-+    expect(source.getSnapshot()).toBeUndefined()
++    // The ready catalog keeps serving while the pull flies, so the web switch and
++    // other catalog-driven controls stay put instead of blinking out.
++    expect(source.getSnapshot()?.map(command => command.name)).toEqual(['plan', 'goal'])
 +    pull(S1, 2).reject(new Error('catalog unavailable'))
 +    await failed
 +    expect(source.getSnapshot()).toBeUndefined()
@@ -17617,7 +17626,7 @@ index 76532308c917277f10450bc3bb9efd50933a23f1..63d68db67e266427634d5c64d15d95a4
 +  }
  }
 diff --git a/packages/client/ui-model-selection/src/client/ModelSelect.tsx b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
-index 59dbf85427a0ce5dfe66a2c5e6784eade3432f13..4847a172172b12467de64782bb1ee4d9b3e386fa 100644
+index 59dbf85427a0ce5dfe66a2c5e6784eade3432f13..ab326c72c39396fd7e409091e7242fce4a05f214 100644
 --- a/packages/client/ui-model-selection/src/client/ModelSelect.tsx
 +++ b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
 @@ -1,155 +1,195 @@
@@ -18595,6 +18604,18 @@ index 59dbf85427a0ce5dfe66a2c5e6784eade3432f13..4847a172172b12467de64782bb1ee4d9
 -                    type="button"
 -                    className={css.searchClear}
 -                    aria-label={t('search.clear')}
+-                    disabled={busy}
+-                    onClick={() => {
+-                      changeQuery('')
+-                      searchRef.current?.focus()
+-                    }}
+-                  >
+-                    <IconCloseFillRegular />
+-                  </button>
+-                )}
+-              </div>}
+-              {state.status === 'loading' && (
+-                <div className={css.status}>{t('status.loading')}</div>
 +          {/* A background refresh keeps the listed models; only an empty list waits on the load. */}
 +          {state.status === 'loading' && rows.length === 0 && <div className={css.status}>{t('status.loading')}</div>}
 +          {state.error !== null && lastActionRef.current === 'load' && (
@@ -18645,18 +18666,7 @@ index 59dbf85427a0ce5dfe66a2c5e6784eade3432f13..4847a172172b12467de64782bb1ee4d9
 +                    className={css.switch}
 +                    checked={thinking}
 +                    label={t('thinking.label')}
-                     disabled={busy}
--                    onClick={() => {
--                      changeQuery('')
--                      searchRef.current?.focus()
--                    }}
--                  >
--                    <IconCloseFillRegular />
--                  </button>
--                )}
--              </div>}
--              {state.status === 'loading' && (
--                <div className={css.status}>{t('status.loading')}</div>
++                    busy={busy}
 +                    onChange={toggleThinking}
 +                  />
 +                </label>
@@ -18764,7 +18774,7 @@ index 59dbf85427a0ce5dfe66a2c5e6784eade3432f13..4847a172172b12467de64782bb1ee4d9
 +                    className={css.switch}
 +                    checked={webSearchOn}
 +                    label={t('webSearch.label')}
-+                    disabled={webBusy}
++                    busy={webBusy}
 +                    onChange={toggleWebSearch}
 +                  />
 +                </label>
@@ -22969,7 +22979,7 @@ index 0000000000000000000000000000000000000000..92b50a379b5de4eb278d8baedba85d3a
 +  })
 +})
 diff --git a/packages/client/ui-model-selection/tests/model-select.client.spec.tsx b/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
-index bb4832a0ced74844b84c5df9c6495519aa76776a..d42174bf1fb5d57f13e150d30525529a43147970 100644
+index bb4832a0ced74844b84c5df9c6495519aa76776a..c0cdf957f48d473ae12e9b6c7a5dd13ecb73c406 100644
 --- a/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
 +++ b/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
 @@ -1,20 +1,26 @@
@@ -23222,7 +23232,7 @@ index bb4832a0ced74844b84c5df9c6495519aa76776a..d42174bf1fb5d57f13e150d30525529a
      const plugin = await runtime.mount({ inject: ['slots'], apply(ctx) {
        ctx.slots.inject('conversation.input.model.label', () => ctx.slots.register({
          name: 'conversation.input.model.label',
-@@ -112,947 +234,642 @@ describe('ModelSelect label slot', () => {
+@@ -112,947 +234,667 @@ describe('ModelSelect label slot', () => {
        >{provider.id}: {model.name}</span>))
      } })
      expect(screen.getByTestId('trigger-trusted').textContent).toBe('trusted: Same model')
@@ -24032,6 +24042,27 @@ index bb4832a0ced74844b84c5df9c6495519aa76776a..d42174bf1fb5d57f13e150d30525529a
 +    expect(select).toHaveBeenLastCalledWith({ provider: 'deepseek-official', model: 'deepseek-flash', reasoningEffort: 'high' })
 +  })
 +
++  it('keeps keyboard focus on the thinking switch while its save is in flight', async () => {
++    const completion = Promise.withResolvers<typeof ok>()
++    onTestFinished(() => { completion.resolve(ok) })
++    const { directory, select } = setup({ webSearch: { enabled: true, pending: false }, select: () => completion.promise })
++    open()
++    const toggle = () => screen.getByRole<HTMLButtonElement>('switch', { name: '深度思考' })
++    toggle().focus()
++    fireEvent.click(toggle())
++    expect(select).toHaveBeenCalledTimes(1)
++    act(() => { directory.update((snapshot) => { snapshot.pending = { provider: 'deepseek-official', model: 'deepseek-flash', reasoningEffort: 'off' } }) })
++    expect(toggle().getAttribute('aria-disabled')).toBe('true')
++    fireEvent.click(toggle())
++    expect(select).toHaveBeenCalledTimes(1)
++    expect(document.activeElement).toBe(toggle())
++    // Tab moves on to the next stop in DOM order instead of jumping back to the model list.
++    const entry = screen.queryByRole<HTMLButtonElement>('radio', { name: '最高', hidden: true })
++    fireEvent.keyDown(toggle(), { key: 'Tab' })
++    expect(document.activeElement).toBe(entry !== null && !entry.disabled ? entry : screen.getByRole('switch', { name: '联网搜索' }))
++    await act(async () => { completion.resolve(ok) })
++  })
++
 +  it('shows pills without a switch for always-thinking models and neither for a single level', () => {
 +    const always = {
 +      id: 'always',
@@ -24207,13 +24238,18 @@ index bb4832a0ced74844b84c5df9c6495519aa76776a..d42174bf1fb5d57f13e150d30525529a
 +    open()
 +    const toggle = () => screen.getByRole<HTMLButtonElement>('switch', { name: '联网搜索' })
 +    expect(toggle().getAttribute('aria-checked')).toBe('true')
++    toggle().focus()
 +    fireEvent.click(toggle())
 +    expect(setWebSearch).toHaveBeenCalledWith(false)
-+    expect(toggle().disabled).toBe(true)
++    // Busy, not natively disabled: a repeat press is ignored and keyboard focus stays on the switch.
++    expect(toggle().getAttribute('aria-disabled')).toBe('true')
++    fireEvent.click(toggle())
++    expect(setWebSearch).toHaveBeenCalledTimes(1)
++    expect(document.activeElement).toBe(toggle())
 +    act(() => { web.set({ enabled: true, pending: true }) })
 +    expect(toggle().getAttribute('aria-checked')).toBe('false')
 +    await act(async () => { resolve(null) })
-+    expect(toggle().disabled).toBe(false)
++    expect(toggle().getAttribute('aria-disabled')).toBeNull()
 +    expect(screen.queryByRole('alert')).toBeNull()
 +    act(() => { web.set(undefined) })
 +    expect(screen.queryByRole('switch', { name: '联网搜索' })).toBeNull()
@@ -24448,9 +24484,8 @@ index bb4832a0ced74844b84c5df9c6495519aa76776a..d42174bf1fb5d57f13e150d30525529a
 +    expect(document.activeElement).toBe(high)
 +    expect(high.tabIndex).toBe(pending ? -1 : 0)
 +    fireEvent.keyDown(high, { key: 'Tab', shiftKey })
-+    expect(document.activeElement).toBe(!shiftKey
-+      ? screen.getByRole('switch', { name: '联网搜索' })
-+      : pending ? screen.getByRole('listbox') : screen.getByRole('switch', { name: '深度思考' }))
++    // The thinking switch stays a stop while the save is pending: it is busy, not natively disabled.
++    expect(document.activeElement).toBe(screen.getByRole('switch', { name: shiftKey ? '深度思考' : '联网搜索' }))
 +    expect(select).toHaveBeenCalledTimes(1)
 +  })
 +
@@ -27362,7 +27397,7 @@ index a560f1674ac6221b4f3a1d229fd255149b632b7b..58f766c8adb4d521e1a020fa00adfaf0
    const detail = state?.status === 'ready' ? state.detail : undefined
    const document = detail?.status === 'found' ? detail.document : undefined
 diff --git a/packages/client/ui-primitives/README.i18n.yaml b/packages/client/ui-primitives/README.i18n.yaml
-index 2e00fb223d9136294152129644ee035ef0b681c5..574b72ed813e2581d1bf489fca9c6ece76896192 100644
+index 2e00fb223d9136294152129644ee035ef0b681c5..03c5c4f0f526db808fc3e4b3f753b940cc1922fd 100644
 --- a/packages/client/ui-primitives/README.i18n.yaml
 +++ b/packages/client/ui-primitives/README.i18n.yaml
 @@ -18,20 +18,20 @@
@@ -27371,8 +27406,8 @@ index 2e00fb223d9136294152129644ee035ef0b681c5..574b72ed813e2581d1bf489fca9c6ece
  /deepseek-ai-dsh-client-ui-primitives/use-this-package/component-catalog:
 -  en: 3c79351ff2210ccb
 -  zh: 4cbe07ded89bbaa1
-+  en: e151ca4b30f7d091
-+  zh: 7b0e89b3e411d601
++  en: 52bf165abf108ebf
++  zh: ffbd6263f74e93c3
  /deepseek-ai-dsh-client-ui-primitives/use-this-package/controls-and-icons:
 -  en: b3744373b4b2c1fb
 -  zh: 2dbde8ee0bfa5f28
@@ -27395,9 +27430,18 @@ index 2e00fb223d9136294152129644ee035ef0b681c5..574b72ed813e2581d1bf489fca9c6ece
    en: fd510d34404eb090
    zh: d05b0890db929ae6
 diff --git a/packages/client/ui-primitives/README.md b/packages/client/ui-primitives/README.md
-index 380ce751426faeca9197c493cb13de392f9d52a7..54adfad22bcde593e350d9fcb89d91ef33aab1ec 100644
+index 380ce751426faeca9197c493cb13de392f9d52a7..857088ce9eac59422f009261b93301c728754f9f 100644
 --- a/packages/client/ui-primitives/README.md
 +++ b/packages/client/ui-primitives/README.md
+@@ -43,7 +43,7 @@ Check this table before writing a control in a feature package. A plugin cannot
+ | Export | What it is |
+ |---|---|
+ | `Button` | Clickable action; `variant` selects `primary`, `ghost`, `outline`, or `toolbar`. Outlined actions use an inset hairline. Its ref targets the native button for focus and overlay anchoring. |
+-| `Switch` | Two-state toggle, 36×20. The off-state thumb reads `--dsw-alias-switch-thumb` so it stays light in both themes, and the on-state thumb contrasts with the brand track. Disabled controls use half opacity. `label` is required, so the control cannot ship unnamed. |
++| `Switch` | Two-state toggle, 36×20. The off-state thumb reads `--dsw-alias-switch-thumb` so it stays light in both themes, and the on-state thumb contrasts with the brand track. Disabled controls use half opacity. While a write is in flight, `busy` gives the same look and `aria-disabled` and ignores clicks, but the switch stays focusable so keyboard focus survives the save. `label` is required, so the control cannot ship unnamed. |
+ | `SegmentedControl` | Tablist of two or more equal-width segments with one sliding indicator, for switching a card or panel between a few modes; the owner holds the selection and `label` names the list. `id` seeds each tab's id (`<id>-<value>`) and the panel it controls (`<id>-<value>-panel`), which the owner renders and points back at the tab with `aria-labelledby`; a segment may be `disabled` with a `title`, and `disabled` on the control locks every segment while the shown panel has work in flight. |
+ | `Checkbox` | Labeled native checkbox with controlled state, keyboard interaction, and disabled styling; the caller supplies localized `label` text. |
+ | `Input` | Single-line text entry for search boxes and inline forms. Its ref targets the native input for focus and is cleared on unmount. |
 @@ -74,11 +74,11 @@ Check this table before writing a control in a feature package. A plugin cannot
  | `MarkdownText`, `MarkdownDelegateProvider`, `CodeBlock` | Untrusted GFM with TeX math, owner-delegated HTTP(S) navigation, and highlighted code. `CodeBlock` accepts opt-in `lineNumbers`; copied source excludes the gutter, and `contentRef` exposes its stable source wrapper to an owner that uses it as a scrollport. Set `showHeader={false}` when the owner supplies its own language and copy toolbar. |
  | `DetailDocument`, `detailDocumentState`, `useDetailDocumentLabels` | Section without a heading of its own for a long Markdown description, such as a plugin's detail document: three skeleton lines while loading, the document, the owner's failure message with a retry, or nothing when there is no document. A document taller than `min(560px, 60vh)` scrolls inside a keyboard-focusable region that the owner's title names. Raw HTML in the document is omitted. Relative links stay text and only images the owner's `images` resolver accepts, or absolute HTTP(S) images, load. `detailDocumentState` maps an owner's read to the shown state, and `useDetailDocumentLabels` builds reference-stable labels from translated strings. |
@@ -27453,9 +27497,18 @@ index 380ce751426faeca9197c493cb13de392f9d52a7..54adfad22bcde593e350d9fcb89d91ef
  `MenuGroup` renders a `role="group"` section named by its localized heading, with an instance-owned heading id. It shares heading typography, spacing, and sticky positioning between custom menus and listboxes. Headings are transparent at rest; only `data-stuck` enables the theme's 94%-opaque group-header fill in either palette. Outside `data-platform="darwin"`, headings use `--dsw-radius-md` corners; the enclosing menu keeps its translucent material.
  
 diff --git a/packages/client/ui-primitives/README.zh.md b/packages/client/ui-primitives/README.zh.md
-index 9d2ffe3698ebcf97a5ad51be5dd449b0d72ae8b6..6d6e5000d43c2905eb9379ec11b0aa982c7175b9 100644
+index 9d2ffe3698ebcf97a5ad51be5dd449b0d72ae8b6..1be4c8a57c70285be2d9743ae5fb710c33061fcd 100644
 --- a/packages/client/ui-primitives/README.zh.md
 +++ b/packages/client/ui-primitives/README.zh.md
+@@ -43,7 +43,7 @@ kind: "package-library"
+ | 导出 | 是什么 |
+ |---|---|
+ | `Button` | 可点击操作；`variant` 选择 `primary`、`ghost`、`outline` 或 `toolbar`。描边操作使用内侧细线。ref 指向原生按钮，供焦点控制与浮层锚定使用。 |
+-| `Switch` | 36×20 的双态开关。关闭态滑块读取 `--dsw-alias-switch-thumb`，在两种主题下均保持亮色；开启态滑块与品牌色轨道形成对比。禁用控件使用半透明样式。`label` 必填，控件不可能在没有名称的情况下发布。 |
++| `Switch` | 36×20 的双态开关。关闭态滑块读取 `--dsw-alias-switch-thumb`，在两种主题下均保持亮色；开启态滑块与品牌色轨道形成对比。禁用控件使用半透明样式。写入进行中时用 `busy`：外观相同、带 `aria-disabled` 并忽略点击，但开关仍可获得焦点，保存期间键盘焦点不会丢。`label` 必填，控件不可能在没有名称的情况下发布。 |
+ | `SegmentedControl` | 两段或更多等宽分段加一个滑动指示块的 tablist，用于在几种模式间切换一张卡片或面板；选中项由调用方持有，`label` 为列表命名。`id` 派生每个 tab 的 id（`<id>-<value>`）及其控制的面板 id（`<id>-<value>-panel`），面板由调用方渲染并用 `aria-labelledby` 指回 tab；分段可 `disabled` 并带 `title`，控件级 `disabled` 在当前面板有进行中的操作时锁住全部分段。 |
+ | `Checkbox` | 带标签的原生复选框，支持受控状态、键盘交互和禁用样式；调用方提供本地化的 `label` 文本。 |
+ | `Input` | 单行文本输入，用于搜索框与行内表单。ref 指向原生输入框，供焦点控制使用，并在卸载时清空。 |
 @@ -74,11 +74,11 @@ kind: "package-library"
  | `MarkdownText`、`MarkdownDelegateProvider`、`CodeBlock` | 不可信 GFM 与 TeX 数学、owner 委托的 HTTP(S) 导航，以及高亮代码。`CodeBlock` 可通过 `lineNumbers` 开启行号；复制的源码不含行号栏，`contentRef` 则向需要把稳定源码包装节点用作滚动区的 owner 提供该节点。调用方提供自己的语言与复制工具栏时，设置 `showHeader={false}`。 |
  | `DetailDocument`、`detailDocumentState`、`useDetailDocumentLabels` | 用于较长 Markdown 描述（例如插件的详细介绍文档）的区块，本身不带标题：加载期间显示三行骨架屏，随后显示文档、owner 提供的失败消息和重试，或在没有文档时不显示任何内容。文档高度超过 `min(560px, 60vh)` 时，在可通过键盘聚焦、由 owner 的标题命名的区域内滚动。文档中的原始 HTML 会被省略。相对链接保持为文本，只加载 owner 的 `images` 解析器接受的图片或绝对 HTTP(S) 地址的图片。`detailDocumentState` 把 owner 的读取结果映射为显示状态，`useDetailDocumentLabels` 根据翻译后的字符串构建引用稳定的标签。 |
@@ -28146,7 +28199,7 @@ index a4edb7ada98a350008485ff8747bd05fe64591d6..00137e4f302633a5193f172b4282b998
  
  .tabs[data-size='sm'] {
 diff --git a/packages/client/ui-primitives/src/Switch.module.css b/packages/client/ui-primitives/src/Switch.module.css
-index 0ea5c093df4681ea5e2d5fed9b46c786301d084b..8669d930e377bba351a1066fe3bf077731962bc1 100644
+index 0ea5c093df4681ea5e2d5fed9b46c786301d084b..cd069be06a8104baceea4752ee084b7fd8f3f77d 100644
 --- a/packages/client/ui-primitives/src/Switch.module.css
 +++ b/packages/client/ui-primitives/src/Switch.module.css
 @@ -1,6 +1,5 @@
@@ -28158,7 +28211,7 @@ index 0ea5c093df4681ea5e2d5fed9b46c786301d084b..8669d930e377bba351a1066fe3bf0777
   * The capsule track and circular thumb opt out of the global superellipse. */
  .switch {
    box-sizing: border-box;
-@@ -12,12 +11,17 @@
+@@ -12,15 +11,21 @@
    border: 0;
    border-radius: 999px;
    corner-shape: round;
@@ -28177,8 +28230,13 @@ index 0ea5c093df4681ea5e2d5fed9b46c786301d084b..8669d930e377bba351a1066fe3bf0777
 +  --dsh-switch-rest-fill: 100%;
  }
  
- .switch:disabled {
-@@ -36,14 +40,11 @@
+-.switch:disabled {
++.switch:disabled,
++.switch[aria-disabled='true'] {
+   cursor: default;
+   opacity: 0.5;
+ }
+@@ -36,14 +41,11 @@
    height: 16px;
    border-radius: 50%;
    corner-shape: round;
@@ -28200,7 +28258,7 @@ index 0ea5c093df4681ea5e2d5fed9b46c786301d084b..8669d930e377bba351a1066fe3bf0777
 +/* The instance-owned Feel spring writes position and fill from the same body.
 + * Without script, aria-checked still supplies the correct resting appearance. */
 diff --git a/packages/client/ui-primitives/src/Switch.tsx b/packages/client/ui-primitives/src/Switch.tsx
-index 980a08f6beb1c489ca9b68244a4c991edc350cfa..975970ffb4802f30c97f31080b5f6924e631071e 100644
+index 980a08f6beb1c489ca9b68244a4c991edc350cfa..1ac9b5526c195e5877b5041707a4fa498d4988c5 100644
 --- a/packages/client/ui-primitives/src/Switch.tsx
 +++ b/packages/client/ui-primitives/src/Switch.tsx
 @@ -1,7 +1,9 @@
@@ -28213,7 +28271,29 @@ index 980a08f6beb1c489ca9b68244a4c991edc350cfa..975970ffb4802f30c97f31080b5f6924
  import css from './Switch.module.css'
  
  /**
-@@ -25,8 +27,23 @@ export function Switch({ checked, onChange, label, disabled = false, title, clas
+@@ -9,32 +11,51 @@ import css from './Switch.module.css'
+  * @param props.checked - the current state; the control is fully controlled.
+  * @param props.onChange - called with the state the click asks for.
+  * @param props.label - localized accessible name, owned by the render site.
+- * @param props.disabled - whether the control refuses input; owners also set it
+- * while a write is in flight, not only when a deployment locks the toggle.
++ * @param props.disabled - whether the control refuses input, such as a toggle a
++ * deployment locks.
++ * @param props.busy - a write is in flight: the switch reads as unavailable and
++ * ignores clicks but stays focusable, so keyboard focus survives the save.
+  * @param props.title - localized hover text, typically why the toggle is locked.
+  * @param props.className - extra class for layout placement.
+  * @returns the switch element.
+  */
+-export function Switch({ checked, onChange, label, disabled = false, title, className }: {
++export function Switch({ checked, onChange, label, disabled = false, busy = false, title, className }: {
+   checked: boolean
+   onChange: (next: boolean) => void
+   label: string
+   disabled?: boolean
++  busy?: boolean
+   title?: string | undefined
+   // `| undefined` so a caller can forward an optional class straight through
    // under exactOptionalPropertyTypes (a CSS-module lookup is string|undefined).
    className?: string | undefined
  }) {
@@ -28237,6 +28317,16 @@ index 980a08f6beb1c489ca9b68244a4c991edc350cfa..975970ffb4802f30c97f31080b5f6924
        type="button"
        role="switch"
        aria-checked={checked}
+       aria-label={label}
+       title={title}
+       disabled={disabled}
++      aria-disabled={busy || undefined}
+       className={clsx(css.switch, className)}
+-      onClick={() => { onChange(!checked) }}
++      onClick={() => { if (!busy) onChange(!checked) }}
+     >
+       <span className={css.thumb} />
+     </button>
 diff --git a/packages/client/ui-primitives/src/UserMessageBubble.module.css b/packages/client/ui-primitives/src/UserMessageBubble.module.css
 index b004e223746b9591c6ab413db6022807a65616f5..a49cf52480cc85e067cbee59f17a6db65c81e654 100644
 --- a/packages/client/ui-primitives/src/UserMessageBubble.module.css
@@ -31780,7 +31870,7 @@ index 0000000000000000000000000000000000000000..be3067832d84b81c180331cbc2ceb837
 +  })
 +})
 diff --git a/packages/client/ui-primitives/tests/switch.client.spec.tsx b/packages/client/ui-primitives/tests/switch.client.spec.tsx
-index a80eae48d36eb8f4489e1cbbf84e0f8d1c8ea4e4..2e770786e4015edbc0566e59e84dccb892aff02b 100644
+index a80eae48d36eb8f4489e1cbbf84e0f8d1c8ea4e4..45cc8d86e8cd91063ac4bd335be337f627c5dd20 100644
 --- a/packages/client/ui-primitives/tests/switch.client.spec.tsx
 +++ b/packages/client/ui-primitives/tests/switch.client.spec.tsx
 @@ -1,6 +1,6 @@
@@ -31792,7 +31882,26 @@ index a80eae48d36eb8f4489e1cbbf84e0f8d1c8ea4e4..2e770786e4015edbc0566e59e84dccb8
  import { Switch } from '@deepseek-ai/dsh-client-ui-primitives'
  
  afterEach(cleanup)
-@@ -52,3 +52,120 @@ describe('Switch', () => {
+@@ -33,6 +33,18 @@ describe('Switch', () => {
+     expect(onChange).not.toHaveBeenCalled()
+   })
+ 
++  it('stays focusable but silent while a write is in flight', () => {
++    const onChange = vi.fn()
++    render(<Switch checked={false} busy label="Toggle" onChange={onChange} />)
++    const control = screen.getByRole<HTMLButtonElement>('switch')
++    control.focus()
++    expect(control.disabled).toBe(false)
++    expect(control.getAttribute('aria-disabled')).toBe('true')
++    fireEvent.click(control)
++    expect(onChange).not.toHaveBeenCalled()
++    expect(document.activeElement).toBe(control)
++  })
++
+   it('carries a lock reason as the hover title when the owner names one', () => {
+     render(<Switch checked={false} disabled label="Toggle" title="Managed by policy" onChange={() => {}} />)
+     expect(screen.getByRole('switch').getAttribute('title')).toBe('Managed by policy')
+@@ -52,3 +64,120 @@ describe('Switch', () => {
      expect(control.classList.length).toBeGreaterThan(1)
    })
  })
@@ -41689,6 +41798,65 @@ index cefad070577979044172937496466556bf014cbe..992d967e31bf1e0335d40f93ade4d554
        expect(input.value).toBe('')
        expect(screen.queryByRole('tree', { name: '搜索结果' })).toBeNull()
        expect(screen.getByRole('tree', { name: '会话' })).toBeTruthy()
+diff --git a/packages/client/web/README.i18n.yaml b/packages/client/web/README.i18n.yaml
+index bd0e87b2db0203aa9a5c098d53c241912511fb73..4f7c714128a4b0e657714a44db71fd359f72189b 100644
+--- a/packages/client/web/README.i18n.yaml
++++ b/packages/client/web/README.i18n.yaml
+@@ -42,8 +42,8 @@
+   en: 83f9195138da9a82
+   zh: 135d7da735fb870a
+ /deepseek-ai-dsh-client-web/understand-the-implementation/source-map:
+-  en: 1fe37d3730368e32
+-  zh: 74c2d6980ce82e21
++  en: 0a6f35773b3ee2b8
++  zh: ff6e2680b4ad631b
+ /deepseek-ai-dsh-client-web/further-exploration:
+   en: f2da70a33bba9086
+   zh: a775f6fe309150ea
+diff --git a/packages/client/web/README.md b/packages/client/web/README.md
+index 93f6bb952919c8d67e0eea10254e0eb981b01ffc..6c1ec5f0eed9ccbe7182431629a4c14f713a039f 100644
+--- a/packages/client/web/README.md
++++ b/packages/client/web/README.md
+@@ -89,6 +89,7 @@ The boot kernel delegates manifest entry creation to Client Modules so live grap
+ | [`src/boot-page.ts`](src/boot-page.ts) | Framework-free boot page: spinner, per-entry status, failure rendering |
+ | [`src/platform.ts`](src/platform.ts) | `PLATFORM_MODULES` / `PRELOADED_CLIENT_EXTERNALS`: the implicit external baseline |
+ | [`src/seed.ts`](src/seed.ts) | Static module table handed to the loader at boot |
++| [`src/base.css`](src/base.css) | Shell-owned mount defaults: full-height `html`, `body` and `#root`; no vertical overscroll on the document, so a swipe past a page's own scroll edge neither drags the whole app on phones nor pulls to refresh; the darwin window drag surface |
+ | [`src/window-drag/regions.ts`](src/window-drag/regions.ts) | The darwin app-region composition model, and the interactive selector `base.css` subtracts |
+ | [`src/window-drag/recall.ts`](src/window-drag/recall.ts) | The shell's one window drag-rect watcher (electron/electron#32341): measure the marked rows per frame and pulse the recall mark while they move |
+ 
+diff --git a/packages/client/web/README.zh.md b/packages/client/web/README.zh.md
+index c913362067306dac774f86ccae92a178aaf976ff..0996b6bad51cf127824126d499e89e957ee697cb 100644
+--- a/packages/client/web/README.zh.md
++++ b/packages/client/web/README.zh.md
+@@ -89,6 +89,7 @@ Web 和 Desktop 的数学公式渲染要求支持 WOFF2。[Web 构建](../../../
+ | [`src/boot-page.ts`](src/boot-page.ts) | 无框架启动页：spinner、逐 entry 状态、失败渲染 |
+ | [`src/platform.ts`](src/platform.ts) | `PLATFORM_MODULES` / `PRELOADED_CLIENT_EXTERNALS`：隐式 external 基座 |
+ | [`src/seed.ts`](src/seed.ts) | 启动时交给 loader 的静态模块表 |
++| [`src/base.css`](src/base.css) | 外壳自带的挂载默认样式：`html`、`body` 和 `#root` 占满整页高度；页面根部不接纵向越界滚动，滑过某个页面自己的滚动边缘时，手机上既不会把整个应用拖下来，也不会触发下拉刷新；以及 darwin 窗口拖动区 |
+ | [`src/window-drag/regions.ts`](src/window-drag/regions.ts) | darwin app-region 组合模型，以及 `base.css` 减除的交互元素选择器 |
+ | [`src/window-drag/recall.ts`](src/window-drag/recall.ts) | 外壳唯一的窗口拖拽矩形 watcher（electron/electron#32341）：逐帧测量被打标行，并在它们移动期间脉冲 recall 标记 |
+ 
+diff --git a/packages/client/web/src/base.css b/packages/client/web/src/base.css
+index af74988cf1c2912f48af946d028bd2b84ce58aa4..80b93be4b6d8547d4b0fad087c5d4dcab18e1c6c 100644
+--- a/packages/client/web/src/base.css
++++ b/packages/client/web/src/base.css
+@@ -8,6 +8,15 @@ body,
+   margin: 0;
+ }
+ 
++/* The app frame owns every scroll region; the document itself never scrolls.
++   A swipe past a region's top or bottom edge would otherwise chain to the
++   root, where phones drag the whole page with its top bar (iOS rubber-band)
++   or start a pull-to-refresh (Android). */
++html,
++body {
++  overscroll-behavior-y: none;
++}
++
+ body {
+   font-family: var(
+     --dsw-font-family,
 diff --git a/packages/client/web/src/boot-page.module.css b/packages/client/web/src/boot-page.module.css
 index f154c4276157a2762ace729b1bfb7db404f0d57c..d615ae7533ac76f04e5c6e57cdbd4ea3078fc98c 100644
 --- a/packages/client/web/src/boot-page.module.css
@@ -41711,6 +41879,23 @@ index f154c4276157a2762ace729b1bfb7db404f0d57c..d615ae7533ac76f04e5c6e57cdbd4ea3
    color: var(--dsw-alias-label-primary, var(--dsh-boot-label-primary));
  }
  
+diff --git a/packages/client/web/tests/base-styles.client.spec.ts b/packages/client/web/tests/base-styles.client.spec.ts
+index 6f4c9b81442ffa6b73c4f6e2c93bff160181f2a5..147a81732c659c144117ff66b5e2a39655cc1f29 100644
+--- a/packages/client/web/tests/base-styles.client.spec.ts
++++ b/packages/client/web/tests/base-styles.client.spec.ts
+@@ -49,6 +49,12 @@ describe('web shell base.css', () => {
+     expect(declared).toBe(INTERACTIVE_SELECTOR)
+   })
+ 
++  it('keeps edge swipes from dragging or refreshing the whole page', () => {
++    // Each page scrolls inside the app frame; the document never does. Without
++    // this, overscrolling a page's own region moves the entire app on phones.
++    expect(normalizedCss).toContain('html, body { overscroll-behavior-y: none; }')
++  })
++
+   it('declares the darwin drag surface through the mark chrome rows set', () => {
+     // One rule for the whole surface: a chrome row marks itself
+     // `data-window-drag`, so its own box is the draggable geometry and no sheet
 diff --git a/packages/core/session/src/known-event-types.ts b/packages/core/session/src/known-event-types.ts
 index a0f5c17795be074e3c521c525a0eb59ee25248d6..1c091f6b207dd494adbdb678a550771874758f96 100644
 --- a/packages/core/session/src/known-event-types.ts

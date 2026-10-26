@@ -9,7 +9,7 @@
   },
   "patch": {
     "file": "patches/dsh-ui.patch",
-    "sha256": "d51ace6443fd56fddfcfb66b63895432e0bf595e95c1796f079b1dced0306412"
+    "sha256": "111b5c5a0d817685ab32440df6272f895ce385907b0f16f5e036dd443e240000"
   },
   "node": {
     "minimum": "24.22.1",

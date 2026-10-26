@@ -247,6 +247,15 @@ if [ -n "$out" ]; then cp "$file" "$out"; else cat "$file"; fi
    self.assertFalse(marker.exists())
    self.assertEqual(sorted(p.name for p in common.iterdir()),['a','b'])
   finally: common.chmod(0o755)
+ def test_existing_home_below_unlistable_ancestor_is_accepted(self):
+  locked=self.base/'locked';locked.mkdir()
+  data=locked/'existing-home';data.mkdir()
+  locked.chmod(0o311)
+  try:
+   self.run_install('--home',str(data),'--prepare-only')
+   self.assertTrue(data.is_dir())
+  finally: locked.chmod(0o755)
+  self.assertIn('DSH_UI_HOME='+os.path.realpath(data)+'\n',(self.install/'install.conf').read_text())
  def test_case_sensitive_external_directories_remain_distinct(self):
   managed=self.base/'Separate';managed.mkdir()
   data=self.base/'separate'
