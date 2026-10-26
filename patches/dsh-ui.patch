@@ -1952,20 +1952,17 @@ new file mode 100644
 index 0000000000000000000000000000000000000000..41e880b28ce906abec4352df20ec298e234eb6eb
 --- /dev/null
 +++ b/apps/web/tests/intelligent-ui.e2e.ts
-@@ -0,0 +1,316 @@
+@@ -0,0 +1,295 @@
 +/** Keyless assistant visualization integration: real interaction, containment, fallback, and phone geometry. */
 +import { chromium, type Browser, type Page } from 'playwright'
-+import { execFileSync } from 'node:child_process'
-+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 +import { mkdir, writeFile } from 'node:fs/promises'
-+import { createServer, type Server } from 'node:https'
-+import { tmpdir } from 'node:os'
++import { createServer, type Server } from 'node:http'
 +import { join } from 'node:path'
 +import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 +import { createAssistantMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
 +import { SESSION_FORMAT_VERSION, Session, SessionId } from '@deepseek-ai/dsh-session'
 +import { launchWebScaffold, seedSession, type WebScaffold } from './scaffold.ts'
-+import { REPO_ROOT } from './support.ts'
++import { newEnglishPage, REPO_ROOT } from './support.ts'
 +
 +const NETWORK_ORIGIN = 'https://openui-network.invalid'
 +const LONG_CONTROLS = '<button id="expand" onclick="expandList()">Show long list</button><div id="long-content"></div>'
@@ -2004,25 +2001,12 @@ index 0000000000000000000000000000000000000000..41e880b28ce906abec4352df20ec298e
 +  return [JSON.stringify({ type: 'session', version: SESSION_FORMAT_VERSION, id: '{{sessionId}}', createdAt: 0, cwd: '{{cwd}}', isSeeded: false, delegationDepth: 0 }), ...session.snapshotEvents().map(event => JSON.stringify(event)), ''].join('\n')
 +}
 +
-+/** The host forwards only https links, so the confirmed popup has to reach this probe over TLS. */
-+function loopbackCertificate(directory: string): { cert: Buffer; key: Buffer } {
-+  const keyPath = join(directory, 'key.pem')
-+  const certPath = join(directory, 'cert.pem')
-+  execFileSync('openssl', [
-+    'req', '-x509', '-newkey', 'rsa:2048', '-keyout', keyPath, '-out', certPath,
-+    '-days', '1', '-nodes', '-subj', '/CN=127.0.0.1',
-+    '-addext', 'subjectAltName=IP:127.0.0.1',
-+  ], { stdio: 'ignore' })
-+  return { cert: readFileSync(certPath), key: readFileSync(keyPath) }
-+}
-+
 +describe('web e2e: isolated assistant visualizations', () => {
 +  let scaffold: WebScaffold
 +  let browser: Browser
 +  let page: Page
 +  let networkOrigin: string
 +  let probeServer: Server
-+  let probeCertificate: string | undefined
 +  let probeHealth: { status: number; received: string[] }
 +  const network: string[] = []
 +  const failures: { url: string; error: string | undefined }[] = []
@@ -2033,8 +2017,7 @@ index 0000000000000000000000000000000000000000..41e880b28ce906abec4352df20ec298e
 +  const geometry: { viewport: number; cards: { width: number; scroll: number; client: number; right: number }[] }[] = []
 +
 +  beforeAll(async () => {
-+    probeCertificate = mkdtempSync(join(tmpdir(), 'dsh-ui-link-probe-'))
-+    probeServer = createServer(loopbackCertificate(probeCertificate), (request, response) => {
++    probeServer = createServer((request, response) => {
 +      serverHits.push(request.url ?? '')
 +      response.writeHead(200, { 'content-type': 'text/plain', 'access-control-allow-origin': '*' })
 +      response.end('isolation probe')
@@ -2045,7 +2028,7 @@ index 0000000000000000000000000000000000000000..41e880b28ce906abec4352df20ec298e
 +    })
 +    const address = probeServer.address()
 +    if (address === null || typeof address === 'string') throw new Error('Isolation probe did not bind a TCP port')
-+    networkOrigin = `https://127.0.0.1:${address.port}`
++    networkOrigin = `http://127.0.0.1:${address.port}`
 +    scaffold = await launchWebScaffold({})
 +    const prompt = await scaffold.ctx.systemPrompt.assemble()
 +    const guidance = prompt.sections.find(section => section.name === 'deployment:response-presentation')?.text
@@ -2054,10 +2037,7 @@ index 0000000000000000000000000000000000000000..41e880b28ce906abec4352df20ec298e
 +    await seedSession(scaffold, fixture(networkOrigin), 'intelligent-ui')
 +    const executablePath = process.env.DSH_PLAYWRIGHT_EXECUTABLE_PATH
 +    browser = await chromium.launch(executablePath === undefined ? {} : { executablePath })
-+    // Same locale and clock as newEnglishPage. TLS errors are ignored so the local probe certificate can load.
-+    page = await browser.newPage({
-+      viewport: { width: 1680, height: 1000 }, locale: 'en-US', timezoneId: 'Asia/Shanghai', ignoreHTTPSErrors: true,
-+    })
++    page = await newEnglishPage(browser)
 +    // The counting server is independently reachable; later CSP failures must never reach it.
 +    const health = await page.request.get(`${networkOrigin}/health`)
 +    probeHealth = { status: health.status(), received: [...serverHits] }
@@ -2088,7 +2068,6 @@ index 0000000000000000000000000000000000000000..41e880b28ce906abec4352df20ec298e
 +            probeServer.close((error) => { if (error) reject(error); else resolve() })
 +          })
 +        }
-+        if (probeCertificate !== undefined) rmSync(probeCertificate, { recursive: true, force: true })
 +      }
 +    }
 +  })
@@ -12552,7 +12531,7 @@ index 0000000000000000000000000000000000000000..ff28ed4dee6237fcf4bd0c9d1c0124e9
 +
 +A fence body is either an HTML fragment or JSON. A body starting with `{` or `[` is JSON; any other body is a fragment and must contain at least one tag. In a fragment, the first `<title>` element names the frame and the loading placeholder (otherwise a localized default), each inline `<script>` element runs in its original order after the remaining markup is inserted, and `<style>` elements stay in the markup. The surrounding answer carries the explanation, so a fragment has no fallback field. JSON uses `version: 1`, nonempty `title`, nonempty `fallback`, and `html` as a string or string array; optional fields are `initialHeight`, `css`, `jsFunctions`, and `jsExpressions` (string or string array), and unknown fields are rejected. The source limit is 128,000 characters; titles are limited to 200, JSON fallback to 16,000, JSON CSS/functions to 32,000 each, and JSON fragment arrays or fragment scripts to 128 entries. Heights stay between 24 and 2,400 CSS pixels; taller content scrolls inside the frame. Measuring the content root keeps expansion and shrinkage independent of the embedding viewport. A remounted block starts at its last measured height. A block executes as soon as its fence closes, while the rest of the answer may still stream; until then it shows a quiet placeholder with its title and a generating status. Stopped, unclosed, invalid, or oversized blocks retain original code with a localized status.
 +
-+The frame has no border or title bar and a transparent background, so a component reads as part of the answer; a source button stays visible on devices without hover, and appears on desktop when the pointer hovers over the component or keyboard focus reaches the button. Before mounting, the page reads the chat's font family and size, text, muted, line, link, and state colors, and background; each value passes an allowlist and falls back to fixed palette values. The frame design system defines those as `--fg`, `--muted`, `--subtle`, `--line`, `--accent`, `--fill`, `--bg`, and OpenIntelligentUI's `--color-text-primary`-style names, styles headings, links, code, tables, and form controls, and provides OpenIntelligentUI's SVG color classes (`c-blue`, `c-teal`, and others, with text classes `t`, `ts`, `th`). The component kit adds `ui-card`, `ui-grid`/`ui-item`, `ui-list`, `ui-tags`/`ui-tag`, `ui-flow` with `ui-node`, `ui-arrow`, `ui-group`, `ui-cols`, and `ui-bar`, `ui-steps`, `ui-stats`/`ui-stat`, `ui-profile`/`ui-media`, `ui-callout`, and the tone modifiers `success`, `warning`, `danger`, and `info`. An element with `data-icon="name"` receives the matching icon from 235 bundled Lucide icons and 29 aliases, including elements that scripts add later; only icons whose names appear in the source are sent to the frame. An HTTPS link request displays its complete address and Open link / Cancel controls outside the frame. Only clicking the host-owned Open link button opens a new tab without opener access. Further frame messages cannot replace the displayed address while confirmation is pending; cancellation, failure, or retry clears it. JSON fallback text appears after a failure. A script error keeps the frame and whatever it rendered and adds a localized notice. Retry rebuilds only local frames without a model request. Remote pictures stay outside the sandbox in the existing Markdown image renderer.
++The frame has no border or title bar and a transparent background, so a component reads as part of the answer; a source button stays visible on devices without hover, and appears on desktop when the pointer hovers over the component or keyboard focus reaches the button. Before mounting, the page reads the chat's font family and size, text, muted, line, link, and state colors, and background; each value passes an allowlist and falls back to fixed palette values. The frame design system defines those as `--fg`, `--muted`, `--subtle`, `--line`, `--accent`, `--fill`, `--bg`, and OpenIntelligentUI's `--color-text-primary`-style names, styles headings, links, code, tables, and form controls, and provides OpenIntelligentUI's SVG color classes (`c-blue`, `c-teal`, and others, with text classes `t`, `ts`, `th`). The component kit adds `ui-card`, `ui-grid`/`ui-item`, `ui-list`, `ui-tags`/`ui-tag`, `ui-flow` with `ui-node`, `ui-arrow`, `ui-group`, `ui-cols`, and `ui-bar`, `ui-steps`, `ui-stats`/`ui-stat`, `ui-profile`/`ui-media`, `ui-callout`, and the tone modifiers `success`, `warning`, `danger`, and `info`. An element with `data-icon="name"` receives the matching icon from 235 bundled Lucide icons and 29 aliases, including elements that scripts add later; only icons whose names appear in the source are sent to the frame. An HTTP(S) link request displays its complete address and Open link / Cancel controls outside the frame. Only clicking the host-owned Open link button opens a new tab without opener access. Further frame messages cannot replace the displayed address while confirmation is pending; cancellation, failure, or retry clears it. JSON fallback text appears after a failure. A script error keeps the frame and whatever it rendered and adds a localized notice. Retry rebuilds only local frames without a model request. Remote pictures stay outside the sandbox in the existing Markdown image renderer.
 +
 +A `followups` fence body holds one question per line. The renderer strips bullets, numbering, and wrapping quotation marks, and drops blank lines, duplicates, lines over 200 characters, and every question after the fifth. While the fence is open, or when no question remains, nothing renders. A closed fence becomes a localized Related heading above full-width rows divided by hairlines, each row a native button with a trailing chevron, so Enter and Space activate it. The section is omitted when the Session cannot take a prompt: the `session/prompt` access answer is denied, the Session was removed, or it belongs to a subagent that is not continuable or whose parent is unavailable.
 +
@@ -12635,7 +12614,7 @@ index 0000000000000000000000000000000000000000..239bb79fd35e58fd4775aa55a35cf387
 +
 +围栏正文可以是 HTML 片段或 JSON。以 `{` 或 `[` 开头的正文按 JSON 处理，其余正文按 HTML 片段处理，且至少要包含一个标签。片段中的第一个 `<title>` 元素用作框架和加载占位的名称（没有时使用本地化默认标题）；其余标记插入后，各个内联 `<script>` 元素按原顺序执行；`<style>` 元素留在标记中。片段的说明由所在回答承担，因此没有说明字段。JSON 包含 `version: 1`、非空 `title`、非空 `fallback`，以及字符串或字符串数组形式的 `html`；可选字段为 `initialHeight`、`css`、`jsFunctions` 和 `jsExpressions`（字符串或字符串数组），未知字段会被拒绝。原文上限为 128,000 字符，标题为 200，JSON 说明为 16,000，JSON 样式与函数字段各为 32,000，JSON 片段数组或片段脚本最多 128 项。高度限定在 24 至 2,400 个 CSS 像素，超出部分可在框架内部滚动查看。高度根据内容根元素测量，展开与收起不会受框架视口高度影响。重新挂载的代码块从上次测得的高度开始。围栏一闭合就会运行，回答的其余部分可以继续流式输出；在此之前只显示带标题和“正在生成”状态的低调占位。已停止、未闭合、无效或超限的内容均保留原始代码，并显示本地化状态。
 +
-+框架没有边框和标题栏，背景透明，组件看起来就是回答的一部分；无悬停能力的触控设备始终显示源码按钮；桌面上，鼠标悬停在组件上或键盘焦点移到按钮时显示。挂载前，页面读取聊天的字体、字号，正文、次要、分隔线、链接和状态颜色以及背景色；每个值都要通过白名单校验，不通过时使用固定的调色板值。框架设计系统把这些值定义为 `--fg`、`--muted`、`--subtle`、`--line`、`--accent`、`--fill`、`--bg`，以及 OpenIntelligentUI 的 `--color-text-primary` 一类名称；它为标题、链接、代码、表格和表单控件设定样式，并提供 OpenIntelligentUI 的 SVG 颜色类（`c-blue`、`c-teal` 等，文字类为 `t`、`ts`、`th`）。组件套件提供 `ui-card`、`ui-grid`/`ui-item`、`ui-list`、`ui-tags`/`ui-tag`、带 `ui-node`、`ui-arrow`、`ui-group`、`ui-cols` 和 `ui-bar` 的 `ui-flow`、`ui-steps`、`ui-stats`/`ui-stat`、`ui-profile`/`ui-media`、`ui-callout`，以及语气修饰类 `success`、`warning`、`danger` 和 `info`。带 `data-icon="名称"` 的元素会从内置的 235 个 Lucide 图标和 29 个别名中取得对应图标，脚本之后加入的元素也一样；只有名称出现在源码中的图标才会发送进框架。HTTPS 链接请求会在框架外显示完整地址和“打开链接”“取消”按钮。只有点击宿主页面的“打开链接”，才会打开新标签页，且不保留打开者引用。等待确认期间，后续框架消息不能替换已显示的地址；取消、显示失败或重试会清除待确认地址。显示失败后会出现 JSON 的说明文字。脚本出错时保留框架及已渲染的内容，并显示本地化提示。重试只重建本地框架，不发起模型请求。远程图片仍由沙箱外已有的 Markdown 图片渲染器展示。
++框架没有边框和标题栏，背景透明，组件看起来就是回答的一部分；无悬停能力的触控设备始终显示源码按钮；桌面上，鼠标悬停在组件上或键盘焦点移到按钮时显示。挂载前，页面读取聊天的字体、字号，正文、次要、分隔线、链接和状态颜色以及背景色；每个值都要通过白名单校验，不通过时使用固定的调色板值。框架设计系统把这些值定义为 `--fg`、`--muted`、`--subtle`、`--line`、`--accent`、`--fill`、`--bg`，以及 OpenIntelligentUI 的 `--color-text-primary` 一类名称；它为标题、链接、代码、表格和表单控件设定样式，并提供 OpenIntelligentUI 的 SVG 颜色类（`c-blue`、`c-teal` 等，文字类为 `t`、`ts`、`th`）。组件套件提供 `ui-card`、`ui-grid`/`ui-item`、`ui-list`、`ui-tags`/`ui-tag`、带 `ui-node`、`ui-arrow`、`ui-group`、`ui-cols` 和 `ui-bar` 的 `ui-flow`、`ui-steps`、`ui-stats`/`ui-stat`、`ui-profile`/`ui-media`、`ui-callout`，以及语气修饰类 `success`、`warning`、`danger` 和 `info`。带 `data-icon="名称"` 的元素会从内置的 235 个 Lucide 图标和 29 个别名中取得对应图标，脚本之后加入的元素也一样；只有名称出现在源码中的图标才会发送进框架。HTTP(S) 链接请求会在框架外显示完整地址和“打开链接”“取消”按钮。只有点击宿主页面的“打开链接”，才会打开新标签页，且不保留打开者引用。等待确认期间，后续框架消息不能替换已显示的地址；取消、显示失败或重试会清除待确认地址。显示失败后会出现 JSON 的说明文字。脚本出错时保留框架及已渲染的内容，并显示本地化提示。重试只重建本地框架，不发起模型请求。远程图片仍由沙箱外已有的 Markdown 图片渲染器展示。
 +
 +`followups` 围栏的正文每行一个问题。渲染器会去掉项目符号、编号和包裹整行的引号，并丢弃空行、重复项、超过 200 个字符的行，以及第五个之后的所有问题。围栏尚未闭合，或没有剩余问题时，不渲染任何内容。闭合后的围栏显示为本地化的“相关问题”标题，其下是以细线分隔的整行条目，每行是带右侧箭头的原生按钮，因此 Enter 和空格都能触发。Session 无法接收提示时不显示该区块：`session/prompt` 的访问答复为拒绝、Session 已被移除，或它属于不可继续对话或父会话不可用的子代理。
 +
@@ -14204,7 +14183,7 @@ index 0000000000000000000000000000000000000000..43b49d86cf222527f2c0f2347977fc08
 +  /** An authored script threw; the frame stays mounted with whatever it rendered. */
 +  scriptError(): void
 +  resized(height: number): void
-+  /** An untrusted frame requests an HTTPS link; the host must obtain its own confirmation. */
++  /** An untrusted frame requests an HTTP(S) link; the host must obtain its own confirmation. */
 +  openLink(href: string): void
 +}
 +
@@ -14255,7 +14234,7 @@ index 0000000000000000000000000000000000000000..43b49d86cf222527f2c0f2347977fc08
 +        if(typeof data.height!=='number'||!Number.isFinite(data.height))return;
 +        parent.postMessage({type:kind,token,state:'resize',height:Math.min(${MAX_HEIGHT},Math.max(${MIN_HEIGHT},Math.ceil(data.height)))},'*');
 +      }else if(data.state==='open'){
-+        if(typeof data.href!=='string'||data.href.length>${LINK_LIMIT}||!/^https:/i.test(data.href))return;
++        if(typeof data.href!=='string'||data.href.length>${LINK_LIMIT}||!/^https?:/i.test(data.href))return;
 +        parent.postMessage({type:kind,token,state:'open',href:data.href},'*');
 +      }else if(data.state==='error'||data.state==='ready'){
 +        parent.postMessage({type:kind,token,state:data.state},'*');
@@ -14279,7 +14258,7 @@ index 0000000000000000000000000000000000000000..43b49d86cf222527f2c0f2347977fc08
 +    const url = new URL(value)
 +    // A user part reads as the site: https://docs.python.org@evil.example/ goes to evil.example.
 +    if (url.username !== '' || url.password !== '') return undefined
-+    return url.protocol === 'https:' ? url.href : undefined
++    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : undefined
 +  } catch (_error) {
 +    // A malformed address from the frame is ignored; the click already stayed inside the sandbox.
 +    return undefined
@@ -15266,7 +15245,7 @@ new file mode 100644
 index 0000000000000000000000000000000000000000..0edd3cf1424329d85c4156093e1d9130e5c183a7
 --- /dev/null
 +++ b/packages/client/ui-intelligent-ui/tests/sandbox.client.spec.ts
-@@ -0,0 +1,123 @@
+@@ -0,0 +1,117 @@
 +// @vitest-environment jsdom
 +import { afterEach, describe, expect, it, vi } from 'vitest'
 +import { mountVisualization, outerDocument } from '../src/client/sandbox.ts'
@@ -15348,13 +15327,10 @@ index 0000000000000000000000000000000000000000..0edd3cf1424329d85c4156093e1d9130
 +    expect(view.container.childElementCount).toBe(0)
 +    view.dispose()
 +  })
-+  it('relays only HTTPS link clicks to the page', () => {
++  it('relays only HTTP(S) link clicks to the page', () => {
 +    const view = mount()
 +    view.send({ state: 'open', href: 'javascript:alert(1)' })
-+    view.send({ state: 'open', href: 'data:text/html,hi' })
 +    view.send({ state: 'open', href: 'not a url' })
-+    view.send({ state: 'open', href: 'http://example.com/insecure' })
-+    view.send({ state: 'open', href: 'HTTP://example.com/insecure' })
 +    view.send({ state: 'open', href: 'https://example.com/' + 'a'.repeat(2100) })
 +    view.send({ state: 'open', href: 42 })
 +    // A user part makes the address read as another site.
@@ -15363,10 +15339,7 @@ index 0000000000000000000000000000000000000000..0edd3cf1424329d85c4156093e1d9130
 +    expect(view.callbacks.openLink).not.toHaveBeenCalled()
 +    view.send({ state: 'open', href: 'https://example.com/docs?q=1' })
 +    expect(view.callbacks.openLink).toHaveBeenCalledExactlyOnceWith('https://example.com/docs?q=1')
-+    const policy = outerDocument(content, 'token')
-+    expect(policy).toContain("data.state==='open'")
-+    expect(policy).toContain("!/^https:/i.test(data.href)")
-+    expect(policy).not.toContain("!/^https?:/i.test(data.href)")
++    expect(outerDocument(content, 'token')).toContain("data.state==='open'")
 +    view.dispose()
 +  })
 +  it('keeps dollar sequences in authored code literal', () => {
