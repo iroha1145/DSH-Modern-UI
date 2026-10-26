@@ -133,7 +133,72 @@ function Test-RuntimeDirectoryLocks {
   Assert-True ((Get-Content -Raw (Join-Path $conflictTarget 'keep.txt')).Trim() -eq 'target') 'Destination conflict overwrote the target.'
   Write-Host 'Windows runtime switching: transient lock, persistent lock rollback, missing source and destination conflict passed.'
 }
+function Start-ZipServer([string]$ZipPath) {
+  $tcp = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, 0)
+  $tcp.Start()
+  $port = ([Net.IPEndPoint]$tcp.LocalEndpoint).Port
+  $tcp.Stop()
+  $listener = [Net.HttpListener]::new()
+  $listener.Prefixes.Add("http://127.0.0.1:${port}/")
+  $listener.Start()
+  $runspace = [RunspaceFactory]::CreateRunspace()
+  $runspace.Open()
+  $server = [PowerShell]::Create()
+  $server.Runspace = $runspace
+  [void]$server.AddScript({
+    param($Listener, $Zip)
+    $context = $Listener.GetContext()
+    $bytes = [IO.File]::ReadAllBytes($Zip)
+    $context.Response.StatusCode = 200
+    $context.Response.ContentType = 'application/zip'
+    $context.Response.ContentLength64 = $bytes.Length
+    $context.Response.OutputStream.Write($bytes, 0, $bytes.Length)
+    $context.Response.OutputStream.Close()
+  }).AddArgument($listener).AddArgument($ZipPath)
+  return @{ Listener = $listener; Server = $server; Handle = $server.BeginInvoke(); Url = "http://127.0.0.1:${port}/repo.zip"; Runspace = $runspace }
+}
+function Stop-ZipServer($Server) {
+  if ($null -eq $Server) { return }
+  try { $Server.Listener.Stop() } catch {}
+  try { $Server.Listener.Close() } catch {}
+  try { $Server.Server.Dispose() } catch {}
+  try { $Server.Runspace.Close() } catch {}
+}
+function Test-BootstrapChildExit {
+  # Invoke-WebRequest rejects file:// URIs, so the child archive is served on loopback.
+  $case = Join-Path $scratch 'bootstrap-exit'
+  New-Item -ItemType Directory -Path $case | Out-Null
+  $tempRoot = [IO.Path]::GetTempPath()
+  foreach ($childCode in @(7, 0)) {
+    $childDir = Join-Path $case "child-$childCode"
+    New-Item -ItemType Directory -Path (Join-Path $childDir 'scripts') | Out-Null
+    Set-Content -Encoding ascii -Path (Join-Path $childDir 'scripts/install.ps1') -Value "exit $childCode"
+    $zip = Join-Path $case "repo-$childCode.zip"
+    if (Test-Path $zip) { Remove-Item -LiteralPath $zip }
+    Compress-Archive -Path (Join-Path $childDir '*') -DestinationPath $zip
+    $parent = Join-Path $case "parent-$childCode/scripts"
+    New-Item -ItemType Directory -Path $parent | Out-Null
+    Copy-Item (Join-Path $root 'scripts/install.ps1') (Join-Path $parent 'install.ps1')
+    $hosted = Start-ZipServer $zip
+    $before = @(Get-ChildItem -LiteralPath $tempRoot -Directory -Filter 'dsh-ui-*' -ErrorAction SilentlyContinue)
+    $previousRepo = $env:DSH_UI_REPO_URL
+    try {
+      $env:DSH_UI_REPO_URL = $hosted.Url
+      & $shell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $parent 'install.ps1') -Dir (Join-Path $case "unused-$childCode")
+      $code = $LASTEXITCODE
+    } finally {
+      Stop-ZipServer $hosted
+      if ($null -eq $previousRepo) { Remove-Item Env:DSH_UI_REPO_URL -ErrorAction SilentlyContinue } else { $env:DSH_UI_REPO_URL = $previousRepo }
+    }
+    $after = @(Get-ChildItem -LiteralPath $tempRoot -Directory -Filter 'dsh-ui-*' -ErrorAction SilentlyContinue)
+    Assert-True ($code -eq $childCode) "Bootstrap parent exit was $code; child exit $childCode must propagate."
+    Assert-True ($after.Count -eq $before.Count) 'Bootstrap left a dsh-ui-* temp directory behind.'
+    Assert-True (-not (Test-Path (Join-Path $case "unused-$childCode"))) 'A bootstrap child was treated as a finished install.'
+  }
+  Write-Host 'PowerShell bootstrap: failing and successful child exit codes propagate, and the temp download is removed.'
+}
 try {
+  Test-BootstrapChildExit
   Test-RuntimeDirectoryLocks
   $official = Join-Path $scratch 'official-data'
   New-Item -ItemType Directory -Path $official | Out-Null

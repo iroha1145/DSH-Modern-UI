@@ -101,8 +101,16 @@ if (-not $Root -or -not (Test-Path (Join-Path $Root 'dsh-ui.json'))) {
   if ($SkipPlugins) { $forward += '-SkipPlugins' }
   if ($PrepareOnly) { $forward += '-PrepareOnly' }
   if ($Force) { $forward += '-Force' }
-  & (Get-Process -Id $PID).Path @forward
-  Remove-Item -Recurse -Force $fetched
+  # A native child does not fail this script by itself. Remember its code before cleanup, then
+  # surface it: `return` alone leaves the bootstrap process at 0 after a failed install.
+  $childExit = 0
+  try {
+    & (Get-Process -Id $PID).Path @forward
+    if ($null -ne $LASTEXITCODE) { $childExit = $LASTEXITCODE }
+  } finally {
+    Remove-Item -Recurse -Force $fetched
+  }
+  if ($childExit -ne 0) { exit $childExit }
   return
 }
 
