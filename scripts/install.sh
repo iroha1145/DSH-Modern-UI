@@ -144,7 +144,12 @@ canonical_dir() {
         printf '%s\n' "$entry"; return
       fi
     done
-    die "无法确认目录的真实位置：$path"
+    # A parent that may be entered but not listed (a 0711 home or mount point)
+    # hides its entries; keep the name pwd -P reported under the resolved parent.
+    if [ ! -r "$parent" ] && [ "${parent%/}/${physical##*/}" -ef "$physical" ]; then
+      printf '%s\n' "${parent%/}/${physical##*/}"; return
+    fi
+    die "无法确认目录的真实位置：$path（上级目录不可读，或该目录已不存在）"
   fi
   [ "$path" = / ] && { printf '/\n'; return; }
   path="${path%/}"
