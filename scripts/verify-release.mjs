@@ -32,6 +32,10 @@ export function verifyRelease(root, appliedSource) {
       env: { ...process.env, GIT_CEILING_DIRECTORIES: dirname(source) },
       stdio: ['ignore', 'pipe', 'pipe'],
     })
+    const runtimeLock = JSON.parse(readFileSync(resolve(source, 'scripts/primary-runtime/lock.json'), 'utf8'))
+    if (runtimeLock.nodeVersion !== manifest.node.runtime) {
+      throw new Error('The secondary Node runtime must match the release runtime version.')
+    }
   }
   return { upstream: manifest.upstream.commit, patchBytes: bytes.length, sha256, appliedSource: appliedSource ?? null }
 }

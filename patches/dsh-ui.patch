@@ -3809,7 +3809,7 @@ index 7b4f09039eb9bff645162b5ebcef0fc62fd078e1..1470e246f26465f0076ba85cbf0612fa
  ### `{ type: "web_search_20250305" }`
 diff --git a/docs/persistence-changes/2026-10-25-web-search-switch.i18n.yaml b/docs/persistence-changes/2026-10-25-web-search-switch.i18n.yaml
 new file mode 100644
-index 0000000000000000000000000000000000000000..4cc519c656c5656806ee417209a4fe7ab990a203
+index 0000000000000000000000000000000000000000..132a5f007e6e292e656db859988a8b50d4254513
 --- /dev/null
 +++ b/docs/persistence-changes/2026-10-25-web-search-switch.i18n.yaml
 @@ -0,0 +1,28 @@
@@ -3833,8 +3833,8 @@ index 0000000000000000000000000000000000000000..4cc519c656c5656806ee417209a4fe7a
 +  en: 6907136f28e48c90
 +  zh: 02f8298485f3d8e7
 +/2026-10-25-web-search-switch/compatibility:
-+  en: b40ed865de6163c5
-+  zh: f09a77ee54d813f6
++  en: 7c7d4e89a3e6f83c
++  zh: 39d19aa2c746849d
 +/2026-10-25-web-search-switch/verification:
 +  en: fc88efb5542db309
 +  zh: deae4d1078fa8ce4
@@ -3843,10 +3843,10 @@ index 0000000000000000000000000000000000000000..4cc519c656c5656806ee417209a4fe7a
 +  zh: 003ba4e17b4b5269
 diff --git a/docs/persistence-changes/2026-10-25-web-search-switch.md b/docs/persistence-changes/2026-10-25-web-search-switch.md
 new file mode 100644
-index 0000000000000000000000000000000000000000..10b247dc2bf9e671ae44017200e6aed1ca90a139
+index 0000000000000000000000000000000000000000..182433446fc2f076bd39027363f44f3f764c97f7
 --- /dev/null
 +++ b/docs/persistence-changes/2026-10-25-web-search-switch.md
-@@ -0,0 +1,48 @@
+@@ -0,0 +1,50 @@
 +---
 +description: "Records a persistence type transition and its compatibility acknowledgement."
 +kind: persistence-change
@@ -3884,7 +3884,9 @@ index 0000000000000000000000000000000000000000..10b247dc2bf9e671ae44017200e6aed1
 +<a id="compatibility"></a>
 +## Compatibility
 +
-+A new root in the same Session format version. Existing logs contain no such event and fold to enabled, which is the behavior before the event existed, so they stay valid with unchanged meaning. Readers that predate it refuse a log carrying it, as every required-on-read event does. The event is appended only by dsh-tool-web's /web command and its step-start append; the event itself never enters model input, and it decides whether later steps offer web_search, web_fetch, and the prefix-matched tools.
++A new root in the same Session format version. Logs with neither a web/search event nor a successful /web command settlement default to enabled. A successful command settlement records a recoverable selection before web/search is appended; the selection already controls tool admission after service reconstruction. The next accepted pre-step appends web/search when the selection differs from the committed state. The absence of web/search therefore does not imply that the effective selection is enabled.
++
++Readers that predate web/search refuse a log carrying it, as every required-on-read event does. Before the first such event, an older reader can still accept the command lifecycle records without honoring the newer pending selection. Rollback requires a backup taken after stopping writers, rather than reusing the newer active data directory. The event itself never enters model input; the effective selection decides whether later steps offer web_search, web_fetch, and the prefix-matched tools.
 +
 +<a id="verification"></a>
 +## Verification
@@ -3918,10 +3920,10 @@ index 0000000000000000000000000000000000000000..2ade778499b138fc2382eb815c6fdd41
 +}
 diff --git a/docs/persistence-changes/2026-10-25-web-search-switch.zh.md b/docs/persistence-changes/2026-10-25-web-search-switch.zh.md
 new file mode 100644
-index 0000000000000000000000000000000000000000..7cfbdd8fb32e7d2c67247ddcd773e3f414cbfb6b
+index 0000000000000000000000000000000000000000..8b38ddddb98d6b93eeaa7c3fe3807453d0db2ef7
 --- /dev/null
 +++ b/docs/persistence-changes/2026-10-25-web-search-switch.zh.md
-@@ -0,0 +1,48 @@
+@@ -0,0 +1,50 @@
 +---
 +description: "记录持久化类型更改及其兼容性确认。"
 +kind: persistence-change
@@ -3959,7 +3961,9 @@ index 0000000000000000000000000000000000000000..7cfbdd8fb32e7d2c67247ddcd773e3f4
 +<a id="compatibility"></a>
 +## 兼容性
 +
-+同一 Session 格式版本内的新根类型。已有日志没有该事件，折叠为开启，与该事件出现之前的行为相同，因此保持有效且含义不变；早于它的读取方遇到它会拒绝该日志，与所有读取时必需的事件一致。该事件只由 dsh-tool-web 的 /web 命令及其步骤开始时的追加写入；事件本身不进入模型输入，只决定后续步骤是否提供 web_search、web_fetch 和按前缀匹配的工具。
++同一会话（Session）格式版本内的新根类型。日志既没有 web/search 事件，也没有成功的 /web 命令结算记录时，默认开启。成功的命令结算会在追加 web/search 之前记录可恢复的选择；服务重建后，该选择已控制工具是否可用。下一次获准的步骤开始前，若选择与已提交状态不同，就追加 web/search。因此，没有 web/search 不代表实际选择仍为开启。
++
++早于 web/search 的读取方遇到该事件会拒绝日志，与所有读取时必需的事件一致。在首个该事件写入前，旧读取方仍可能接受命令生命周期记录，却不能遵循新版待生效的选择。回退必须使用停止写入后取得的备份，不能继续使用新版的活跃数据目录。事件本身不进入模型输入；实际选择决定后续步骤是否提供 web_search、web_fetch 和按前缀匹配的工具。
 +
 +<a id="verification"></a>
 +## 验证
@@ -16377,7 +16381,7 @@ index edf2a5a3c927649995fa1618fa4cb8cb131e5d89..e95878067e363e2c32a39d7ba3961f1d
  })
  
 diff --git a/packages/client/ui-model-selection/README.i18n.yaml b/packages/client/ui-model-selection/README.i18n.yaml
-index 177bc09fb25f5bef3fab9a052daf90fc5f569742..fe3a0c09a41dc04d4ad256a396d80ea098a755cd 100644
+index 177bc09fb25f5bef3fab9a052daf90fc5f569742..23d9b9ad23e5a9dee5c0261d4ba612e255f80764 100644
 --- a/packages/client/ui-model-selection/README.i18n.yaml
 +++ b/packages/client/ui-model-selection/README.i18n.yaml
 @@ -3,47 +3,56 @@
@@ -16408,8 +16412,8 @@ index 177bc09fb25f5bef3fab9a052daf90fc5f569742..fe3a0c09a41dc04d4ad256a396d80ea0
 +  en: 9b9ae3e37426c476
 +  zh: 72d86373cfb37b34
 +/deepseek-ai-dsh-client-ui-model-selection/use-this-package/the-composer-picker:
-+  en: cb5216db6b6a66dc
-+  zh: 7cb0cf0e614cbb25
++  en: 25212de3ae880259
++  zh: 67fba8c98bfbf200
 +/deepseek-ai-dsh-client-ui-model-selection/use-this-package/thinking-and-effort:
 +  en: 685f90efd5e63b00
 +  zh: db303022b61d129a
@@ -16463,7 +16467,7 @@ index 177bc09fb25f5bef3fab9a052daf90fc5f569742..fe3a0c09a41dc04d4ad256a396d80ea0
    en: e67f633dc6fe7773
    zh: 3bb0c20c93f16f98
 diff --git a/packages/client/ui-model-selection/README.md b/packages/client/ui-model-selection/README.md
-index b2c809123f8b21d980f30e1cfdcdd6a168213033..2245b1d135422b51055cf84b939bc3b64d57479d 100644
+index b2c809123f8b21d980f30e1cfdcdd6a168213033..8b4b069360990cbe9f808f946b4c6b833ef95bfb 100644
 --- a/packages/client/ui-model-selection/README.md
 +++ b/packages/client/ui-model-selection/README.md
 @@ -1,5 +1,5 @@
@@ -16508,7 +16512,7 @@ index b2c809123f8b21d980f30e1cfdcdd6a168213033..2245b1d135422b51055cf84b939bc3b6
 +Search appears only when the catalog holds more than eight models. It matches model names case-insensitively, including nonconsecutive characters in order, and ignores leading and trailing spaces. Within each provider, prefix matches come first, followed by alignment score and then catalog order; empty groups hide, and an empty result is announced through a status region. The clear button restores the full list with focus in the search field. The `/model` command always keeps its own search field and uses the same localized labels.
  
 -Model and reasoning-effort names use weight 400 (regular) in the composer menu, including the selected item. The search field follows the command popup's compact treatment with transparent background and border in both palettes, with no leading icon and a caption-tone placeholder. The clear button appears for a nonempty query and restores the full list with focus in the search field.
-+Keys: ↑ and ↓ wrap through the models, Home and End jump to the ends, and Enter picks; Space also picks outside search. Tab and Shift+Tab cycle through the list, the switches, and the effort pills. Escape closes back to the trigger. Opening moves the keyboard into search on desktop devices when search is shown, otherwise into the list; phones and tablets keep their on-screen keyboard closed. Keyboard effort changes keep focus on the pill while saving; completion never moves focus from another control or reopens a closed popover.
++Keys: ↑ and ↓ wrap through the models, Home and End jump to the ends, and Enter picks; Space also picks outside search. Tab and Shift+Tab cycle through the list, the switches, and the effort pills. Escape closes back to the trigger. Opening moves the keyboard into search on desktop devices when search is shown, otherwise into the list; phones and tablets keep their on-screen keyboard closed. Keyboard effort changes keep focus on the pill while saving. Tab and Shift+Tab leave the effort group in document order, skipping unavailable controls even before the saved selection updates; completion never moves focus from another control or reopens a closed popover.
  
 -Both entries group models by provider, with DeepSeek Account first and DeepSeek second; third-party providers retain their catalog order. Both use the shared, asynchronously observed sticky headings from [ui-primitives](../ui-primitives/README.md#understand-the-implementation): transparent at rest, with the theme's 94%-opaque fill only while pinned, and `md` corners outside macOS Desktop. The composer menu shows model and effort names only. Navigation chevrons use `--dsw-alias-menu-icon`. The `/model` popup shows provider names as group headings and model names as rows, without repeating the provider on each row or showing catalog descriptions. Its search placeholder, no-match text, and empty-catalog text use the same localized labels as the composer model menu. The popup applies the selected model's default effort; the composer can then choose any advertised effort. An adapter without reasoning metadata leaves the Effort row absent; there is no arbitrary effort input.
 +Picking a model applies it at once and closes the popover, and the trigger takes focus back without a focus ring. Picking the current model only closes. While a selection is pending, the trigger shows a spinner in place of its chevron, the pending row shows one in place of its check, and rows and effort pills refuse input. A press inside the popover keeps focus where it is, except in the search field; a press outside closes it.
@@ -16612,7 +16616,7 @@ index b2c809123f8b21d980f30e1cfdcdd6a168213033..2245b1d135422b51055cf84b939bc3b6
  <a id="dev-note"></a>
  ### Dev Note
 diff --git a/packages/client/ui-model-selection/README.zh.md b/packages/client/ui-model-selection/README.zh.md
-index e99a1e05cebf443df0070fd9875edf2b185d8b04..2434007207c13c38ce5a17877f24caadd2332d61 100644
+index e99a1e05cebf443df0070fd9875edf2b185d8b04..2e2596efd12a8c465fd0f3353fd7996ee669157b 100644
 --- a/packages/client/ui-model-selection/README.zh.md
 +++ b/packages/client/ui-model-selection/README.zh.md
 @@ -1,5 +1,5 @@
@@ -16657,7 +16661,7 @@ index e99a1e05cebf443df0070fd9875edf2b185d8b04..2434007207c13c38ce5a17877f24caad
 +目录超过八个模型时才显示搜索框。按模型名称进行不区分大小写的匹配，支持按顺序输入不连续字符，忽略首尾空格。每个提供方内的结果优先按前缀匹配、其次按匹配得分、最后按目录顺序排列；没有匹配项的分组会隐藏，无匹配结果通过状态区域通知屏幕阅读器。清除按钮恢复完整列表，焦点留在搜索框。`/model` 命令始终保留自己的搜索框，并使用同一组本地化文案。
  
 -composer 菜单中的模型名称和推理等级均使用 400（regular）字重，包括选中项。搜索框沿用 command 弹窗的紧凑样式，在浅／深色主题下均保持背景和边框透明，不显示前置图标，占位文字使用 caption 色。搜索内容非空时显示清除按钮；点击后恢复完整列表，并将焦点留在搜索框。
-+按键：↑ 和 ↓ 在模型间循环移动，Home 和 End 跳到两端，Enter 选定；不在搜索框时 Space 也能选定。Tab 和 Shift+Tab 在列表、开关和推理档位之间循环。Escape 关闭浮层并回到触发按钮。打开时，桌面设备在显示搜索框时聚焦搜索框，否则聚焦列表；手机和平板不会主动弹出屏幕键盘。通过键盘切换档位时，保存期间焦点保留在该档位按钮上；保存完成不会从其他控件夺回焦点，也不会重新打开已关闭的浮层。
++按键：↑ 和 ↓ 在模型间循环移动，Home 和 End 跳到两端，Enter 选定；不在搜索框时 Space 也能选定。Tab 和 Shift+Tab 在列表、开关和推理档位之间循环。Escape 关闭浮层并回到触发按钮。打开时，桌面设备在显示搜索框时聚焦搜索框，否则聚焦列表；手机和平板不会主动弹出屏幕键盘。通过键盘切换档位时，保存期间焦点保留在该档位按钮上。Tab 和 Shift+Tab 按页面顺序离开档位组，跳过暂不可用的控件，不必等到保存结果更新；保存完成不会从其他控件夺回焦点，也不会重新打开已关闭的浮层。
  
 -两个入口均按提供方分组，DeepSeek 账号排第一，DeepSeek 排第二，第三方提供方保持目录原有顺序。两者采用 [ui-primitives](../ui-primitives/README.zh.md#understand-the-implementation) 异步观察的共享吸顶标题：原位透明，仅吸顶时使用主题的 94% 不透明填充，macOS 桌面端以外使用 `md` 圆角。composer 菜单只显示模型与推理强度名称。导航箭头使用 `--dsw-alias-menu-icon` 文本色。`/model` 弹窗以提供方名称作为分组标题、模型名称作为选项行，不在每行重复提供方，也不显示目录说明。搜索占位文字、无匹配提示和空目录提示与 composer 模型菜单共用同一组本地化文案。弹窗应用所选模型的默认推理强度；composer 随后可以选择任一已公布的推理强度。适配器没有推理元数据时不显示 Effort 行；不存在任意推理强度输入。
 +选定模型后立即生效并关闭浮层，焦点回到触发按钮但不显示焦点环。再次选中当前模型只会关闭浮层。等待选择结果时，触发按钮以加载图标代替下拉箭头，对应行以加载图标代替勾选标记，模型行和档位按钮暂不响应。在浮层内按下鼠标不会移走焦点（搜索框除外）；在浮层外按下会关闭它。
@@ -17613,7 +17617,7 @@ index 76532308c917277f10450bc3bb9efd50933a23f1..63d68db67e266427634d5c64d15d95a4
 +  }
  }
 diff --git a/packages/client/ui-model-selection/src/client/ModelSelect.tsx b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
-index 59dbf85427a0ce5dfe66a2c5e6784eade3432f13..aa810ec54a523d36ead00c17e9d479bb11d4b7eb 100644
+index 59dbf85427a0ce5dfe66a2c5e6784eade3432f13..4847a172172b12467de64782bb1ee4d9b3e386fa 100644
 --- a/packages/client/ui-model-selection/src/client/ModelSelect.tsx
 +++ b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
 @@ -1,155 +1,195 @@
@@ -17924,7 +17928,7 @@ index 59dbf85427a0ce5dfe66a2c5e6784eade3432f13..aa810ec54a523d36ead00c17e9d479bb
  
    const reload = (): void => {
      lastActionRef.current = 'load'
-@@ -168,203 +208,214 @@ export function ModelSelect(
+@@ -168,203 +208,219 @@ export function ModelSelect(
      return () => { document.removeEventListener('mousedown', closeOutside) }
    }, [open])
  
@@ -18266,12 +18270,17 @@ index 59dbf85427a0ce5dfe66a2c5e6784eade3432f13..aa810ec54a523d36ead00c17e9d479bb
 +      return
      }
 +    if (event.key !== 'Tab') return
-+    // Tab cycles inside the popover; from the trigger it enters at either end.
++    // During an effort save, use the focused pill as the group's single stop.
++    // Other non-tab-stop controls keep the existing entry-at-either-end behavior.
++    const focused = document.activeElement
++    const focusedGroup = focused?.closest('[role="radiogroup"]') ?? null
 +    const stops = [...(menuRef.current as HTMLDivElement).querySelectorAll<HTMLElement>(
 +      'input, [role="listbox"], button:not([disabled])',
-+    )].filter(stop => stop.tabIndex >= 0 && !stop.hidden)
++    )].filter(stop => !stop.hidden && (focusedGroup?.contains(stop) === true
++      ? stop === focused
++      : stop.tabIndex >= 0))
 +    if (stops.length === 0) return
-+    const at = stops.indexOf(document.activeElement as HTMLElement)
++    const at = stops.indexOf(focused as HTMLElement)
 +    event.preventDefault()
 +    const next = at === -1
 +      ? (event.shiftKey ? stops.length - 1 : 0)
@@ -18280,7 +18289,7 @@ index 59dbf85427a0ce5dfe66a2c5e6784eade3432f13..aa810ec54a523d36ead00c17e9d479bb
    }
  
    const onBlur = (event: FocusEvent<HTMLDivElement>): void => {
-@@ -375,58 +426,10 @@ export function ModelSelect(
+@@ -375,58 +431,10 @@ export function ModelSelect(
      close()
    }
  
@@ -18342,7 +18351,7 @@ index 59dbf85427a0ce5dfe66a2c5e6784eade3432f13..aa810ec54a523d36ead00c17e9d479bb
    const triggerAria = waiting
      ? t('trigger.loading')
      : currentChoice === undefined
-@@ -434,21 +437,83 @@ export function ModelSelect(
+@@ -434,21 +442,83 @@ export function ModelSelect(
        : effortLabel === undefined
          ? t('trigger.aria', { model: modelLabel })
          : t('trigger.ariaEffort', { model: modelLabel, effort: effortLabel })
@@ -18438,7 +18447,7 @@ index 59dbf85427a0ce5dfe66a2c5e6784eade3432f13..aa810ec54a523d36ead00c17e9d479bb
    }
  
    return (
-@@ -458,8 +523,10 @@ export function ModelSelect(
+@@ -458,8 +528,10 @@ export function ModelSelect(
        onKeyDown={onRootKeyDown}
        onBlur={onBlur}
        onMouseDown={(event) => {
@@ -18451,7 +18460,7 @@ index 59dbf85427a0ce5dfe66a2c5e6784eade3432f13..aa810ec54a523d36ead00c17e9d479bb
        }}
      >
        <button
-@@ -467,27 +534,30 @@ export function ModelSelect(
+@@ -467,27 +539,30 @@ export function ModelSelect(
          type="button"
          className={css.trigger}
          aria-label={triggerAria}
@@ -18494,7 +18503,7 @@ index 59dbf85427a0ce5dfe66a2c5e6784eade3432f13..aa810ec54a523d36ead00c17e9d479bb
          {busy
            ? <StateDot state="ongoing" />
            : <IconChevronDownOutlineRegular className={clsx(css.chevron, open && css.chevronOpen)} />}
-@@ -502,165 +572,176 @@ export function ModelSelect(
+@@ -502,165 +577,176 @@ export function ModelSelect(
            id={`${id}-menu`}
            className={css.menu}
            style={menuPos ?? MEASURE_STYLE}
@@ -22960,7 +22969,7 @@ index 0000000000000000000000000000000000000000..92b50a379b5de4eb278d8baedba85d3a
 +  })
 +})
 diff --git a/packages/client/ui-model-selection/tests/model-select.client.spec.tsx b/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
-index bb4832a0ced74844b84c5df9c6495519aa76776a..3685ff77ce8b1634b06170a79ad77898f5cd0b05 100644
+index bb4832a0ced74844b84c5df9c6495519aa76776a..d42174bf1fb5d57f13e150d30525529a43147970 100644
 --- a/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
 +++ b/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
 @@ -1,20 +1,26 @@
@@ -23213,7 +23222,7 @@ index bb4832a0ced74844b84c5df9c6495519aa76776a..3685ff77ce8b1634b06170a79ad77898
      const plugin = await runtime.mount({ inject: ['slots'], apply(ctx) {
        ctx.slots.inject('conversation.input.model.label', () => ctx.slots.register({
          name: 'conversation.input.model.label',
-@@ -112,947 +234,588 @@ describe('ModelSelect label slot', () => {
+@@ -112,947 +234,642 @@ describe('ModelSelect label slot', () => {
        >{provider.id}: {model.name}</span>))
      } })
      expect(screen.getByTestId('trigger-trusted').textContent).toBe('trusted: Same model')
@@ -23667,8 +23676,8 @@ index bb4832a0ced74844b84c5df9c6495519aa76776a..3685ff77ce8b1634b06170a79ad77898
 -    fireEvent.keyDown(trigger, { key: 'Tab' })
 -    expect(screen.queryByRole('searchbox')).toBeNull()
 -    expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: 'DeepSeek-V4-Flash' }))
--  })
--
+   })
+ 
 -  it('spins on the trigger and the chosen model row until the selection settles, across pane changes', async () => {
 -    const groups = [{
 -      id: 'deepseek-official',
@@ -23710,8 +23719,8 @@ index bb4832a0ced74844b84c5df9c6495519aa76776a..3685ff77ce8b1634b06170a79ad77898
 -    await act(async () => { settle() })
 -    expect(spinners()).toHaveLength(0)
 -    expect(trigger.getAttribute('aria-busy')).toBe('false')
-   })
- 
+-  })
+-
 -  it('spins on the chosen effort row only', () => {
 -    const directory = createSnapshotStore<ModelDirectoryState>(state())
 -    const select = vi.fn((selection: ModelSelection) => {
@@ -24392,8 +24401,16 @@ index bb4832a0ced74844b84c5df9c6495519aa76776a..3685ff77ce8b1634b06170a79ad77898
 -    expect(fireEvent.keyDown(row, { key: 'Tab' })).toBe(false)
 -    expect(select).toHaveBeenCalledWith({ provider: 'deepseek-official', model: 'model-3' })
 -    await waitFor(() => { expect(screen.queryByRole('group', { name: '模型与推理等级' })).toBeNull() })
--  })
--
++    fireEvent.keyDown(document.activeElement as HTMLElement, { key: 'Tab', shiftKey: true })
++    expect(document.activeElement).toBe(stops[3])
++    trigger().focus()
++    fireEvent.keyDown(trigger(), { key: 'Tab' })
++    expect(document.activeElement).toBe(stops[0])
++    trigger().focus()
++    fireEvent.keyDown(trigger(), { key: 'Tab', shiftKey: true })
++    expect(document.activeElement).toBe(stops[3])
+   })
+ 
 -  it.each(['Escape', 'Tab'])('leaves a small model pane with %s and returns to its root cell', (key) => {
 -    const select = vi.fn()
 -    render(<ModelSelect renderSlot={renderLabel} locked={false} available directory={createSnapshotStore(state({ groups: modelGroups(4) }))}
@@ -24407,14 +24424,58 @@ index bb4832a0ced74844b84c5df9c6495519aa76776a..3685ff77ce8b1634b06170a79ad77898
 -    expect(select).not.toHaveBeenCalled()
 -    fireEvent.keyDown(cell, { key, shiftKey: key === 'Tab' })
 -    expect(screen.queryByRole('menu')).toBeNull()
-+    fireEvent.keyDown(document.activeElement as HTMLElement, { key: 'Tab', shiftKey: true })
-+    expect(document.activeElement).toBe(stops[3])
-+    trigger().focus()
-+    fireEvent.keyDown(trigger(), { key: 'Tab' })
-+    expect(document.activeElement).toBe(stops[0])
-+    trigger().focus()
-+    fireEvent.keyDown(trigger(), { key: 'Tab', shiftKey: true })
-+    expect(document.activeElement).toBe(stops[3])
++  it.each([
++    { pending: false, shiftKey: false }, { pending: false, shiftKey: true },
++    { pending: true, shiftKey: false }, { pending: true, shiftKey: true },
++  ])('tabs past the focused effort group while pending=$pending and shift=$shiftKey', async ({ pending, shiftKey }) => {
++    const completion = Promise.withResolvers<typeof ok>()
++    onTestFinished(() => { completion.resolve(ok) })
++    const { directory, select } = setup({
++      webSearch: { enabled: true, pending: false },
++      select: () => completion.promise,
++    })
++    open()
++    const high = screen.getByRole('radio', { name: '高' })
++    const maximum = screen.getByRole('radio', { name: '最高' })
++    maximum.focus()
++    fireEvent.keyDown(maximum, { key: 'ArrowLeft' })
++    const selection = { provider: 'deepseek-official', model: 'deepseek-flash', reasoningEffort: 'high' }
++    act(() => { directory.update((snapshot) => { snapshot.pending = selection }) })
++    if (!pending) {
++      act(() => { directory.update((snapshot) => { snapshot.current = selection; snapshot.pending = null }) })
++      await act(async () => { completion.resolve(ok) })
++    }
++    expect(document.activeElement).toBe(high)
++    expect(high.tabIndex).toBe(pending ? -1 : 0)
++    fireEvent.keyDown(high, { key: 'Tab', shiftKey })
++    expect(document.activeElement).toBe(!shiftKey
++      ? screen.getByRole('switch', { name: '联网搜索' })
++      : pending ? screen.getByRole('listbox') : screen.getByRole('switch', { name: '深度思考' }))
++    expect(select).toHaveBeenCalledTimes(1)
++  })
++
++  it.each([false, true])('tabs from a non-entry effort in DOM order with shift=%s', (shiftKey) => {
++    setup({ webSearch: { enabled: true, pending: false } })
++    open()
++    const high = screen.getByRole('radio', { name: '高' })
++    expect(high.tabIndex).toBe(-1)
++    high.focus()
++    fireEvent.keyDown(high, { key: 'Tab', shiftKey })
++    expect(document.activeElement).toBe(screen.getByRole('switch', { name: shiftKey ? '深度思考' : '联网搜索' }))
++  })
++
++  it.each([false, true])('enters the existing tab cycle from the touch-focused model list with shift=%s', (shiftKey) => {
++    const device = vi.spyOn(uiPrimitives, 'isMobileDevice').mockReturnValue(true)
++    onTestFinished(() => { device.mockRestore() })
++    setup({ state: { groups: manyModels(9) } })
++    open()
++    const list = screen.getByRole('listbox')
++    expect(list.tabIndex).toBe(-1)
++    expect(document.activeElement).toBe(list)
++    fireEvent.keyDown(list, { key: 'Tab', shiftKey })
++    expect(document.activeElement).toBe(shiftKey
++      ? screen.getByRole('radio', { name: '最高' })
++      : screen.getByRole('combobox'))
 +  })
 +
 +  it('leaves Tab native in a popover without stops', () => {
@@ -24434,7 +24495,11 @@ index bb4832a0ced74844b84c5df9c6495519aa76776a..3685ff77ce8b1634b06170a79ad77898
 -    const trigger = screen.getByRole('button', { name: '请选择模型' })
 -    fireEvent.click(trigger)
 -    const search = screen.getByRole('searchbox')
--    expect(document.activeElement).toBe(search)
++  it('searches large catalogs with focus in the field and picks the highlighted result', () => {
++    const { select } = setup({ state: { groups: manyModels(9) } })
++    open()
++    const search = screen.getByRole('combobox', { name: '搜索模型…' }) as HTMLInputElement
+     expect(document.activeElement).toBe(search)
 -    fireEvent.change(search, { target: { value: 'zzzz' } })
 -    fireEvent.keyDown(search, { key: 'Escape' })
 -    expect(screen.queryByRole('group', { name: '模型与推理等级' })).toBeNull()
@@ -24501,11 +24566,7 @@ index bb4832a0ced74844b84c5df9c6495519aa76776a..3685ff77ce8b1634b06170a79ad77898
 -    expect(search.getAttribute('aria-activedescendant')).toBe(epsilon!.id)
 -    fireEvent.keyDown(search, { key: 'ArrowDown' })
 -    expect(search.getAttribute('aria-activedescendant')).toBe(gamma!.id)
-+  it('searches large catalogs with focus in the field and picks the highlighted result', () => {
-+    const { select } = setup({ state: { groups: manyModels(9) } })
-+    open()
-+    const search = screen.getByRole('combobox', { name: '搜索模型…' }) as HTMLInputElement
-     expect(document.activeElement).toBe(search)
+-    expect(document.activeElement).toBe(search)
 -    fireEvent.keyDown(search, { key: 'ArrowDown' })
 -    expect(search.getAttribute('aria-activedescendant')).toBe(alpha!.id)
 -    fireEvent.keyDown(search, { key: 'ArrowUp' })
@@ -44790,21 +44851,28 @@ index f6a8f9881fcf4f8b290c7e476cd978dccccef901..e996404311964edea49e6345c8273d2b
      "@deepseek-ai/cordis": "workspace:~",
 diff --git a/packages/web/web-fetch-http/tests/malformed-response.spec.ts b/packages/web/web-fetch-http/tests/malformed-response.spec.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..c6d14eca91b767a2e050c0e3a09b6dc4255bea44
+index 0000000000000000000000000000000000000000..be8d5dfac9b8a95d584364f36a2db06457eed970
 --- /dev/null
 +++ b/packages/web/web-fetch-http/tests/malformed-response.spec.ts
-@@ -0,0 +1,36 @@
+@@ -0,0 +1,47 @@
 +/** Malformed loopback responses fail one fetch without preventing subsequent fetches. */
 +import { createServer } from 'node:http'
 +import { once } from 'node:events'
++import { brotliCompressSync } from 'node:zlib'
 +import { expect, it } from 'vitest'
 +import { HttpFetchProvider } from '../src/provider.ts'
 +
-+it('contains malformed gzip and disconnected bodies, then fetches a healthy response', async () => {
++it('contains malformed compressed and disconnected bodies, then fetches healthy plain and Brotli responses', async () => {
 +  const server = createServer((request, response) => {
 +    if (request.url === '/gzip') {
 +      response.writeHead(200, { 'content-type': 'text/plain', 'content-encoding': 'gzip' })
 +      response.end('not a gzip stream')
++    } else if (request.url === '/brotli') {
++      response.writeHead(200, { 'content-type': 'text/plain', 'content-encoding': 'br' })
++      response.end(brotliCompressSync(Buffer.from('healthy Brotli')))
++    } else if (request.url === '/invalid-brotli') {
++      response.writeHead(200, { 'content-type': 'text/plain', 'content-encoding': 'br' })
++      response.end(Buffer.from([0xff]))
 +    } else if (request.url === '/disconnect') {
 +      response.writeHead(200, { 'content-type': 'text/plain', 'content-length': '1000', 'content-encoding': 'gzip' })
 +      response.write(Buffer.from([0x1f, 0x8b, 0x08]))
@@ -44815,19 +44883,23 @@ index 0000000000000000000000000000000000000000..c6d14eca91b767a2e050c0e3a09b6dc4
 +      response.end('healthy')
 +    }
 +  })
-+  server.listen(0, '127.0.0.1')
-+  await once(server, 'listening')
-+  const address = server.address()
-+  if (address === null || typeof address === 'string') throw new Error('Expected TCP address')
-+  const base = `http://127.0.0.1:${address.port}`
-+  const provider = new HttpFetchProvider({ maxResponseBytes: 4096, maxBodyChars: 4096, timeoutMs: 2000, maxRedirects: 2, userAgent: 'fixture' })
 +  try {
++    server.listen(0, '127.0.0.1')
++    await once(server, 'listening')
++    const address = server.address()
++    if (address === null || typeof address === 'string') throw new Error('Expected TCP address')
++    const base = `http://127.0.0.1:${address.port}`
++    const provider = new HttpFetchProvider({ maxResponseBytes: 4096, maxBodyChars: 4096, timeoutMs: 2000, maxRedirects: 2, userAgent: 'fixture' })
 +    await expect(provider.fetch({ url: `${base}/gzip` })).rejects.toMatchObject({ code: 'WEB_PROVIDER_ERROR' })
++    await expect(provider.fetch({ url: `${base}/invalid-brotli` })).rejects.toMatchObject({ code: 'WEB_PROVIDER_ERROR' })
 +    await expect(provider.fetch({ url: `${base}/disconnect` })).rejects.toMatchObject({ code: 'WEB_PROVIDER_ERROR' })
 +    expect((await provider.fetch({ url: `${base}/healthy` })).body.content).toBe('healthy')
++    expect((await provider.fetch({ url: `${base}/brotli` })).body.content).toBe('healthy Brotli')
 +  } finally {
 +    server.closeAllConnections()
-+    await new Promise<void>((resolve, reject) => server.close((error) => { if (error) reject(error); else resolve() }))
++    if (server.listening) {
++      await new Promise<void>((resolve, reject) => server.close((error) => { if (error) reject(error); else resolve() }))
++    }
 +  }
 +})
 diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
@@ -48254,6 +48326,60 @@ index e9f3c19f4489ffb84bae17686e3879375fd983aa..872c2e6d6d6b3a36a18754901a15d037
    'extract-zip>yauzl': '3.4.0'
    '@deepseek-ai/cosmokit': 'link:vendor/cosmokit'
    '@deepseek-ai/schemastery': 'link:vendor/schemastery'
+diff --git a/scripts/primary-runtime/lock.json b/scripts/primary-runtime/lock.json
+index f5b0ada48aae040fe505aeaf462cb0aa6371a69c..8b064f474af512b4379ba7c6aa0be376ffdcf953 100644
+--- a/scripts/primary-runtime/lock.json
++++ b/scripts/primary-runtime/lock.json
+@@ -1,11 +1,11 @@
+ {
+-  "nodeVersion": "24.21.0",
++  "nodeVersion": "24.22.1",
+   "pythonVersion": "3.12.14",
+   "pythonRelease": "20260901",
+   "targets": {
+     "win-x64": {
+       "nodeArchive": "win-x64.zip",
+-      "nodeSha256": "158f7685b44de51f6c0df1d153526cbcd3e1bc739a8dfc607721cef75de9e541",
++      "nodeSha256": "d2046d28c2c3dcd211ac5145c0bf30e2047ef9dfb306693c8c6e2eccd8b95fa5",
+       "pythonTarget": "x86_64-pc-windows-msvc",
+       "pythonSha256": "7c45c9622400d578709a9b2cddbe8124cc21d382409d9f13406d706d28e31b14",
+       "wheels": [
+@@ -29,7 +29,7 @@
+     },
+     "mac-arm64": {
+       "nodeArchive": "darwin-arm64.tar.gz",
+-      "nodeSha256": "bed7eea5325e1108f32ce5228ddd6a5f0f08a499ee42aa7442aea583702f6057",
++      "nodeSha256": "89c682593d76cd44233fa53b1563264e7de9cbb189cad169135c5b4fadfbc0a7",
+       "pythonTarget": "aarch64-apple-darwin",
+       "pythonSha256": "81a359f1cfadd4da11766534c5913791cea55f26e1bb902cacd2a531bb1e4b2b",
+       "wheels": [
+@@ -53,7 +53,7 @@
+     },
+     "mac-x64": {
+       "nodeArchive": "darwin-x64.tar.gz",
+-      "nodeSha256": "1462cb3b3046b815cf8ea436d3da450ec1a9f11dac7e5a46b0ada5305d7e8097",
++      "nodeSha256": "d132557e7ee2b85af08b0c8c34338e65c6430f2238d01f727728ef42dc83b035",
+       "pythonTarget": "x86_64-apple-darwin",
+       "pythonSha256": "65b195c9cedc1fef6767f044f9822069adbd1bd9204d424ece4628776fdc04bb",
+       "wheels": [
+@@ -77,7 +77,7 @@
+     },
+     "linux-x64": {
+       "nodeArchive": "linux-x64.tar.gz",
+-      "nodeSha256": "6e1db87ef58b8819e5d5402eff1536491b18edd8eb7bee5ef7897876e88dc5ff",
++      "nodeSha256": "eb6728e77c576a35162c122c45ccadf224d89ff00abc8dae46cc2897c6002d7c",
+       "pythonTarget": "x86_64-unknown-linux-gnu",
+       "pythonSha256": "72748da13197c1fb161e3afeef20a6a385ff24f2165e6e2758e47008e7faba4c",
+       "wheels": [
+@@ -101,7 +101,7 @@
+     },
+     "linux-arm64": {
+       "nodeArchive": "linux-arm64.tar.gz",
+-      "nodeSha256": "724282c3b43aec998aa9527380465b45d229e021b58035f5f4f63095eabfe5d5",
++      "nodeSha256": "33c37be234ba8bee041961047b19160f4d7d0f164e8e246f78bdd10feff148b3",
+       "pythonTarget": "aarch64-unknown-linux-gnu",
+       "pythonSha256": "577b4bec0793ad1ff0cbff9adbd0df078eddde38a4c41bf5d83ad381a85ee39d",
+       "wheels": [
 diff --git a/snapshots/session/web-search-pending/runtime.cordis.yml b/snapshots/session/web-search-pending/runtime.cordis.yml
 new file mode 100644
 index 0000000000000000000000000000000000000000..ade63349ccc33274837061c135f5021f30e50671
