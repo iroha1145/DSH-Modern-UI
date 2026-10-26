@@ -54,6 +54,29 @@ public static class DshRuntimeDirectoryLockFixture {
   }
 }
 '@
+function Get-RuntimeFailureEvidence($Failure) {
+  if ($null -eq $Failure) { return @{ outcome = 'success'; exceptions = @() } }
+  $chain = @()
+  $exception = $Failure.Exception
+  while ($null -ne $exception) {
+    $chain += @{ type = $exception.GetType().FullName; message = $exception.Message; hresult = $exception.HResult.ToString('X8'); win32Code = ($exception.HResult -band 0xffff) }
+    $exception = $exception.InnerException
+  }
+  return @{ outcome = 'failure'; record = $Failure.ToString(); errorId = $Failure.FullyQualifiedErrorId; category = $Failure.CategoryInfo.ToString(); scriptStack = $Failure.ScriptStackTrace; exceptions = $chain }
+}
+function Write-RuntimeSwitchEvidence([string]$Phase, [bool]$Temporary, $Failure, $Handle, [long]$ElapsedMs, [string[]]$Paths) {
+  $directories = @()
+  foreach ($path in $Paths) {
+    $file = Join-Path $path 'node.exe'
+    $hash = $null
+    if (Test-Path -LiteralPath $file) {
+      try { $hash = (Get-FileHash -LiteralPath $file).Hash } catch { $hash = "unreadable: $($_.Exception.Message)" }
+    }
+    $directories += @{ path = $path; exists = (Test-Path -LiteralPath $path); nodeExists = (Test-Path -LiteralPath $file); sha256 = $hash }
+  }
+  $evidence = @{ phase = $Phase; temporary = $Temporary; elapsedMs = $ElapsedMs; handleClosed = $Handle.IsClosed; handleInvalid = $Handle.IsInvalid; powershell = $PSVersionTable.PSVersion.ToString(); failure = (Get-RuntimeFailureEvidence $Failure); directories = $directories }
+  Write-Host ('Runtime switch fixture evidence: ' + ($evidence | ConvertTo-Json -Depth 8 -Compress))
+}
 function Test-RuntimeDirectoryLocks {
   foreach ($temporary in @($true, $false)) {
     $fixture = Join-Path $scratch ("runtime-lock-" + [Guid]::NewGuid().ToString('N'))
@@ -67,15 +90,24 @@ function Test-RuntimeDirectoryLocks {
     $newHash = (Get-FileHash (Join-Path $candidate 'node.exe')).Hash
     $handle = [DshRuntimeDirectoryLockFixture]::Open($candidate)
     try {
+      # Observe the actual Windows lock semantics before scheduling any release.
+      $probeTarget = Join-Path $fixture 'probe-target'
+      $probeFailure = $null
+      try { [IO.Directory]::Move($candidate, $probeTarget) } catch { $probeFailure = $_ }
+      Write-RuntimeSwitchEvidence 'locked-rename-probe' $temporary $probeFailure $handle 0 @($candidate, $probeTarget, $current, $previous)
+      if ($null -eq $probeFailure) { [IO.Directory]::Move($probeTarget, $candidate) }
       if ($temporary) { [DshRuntimeDirectoryLockFixture]::ReleaseAfter($handle, 750) }
+      $elapsed = [Diagnostics.Stopwatch]::StartNew()
       $failure = $null
       try { Switch-RuntimeDirectory $candidate $current $previous } catch { $failure = $_ }
+      $elapsed.Stop()
+      Write-RuntimeSwitchEvidence 'production-switch' $temporary $failure $handle $elapsed.ElapsedMilliseconds @($candidate, $current, $previous)
       if ($temporary) {
         Assert-True ($null -eq $failure) "A temporary directory lock did not recover: $failure"
         Assert-True ((Get-FileHash (Join-Path $current 'node.exe')).Hash -eq $newHash) 'Temporary-lock recovery did not publish the complete candidate.'
         Assert-True ((Get-FileHash (Join-Path $previous 'node.exe')).Hash -eq $oldHash) 'Temporary-lock recovery lost the previous runtime.'
       } else {
-        Assert-True ($null -ne $failure -and $failure.Exception.Message -like '*still in use after bounded retries*') 'A persistent directory lock did not produce the bounded sharing-violation failure.'
+        Assert-True ($null -ne $failure -and $failure.Exception.Message -like '*still in use after bounded retries*') ("A persistent directory lock did not produce the bounded sharing-violation failure. Actual: " + ((Get-RuntimeFailureEvidence $failure) | ConvertTo-Json -Depth 8 -Compress))
         Assert-True ((Get-FileHash (Join-Path $current 'node.exe')).Hash -eq $oldHash) 'Persistent-lock failure did not restore the previous runtime.'
         Assert-True ((Get-FileHash (Join-Path $candidate 'node.exe')).Hash -eq $newHash) 'Persistent-lock failure changed candidate bytes.'
       }

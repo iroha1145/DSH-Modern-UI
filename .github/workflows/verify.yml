@@ -39,11 +39,12 @@ jobs:
           bash -n scripts/install.sh scripts/launch.sh
           python3 tests/installers.py
       - name: Real Windows preparation and recovery
+        id: windows_pwsh
         if: runner.os == 'Windows'
         shell: pwsh
         run: ./tests/windows-prepare.ps1
       - name: Windows PowerShell 5.1 preparation and recovery
-        if: runner.os == 'Windows'
+        if: ${{ !cancelled() && runner.os == 'Windows' && (steps.windows_pwsh.outcome == 'success' || steps.windows_pwsh.outcome == 'failure') }}
         shell: powershell
         run: ./tests/windows-prepare.ps1
 
