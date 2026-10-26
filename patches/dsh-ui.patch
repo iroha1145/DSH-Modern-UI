@@ -1952,17 +1952,20 @@ new file mode 100644
 index 0000000000000000000000000000000000000000..41e880b28ce906abec4352df20ec298e234eb6eb
 --- /dev/null
 +++ b/apps/web/tests/intelligent-ui.e2e.ts
-@@ -0,0 +1,295 @@
+@@ -0,0 +1,316 @@
 +/** Keyless assistant visualization integration: real interaction, containment, fallback, and phone geometry. */
 +import { chromium, type Browser, type Page } from 'playwright'
++import { execFileSync } from 'node:child_process'
++import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 +import { mkdir, writeFile } from 'node:fs/promises'
-+import { createServer, type Server } from 'node:http'
++import { createServer, type Server } from 'node:https'
++import { tmpdir } from 'node:os'
 +import { join } from 'node:path'
 +import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 +import { createAssistantMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
 +import { SESSION_FORMAT_VERSION, Session, SessionId } from '@deepseek-ai/dsh-session'
 +import { launchWebScaffold, seedSession, type WebScaffold } from './scaffold.ts'
-+import { newEnglishPage, REPO_ROOT } from './support.ts'
++import { REPO_ROOT } from './support.ts'
 +
 +const NETWORK_ORIGIN = 'https://openui-network.invalid'
 +const LONG_CONTROLS = '<button id="expand" onclick="expandList()">Show long list</button><div id="long-content"></div>'
@@ -2001,12 +2004,25 @@ index 0000000000000000000000000000000000000000..41e880b28ce906abec4352df20ec298e
 +  return [JSON.stringify({ type: 'session', version: SESSION_FORMAT_VERSION, id: '{{sessionId}}', createdAt: 0, cwd: '{{cwd}}', isSeeded: false, delegationDepth: 0 }), ...session.snapshotEvents().map(event => JSON.stringify(event)), ''].join('\n')
 +}
 +
++/** The host forwards only https links, so the confirmed popup has to reach this probe over TLS. */
++function loopbackCertificate(directory: string): { cert: Buffer; key: Buffer } {
++  const keyPath = join(directory, 'key.pem')
++  const certPath = join(directory, 'cert.pem')
++  execFileSync('openssl', [
++    'req', '-x509', '-newkey', 'rsa:2048', '-keyout', keyPath, '-out', certPath,
++    '-days', '1', '-nodes', '-subj', '/CN=127.0.0.1',
++    '-addext', 'subjectAltName=IP:127.0.0.1',
++  ], { stdio: 'ignore' })
++  return { cert: readFileSync(certPath), key: readFileSync(keyPath) }
++}
++
 +describe('web e2e: isolated assistant visualizations', () => {
 +  let scaffold: WebScaffold
 +  let browser: Browser
 +  let page: Page
 +  let networkOrigin: string
 +  let probeServer: Server
++  let probeCertificate: string | undefined
 +  let probeHealth: { status: number; received: string[] }
 +  const network: string[] = []
 +  const failures: { url: string; error: string | undefined }[] = []
@@ -2017,7 +2033,8 @@ index 0000000000000000000000000000000000000000..41e880b28ce906abec4352df20ec298e
 +  const geometry: { viewport: number; cards: { width: number; scroll: number; client: number; right: number }[] }[] = []
 +
 +  beforeAll(async () => {
-+    probeServer = createServer((request, response) => {
++    probeCertificate = mkdtempSync(join(tmpdir(), 'dsh-ui-link-probe-'))
++    probeServer = createServer(loopbackCertificate(probeCertificate), (request, response) => {
 +      serverHits.push(request.url ?? '')
 +      response.writeHead(200, { 'content-type': 'text/plain', 'access-control-allow-origin': '*' })
 +      response.end('isolation probe')
@@ -2028,7 +2045,7 @@ index 0000000000000000000000000000000000000000..41e880b28ce906abec4352df20ec298e
 +    })
 +    const address = probeServer.address()
 +    if (address === null || typeof address === 'string') throw new Error('Isolation probe did not bind a TCP port')
-+    networkOrigin = `http://127.0.0.1:${address.port}`
++    networkOrigin = `https://127.0.0.1:${address.port}`
 +    scaffold = await launchWebScaffold({})
 +    const prompt = await scaffold.ctx.systemPrompt.assemble()
 +    const guidance = prompt.sections.find(section => section.name === 'deployment:response-presentation')?.text
@@ -2037,7 +2054,10 @@ index 0000000000000000000000000000000000000000..41e880b28ce906abec4352df20ec298e
 +    await seedSession(scaffold, fixture(networkOrigin), 'intelligent-ui')
 +    const executablePath = process.env.DSH_PLAYWRIGHT_EXECUTABLE_PATH
 +    browser = await chromium.launch(executablePath === undefined ? {} : { executablePath })
-+    page = await newEnglishPage(browser)
++    // Same locale and clock as newEnglishPage. TLS errors are ignored so the local probe certificate can load.
++    page = await browser.newPage({
++      viewport: { width: 1680, height: 1000 }, locale: 'en-US', timezoneId: 'Asia/Shanghai', ignoreHTTPSErrors: true,
++    })
 +    // The counting server is independently reachable; later CSP failures must never reach it.
 +    const health = await page.request.get(`${networkOrigin}/health`)
 +    probeHealth = { status: health.status(), received: [...serverHits] }
@@ -2068,6 +2088,7 @@ index 0000000000000000000000000000000000000000..41e880b28ce906abec4352df20ec298e
 +            probeServer.close((error) => { if (error) reject(error); else resolve() })
 +          })
 +        }
++        if (probeCertificate !== undefined) rmSync(probeCertificate, { recursive: true, force: true })
 +      }
 +    }
 +  })
