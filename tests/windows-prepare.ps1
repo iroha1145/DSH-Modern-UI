@@ -12,7 +12,93 @@ function Prepare([string[]]$InstallerArgs) {
   & $shell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'scripts/install.ps1') @InstallerArgs -SkipPlugins -PrepareOnly
   Assert-True ($LASTEXITCODE -eq 0) 'The real Windows installer failed.'
 }
+# Load only the production rename/switch helpers; do not run the installer at test import.
+$parseErrors = $null
+$tokens = $null
+$installerAst = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $root 'scripts/install.ps1'), [ref]$tokens, [ref]$parseErrors)
+Assert-True ($parseErrors.Count -eq 0) 'The installer has PowerShell syntax errors.'
+$helpers = $installerAst.FindAll({ param($item) $item -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $item.Name -in @('Move-RuntimeDirectory', 'Switch-RuntimeDirectory') }, $true)
+Assert-True ($helpers.Count -eq 2) 'Expected the production runtime switch helpers.'
+foreach ($helper in $helpers) { . ([scriptblock]::Create($helper.Extent.Text)) }
+Add-Type -TypeDefinition @'
+using System;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Win32.SafeHandles;
+public static class DshRuntimeDirectoryLockFixture {
+  [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+  private static extern SafeFileHandle CreateFile(string name, uint access, uint share, IntPtr security, uint creation, uint flags, IntPtr template);
+  public static SafeFileHandle Open(string path) {
+    // Read attributes; allow readers/writers but deny delete/rename on this owned directory.
+    SafeFileHandle handle = CreateFile(path, 0x80, 3, IntPtr.Zero, 3, 0x02000000, IntPtr.Zero);
+    if (handle.IsInvalid) { int code = Marshal.GetLastWin32Error(); handle.Dispose(); throw new Win32Exception(code); }
+    return handle;
+  }
+  public static void ReleaseAfter(SafeFileHandle handle, int milliseconds) {
+    // A task handshake owns no caller-managed wait handle that a late starter could touch.
+    TaskCompletionSource<bool> started = new TaskCompletionSource<bool>();
+    Thread worker = new Thread(delegate() {
+      System.Diagnostics.Stopwatch countdown = System.Diagnostics.Stopwatch.StartNew();
+      started.SetResult(true);
+      int remaining = milliseconds - (int)countdown.ElapsedMilliseconds;
+      if (remaining > 0) Thread.Sleep(remaining);
+      handle.Dispose();
+    });
+    worker.IsBackground = true;
+    worker.Start();
+    if (!started.Task.Wait(5000)) {
+      throw new TimeoutException("Runtime lock release thread did not start within five seconds.");
+    }
+  }
+}
+'@
+function Test-RuntimeDirectoryLocks {
+  foreach ($temporary in @($true, $false)) {
+    $fixture = Join-Path $scratch ("runtime-lock-" + [Guid]::NewGuid().ToString('N'))
+    $current = Join-Path $fixture 'node'
+    $candidate = Join-Path $fixture 'candidate'
+    $previous = Join-Path $fixture 'node.previous'
+    New-Item -ItemType Directory -Path $current, $candidate | Out-Null
+    Set-Content -Path (Join-Path $current 'node.exe') -Value 'previous-runtime'
+    Set-Content -Path (Join-Path $candidate 'node.exe') -Value 'validated-candidate'
+    $oldHash = (Get-FileHash (Join-Path $current 'node.exe')).Hash
+    $newHash = (Get-FileHash (Join-Path $candidate 'node.exe')).Hash
+    $handle = [DshRuntimeDirectoryLockFixture]::Open($candidate)
+    try {
+      if ($temporary) { [DshRuntimeDirectoryLockFixture]::ReleaseAfter($handle, 750) }
+      $failure = $null
+      try { Switch-RuntimeDirectory $candidate $current $previous } catch { $failure = $_ }
+      if ($temporary) {
+        Assert-True ($null -eq $failure) "A temporary directory lock did not recover: $failure"
+        Assert-True ((Get-FileHash (Join-Path $current 'node.exe')).Hash -eq $newHash) 'Temporary-lock recovery did not publish the complete candidate.'
+        Assert-True ((Get-FileHash (Join-Path $previous 'node.exe')).Hash -eq $oldHash) 'Temporary-lock recovery lost the previous runtime.'
+      } else {
+        Assert-True ($null -ne $failure -and $failure.Exception.Message -like '*still in use after bounded retries*') 'A persistent directory lock did not produce the bounded sharing-violation failure.'
+        Assert-True ((Get-FileHash (Join-Path $current 'node.exe')).Hash -eq $oldHash) 'Persistent-lock failure did not restore the previous runtime.'
+        Assert-True ((Get-FileHash (Join-Path $candidate 'node.exe')).Hash -eq $newHash) 'Persistent-lock failure changed candidate bytes.'
+      }
+    } finally { $handle.Dispose() }
+  }
+  # Missing sources are not sharing violations and must not be retried as a locked runtime.
+  $failure = $null
+  try { Move-RuntimeDirectory (Join-Path $scratch 'missing-runtime') (Join-Path $scratch 'unused-destination') } catch { $failure = $_ }
+  Assert-True ($null -ne $failure -and $failure.Exception.Message -notlike '*bounded retries*') 'An unrelated filesystem error was treated as a sharing violation.'
+  $conflictSource = Join-Path $scratch 'conflict-source'
+  $conflictTarget = Join-Path $scratch 'conflict-target'
+  New-Item -ItemType Directory -Path $conflictSource, $conflictTarget | Out-Null
+  Set-Content (Join-Path $conflictSource 'keep.txt') 'source'
+  Set-Content (Join-Path $conflictTarget 'keep.txt') 'target'
+  $failure = $null
+  try { Move-RuntimeDirectory $conflictSource $conflictTarget } catch { $failure = $_ }
+  Assert-True ($null -ne $failure -and $failure.Exception.Message -notlike '*bounded retries*') 'An existing destination was accepted or retried as a sharing violation.'
+  Assert-True ((Get-Content -Raw (Join-Path $conflictSource 'keep.txt')).Trim() -eq 'source') 'Destination conflict changed the source.'
+  Assert-True ((Get-Content -Raw (Join-Path $conflictTarget 'keep.txt')).Trim() -eq 'target') 'Destination conflict overwrote the target.'
+  Write-Host 'Windows runtime switching: transient lock, persistent lock rollback, missing source and destination conflict passed.'
+}
 try {
+  Test-RuntimeDirectoryLocks
   $official = Join-Path $scratch 'official-data'
   New-Item -ItemType Directory -Path $official | Out-Null
   $sentinel = Join-Path $official 'original-session.jsonl'

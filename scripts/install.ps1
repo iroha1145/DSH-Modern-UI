@@ -50,6 +50,41 @@ function Publish-Config([string]$TemporaryPath, [string]$DestinationPath) {
   }
 }
 
+# Same-volume rename avoids PowerShell 5.1 Move-Item enumerating runtime files.
+# Retry only Windows sharing/lock violations, never permissions or destination conflicts.
+function Move-RuntimeDirectory([string]$Source, [string]$Destination) {
+  for ($attempt = 0; $attempt -lt 9; $attempt++) {
+    try {
+      [IO.Directory]::Move($Source, $Destination)
+      return
+    } catch {
+      $cause = $_.Exception
+      while ($cause.InnerException) { $cause = $cause.InnerException }
+      $code = $cause.HResult -band 0xffff
+      if (-not ($cause -is [IO.IOException]) -or ($code -ne 32 -and $code -ne 33)) { throw }
+      if ($attempt -eq 8) {
+        throw [IO.IOException]::new("Node directory is still in use after bounded retries: ${Source}. Close the process using this installation and rerun the installer.", $cause)
+      }
+      Start-Sleep -Milliseconds 250
+    }
+  }
+}
+function Switch-RuntimeDirectory([string]$Candidate, [string]$Current, [string]$Previous) {
+  if (Test-Path -LiteralPath $Previous) { Remove-Item -LiteralPath $Previous -Recurse -Force }
+  if (Test-Path -LiteralPath $Current) { Move-RuntimeDirectory $Current $Previous }
+  try {
+    Move-RuntimeDirectory $Candidate $Current
+  } catch {
+    $switchFailure = $_
+    if (-not (Test-Path -LiteralPath $Current) -and (Test-Path -LiteralPath $Previous)) {
+      try { Move-RuntimeDirectory $Previous $Current } catch {
+        throw [IO.IOException]::new("Node switch and rollback failed. The prior runtime is retained at ${Previous}; stop the process holding it and rerun the installer.", $_.Exception)
+      }
+    }
+    throw $switchFailure
+  }
+}
+
 # Run from a checkout of this repository; otherwise fetch it and run the fetched copy.
 $Root = if ($PSScriptRoot) { Split-Path -Parent $PSScriptRoot } else { '' }
 if (-not $Root -or -not (Test-Path (Join-Path $Root 'dsh-ui.json'))) {
@@ -144,7 +179,7 @@ function Test-Runtime([string]$Path) {
   } catch { return $false }
 }
 $previous = Join-Path $runtime 'node.previous'
-if (-not (Test-Path $nodeDir) -and (Test-Path $previous)) { Move-Item $previous $nodeDir }
+if (-not (Test-Path $nodeDir) -and (Test-Path $previous)) { Move-RuntimeDirectory $previous $nodeDir }
 $complete = Join-Path $nodeDir '.complete'
 if (-not (Test-Runtime $nodeDir) -or -not (Test-Path $complete) -or (Get-Content -Raw $complete).Trim() -ne $nodeVersion) {
   $nodeName = "node-v${nodeVersion}-win-${arch}"
@@ -163,13 +198,12 @@ if (-not (Test-Runtime $nodeDir) -or -not (Test-Path $complete) -or (Get-Content
     $candidate = Join-Path $stage $nodeName
     if (-not (Test-Runtime $candidate)) { throw 'Node 运行时缺少可用的 node 或 npm；原运行时已保留' }
     Set-Content -Path (Join-Path $candidate '.complete') -Value $nodeVersion
-    if (Test-Path $previous) { Remove-Item -Recurse -Force $previous }
-    if (Test-Path $nodeDir) { Move-Item $nodeDir $previous }
-    try { Move-Item $candidate $nodeDir } catch {
-      if (-not (Test-Path $nodeDir) -and (Test-Path $previous)) { Move-Item $previous $nodeDir }
-      throw
+    Switch-RuntimeDirectory $candidate $nodeDir $previous
+  } finally {
+    try { Remove-Item -LiteralPath $stage -Recurse -Force } catch {
+      Write-Warning "Node staging cleanup could not complete; retained path: ${stage}. $($_.Exception.Message)"
     }
-  } finally { Remove-Item -Recurse -Force $stage }
+  }
 }
 $env:Path = "${nodeDir};$(Join-Path $runtime 'node_modules\.bin');$env:Path"
 $pnpmCmd = Join-Path $runtime 'node_modules\.bin\pnpm.cmd'
