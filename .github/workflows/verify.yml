@@ -30,7 +30,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v7.0.0
         with:
-          node-version: '24.13.0'
+          node-version: '24.22.1'
       - run: node --test tests/release.test.mjs
       - run: node --check scripts/plugins.mjs
       - name: Bash installer regressions
@@ -38,6 +38,9 @@ jobs:
         run: |
           bash -n scripts/install.sh scripts/launch.sh
           python3 tests/installers.py
+      - name: Real POSIX preparation, runtime recovery and launcher
+        if: runner.os != 'Windows'
+        run: bash tests/posix-prepare.sh
       - name: Real Windows preparation and recovery
         id: windows_pwsh
         if: runner.os == 'Windows'

@@ -96,6 +96,137 @@ sha256_of() {
 need curl; need tar
 [ "$(sha256_of "$PATCH_FILE")" = "$PATCH_SHA" ] || die "补丁文件的校验值不对，可能下载不完整或被改了换行符：${PATCH_FILE}"
 
+# Resolve existing ancestors physically without creating the requested directory.
+# Determine the actual containing directory's case rules, including Linux
+# case-folded directories. Prefer existing entries; probe only an empty directory.
+case_insensitive_dir() {
+  local base="$1" entry name alternate candidate listed exact probe
+  while [ ! -d "$base" ]; do base="$(dirname "$base")"; done
+  for entry in "$base"/* "$base"/.[!.]* "$base"/..?*; do
+    [ -e "$entry" ] && [ ! -L "$entry" ] || continue
+    name="$(basename "$entry")"
+    alternate="$(printf '%s' "$name" | LC_ALL=C tr '[:lower:]' '[:upper:]')"
+    [ "$alternate" != "$name" ] || alternate="$(printf '%s' "$name" | LC_ALL=C tr '[:upper:]' '[:lower:]')"
+    [ "$alternate" != "$name" ] || continue
+    candidate="${base%/}/$alternate"
+    # Distinct hard links with different spelling are still case-sensitive.
+    exact=no
+    for listed in "$base"/* "$base"/.[!.]* "$base"/..?*; do
+      [ "$listed" != "$candidate" ] || exact=yes
+    done
+    [ "$exact" = no ] || return 1
+    [ "$entry" -ef "$candidate" ]; return
+  done
+  (
+    probe=''
+    trap '[ -z "$probe" ] || rmdir -- "$probe"' EXIT
+    trap 'exit 2' HUP INT TERM
+    probe="$(mktemp -d "${base%/}/.dsh-case-a-XXXXXXXX")" || exit 2
+    candidate="${probe%/*}/$(basename "$probe" | LC_ALL=C tr '[:lower:]' '[:upper:]')"
+    if [ "$probe" -ef "$candidate" ]; then result=0; else result=1; fi
+    rmdir -- "$probe" || exit 2
+    probe=''
+    exit "$result"
+  )
+}
+canonical_dir() {
+  local path="$1" parent leaf target entry physical depth="${2:-0}"
+  [ "$depth" -lt 80 ] || die "目录链接过深或循环：$path"
+  case "$path" in /*) ;; *) path="$PWD/$path" ;; esac
+  if [ -d "$path" ]; then
+    physical="$(cd -P -- "$path" && pwd -P)" || return
+    [ "$physical" = / ] && { printf '/\n'; return; }
+    parent="$(canonical_dir "$(dirname "$physical")" "$((depth + 1))")" || return
+    # pwd -P can retain caller casing on case-insensitive volumes. Recover the
+    # actual directory entry by filesystem identity, without folding case on Linux.
+    for entry in "${parent%/}"/* "${parent%/}"/.[!.]* "${parent%/}"/..?*; do
+      if [ ! -L "$entry" ] && [ "$entry" -ef "$physical" ]; then
+        printf '%s\n' "$entry"; return
+      fi
+    done
+    die "无法确认目录的真实位置：$path"
+  fi
+  [ "$path" = / ] && { printf '/\n'; return; }
+  path="${path%/}"
+  parent="$(canonical_dir "$(dirname "$path")" "$((depth + 1))")" || return
+  leaf="$(basename "$path")"
+  case "$leaf" in .) printf '%s\n' "$parent"; return ;; ..) dirname "$parent"; return ;; esac
+  path="${parent%/}/$leaf"
+  if [ -L "$path" ]; then
+    target="$(readlink "$path")"
+    case "$target" in /*) ;; *) target="${parent%/}/$target" ;; esac
+    canonical_dir "$target" "$((depth + 1))"
+  elif [ -e "$path" ]; then die "数据路径不是目录：$path"
+  else printf '%s\n' "$path"; fi
+}
+# Shell case conversion cannot model Unicode filename equivalence. For new paths
+# containing non-ASCII bytes, compare empty replicas on the same filesystem.
+probe_within() (
+  local child="$1" parent="$2" common="$2" probe='' candidate target child_tail parent_tail result=1
+  while :; do
+    case "$child/" in "${common%/}/"*) [ -d "$common" ] && break ;; esac
+    common="$(dirname "$common")"
+  done
+  child_tail="${child#"${common%/}/"}"
+  parent_tail="${parent#"${common%/}/"}"
+  # Never let a replica path escape the exclusively created probe directory.
+  for candidate in "$child_tail" "$parent_tail"; do
+    case "$candidate" in ''|/*|..|../*|*/../*|*/..) exit 2 ;; esac
+  done
+  trap '[ -z "$probe" ] || rm -rf -- "$probe"' EXIT
+  trap 'exit 2' HUP INT TERM
+  probe="$(mktemp -d "${common%/}/.dsh-path-XXXXXXXX")" || exit 2
+  candidate="$probe/$child_tail"
+  target="$probe/$parent_tail"
+  mkdir -p -- "$candidate" "$target" || exit 2
+  while [ "$candidate" != "$probe" ]; do
+    if [ "$candidate" -ef "$target" ]; then result=0; break; fi
+    candidate="$(dirname "$candidate")"
+  done
+  rm -rf -- "$probe" || exit 2
+  probe=''
+  exit "$result"
+)
+within() {
+  local LC_ALL=C child="$1" parent="$2" folded_child folded_parent common result existing_child existing_parent
+  case "$child/" in "${parent%/}/"*) return 0 ;; esac
+  # canonical_dir already resolves every existing component. New tails below
+  # different physical ancestors cannot become aliases across those branches.
+  # In particular, an independent external home never needs writes at / or /Users.
+  existing_child="$child"
+  existing_parent="$parent"
+  while [ ! -d "$existing_child" ]; do existing_child="$(dirname "$existing_child")"; done
+  while [ ! -d "$existing_parent" ]; do existing_parent="$(dirname "$existing_parent")"; done
+  [ "$existing_child" -ef "$existing_parent" ] || return 1
+  folded_child="$(printf '%s' "$child" | LC_ALL=C tr '[:upper:]' '[:lower:]')"
+  folded_parent="$(printf '%s' "$parent" | LC_ALL=C tr '[:upper:]' '[:lower:]')"
+  case "$folded_child/" in
+    "${folded_parent%/}/"*) ;;
+    *)
+      # Existing physical paths already have their real spelling. Only missing
+      # paths with non-ASCII names require the filesystem equivalence probe.
+      if [ ! -d "$child" ] || [ ! -d "$parent" ]; then
+        case "$child$parent" in
+          *[!\ -~]*)
+            if probe_within "$child" "$parent"; then return 0; else result=$?; fi
+            [ "$result" -eq 1 ] || die "无法检查目录的真实关系"
+            ;;
+        esac
+      fi
+      return 1 ;;
+  esac
+  # Only unresolved case aliases need a volume check. Keep the requested spelling.
+  common="$parent"
+  while :; do
+    case "$child/" in "${common%/}/"*) break ;; esac
+    common="$(dirname "$common")"
+  done
+  if case_insensitive_dir "$common"; then return 0; else result=$?; fi
+  [ "$result" -eq 1 ] || die "无法检查目录的大小写规则：$common"
+  return 1
+}
+DIR="$(canonical_dir "$DIR")"
+
 # The install directory holds only what this script writes; refuse to spread into anything else.
 if [ -d "$DIR" ]; then
   for entry in "$DIR"/* "$DIR"/.[!.]*; do
@@ -106,8 +237,6 @@ if [ -d "$DIR" ]; then
     esac
   done
 fi
-mkdir -p "$DIR"
-DIR="$(cd "$DIR" && pwd)"
 RUNTIME="$DIR/runtime"
 DSH="$DIR/dsh"
 STATE_FILE="$DIR/dsh-ui.state"
@@ -126,9 +255,19 @@ if [ -f "$DIR/install.conf" ]; then
 fi
 HOME_DIR="${HOME_ARG:-${DSH_UI_HOME:-$DIR/data}}"
 PROFILE="${PROFILE_ARG:-${DSH_UI_PROFILE:-$(json_value profile)}}"
-mkdir -p "$HOME_DIR"
-HOME_DIR="$(cd "$HOME_DIR" && pwd)"
-case "$DIR/" in "$HOME_DIR/"*) die "数据目录不能包含安装目录；无法安全备份" ;; esac
+HOME_DIR="$(canonical_dir "$HOME_DIR")"
+within "$DIR" "$HOME_DIR" && die "数据目录不能包含安装目录；无法安全备份"
+if within "$HOME_DIR" "$DIR" && ! within "$HOME_DIR" "$DIR/data"; then
+  die "数据目录不能位于安装器管理的目录；安装目录内只能使用 data 子目录"
+fi
+# Also check managed directories that themselves point outside the install root.
+for managed in "$DIR/runtime" "$DIR/dsh" "$DIR/data-backups" "$DIR/overlays" "$DIR"/dsh.old-*; do
+  managed="$(canonical_dir "$managed")"
+  if within "$HOME_DIR" "$managed" || within "$managed" "$HOME_DIR"; then
+    die "数据目录不能与安装器管理的目录重叠：$managed"
+  fi
+done
+mkdir -p "$DIR" "$HOME_DIR"
 # Snapshot existing data before any plugin or application can write the new event vocabulary.
 # Stop all DSH processes using this home before running the installer.
 if [ ! -f "$DIR/install.conf" ] || [ -n "$HOME_ARG" ]; then
@@ -233,7 +372,9 @@ else
           rm -rf "$DSH" ;;
         done*)
           [ "$FORCE" = yes ] || die "${DSH} 里装的是另一个版本。加 --force 重新安装，旧目录会改名保留"
-          backup="$DSH.old-$(date +%Y%m%d%H%M%S)"
+          # Reserve a unique sibling even when several reinstalls share a second.
+          backup="$(mktemp -d "$DSH.old-$(date +%Y%m%d%H%M%S)-XXXXXXXX")"
+          rmdir -- "$backup"
           mv "$DSH" "$backup"
           say "旧目录已改名为 ${backup}，确认新版本没问题后可以删掉" ;;
         *)

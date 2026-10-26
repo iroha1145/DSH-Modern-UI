@@ -2,6 +2,8 @@
 
 DSH-UI 是 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（DSH）的一套界面改版。它以补丁形式发布：安装脚本下载固定版本的官方源码，打上本仓库的补丁，装好依赖并构建，再顺带装上三个社区插件。
 
+[2026-10-26 独立复审修复](docs/reaudit-remediation.md)记录了运行环境安全更新、数据目录保护与键盘导航修复及其验证边界。
+
 [English](#english)
 
 ## 改了什么
@@ -26,7 +28,7 @@ DSH-UI 是 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)�
 - C 编译器。构建时要编译一个原生模块：macOS 装 Xcode 命令行工具（`xcode-select --install`），Linux 装 `build-essential`（或 gcc、clang）。个别依赖没有预编译包时还会用到 `python3`。
 - 约 3 GB 磁盘空间，能访问 GitHub、nodejs.org 和 npm。
 
-不用预先装 Node.js：安装脚本会从 nodejs.org 下载官方的 Node 24.13，核对官方校验值后放进安装目录，再用它装 pnpm 11.28.5，不改动系统里的 Node。
+不用预先装 Node.js：安装脚本会从 nodejs.org 下载官方的 Node 24.22.1，核对官方校验值后放进安装目录，再用它装 pnpm 11.28.5，不改动系统里的 Node。
 
 ```bash
 git clone https://github.com/iroha1145/DSH-Modern-UI.git
@@ -56,7 +58,7 @@ powershell -ExecutionPolicy Bypass -File scripts\install.ps1
 
 ### 安装脚本做了什么
 
-1. 准备私有的 Node 24.13 和 pnpm 11.28.5（已经有了就跳过）。
+1. 准备私有的 Node 24.22.1 和 pnpm 11.28.5（已经有了就跳过）。
 2. 从 GitHub 下载官方源码包，打上 `patches/dsh-ui.patch`。源码包和补丁分别核对清单中的 SHA-256；自定义镜像也必须提供相同字节。在 macOS 和 Linux 上，还会用 Git 检查源码包携带的提交标识。
 3. 用 `pnpm install --frozen-lockfile` 装依赖，再运行 `pnpm run build`。源码包没有 Git 历史，安装器会通过 `DSH_CLIENT_COMMIT_HASH` 提供清单中的官方基线提交；完整改版由同一清单中的补丁摘要标识。
 4. 在安装目录里放启动器 `dsh-ui`，记下数据目录和配置名。
@@ -106,7 +108,7 @@ dsh-context 自带一个编队标签，和 DSH-UI 的编队页重复。启动器
 
 ## 数据目录与回退
 
-首次安装默认使用 `<安装目录>/data`（通常是 `~/.dsh-ui/data`），不会读取环境变量 `DSH_HOME` 指向的官方数据。已有安装继续使用记录的数据目录。启动器始终使用安装记录的目录。
+首次安装默认使用 `<安装目录>/data`（通常是 `~/.dsh-ui/data`），不会读取环境变量 `DSH_HOME` 指向的官方数据。已有安装继续使用记录的数据目录。启动器始终使用安装记录的目录。数据目录只能放在 `<安装目录>/data` 子树或安装目录外的独立目录；不能包含安装目录，也不能与 `dsh`、`runtime`、`data-backups`、`overlays`、`dsh.old-*` 等安装器管理的目录重叠。安装器会解析符号链接和 Windows 目录联接（junction）的真实位置，在创建目录、备份或保存设置前检查；以前保存的不合法路径也会被拒绝，已有数据不会因此被删除或移动。对于尚不存在、但文件名可能被系统视为相同的路径，必要时会在既有父目录创建并立即移除临时目录，以确认文件系统的名称规则。
 
 **会话不是双向兼容的。** DSH-UI 写入的 `web/search` 是必须识别的事件，记录联网开关的语义。固定的官方 0.2.1-rc.3 无法打开包含该事件的会话；不能通过删除事件或把它改成可忽略事件来回退，否则可能丢失关闭联网的意图。
 
@@ -171,7 +173,7 @@ git clone https://github.com/iroha1145/DSH-Modern-UI.git && cd DSH-Modern-UI && 
 ~/.dsh-ui/dsh-ui
 ```
 
-Plugins already present in the profile are skipped. A different installed version, or one declared without its files, is reported and left alone. When something has to be installed, the installer first stops if the profile's `node_modules` was linked from another pnpm store. Re-running is safe: an interrupted install resumes, a finished one is not rebuilt, and the recorded data directory and profile are kept. Node does not need to be preinstalled: the installer fetches the official Node 24.13 release (checked against its SHASUMS256.txt) and pnpm 11.28.5 into the install directory. It needs curl, tar, working Git (checked before installation writes; binary patch changes cannot use POSIX patch), a C compiler (Xcode Command Line Tools or build-essential), glibc on Linux, and about 3 GB of disk. The reconstructed source and isolated dependency store are checked on macOS (Apple silicon). CI runs the POSIX installer fixtures on Linux/macOS and real pinned-runtime preparation, resume and launcher checks on Windows; check the results for the exact commit. The browser release does not certify the native Electron application.
+Plugins already present in the profile are skipped. A different installed version, or one declared without its files, is reported and left alone. When something has to be installed, the installer first stops if the profile's `node_modules` was linked from another pnpm store. Re-running is safe: an interrupted install resumes, a finished one is not rebuilt, and the recorded data directory and profile are kept. Node does not need to be preinstalled: the installer fetches the official Node 24.22.1 release (checked against its SHASUMS256.txt) and pnpm 11.28.5 into the install directory. It needs curl, tar, working Git (checked before installation writes; binary patch changes cannot use POSIX patch), a C compiler (Xcode Command Line Tools or build-essential), glibc on Linux, and about 3 GB of disk. The reconstructed source and isolated dependency store are checked on macOS (Apple silicon). CI runs the POSIX installer fixtures on Linux/macOS and real pinned-runtime preparation, resume and launcher checks on Windows; check the results for the exact commit. The browser release does not certify the native Electron application.
 
 
 ### Installer regression fixtures

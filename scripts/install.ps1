@@ -61,6 +61,9 @@ function Move-RuntimeDirectory([string]$Source, [string]$Destination) {
       $cause = $_.Exception
       while ($cause.InnerException) { $cause = $cause.InnerException }
       $code = $cause.HResult -band 0xffff
+      if ($attempt -eq 0) {
+        Write-Warning ("Runtime rename failed: source={0}; destination={1}; type={2}; HResult=0x{3:X8}; Win32={4}; PowerShell={5}" -f $Source, $Destination, $cause.GetType().FullName, $cause.HResult, $code, $PSVersionTable.PSVersion)
+      }
       if (-not ($cause -is [IO.IOException]) -or ($code -ne 32 -and $code -ne 33)) { throw }
       if ($attempt -eq 8) {
         throw [IO.IOException]::new("Node directory is still in use after bounded retries: ${Source}. Close the process using this installation and rerun the installer.", $cause)
@@ -123,6 +126,46 @@ if ((Get-Sha256 $patchFile) -ne $manifest.patch.sha256) {
   Fail "补丁文件的校验值不对，可能下载不完整或被改了换行符：${patchFile}"
 }
 
+# Resolve junctions/symlinks through Windows itself, including existing ancestors.
+Add-Type -TypeDefinition @'
+using System;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
+using System.Text;
+using Microsoft.Win32.SafeHandles;
+public static class DshPhysicalDirectory {
+  [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
+  static extern SafeFileHandle CreateFile(string name, uint access, uint share, IntPtr security, uint creation, uint flags, IntPtr template);
+  [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
+  static extern uint GetFinalPathNameByHandle(SafeFileHandle handle, StringBuilder path, uint size, uint flags);
+  public static string Resolve(string path) {
+    using (var handle = CreateFile(path, 0, 7, IntPtr.Zero, 3, 0x02000000, IntPtr.Zero)) {
+      if (handle.IsInvalid) throw new Win32Exception(Marshal.GetLastWin32Error());
+      var buffer = new StringBuilder(32768);
+      uint size = GetFinalPathNameByHandle(handle, buffer, (uint)buffer.Capacity, 0);
+      if (size == 0 || size >= buffer.Capacity) throw new Win32Exception(Marshal.GetLastWin32Error());
+      string result = buffer.ToString();
+      if (result.StartsWith(@"\\?\UNC\")) return @"\\" + result.Substring(8);
+      return result.StartsWith(@"\\?\") ? result.Substring(4) : result;
+    }
+  }
+}
+'@
+function Resolve-PhysicalDirectory([string]$Path) {
+  $full = [IO.Path]::GetFullPath($Path)
+  if (Test-Path -LiteralPath $full -PathType Container) { return [DshPhysicalDirectory]::Resolve($full) }
+  # A broken reparse point must fail closed rather than be treated as a new directory.
+  $item = Get-Item -LiteralPath $full -Force -ErrorAction SilentlyContinue
+  if ($null -ne $item) { Fail "目录不存在、链接失效或不是目录：$full" }
+  $parent = Split-Path -Parent $full
+  if (-not $parent -or $parent -eq $full) { Fail "无法解析目录：$full" }
+  return Join-Path (Resolve-PhysicalDirectory $parent) (Split-Path -Leaf $full)
+}
+function Test-Within([string]$Child, [string]$Parent) {
+  return ($Child.TrimEnd('\') + '\').StartsWith($Parent.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)
+}
+$Dir = Resolve-PhysicalDirectory $Dir
+
 # The install directory holds only what this script writes; refuse to spread into anything else.
 $allowed = '^(data|data-backups|install\.json(\.tmp)?|runtime|dsh|dsh\.old-.*|dsh-ui\.ps1|dsh-ui\.cmd|dsh-ui\.state|launch\.json(\.tmp)?|overlays|upstream-.*\.tar\.gz(\.part)?)$'
 if (Test-Path $Dir) {
@@ -130,8 +173,6 @@ if (Test-Path $Dir) {
     if ($entry.Name -notmatch $allowed) { Fail "${Dir} 里已经有别的文件（$($entry.Name)），不像是 DSH-UI 的安装目录。换一个 -Dir" }
   }
 }
-New-Item -ItemType Directory -Force -Path $Dir | Out-Null
-$Dir = (Resolve-Path $Dir).Path
 $runtime = Join-Path $Dir 'runtime'
 $dsh = Join-Path $Dir 'dsh'
 $stateFile = Join-Path $Dir 'dsh-ui.state'
@@ -146,9 +187,18 @@ if (-not $DshHome) {
   $DshHome = if ($recorded -and $recorded.home) { $recorded.home } else { Join-Path $Dir 'data' }
 }
 if (-not $DshProfile) { $DshProfile = if ($recorded -and $recorded.profile) { $recorded.profile } else { $manifest.profile } }
-New-Item -ItemType Directory -Force -Path $DshHome | Out-Null
-$DshHome = (Resolve-Path $DshHome).Path
-if (($Dir + '\').StartsWith($DshHome.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) { Fail '数据目录不能包含安装目录；无法安全备份' }
+$DshHome = Resolve-PhysicalDirectory $DshHome
+if (Test-Within $Dir $DshHome) { Fail '数据目录不能包含安装目录；无法安全备份' }
+if ((Test-Within $DshHome $Dir) -and -not (Test-Within $DshHome (Join-Path $Dir 'data'))) {
+  Fail '数据目录不能位于安装器管理的目录；安装目录内只能使用 data 子目录'
+}
+$managedPaths = @('runtime', 'dsh', 'data-backups', 'overlays') | ForEach-Object { Join-Path $Dir $_ }
+if (Test-Path -LiteralPath $Dir) { $managedPaths += @(Get-ChildItem -LiteralPath $Dir -Force -Filter 'dsh.old-*' | ForEach-Object { $_.FullName }) }
+foreach ($managedPath in $managedPaths) {
+  $physical = Resolve-PhysicalDirectory $managedPath
+  if ((Test-Within $DshHome $physical) -or (Test-Within $physical $DshHome)) { Fail "数据目录不能与安装器管理的目录重叠：$physical" }
+}
+New-Item -ItemType Directory -Force -Path $Dir, $DshHome | Out-Null
 if ((-not (Test-Path $intent) -or $explicitHome) -and (Get-ChildItem -Force $DshHome | Select-Object -First 1)) {
   $backup = Join-Path $Dir ('data-backups\home-' + [guid]::NewGuid())
   New-Item -ItemType Directory -Force $backup | Out-Null
@@ -165,18 +215,67 @@ $arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'x64' }
 $nodeDir = Join-Path $runtime 'node'
 $nodeExe = Join-Path $nodeDir 'node.exe'
 New-Item -ItemType Directory -Force -Path $runtime | Out-Null
+# Keep command discovery and native validation entirely in a short-lived process.
+# The verifier exits and its process handle is disposed before directory publication.
+function Invoke-RuntimeValidationProcess([string]$Path) {
+  $validation = @'
+$ErrorActionPreference = 'Stop'
+try {
+  $node = Join-Path $env:DSH_VALIDATE_RUNTIME 'node.exe'
+  $npm = Join-Path $env:DSH_VALIDATE_RUNTIME 'node_modules\npm\bin\npm-cli.js'
+  $version = & $node -p 'process.versions.node'
+  if ($LASTEXITCODE -ne 0 -or $version -ne $env:DSH_VALIDATE_NODE_VERSION) { exit 1 }
+  & $node $npm --version *> $null
+  if ($LASTEXITCODE -ne 0) { exit 1 }
+  & (Join-Path $env:DSH_VALIDATE_RUNTIME 'npm.cmd') --version *> $null
+  if ($LASTEXITCODE -ne 0) { exit 1 }
+  exit 0
+} catch {
+  [Console]::Error.WriteLine($_.Exception.ToString())
+  exit 1
+}
+'@
+  $hostProcess = [Diagnostics.Process]::GetCurrentProcess()
+  try { $shellPath = $hostProcess.MainModule.FileName } finally { $hostProcess.Dispose() }
+  $process = New-Object Diagnostics.Process
+  $started = $false
+  try {
+    $process.StartInfo.FileName = $shellPath
+    $process.StartInfo.Arguments = '-NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand ' + [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($validation))
+    $process.StartInfo.UseShellExecute = $false
+    $process.StartInfo.CreateNoWindow = $true
+    $process.StartInfo.WorkingDirectory = [IO.Path]::GetTempPath()
+    $process.StartInfo.RedirectStandardOutput = $true
+    $process.StartInfo.RedirectStandardError = $true
+    $process.StartInfo.EnvironmentVariables['DSH_VALIDATE_RUNTIME'] = $Path
+    $process.StartInfo.EnvironmentVariables['DSH_VALIDATE_NODE_VERSION'] = $nodeVersion
+    $started = $process.Start()
+    if (-not $started) { throw 'Could not start the runtime validation process.' }
+    # Drain both streams concurrently so neither pipe can block process completion.
+    $output = $process.StandardOutput.ReadToEndAsync()
+    $errors = $process.StandardError.ReadToEndAsync()
+    $process.WaitForExit()
+    return @{ exitCode = $process.ExitCode; output = $output.GetAwaiter().GetResult(); error = $errors.GetAwaiter().GetResult() }
+  } finally {
+    # Even a stream/read failure must not leave the verifier running during rename.
+    try { if ($started) { $process.WaitForExit() } } finally { $process.Dispose() }
+  }
+}
 function Test-Runtime([string]$Path) {
   $exe = Join-Path $Path 'node.exe'
   $npm = Join-Path $Path 'node_modules\npm\bin\npm-cli.js'
   if (-not (Test-Path $exe) -or -not (Test-Path $npm) -or -not (Test-Path (Join-Path $Path 'npm.cmd'))) { return $false }
   try {
-    $version = & $exe -p 'process.versions.node'
-    if ($LASTEXITCODE -ne 0 -or $version -ne $nodeVersion) { return $false }
-    & $exe $npm --version *> $null
-    if ($LASTEXITCODE -ne 0) { return $false }
-    & (Join-Path $Path 'npm.cmd') --version *> $null
-    return ($LASTEXITCODE -eq 0)
-  } catch { return $false }
+    $result = Invoke-RuntimeValidationProcess $Path
+    if ($result.exitCode -ne 0) {
+      Write-Warning "Runtime validation failed: $($result.error)"
+      return $false
+    }
+    return $true
+  } catch {
+    Write-Warning "Runtime validation could not complete: $($_.Exception.ToString())"
+    return $false
+  }
 }
 $previous = Join-Path $runtime 'node.previous'
 if (-not (Test-Path $nodeDir) -and (Test-Path $previous)) { Move-RuntimeDirectory $previous $nodeDir }
@@ -241,8 +340,9 @@ if (-not $Force -and $state -eq "done $stamp") {
         Remove-Item -Recurse -Force $dsh
       } elseif ($state -like 'done*') {
         if (-not $Force) { Fail "${dsh} 里装的是另一个版本。加 -Force 重新安装，旧目录会改名保留" }
-        $backup = "${dsh}.old-$(Get-Date -Format yyyyMMddHHmmss)"
-        Move-Item $dsh $backup
+        $backup = "${dsh}.old-$(Get-Date -Format yyyyMMddHHmmss)-$([guid]::NewGuid().ToString('N'))"
+        # Directory.Move fails if the destination exists; it never nests source trees.
+        [IO.Directory]::Move($dsh, $backup)
         Write-Host "旧目录已改名为 ${backup}，确认新版本没问题后可以删掉"
       } else {
         Fail "${dsh} 已经存在，但不是本安装器建的，为安全起见不覆盖。换一个 -Dir，或先把它移走"
