@@ -31,8 +31,9 @@ public static class DshRuntimeDirectoryLockFixture {
   [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
   private static extern SafeFileHandle CreateFile(string name, uint access, uint share, IntPtr security, uint creation, uint flags, IntPtr template);
   public static SafeFileHandle Open(string path) {
-    // Read attributes; allow readers/writers but deny delete/rename on this owned directory.
-    SafeFileHandle handle = CreateFile(path, 0x80, 3, IntPtr.Zero, 3, 0x02000000, IntPtr.Zero);
+    // GENERIC_READ participates in sharing checks; attribute-only access does not.
+    // Allow readers/writers but omit FILE_SHARE_DELETE, which also protects rename.
+    SafeFileHandle handle = CreateFile(path, 0x80000000, 3, IntPtr.Zero, 3, 0x02000000, IntPtr.Zero);
     if (handle.IsInvalid) { int code = Marshal.GetLastWin32Error(); handle.Dispose(); throw new Win32Exception(code); }
     return handle;
   }
@@ -95,7 +96,10 @@ function Test-RuntimeDirectoryLocks {
       $probeFailure = $null
       try { [IO.Directory]::Move($candidate, $probeTarget) } catch { $probeFailure = $_ }
       Write-RuntimeSwitchEvidence 'locked-rename-probe' $temporary $probeFailure $handle 0 @($candidate, $probeTarget, $current, $previous)
-      if ($null -eq $probeFailure) { [IO.Directory]::Move($probeTarget, $candidate) }
+      $probeCause = if ($null -ne $probeFailure) { $probeFailure.Exception } else { $null }
+      while ($null -ne $probeCause -and $null -ne $probeCause.InnerException) { $probeCause = $probeCause.InnerException }
+      $probeCode = if ($null -ne $probeCause) { $probeCause.HResult -band 0xffff } else { 0 }
+      Assert-True ($probeCause -is [IO.IOException] -and $probeCode -in @(32, 33)) ("Fixture did not establish a real sharing violation before testing runtime retries. Actual: " + ((Get-RuntimeFailureEvidence $probeFailure) | ConvertTo-Json -Depth 8 -Compress))
       if ($temporary) { [DshRuntimeDirectoryLockFixture]::ReleaseAfter($handle, 750) }
       $elapsed = [Diagnostics.Stopwatch]::StartNew()
       $failure = $null
