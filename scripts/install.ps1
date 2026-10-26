@@ -51,9 +51,12 @@ function Publish-Config([string]$TemporaryPath, [string]$DestinationPath) {
 }
 
 # Same-volume rename avoids PowerShell 5.1 Move-Item enumerating runtime files.
-# Retry only Windows sharing/lock violations, never permissions or destination conflicts.
+# Retry sharing and lock violations. Windows also reports a file still open inside the
+# directory — antivirus, or node.exe immediately after Test-Runtime — as access denied
+# (Win32 5) rather than a sharing violation. Destination conflicts and missing paths
+# still fail on the first attempt.
 function Move-RuntimeDirectory([string]$Source, [string]$Destination) {
-  for ($attempt = 0; $attempt -lt 9; $attempt++) {
+  for ($attempt = 0; $attempt -lt 16; $attempt++) {
     try {
       [IO.Directory]::Move($Source, $Destination)
       return
@@ -61,8 +64,13 @@ function Move-RuntimeDirectory([string]$Source, [string]$Destination) {
       $cause = $_.Exception
       while ($cause.InnerException) { $cause = $cause.InnerException }
       $code = $cause.HResult -band 0xffff
-      if (-not ($cause -is [IO.IOException]) -or ($code -ne 32 -and $code -ne 33)) { throw }
-      if ($attempt -eq 8) {
+      # An existing destination is also reported as access denied. That is a conflict, not a lock.
+      $locked = -not (Test-Path -LiteralPath $Destination) -and (
+        ($cause -is [IO.IOException] -and ($code -eq 32 -or $code -eq 33)) -or
+        ($cause -is [UnauthorizedAccessException] -and $code -eq 5)
+      )
+      if (-not $locked) { throw }
+      if ($attempt -eq 15) {
         throw [IO.IOException]::new("Node directory is still in use after bounded retries: ${Source}. Close the process using this installation and rerun the installer.", $cause)
       }
       Start-Sleep -Milliseconds 250

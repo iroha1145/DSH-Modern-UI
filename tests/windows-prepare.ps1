@@ -161,40 +161,52 @@ function Stop-ZipServer($Server) {
   if ($null -eq $Server) { return }
   try { $Server.Listener.Stop() } catch {}
   try { $Server.Listener.Close() } catch {}
+  try {
+    if (-not $Server.Handle.IsCompleted) { [void]$Server.Handle.AsyncWaitHandle.WaitOne(2000) }
+    if ($Server.Handle.IsCompleted) { $Server.Server.EndInvoke($Server.Handle) }
+  } catch {}
   try { $Server.Server.Dispose() } catch {}
   try { $Server.Runspace.Close() } catch {}
+  try { $Server.Runspace.Dispose() } catch {}
 }
 function Test-BootstrapChildExit {
-  # Invoke-WebRequest rejects file:// URIs, so the child archive is served on loopback.
-  $case = Join-Path $scratch 'bootstrap-exit'
+  # Own temp root, deleted before the real install. Invoke-WebRequest rejects file:// URIs,
+  # so the child archive is served on loopback and the listener is closed before returning.
+  $case = Join-Path ([IO.Path]::GetTempPath()) ('dsh-ui-bootstrap-' + [guid]::NewGuid().ToString('N'))
   New-Item -ItemType Directory -Path $case | Out-Null
   $tempRoot = [IO.Path]::GetTempPath()
-  foreach ($childCode in @(7, 0)) {
-    $childDir = Join-Path $case "child-$childCode"
-    New-Item -ItemType Directory -Path (Join-Path $childDir 'scripts') | Out-Null
-    Set-Content -Encoding ascii -Path (Join-Path $childDir 'scripts/install.ps1') -Value "exit $childCode"
-    $zip = Join-Path $case "repo-$childCode.zip"
-    if (Test-Path $zip) { Remove-Item -LiteralPath $zip }
-    Compress-Archive -Path (Join-Path $childDir '*') -DestinationPath $zip
-    $parent = Join-Path $case "parent-$childCode/scripts"
-    New-Item -ItemType Directory -Path $parent | Out-Null
-    Copy-Item (Join-Path $root 'scripts/install.ps1') (Join-Path $parent 'install.ps1')
-    $hosted = Start-ZipServer $zip
-    $before = @(Get-ChildItem -LiteralPath $tempRoot -Directory -Filter 'dsh-ui-*' -ErrorAction SilentlyContinue)
-    $previousRepo = $env:DSH_UI_REPO_URL
-    try {
-      $env:DSH_UI_REPO_URL = $hosted.Url
-      & $shell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $parent 'install.ps1') -Dir (Join-Path $case "unused-$childCode")
-      $code = $LASTEXITCODE
-    } finally {
-      Stop-ZipServer $hosted
-      if ($null -eq $previousRepo) { Remove-Item Env:DSH_UI_REPO_URL -ErrorAction SilentlyContinue } else { $env:DSH_UI_REPO_URL = $previousRepo }
+  try {
+    foreach ($childCode in @(7, 0)) {
+      $childDir = Join-Path $case "child-$childCode"
+      New-Item -ItemType Directory -Path (Join-Path $childDir 'scripts') | Out-Null
+      Set-Content -Encoding ascii -Path (Join-Path $childDir 'scripts/install.ps1') -Value "exit $childCode"
+      $zip = Join-Path $case "repo-$childCode.zip"
+      if (Test-Path $zip) { Remove-Item -LiteralPath $zip }
+      Compress-Archive -Path (Join-Path $childDir '*') -DestinationPath $zip
+      $parent = Join-Path $case "parent-$childCode/scripts"
+      New-Item -ItemType Directory -Path $parent | Out-Null
+      Copy-Item (Join-Path $root 'scripts/install.ps1') (Join-Path $parent 'install.ps1')
+      $hosted = $null
+      $before = @(Get-ChildItem -LiteralPath $tempRoot -Directory -Filter 'dsh-ui-*' -ErrorAction SilentlyContinue)
+      $previousRepo = $env:DSH_UI_REPO_URL
+      try {
+        $hosted = Start-ZipServer $zip
+        $env:DSH_UI_REPO_URL = $hosted.Url
+        & $shell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $parent 'install.ps1') -Dir (Join-Path $case "unused-$childCode")
+        $code = $LASTEXITCODE
+      } finally {
+        Stop-ZipServer $hosted
+        if ($null -eq $previousRepo) { Remove-Item Env:DSH_UI_REPO_URL -ErrorAction SilentlyContinue } else { $env:DSH_UI_REPO_URL = $previousRepo }
+      }
+      $after = @(Get-ChildItem -LiteralPath $tempRoot -Directory -Filter 'dsh-ui-*' -ErrorAction SilentlyContinue)
+      Assert-True ($code -eq $childCode) "Bootstrap parent exit was $code; child exit $childCode must propagate."
+      Assert-True ($after.Count -eq $before.Count) 'Bootstrap left a dsh-ui-* temp directory behind.'
+      Assert-True (-not (Test-Path (Join-Path $case "unused-$childCode"))) 'A bootstrap child was treated as a finished install.'
     }
-    $after = @(Get-ChildItem -LiteralPath $tempRoot -Directory -Filter 'dsh-ui-*' -ErrorAction SilentlyContinue)
-    Assert-True ($code -eq $childCode) "Bootstrap parent exit was $code; child exit $childCode must propagate."
-    Assert-True ($after.Count -eq $before.Count) 'Bootstrap left a dsh-ui-* temp directory behind.'
-    Assert-True (-not (Test-Path (Join-Path $case "unused-$childCode"))) 'A bootstrap child was treated as a finished install.'
+  } finally {
+    Remove-Item -LiteralPath $case -Recurse -Force -ErrorAction SilentlyContinue
   }
+  Assert-True (-not (Test-Path -LiteralPath $case)) 'Bootstrap temp root was not removed before the real install.'
   Write-Host 'PowerShell bootstrap: failing and successful child exit codes propagate, and the temp download is removed.'
 }
 try {
