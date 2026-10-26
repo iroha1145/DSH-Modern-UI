@@ -1,5 +1,6 @@
 # The patch is checked by its sha256 and applied byte for byte; never let git rewrite its line endings.
-*.patch -text
+# A blank unified-diff context line is one space. Preserve that syntax; check restored source whitespace instead.
+*.patch -text -whitespace
 *.sh text eol=lf
 *.mjs text eol=lf
 *.json text eol=lf

@@ -16,7 +16,7 @@ usage() {
 用法: install.sh [选项]
 
   --dir <目录>       安装目录，默认 ~/.dsh-ui
-  --home <目录>      DSH 数据目录（DSH_HOME）。默认沿用上次安装记下的目录；第一次安装用 $DSH_HOME，没有则 ~/.dsh
+  --home <目录>      DSH 数据目录（DSH_HOME）。默认沿用上次安装记下的目录；第一次安装用 <安装目录>/data；已有目录会先备份
   --profile <名称>   插件装进哪个配置。默认沿用上次的；第一次安装用 web
   --skip-plugins     不装社区插件
   --prepare-only     只下载源码并打补丁，不装依赖、不构建；之后再运行一次本脚本会接着装
@@ -36,23 +36,7 @@ need() { command -v "$1" >/dev/null 2>&1 || die "需要 ${1}，请先安装"; }
 # macOS without the Command Line Tools has stub git and cc that only open an install prompt.
 usable() { "$1" --version >/dev/null 2>&1; }
 
-# Run from a checkout of this repository; when piped from curl, fetch the repository first.
-ROOT=""
-if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
-  ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-fi
-if [ -z "$ROOT" ] || [ ! -f "$ROOT/dsh-ui.json" ]; then
-  need curl; need tar
-  REPO_URL="${DSH_UI_REPO_URL:-https://codeload.github.com/iroha1145/DSH-Modern-UI/tar.gz/main}"
-  FETCHED="$(mktemp -d)"
-  trap 'rm -rf "$FETCHED"' EXIT
-  say "下载 DSH-UI 仓库 …"
-  curl -fsSL --retry 3 "$REPO_URL" | tar -xz -C "$FETCHED" --strip-components 1
-  bash "$FETCHED/scripts/install.sh" "$@"
-  exit 0
-fi
-MANIFEST="$ROOT/dsh-ui.json"
-
+INSTALL_ARGS=("$@")
 DIR="$HOME/.dsh-ui"
 HOME_ARG=""
 PROFILE_ARG=""
@@ -72,15 +56,37 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+# Binary additions/deletions in the release patch require git apply; POSIX patch cannot apply them.
+usable git || die "需要可用的 Git（git --version 必须成功）：发行补丁包含二进制文件变更，不能使用 patch 替代。macOS 请安装 Xcode 命令行工具（xcode-select --install）；Linux 请安装 git。"
+
+# Run from a checkout of this repository; when piped from curl, fetch the repository first.
+ROOT=""
+if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
+  ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+fi
+if [ -z "$ROOT" ] || [ ! -f "$ROOT/dsh-ui.json" ]; then
+  need curl; need tar
+  REPO_URL="${DSH_UI_REPO_URL:-https://codeload.github.com/iroha1145/DSH-Modern-UI/tar.gz/main}"
+  FETCHED="$(mktemp -d)"
+  trap 'rm -rf "$FETCHED"' EXIT
+  say "下载 DSH-UI 仓库 …"
+  curl -fsSL --retry 3 "$REPO_URL" | tar -xz -C "$FETCHED" --strip-components 1
+  bash "$FETCHED/scripts/install.sh" ${INSTALL_ARGS[@]+"${INSTALL_ARGS[@]}"}
+  exit 0
+fi
+MANIFEST="$ROOT/dsh-ui.json"
+
 # Values sit one per line in dsh-ui.json, so a plain match is enough before Node is available.
 json_value() { sed -n "s/.*\"$1\": *\"\([^\"]*\)\".*/\1/p" "$MANIFEST" | head -n 1; }
 COMMIT="$(json_value commit)"
 TARBALL_URL="${DSH_UI_TARBALL_URL:-$(json_value tarball)}"
+TARBALL_SHA="$(json_value tarballSha256)"
 PATCH_FILE="$ROOT/$(json_value file)"
 PATCH_SHA="$(json_value sha256)"
 NODE_VERSION="$(json_value runtime)"
 PNPM_VERSION="$(json_value pnpm)"
 [ -n "$COMMIT" ] && [ -n "$PATCH_SHA" ] && [ -n "$NODE_VERSION" ] && [ -n "$PNPM_VERSION" ] || die "读不懂 ${MANIFEST}"
+[[ "$TARBALL_SHA" =~ ^[a-f0-9]{64}$ ]] || die "清单缺少有效的官方源码包校验值"
 
 sha256_of() {
   if command -v shasum >/dev/null 2>&1; then shasum -a 256 "$1" | awk '{print $1}'
@@ -95,7 +101,7 @@ if [ -d "$DIR" ]; then
   for entry in "$DIR"/* "$DIR"/.[!.]*; do
     [ -e "$entry" ] || continue
     case "$(basename "$entry")" in
-      runtime|dsh|dsh.old-*|dsh-ui|dsh-ui.state|launch.conf|overlays|upstream-*.tar.gz|upstream-*.tar.gz.part) ;;
+      data|data-backups|install.conf|install.conf.tmp|runtime|dsh|dsh.old-*|dsh-ui|dsh-ui.state|launch.conf|launch.conf.tmp|overlays|upstream-*.tar.gz|upstream-*.tar.gz.part) ;;
       *) die "${DIR} 里已经有别的文件（$(basename "$entry")），不像是 DSH-UI 的安装目录。换一个 --dir" ;;
     esac
   done
@@ -114,10 +120,32 @@ if [ -f "$DIR/launch.conf" ]; then
   # shellcheck disable=SC1091 # written by this script
   . "$DIR/launch.conf"
 fi
-HOME_DIR="${HOME_ARG:-${DSH_UI_HOME:-${DSH_HOME:-$HOME/.dsh}}}"
+# Desired install settings survive prepare-only and failed builds; launch.conf stays active.
+if [ -f "$DIR/install.conf" ]; then
+  . "$DIR/install.conf"
+fi
+HOME_DIR="${HOME_ARG:-${DSH_UI_HOME:-$DIR/data}}"
 PROFILE="${PROFILE_ARG:-${DSH_UI_PROFILE:-$(json_value profile)}}"
 mkdir -p "$HOME_DIR"
 HOME_DIR="$(cd "$HOME_DIR" && pwd)"
+case "$DIR/" in "$HOME_DIR/"*) die "数据目录不能包含安装目录；无法安全备份" ;; esac
+# Snapshot existing data before any plugin or application can write the new event vocabulary.
+# Stop all DSH processes using this home before running the installer.
+if [ ! -f "$DIR/install.conf" ] || [ -n "$HOME_ARG" ]; then
+  if [ -n "$(ls -A "$HOME_DIR")" ]; then
+    mkdir -p "$DIR/data-backups"
+    backup="$(mktemp -d "$DIR/data-backups/home-XXXXXXXX")"
+    tar -czf "$backup/data.tar.gz.part" -C "$HOME_DIR" .
+    mv "$backup/data.tar.gz.part" "$backup/data.tar.gz"
+    say "数据备份：${backup}/data.tar.gz；回退前请先停止所有使用此目录的 DSH"
+  fi
+fi
+{
+  printf 'DSH_UI_HOME=%q\n' "$HOME_DIR"
+  printf 'DSH_UI_PROFILE=%q\n' "$PROFILE"
+} > "$DIR/install.conf.tmp"
+mv "$DIR/install.conf.tmp" "$DIR/install.conf"
+
 
 state="$(cat "$STATE_FILE" 2>/dev/null || true)"
 will_build=yes
@@ -151,20 +179,38 @@ esac
 NODE_DIR="$RUNTIME/node"
 NODE_BIN="$NODE_DIR/bin/node"
 mkdir -p "$RUNTIME"
-if [ ! -x "$NODE_BIN" ] || [ "$("$NODE_BIN" -p 'process.versions.node' 2>/dev/null || true)" != "$NODE_VERSION" ]; then
+runtime_valid() {
+  [ -x "$1/bin/node" ] && [ -x "$1/bin/npm" ] && [ -f "$1/lib/node_modules/npm/bin/npm-cli.js" ] &&
+    [ -f "$1/include/node/node.h" ] && [ -f "$1/include/node/node_api.h" ] && [ -f "$1/include/node/node_api_types.h" ] && [ -f "$1/include/node/common.gypi" ] &&
+    [ "$("$1/bin/node" -p 'process.versions.node' 2>/dev/null || true)" = "$NODE_VERSION" ] &&
+    "$1/bin/node" "$1/lib/node_modules/npm/bin/npm-cli.js" --version >/dev/null 2>&1 &&
+    PATH="$1/bin:$PATH" "$1/bin/npm" --version >/dev/null 2>&1
+}
+# Recover a switch interrupted after the old runtime was moved aside.
+if [ ! -e "$NODE_DIR" ] && [ -d "$RUNTIME/node.previous" ]; then
+  mv "$RUNTIME/node.previous" "$NODE_DIR"
+fi
+if ! runtime_valid "$NODE_DIR" || [ "$(cat "$NODE_DIR/.complete" 2>/dev/null || true)" != "$NODE_VERSION" ]; then
   node_name="node-v${NODE_VERSION}-${node_os}-${node_arch}"
   node_base="${DSH_UI_NODE_MIRROR:-https://nodejs.org/dist}/v${NODE_VERSION}"
+  stage="$(mktemp -d "$RUNTIME/node-stage-XXXXXXXX")"
+  trap 'rm -rf "$stage"' EXIT
   say "下载 Node ${NODE_VERSION} …"
-  curl -fL --retry 3 -o "$RUNTIME/${node_name}.tar.gz" "${node_base}/${node_name}.tar.gz"
+  curl -fL --retry 3 -o "$stage/archive.tar.gz" "${node_base}/${node_name}.tar.gz"
   expected="$(curl -fsSL --retry 3 "${node_base}/SHASUMS256.txt" | awk -v f="${node_name}.tar.gz" '$2 == f {print $1}')"
-  if [ -z "$expected" ] || [ "$(sha256_of "$RUNTIME/${node_name}.tar.gz")" != "$expected" ]; then
-    rm -f "$RUNTIME/${node_name}.tar.gz"
-    die "Node 安装包的校验值对不上，可能下载不完整"
+  [ -n "$expected" ] && [ "$(sha256_of "$stage/archive.tar.gz")" = "$expected" ] || die "Node 安装包的校验值对不上；原运行时已保留，重跑安装器可重试"
+  mkdir "$stage/node"
+  tar -xzf "$stage/archive.tar.gz" -C "$stage/node" --strip-components 1
+  runtime_valid "$stage/node" || die "Node 运行时缺少可用的 node、npm 或编译头文件；原运行时已保留"
+  printf '%s\n' "$NODE_VERSION" > "$stage/node/.complete"
+  rm -rf "$RUNTIME/node.previous"
+  if [ -e "$NODE_DIR" ]; then mv "$NODE_DIR" "$RUNTIME/node.previous"; fi
+  if ! mv "$stage/node" "$NODE_DIR"; then
+    [ ! -d "$RUNTIME/node.previous" ] || mv "$RUNTIME/node.previous" "$NODE_DIR"
+    die "Node 切换失败；请重跑安装器"
   fi
-  rm -rf "$NODE_DIR"
-  mkdir -p "$NODE_DIR"
-  tar -xzf "$RUNTIME/${node_name}.tar.gz" -C "$NODE_DIR" --strip-components 1
-  rm -f "$RUNTIME/${node_name}.tar.gz"
+  rm -rf "$stage"
+  trap - EXIT
 fi
 export PATH="$NODE_DIR/bin:$RUNTIME/node_modules/.bin:$PATH"
 if [ ! -x "$RUNTIME/node_modules/.bin/pnpm" ] || [ "$("$RUNTIME/node_modules/.bin/pnpm" -v 2>/dev/null || true)" != "$PNPM_VERSION" ]; then
@@ -200,26 +246,23 @@ else
       curl -fL --retry 3 -o "$tarball.part" "$TARBALL_URL"
       mv "$tarball.part" "$tarball"
     fi
-    if usable git; then
-      got="$(gzip -dc "$tarball" | git get-tar-commit-id 2>/dev/null || true)"
-      if [ -n "$got" ] && [ "$got" != "$COMMIT" ]; then
-        rm -f "$tarball"
-        die "下载到的源码包对应提交 ${got}，不是 ${COMMIT}"
-      fi
+    if [ "$(sha256_of "$tarball")" != "$TARBALL_SHA" ]; then
+      rm -f "$tarball"
+      die "官方源码包的校验值不对；已清除不完整缓存，重新运行安装器可重试"
+    fi
+    got="$(gzip -dc "$tarball" | git get-tar-commit-id 2>/dev/null || true)"
+    if [ -n "$got" ] && [ "$got" != "$COMMIT" ]; then
+      rm -f "$tarball"
+      die "下载到的源码包对应提交 ${got}，不是 ${COMMIT}"
     fi
     printf 'extracting %s\n' "$STAMP" > "$STATE_FILE"
     mkdir -p "$DSH"
     tar -xzf "$tarball" -C "$DSH" --strip-components 1
     say "打补丁 …"
-    if usable git; then
-      # The ceiling keeps git from treating an enclosing repository as the patch root; the
-      # config keeps the patched files byte for byte.
-      (cd "$DSH" && GIT_CEILING_DIRECTORIES="$DIR" git -c core.autocrlf=false -c core.eol=lf \
-        apply --whitespace=nowarn "$PATCH_FILE")
-    else
-      need patch
-      (cd "$DSH" && patch -p1 --forward --silent < "$PATCH_FILE")
-    fi
+    # The ceiling keeps git from treating an enclosing repository as the patch root; the
+    # config keeps the patched files byte for byte, including binary file deletions.
+    (cd "$DSH" && GIT_CEILING_DIRECTORIES="$DIR" git -c core.autocrlf=false -c core.eol=lf \
+      apply --whitespace=nowarn "$PATCH_FILE")
     printf 'prepared %s\n' "$STAMP" > "$STATE_FILE"
     rm -f "$tarball"
   fi
@@ -230,7 +273,8 @@ else
   printf 'building %s\n' "$STAMP" > "$STATE_FILE"
   say "安装依赖并构建（第一次要几分钟）…"
   # lefthook's install hook needs a git checkout; this tree is a plain download.
-  (cd "$DSH" && LEFTHOOK=0 pnpm install --frozen-lockfile && pnpm run build)
+  (cd "$DSH" && LEFTHOOK=0 pnpm install --frozen-lockfile \
+    && GIT_CEILING_DIRECTORIES="$DIR" DSH_CLIENT_COMMIT_HASH="$COMMIT" pnpm run build)
   printf 'done %s\n' "$STAMP" > "$STATE_FILE"
 fi
 
@@ -239,14 +283,13 @@ if [ "$PREPARE_ONLY" = yes ]; then
 fi
 
 # The launcher comes before the plugins, so it exists even when a plugin step needs fixing.
-mkdir -p "$DIR/overlays"
-cp "$ROOT/overlays/"*.yml "$DIR/overlays/"
 cp "$ROOT/scripts/launch.sh" "$DIR/dsh-ui"
 chmod +x "$DIR/dsh-ui"
 {
   printf 'DSH_UI_HOME=%q\n' "$HOME_DIR"
   printf 'DSH_UI_PROFILE=%q\n' "$PROFILE"
-} > "$DIR/launch.conf"
+} > "$DIR/launch.conf.tmp"
+mv "$DIR/launch.conf.tmp" "$DIR/launch.conf"
 
 if [ "$SKIP_PLUGINS" = no ]; then
   "$NODE_BIN" "$ROOT/scripts/plugins.mjs" --dsh "$DSH" --home "$HOME_DIR" --profile "$PROFILE" --manifest "$MANIFEST"

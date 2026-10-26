@@ -24,7 +24,7 @@ if ($Help) {
 用法: install.ps1 [-Dir <目录>] [-DshHome <目录>] [-DshProfile <名称>] [-SkipPlugins] [-PrepareOnly] [-Force]
 
   -Dir          安装目录，默认 ~\.dsh-ui
-  -DshHome      DSH 数据目录（DSH_HOME）。默认沿用上次安装记下的目录；第一次安装用 $env:DSH_HOME，没有则 ~\.dsh
+  -DshHome      DSH 数据目录（DSH_HOME）。默认沿用上次安装记下的目录；第一次安装用 <安装目录>\data；已有目录会先备份
   -DshProfile   插件装进哪个配置。默认沿用上次的；第一次安装用 web
   -SkipPlugins  不装社区插件
   -PrepareOnly  只下载源码并打补丁，不装依赖、不构建；之后再运行一次会接着装
@@ -41,6 +41,49 @@ function Invoke-Checked([string]$What, [scriptblock]$Block) {
   if ($LASTEXITCODE -ne 0) { Fail "${What} 失败（退出码 ${LASTEXITCODE}）" }
 }
 function Get-Sha256([string]$Path) { (Get-FileHash -Algorithm SHA256 -Path $Path).Hash.ToLower() }
+function Publish-Config([string]$TemporaryPath, [string]$DestinationPath) {
+  if ([IO.File]::Exists($DestinationPath)) {
+    # A CLR null string avoids PowerShell converting $null into an empty backup path.
+    [IO.File]::Replace($TemporaryPath, $DestinationPath, [NullString]::Value)
+  } else {
+    [IO.File]::Move($TemporaryPath, $DestinationPath)
+  }
+}
+
+# Same-volume rename avoids PowerShell 5.1 Move-Item enumerating runtime files.
+# Retry only Windows sharing/lock violations, never permissions or destination conflicts.
+function Move-RuntimeDirectory([string]$Source, [string]$Destination) {
+  for ($attempt = 0; $attempt -lt 9; $attempt++) {
+    try {
+      [IO.Directory]::Move($Source, $Destination)
+      return
+    } catch {
+      $cause = $_.Exception
+      while ($cause.InnerException) { $cause = $cause.InnerException }
+      $code = $cause.HResult -band 0xffff
+      if (-not ($cause -is [IO.IOException]) -or ($code -ne 32 -and $code -ne 33)) { throw }
+      if ($attempt -eq 8) {
+        throw [IO.IOException]::new("Node directory is still in use after bounded retries: ${Source}. Close the process using this installation and rerun the installer.", $cause)
+      }
+      Start-Sleep -Milliseconds 250
+    }
+  }
+}
+function Switch-RuntimeDirectory([string]$Candidate, [string]$Current, [string]$Previous) {
+  if (Test-Path -LiteralPath $Previous) { Remove-Item -LiteralPath $Previous -Recurse -Force }
+  if (Test-Path -LiteralPath $Current) { Move-RuntimeDirectory $Current $Previous }
+  try {
+    Move-RuntimeDirectory $Candidate $Current
+  } catch {
+    $switchFailure = $_
+    if (-not (Test-Path -LiteralPath $Current) -and (Test-Path -LiteralPath $Previous)) {
+      try { Move-RuntimeDirectory $Previous $Current } catch {
+        throw [IO.IOException]::new("Node switch and rollback failed. The prior runtime is retained at ${Previous}; stop the process holding it and rerun the installer.", $_.Exception)
+      }
+    }
+    throw $switchFailure
+  }
+}
 
 # Run from a checkout of this repository; otherwise fetch it and run the fetched copy.
 $Root = if ($PSScriptRoot) { Split-Path -Parent $PSScriptRoot } else { '' }
@@ -66,6 +109,8 @@ if (-not $Root -or -not (Test-Path (Join-Path $Root 'dsh-ui.json'))) {
 $manifest = Get-Content -Raw -Encoding UTF8 -Path (Join-Path $Root 'dsh-ui.json') | ConvertFrom-Json
 $commit = $manifest.upstream.commit
 $tarballUrl = if ($env:DSH_UI_TARBALL_URL) { $env:DSH_UI_TARBALL_URL } else { $manifest.upstream.tarball }
+$tarballSha = $manifest.upstream.tarballSha256
+if ($tarballSha -notmatch '^[a-f0-9]{64}$') { Fail '清单缺少有效的官方源码包校验值' }
 $patchFile = Join-Path $Root $manifest.patch.file
 $stamp = "$commit $($manifest.patch.sha256)"
 $nodeVersion = $manifest.node.runtime
@@ -79,7 +124,7 @@ if ((Get-Sha256 $patchFile) -ne $manifest.patch.sha256) {
 }
 
 # The install directory holds only what this script writes; refuse to spread into anything else.
-$allowed = '^(runtime|dsh|dsh\.old-.*|dsh-ui\.ps1|dsh-ui\.cmd|dsh-ui\.state|launch\.json|overlays|upstream-.*\.tar\.gz(\.part)?)$'
+$allowed = '^(data|data-backups|install\.json(\.tmp)?|runtime|dsh|dsh\.old-.*|dsh-ui\.ps1|dsh-ui\.cmd|dsh-ui\.state|launch\.json(\.tmp)?|overlays|upstream-.*\.tar\.gz(\.part)?)$'
 if (Test-Path $Dir) {
   foreach ($entry in Get-ChildItem -Force -Path $Dir) {
     if ($entry.Name -notmatch $allowed) { Fail "${Dir} 里已经有别的文件（$($entry.Name)），不像是 DSH-UI 的安装目录。换一个 -Dir" }
@@ -93,38 +138,72 @@ $stateFile = Join-Path $Dir 'dsh-ui.state'
 $conf = Join-Path $Dir 'launch.json'
 
 # A rerun keeps the data directory and profile recorded by the previous install.
-$recorded = if (Test-Path $conf) { Get-Content -Raw -Encoding UTF8 $conf | ConvertFrom-Json } else { $null }
+$intent = Join-Path $Dir 'install.json'
+$readConf = if (Test-Path $intent) { $intent } else { $conf }
+$explicitHome = [bool]$DshHome
+$recorded = if (Test-Path $readConf) { Get-Content -Raw -Encoding UTF8 $readConf | ConvertFrom-Json } else { $null }
 if (-not $DshHome) {
-  $DshHome = if ($recorded -and $recorded.home) { $recorded.home } elseif ($env:DSH_HOME) { $env:DSH_HOME } else { Join-Path $HOME '.dsh' }
+  $DshHome = if ($recorded -and $recorded.home) { $recorded.home } else { Join-Path $Dir 'data' }
 }
 if (-not $DshProfile) { $DshProfile = if ($recorded -and $recorded.profile) { $recorded.profile } else { $manifest.profile } }
 New-Item -ItemType Directory -Force -Path $DshHome | Out-Null
 $DshHome = (Resolve-Path $DshHome).Path
+if (($Dir + '\').StartsWith($DshHome.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) { Fail '数据目录不能包含安装目录；无法安全备份' }
+if ((-not (Test-Path $intent) -or $explicitHome) -and (Get-ChildItem -Force $DshHome | Select-Object -First 1)) {
+  $backup = Join-Path $Dir ('data-backups\home-' + [guid]::NewGuid())
+  New-Item -ItemType Directory -Force $backup | Out-Null
+  Invoke-Checked '备份数据' { tar -czf (Join-Path $backup 'data.tar.gz.part') -C $DshHome . }
+  Move-Item (Join-Path $backup 'data.tar.gz.part') (Join-Path $backup 'data.tar.gz')
+  Write-Host "数据备份：${backup}；回退前请先停止所有使用此目录的 DSH"
+}
+@{ home = $DshHome; profile = $DshProfile } | ConvertTo-Json | Set-Content -Encoding UTF8 "${intent}.tmp"
+Publish-Config "${intent}.tmp" $intent
+
 
 # Private Node from the official release zip, checked against SHASUMS256.txt; pnpm pinned next to it.
 $arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'x64' }
 $nodeDir = Join-Path $runtime 'node'
 $nodeExe = Join-Path $nodeDir 'node.exe'
 New-Item -ItemType Directory -Force -Path $runtime | Out-Null
-$haveNode = (Test-Path $nodeExe) -and ((& $nodeExe -p 'process.versions.node') -eq $nodeVersion)
-if (-not $haveNode) {
+function Test-Runtime([string]$Path) {
+  $exe = Join-Path $Path 'node.exe'
+  $npm = Join-Path $Path 'node_modules\npm\bin\npm-cli.js'
+  if (-not (Test-Path $exe) -or -not (Test-Path $npm) -or -not (Test-Path (Join-Path $Path 'npm.cmd'))) { return $false }
+  try {
+    $version = & $exe -p 'process.versions.node'
+    if ($LASTEXITCODE -ne 0 -or $version -ne $nodeVersion) { return $false }
+    & $exe $npm --version *> $null
+    if ($LASTEXITCODE -ne 0) { return $false }
+    & (Join-Path $Path 'npm.cmd') --version *> $null
+    return ($LASTEXITCODE -eq 0)
+  } catch { return $false }
+}
+$previous = Join-Path $runtime 'node.previous'
+if (-not (Test-Path $nodeDir) -and (Test-Path $previous)) { Move-RuntimeDirectory $previous $nodeDir }
+$complete = Join-Path $nodeDir '.complete'
+if (-not (Test-Runtime $nodeDir) -or -not (Test-Path $complete) -or (Get-Content -Raw $complete).Trim() -ne $nodeVersion) {
   $nodeName = "node-v${nodeVersion}-win-${arch}"
   $nodeBase = "$(if ($env:DSH_UI_NODE_MIRROR) { $env:DSH_UI_NODE_MIRROR } else { 'https://nodejs.org/dist' })/v${nodeVersion}"
-  $zip = Join-Path $runtime "${nodeName}.zip"
-  Write-Host "下载 Node ${nodeVersion} …"
-  Invoke-WebRequest -UseBasicParsing -Uri "${nodeBase}/${nodeName}.zip" -OutFile $zip
-  $sums = (Invoke-WebRequest -UseBasicParsing -Uri "${nodeBase}/SHASUMS256.txt").Content -split "`n"
-  $expected = ($sums | Where-Object { $_ -match "\s${nodeName}\.zip$" } | Select-Object -First 1) -replace '\s.*$', ''
-  if (-not $expected -or (Get-Sha256 $zip) -ne $expected.Trim().ToLower()) {
-    Remove-Item $zip
-    Fail 'Node 安装包的校验值对不上，可能下载不完整'
+  $stage = Join-Path $runtime ('node-stage-' + [guid]::NewGuid())
+  New-Item -ItemType Directory $stage | Out-Null
+  try {
+    $sums = (Invoke-WebRequest -UseBasicParsing -Uri "${nodeBase}/SHASUMS256.txt").Content -split "`n"
+    foreach ($name in @("${nodeName}.zip")) {
+      $file = Join-Path $stage $name
+      Invoke-WebRequest -UseBasicParsing -Uri "${nodeBase}/${name}" -OutFile $file
+      $expected = ($sums | Where-Object { ($_ -split '\s+')[-1] -eq $name } | Select-Object -First 1) -replace '\s.*$', ''
+      if (-not $expected -or (Get-Sha256 $file) -ne $expected.Trim().ToLower()) { throw 'Node 校验失败；原运行时已保留，重跑安装器可重试' }
+    }
+    Expand-Archive -Path (Join-Path $stage "${nodeName}.zip") -DestinationPath $stage
+    $candidate = Join-Path $stage $nodeName
+    if (-not (Test-Runtime $candidate)) { throw 'Node 运行时缺少可用的 node 或 npm；原运行时已保留' }
+    Set-Content -Path (Join-Path $candidate '.complete') -Value $nodeVersion
+    Switch-RuntimeDirectory $candidate $nodeDir $previous
+  } finally {
+    try { Remove-Item -LiteralPath $stage -Recurse -Force } catch {
+      Write-Warning "Node staging cleanup could not complete; retained path: ${stage}. $($_.Exception.Message)"
+    }
   }
-  if (Test-Path $nodeDir) { Remove-Item -Recurse -Force $nodeDir }
-  $unpack = Join-Path $runtime 'node-unpack'
-  if (Test-Path $unpack) { Remove-Item -Recurse -Force $unpack }
-  Expand-Archive -Path $zip -DestinationPath $unpack
-  Move-Item (Join-Path $unpack $nodeName) $nodeDir
-  Remove-Item -Recurse -Force $unpack, $zip
 }
 $env:Path = "${nodeDir};$(Join-Path $runtime 'node_modules\.bin');$env:Path"
 $pnpmCmd = Join-Path $runtime 'node_modules\.bin\pnpm.cmd'
@@ -175,6 +254,10 @@ if (-not $Force -and $state -eq "done $stamp") {
       Invoke-WebRequest -UseBasicParsing -Uri $tarballUrl -OutFile "${tarball}.part"
       Move-Item "${tarball}.part" $tarball
     }
+    if ((Get-Sha256 $tarball) -ne $tarballSha) {
+      Remove-Item $tarball
+      Fail '官方源码包的校验值不对；已清除不完整缓存，重新运行安装器可重试'
+    }
     Set-Content -Path $stateFile -Value "extracting $stamp"
     New-Item -ItemType Directory -Force -Path $dsh | Out-Null
     $tarArgs = @('-xzf', $tarball, '-C', $dsh, '--strip-components', '1')
@@ -200,12 +283,20 @@ if (-not $Force -and $state -eq "done $stamp") {
   }
   Set-Content -Path $stateFile -Value "building $stamp"
   Write-Host '安装依赖并构建（第一次要几分钟）…'
+  $previousClientCommit = $env:DSH_CLIENT_COMMIT_HASH
+  $previousBuildGitCeiling = $env:GIT_CEILING_DIRECTORIES
   Push-Location $dsh
   try {
     $env:LEFTHOOK = '0'
     Invoke-Checked 'pnpm install' { & $pnpmCmd install --frozen-lockfile }
+    $env:DSH_CLIENT_COMMIT_HASH = $commit
+    $env:GIT_CEILING_DIRECTORIES = $Dir
     Invoke-Checked 'pnpm run build' { & $pnpmCmd run build }
   } finally {
+    if ($null -eq $previousClientCommit) { Remove-Item Env:DSH_CLIENT_COMMIT_HASH -ErrorAction SilentlyContinue }
+    else { $env:DSH_CLIENT_COMMIT_HASH = $previousClientCommit }
+    if ($null -eq $previousBuildGitCeiling) { Remove-Item Env:GIT_CEILING_DIRECTORIES -ErrorAction SilentlyContinue }
+    else { $env:GIT_CEILING_DIRECTORIES = $previousBuildGitCeiling }
     Remove-Item Env:LEFTHOOK -ErrorAction SilentlyContinue
     Pop-Location
   }
@@ -214,11 +305,10 @@ if (-not $Force -and $state -eq "done $stamp") {
 if ($PrepareOnly) { exit 0 }
 
 # The launcher comes before the plugins, so it exists even when a plugin step needs fixing.
-New-Item -ItemType Directory -Force -Path (Join-Path $Dir 'overlays') | Out-Null
-Copy-Item (Join-Path $Root 'overlays\*.yml') (Join-Path $Dir 'overlays')
 Copy-Item (Join-Path $Root 'scripts\launch.ps1') (Join-Path $Dir 'dsh-ui.ps1')
 Set-Content -Path (Join-Path $Dir 'dsh-ui.cmd') -Value "@powershell -NoProfile -ExecutionPolicy Bypass -File `"%~dp0dsh-ui.ps1`" %*"
-@{ home = $DshHome; profile = $DshProfile } | ConvertTo-Json | Set-Content -Encoding UTF8 -Path $conf
+@{ home = $DshHome; profile = $DshProfile } | ConvertTo-Json | Set-Content -Encoding UTF8 -Path "${conf}.tmp"
+Publish-Config "${conf}.tmp" $conf
 
 if (-not $SkipPlugins) {
   Invoke-Checked '安装插件' {
