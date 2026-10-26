@@ -28,7 +28,7 @@ if ($Help) {
   -DshProfile   插件装进哪个配置。默认沿用上次的；第一次安装用 web
   -SkipPlugins  不装社区插件
   -PrepareOnly  只下载源码并打补丁，不装依赖、不构建；之后再运行一次会接着装
-  -Force        同一版本已装好也重新下载构建（旧目录改名保留）
+  -Force        同一版本已装好也重新下载构建（旧目录改名保留）；已有非空数据目录会先备份
 
 环境变量: DSH_UI_TARBALL_URL（官方源码包地址）、DSH_UI_NODE_MIRROR（Node 下载根地址）
 '@ | Write-Host
@@ -157,7 +157,8 @@ if (-not $DshProfile) { $DshProfile = if ($recorded -and $recorded.profile) { $r
 New-Item -ItemType Directory -Force -Path $DshHome | Out-Null
 $DshHome = (Resolve-Path $DshHome).Path
 if (($Dir + '\').StartsWith($DshHome.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) { Fail '数据目录不能包含安装目录；无法安全备份' }
-if ((-not (Test-Path $intent) -or $explicitHome) -and (Get-ChildItem -Force $DshHome | Select-Object -First 1)) {
+# -Force rebuilds an existing install and can write new session events, so it gets a new snapshot too.
+if ((-not (Test-Path $intent) -or $explicitHome -or $Force) -and (Get-ChildItem -Force $DshHome | Select-Object -First 1)) {
   $backup = Join-Path $Dir ('data-backups\home-' + [guid]::NewGuid())
   New-Item -ItemType Directory -Force $backup | Out-Null
   Invoke-Checked '备份数据' { tar -czf (Join-Path $backup 'data.tar.gz.part') -C $DshHome . }

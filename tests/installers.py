@@ -175,6 +175,17 @@ if [ -n "$out" ]; then cp "$file" "$out"; else cat "$file"; fi
   self.assertFalse((self.install/f'upstream-{self.commit}.tar.gz').exists())
   archive.write_bytes(valid); self.run_install('--prepare-only')
   self.assertEqual((self.install/'dsh/example').read_text(),'new\n')
+ def test_force_snapshots_existing_nonempty_data_without_home_flag(self):
+  self.run_install()
+  data=self.install/'data'; (data/'marker.txt').write_text('keep-me')
+  self.run_install()
+  self.assertFalse((self.install/'data-backups').exists())
+  self.run_install('--force')
+  backups=list((self.install/'data-backups').glob('*/data.tar.gz'))
+  self.assertEqual(len(backups),1)
+  with tarfile.open(backups[0]) as archive:
+   self.assertEqual(archive.extractfile('./marker.txt').read(),b'keep-me')
+  self.assertEqual((data/'marker.txt').read_text(),'keep-me')
  def test_launcher_workspace_is_not_the_home_directory(self):
   self.run_install()
   ssh=self.home/'.ssh'; ssh.mkdir(); marker=ssh/'authorized_keys'; marker.write_text('preexisting\n')

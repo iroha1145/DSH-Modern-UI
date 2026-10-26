@@ -20,7 +20,7 @@ usage() {
   --profile <名称>   插件装进哪个配置。默认沿用上次的；第一次安装用 web
   --skip-plugins     不装社区插件
   --prepare-only     只下载源码并打补丁，不装依赖、不构建；之后再运行一次本脚本会接着装
-  --force            同一版本已装好也重新下载构建（旧目录改名保留）
+  --force            同一版本已装好也重新下载构建（旧目录改名保留）；已有非空数据目录会先备份
   -h, --help         显示这段说明
 
 环境变量:
@@ -131,7 +131,8 @@ HOME_DIR="$(cd "$HOME_DIR" && pwd)"
 case "$DIR/" in "$HOME_DIR/"*) die "数据目录不能包含安装目录；无法安全备份" ;; esac
 # Snapshot existing data before any plugin or application can write the new event vocabulary.
 # Stop all DSH processes using this home before running the installer.
-if [ ! -f "$DIR/install.conf" ] || [ -n "$HOME_ARG" ]; then
+# --force rebuilds an existing install and can write new session events, so it gets a new snapshot too.
+if [ ! -f "$DIR/install.conf" ] || [ -n "$HOME_ARG" ] || [ "$FORCE" = yes ]; then
   if [ -n "$(ls -A "$HOME_DIR")" ]; then
     mkdir -p "$DIR/data-backups"
     backup="$(mktemp -d "$DIR/data-backups/home-XXXXXXXX")"

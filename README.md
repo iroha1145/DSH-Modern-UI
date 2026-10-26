@@ -73,7 +73,7 @@ powershell -ExecutionPolicy Bypass -File scripts\install.ps1
 | `--profile <名称>` | 插件装进哪个配置。默认沿用上次的；第一次安装用 `web` |
 | `--skip-plugins` | 不装社区插件 |
 | `--prepare-only` | 只准备 Node、pnpm，下载源码并打补丁，不装依赖、不构建；再运行一次脚本会接着装 |
-| `--force` | 同一版本已装好也重新下载和构建，旧目录改名保留 |
+| `--force` | 同一版本已装好也重新下载和构建，旧目录改名保留；数据目录非空时先做一份新的数据备份 |
 
 环境变量 `DSH_UI_TARBALL_URL` 可以换官方源码包的下载地址，`DSH_UI_NODE_MIRROR` 可以换 Node 安装包的下载根地址（比如 `https://npmmirror.com/mirrors/node`）。PowerShell 脚本的选项同名，写成 `-Dir`、`-DshHome`、`-DshProfile`、`-SkipPlugins`、`-PrepareOnly`、`-Force`。
 
@@ -112,7 +112,7 @@ dsh-context 自带一个编队标签，和 DSH-UI 的编队页重复。启动器
 
 - 全新使用：按默认选项安装，官方 `~/.dsh` 保持独立。
 - 导入官方数据：停止所有使用原目录的 DSH，先把原目录完整复制到一个**不存在的、独立的新目录**，再用 `--home <新目录>` 安装（Windows 为 `-DshHome <新目录>`）。不要把副本放进原目录内部，不要合并覆盖已有目录。原目录保留作回退副本；导入后的两套数据独立演进。
-- 明确共用：停止使用该目录的所有 DSH 后，传 `--home ~/.dsh`（Windows 为 `-DshHome "$HOME\.dsh"`）。安装器在首次使用或显式指定已有非空目录时，先生成 `<安装目录>/data-backups/home-*/data.tar.gz`，并打印准确路径。请保留该备份；只有备份完成后才保存安装意图和继续安装。安装期间及备份期间不能有其他进程写入该目录。不要给 `--home` 传整个用户主目录或包含安装目录的父目录。
+- 明确共用：停止使用该目录的所有 DSH 后，传 `--home ~/.dsh`（Windows 为 `-DshHome "$HOME\.dsh"`）。安装器在首次使用、显式指定已有目录，或用 `--force` / `-Force` 重装已有安装时，只要数据目录非空，就先生成一份新的 `<安装目录>/data-backups/home-*/data.tar.gz`，并打印准确路径。请保留该备份；只有备份完成后才保存安装意图和继续安装。安装期间及备份期间不能有其他进程写入该目录。不要给 `--home` 传整个用户主目录或包含安装目录的父目录。
 
 实际兼容夹具位于还原源码的 `packages/session/session-persistence/tests/modern-ui-compatibility.spec.ts`；它使用固定官方版本的真实校验器与事件类型表，不改动全局注册表。
 
@@ -178,4 +178,4 @@ The launcher leaves the working directory where you started it. The web profile 
 
 Run `python3 tests/installers.py`. These tests execute the real Bash scripts with isolated homes, real tar extraction and Git binary patch application, and fake downloads/Node/pnpm subprocesses. They cover early failure without usable Git, unchanged existing installs on that failure, standalone help and bootstrap argument forwarding, binary PNG deletion, preparation and failed dependency/build retries, explicit overrides, active versus desired settings, fresh default isolation, backup contents, partial runtimes, corrupt archives, interrupted runtime switching, and CLI argument preservation. They do not certify a full cold build or Windows execution. Windows changes require a Windows runner; the Bash fixture does not substitute for that check.
 
-Fresh installs use `<install-dir>/data`, ignoring ambient `DSH_HOME`. Use `--home` / `-DshHome` explicitly to share or import data. Stop every writer before copying or backing up a data home. The installer snapshots existing nonempty data before first mutation; retain the printed `data-backups` archive. Stock 0.2.1-rc.3 cannot read sessions containing required `web/search` events. For rollback, restore the pre-install snapshot into a new empty directory and point stock DSH there; post-snapshot changes remain only in the modern copy. Default data and backups live inside the install directory: preserve them before uninstalling.
+Fresh installs use `<install-dir>/data`, ignoring ambient `DSH_HOME`. Use `--home` / `-DshHome` explicitly to share or import data. Stop every writer before copying or backing up a data home. The installer snapshots existing nonempty data before first mutation and again when `--force` / `-Force` reinstalls an existing install; retain the printed `data-backups` archive. Stock 0.2.1-rc.3 cannot read sessions containing required `web/search` events. For rollback, restore the pre-install snapshot into a new empty directory and point stock DSH there; post-snapshot changes remain only in the modern copy. Default data and backups live inside the install directory: preserve them before uninstalling.
