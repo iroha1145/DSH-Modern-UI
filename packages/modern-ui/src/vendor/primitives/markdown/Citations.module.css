@@ -1,0 +1,205 @@
+/* Inline chip: a pill named after the cited site, seated on the text baseline. */
+.chip {
+  display: inline-block;
+  box-sizing: border-box;
+  margin-inline: 0.22em 0.08em;
+  padding: 0.02em 0.55em 0.08em;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 0.42em;
+  background: var(--dsw-alias-markdown-inline-code);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 0.85em;
+  line-height: 1.5;
+  white-space: nowrap;
+  text-decoration: none !important;
+  vertical-align: baseline;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, opacity 140ms ease;
+}
+
+.chipMore {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* Trailing sources: a heading above wrapping number-and-title chips. */
+.sources {
+  margin-top: 24px;
+  padding-top: 14px;
+  border-top: 0.5px solid var(--dsw-alias-border-l1);
+}
+
+.heading {
+  margin-bottom: 9px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.sourceList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.source {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 0.5px solid var(--dsw-alias-border-l1);
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-markdown-inline-code);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  text-decoration: none !important;
+  transition: background-color 140ms ease, color 140ms ease, opacity 140ms ease;
+}
+
+.number {
+  flex: none;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Letter tile standing in for a site mark in the hover preview; it never requests an image. */
+.glyph {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--dsw-radius-xs);
+  background: var(--hover-2);
+  color: var(--ink-2);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.previewSite {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardNumber {
+  flex: none;
+  margin-inline-start: auto;
+  padding-inline-start: 6px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.previewTitle {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow-wrap: anywhere;
+}
+
+/* Hover and focus card, portaled to the document body so no ancestor can clip it. */
+.preview {
+  position: fixed;
+  z-index: 1100;
+  box-sizing: border-box;
+  width: max-content;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+  /* The elevation shadow draws the card's hairline stroke. */
+  box-shadow: var(--dsw-elevation-panel);
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+  font-size: 13px;
+  line-height: 19px;
+  text-align: start;
+  pointer-events: none;
+  animation: preview-in 120ms ease-out;
+}
+
+.previewItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px 11px;
+}
+
+.previewItem + .previewItem {
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+.previewHead {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.previewTitle {
+  font-weight: 500;
+}
+
+.previewAddress {
+  overflow: hidden;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 17px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes preview-in {
+  from { opacity: 0; }
+}
+
+.chip:focus-visible,
+.source:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 2px;
+}
+
+.chip[data-citation-state='active'] {
+  border-color: color-mix(in srgb, var(--dsw-alias-link) 38%, var(--dsw-alias-border-l2));
+  background: color-mix(in srgb, var(--dsw-alias-link) 14%, var(--dsw-alias-markdown-inline-code));
+  color: var(--dsw-alias-label-primary);
+}
+
+.source[data-citation-state='active'] {
+  color: var(--dsw-alias-label-primary);
+  background: color-mix(in srgb, var(--dsw-alias-link) 14%, transparent);
+}
+
+.chip[data-citation-state='muted'],
+.source[data-citation-state='muted'] {
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip,
+  .source {
+    transition: none;
+  }
+
+  .preview {
+    animation: none;
+  }
+}

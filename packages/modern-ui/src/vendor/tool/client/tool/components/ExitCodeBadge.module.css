@@ -1,0 +1,16 @@
+/* Derived from deepseek-ai/deepseek-harness (MIT); see package LICENSE and provenance. */
+.badge {
+  flex: none;
+  margin-left: 8px;
+  gap: 5px;
+}
+
+.dot {
+  flex: none;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  corner-shape: round;
+  background: var(--dsw-alias-state-error-primary);
+}
+

@@ -7,3 +7,10 @@
 *.yml text eol=lf
 *.md text eol=lf
 *.ps1 text eol=crlf
+
+# The migration provenance records exact source bytes, including line endings.
+# Preserve captured/ adapted frontend sources and original license notices on every OS.
+packages/modern-ui/src/** -text
+packages/modern-ui/licenses/** -text
+packages/modern-ui/LICENSE -text
+packages/modern-ui/THIRD_PARTY_NOTICES.md -text

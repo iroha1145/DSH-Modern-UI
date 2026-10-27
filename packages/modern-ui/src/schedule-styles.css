@@ -1,0 +1,24 @@
+/* Derived from ui-schedule's Modern UI patch (MIT). Only public semantic roots
+   are targeted; the official catalog, clock mark and task interactions remain. */
+[data-tool="schedule_create"]:not([data-variant]) {
+  border-radius: var(--dsw-radius-md);
+}
+[data-session-schedule-tasks] [data-session-schedule-task] > [aria-hidden="true"] {
+  color: var(--dsw-alias-label-secondary);
+}
+[data-session-schedule-tasks] [data-session-schedule-task] > span:not([aria-hidden]) > span:first-child {
+  color: var(--dsw-alias-label-primary);
+}
+[data-session-schedule-tasks] [data-session-schedule-task] > span:not([aria-hidden]) > span:last-child {
+  color: var(--dsw-alias-label-secondary);
+}
+[data-session-schedule-tasks] [data-session-schedule-task] > span:not([aria-hidden]) > span:last-child > span,
+[data-session-schedule-tasks] > :not([data-session-schedule-task]) {
+  color: var(--dsw-alias-label-tertiary);
+}
+[data-schedule-reminder-entry] {
+  border-radius: var(--dsw-radius-panel);
+}
+[data-testid="task-manager-page"] h1 {
+  line-height: 1.2;
+}

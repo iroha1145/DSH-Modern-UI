@@ -1,0 +1,90 @@
+/* Related questions: a muted heading above full-width rows divided by hairlines. */
+.related {
+  margin: 20px 0 4px;
+}
+
+.heading {
+  margin-bottom: 6px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Selectors carry two class names so the Markdown list rules around this section never reach it. */
+.related .list {
+  margin: 0;
+  padding: 0;
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+  list-style: none;
+}
+
+.related .list > .item {
+  margin: 0;
+  padding: 0;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+.related .list > .item:last-child {
+  border-bottom: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  padding: 11px 2px;
+  border: 0;
+  border-radius: var(--dsw-radius-xs);
+  background: none;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.question {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.chevron {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+  transition: color 140ms ease, transform 140ms ease;
+}
+
+@media (hover: hover) {
+  .row:hover .chevron {
+    color: var(--dsw-alias-label-primary);
+    transform: translateX(2px);
+  }
+}
+
+.row:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: -2px;
+}
+
+.row[aria-disabled='true'] {
+  cursor: default;
+}
+
+.row[aria-disabled='true'] .chevron {
+  color: var(--dsw-alias-label-tertiary);
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron {
+    transition: none;
+  }
+}
+
+.row:disabled { cursor: not-allowed; color: var(--dsw-alias-label-tertiary); }
+.notice { margin: 8px 0 0; font-size: 13px; color: var(--dsw-alias-label-secondary); }

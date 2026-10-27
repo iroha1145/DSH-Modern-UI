@@ -1,0 +1,11 @@
+/* The wide layout's sideways scrollport. It scrolls on the view's base surface,
+   so it keeps the base scrollbar pair; the cards' elevated fill lives in
+   AgentTree.module.css. The padding keeps card shadows and focus rings inside
+   the scrollport. */
+@container (min-width: 560px) {
+  .scroller {
+    margin: -8px -8px -24px;
+    padding: 8px 8px 24px;
+    overflow: auto hidden;
+  }
+}

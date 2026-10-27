@@ -1,0 +1,32 @@
+{
+  "package": "@lobehub/icons-static-svg",
+  "version": "1.98.0",
+  "repository": "https://github.com/lobehub/lobe-icons",
+  "gitHead": "86b3f06ad9a4cc57011a56e5a7d3a5d4f1e8d835",
+  "integrity": "sha512-soyLV2g74ujV+9BBymPwXrorJ+kQsEz7WvVd4uzhN2wZnd4Jbyc2FsmyjZBosGaufOirCs1RGJQlLe6l9bjwLg==",
+  "license": "MIT",
+  "files": [
+    "icons/claude.svg",
+    "icons/anthropic.svg",
+    "icons/openai.svg",
+    "icons/gemini.svg",
+    "icons/google.svg",
+    "icons/kimi.svg",
+    "icons/moonshot.svg",
+    "icons/qwen.svg",
+    "icons/alibaba.svg",
+    "icons/zhipu.svg",
+    "icons/chatglm.svg",
+    "icons/minimax.svg",
+    "icons/deepseek.svg",
+    "icons/grok.svg",
+    "icons/xai.svg",
+    "icons/mistral.svg",
+    "icons/meta.svg",
+    "icons/doubao.svg",
+    "icons/hunyuan.svg",
+    "icons/wenxin.svg",
+    "icons/stepfun.svg"
+  ],
+  "retrieved": "2026-10-25"
+}

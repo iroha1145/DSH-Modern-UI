@@ -1,0 +1,134 @@
+/*! Beautiful UI foundation adapted to DSH CSS modules.
+ * https://github.com/slev12397/beautiful-ui/blob/main/app/globals.css
+ * Full upstream source retained in research/beautiful-ui/app/globals.css.
+ * Component keyframes remain beside the components that consume them.
+ *
+ * MIT License
+ * 
+ * Copyright (c) 2026 Shane Levine
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ * MIT License
+ * 
+ * Copyright (c) 2026 Florian Kiem
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+:root {
+  --bui-shadow-xs: 0 0 4px 0 rgba(0, 0, 0, 0.04);
+  --bui-shadow-sm: 0 18px 47px 0 rgba(0, 0, 0, 0.03), 0 7.5px 19px 0 rgba(0, 0, 0, 0.02), 0 4px 10.5px 0 rgba(0, 0, 0, 0.02), 0 2.3px 5.8px 0 rgba(0, 0, 0, 0.01), 0 1.2px 3.1px 0 rgba(0, 0, 0, 0.01), 0 0.5px 1.3px 0 rgba(0, 0, 0, 0.01);
+  --bui-shadow-md: 0 17.54px 23.39px 0 rgba(0, 0, 0, 0.04), 0 9.4px 12.5px 0 rgba(0, 0, 0, 0.03), 0 5.25px 7px 0 rgba(0, 0, 0, 0.02), 0 2.79px 3.72px -2px rgba(0, 0, 0, 0.01), 0 1.16px 1.5px 0 rgba(0, 0, 0, 0.01);
+  --bui-shadow-lg: 0 25px 50px 0 rgba(0, 0, 0, 0.05), 0 12px 24px 0 rgba(0, 0, 0, 0.04), 0 6px 12px 0 rgba(0, 0, 0, 0.03), 0 3px 6px 0 rgba(0, 0, 0, 0.02), 0 1.5px 3px 0 rgba(0, 0, 0, 0.02);
+  --bui-page: oklch(0.985 0.001 286.376);
+  --bui-canvas: oklch(0.961 0.002 247.84);
+  --bui-surface: oklch(1 0 0);
+  --bui-inset: oklch(0.979 0.002 247.839);
+  --bui-hover: oklch(0.97 0.002 247.839);
+  --bui-hover-2: oklch(0.933 0.003 247.86);
+  --bui-ink: oklch(0.247 0.006 258.361);
+  --bui-ink-2: oklch(0.506 0.01 264.477);
+  --bui-ink-3: oklch(0.695 0.009 264.505);
+  --bui-line: oklch(0.946 0.003 264.542);
+  --bui-line-strong: oklch(0.912 0.005 258.326);
+  --bui-line-soft: oklch(0.966 0.002 264.542);
+  --bui-grid-line: color-mix(in srgb, var(--bui-line) 78%, transparent);
+  --bui-field: oklch(0.961 0.001 286.375);
+  --bui-stripe: oklch(0.405 0 0 / 0.075);
+  --bui-stripe-bg: oklch(0.97 0 0);
+  --bui-accent: oklch(0.626 0.205 254.947);
+  --bui-accent-ink: oklch(0.556 0.187 255.617);
+  --bui-accent-tint: oklch(0.96 0.019 252.878);
+  --bui-green: oklch(0.603 0.155 150.883);
+  --bui-green-tint: oklch(0.958 0.017 159.118);
+  --bui-orange: oklch(0.689 0.179 49.902);
+  --bui-orange-tint: oklch(0.964 0.021 67.581);
+  --bui-red: oklch(0.621 0.192 23.042);
+  --bui-red-tint: oklch(0.956 0.017 17.462);
+  --bui-tooltip-bg: oklch(0.272 0.008 264.435);
+  --bui-tooltip-fg: oklch(0.976 0.002 247.839);
+  --bui-tooltip-muted: oklch(0.731 0.008 260.731);
+  --bui-tooltip-border: oklch(0.356 0.007 264.474);
+  --bui-shadow-hairline: 0 0 0 1px var(--bui-line);
+  --bui-shadow-btn: 0 0 0 1px var(--bui-line-strong), var(--bui-shadow-xs);
+  --bui-shadow-card: 0 0 0 1px var(--bui-line), var(--bui-shadow-sm);
+  --bui-shadow-raised: 0 0 0 1px var(--bui-line), var(--bui-shadow-md);
+  --bui-shadow-overlay: 0 0 0 1px var(--bui-line), var(--bui-shadow-lg);
+  --bui-shadow-inset-field: inset 0 1px 2px oklch(0 0 0 / 0.12);
+  --bui-radius-chip: 6px;
+  --bui-radius-control: 8px;
+  --bui-radius-card: 10px;
+  --bui-radius-window: 14px;
+  --bui-radius-composer-hero: 22px;
+  --bui-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+body[data-ds-dark-theme] {
+  --bui-page: oklch(0.209 0.004 264.477);
+  --bui-canvas: oklch(0.231 0.004 264.487);
+  --bui-surface: oklch(0.26 0.006 271.191);
+  --bui-inset: oklch(0.243 0.004 264.492);
+  --bui-hover: oklch(0.289 0.006 271.22);
+  --bui-hover-2: oklch(0.318 0.007 274.747);
+  --bui-ink: oklch(0.964 0.002 247.839);
+  --bui-ink-2: oklch(0.731 0.008 260.731);
+  --bui-ink-3: oklch(0.541 0.01 264.484);
+  --bui-line: oklch(0.308 0.006 258.354);
+  --bui-line-strong: oklch(0.356 0.007 264.474);
+  --bui-line-soft: oklch(0.278 0.006 258.354);
+  --bui-field: oklch(0.293 0.006 271.223);
+  --bui-stripe: oklch(1 0 0 / 0.055);
+  --bui-stripe-bg: oklch(0.226 0.004 264.485);
+  --bui-accent: oklch(0.68 0.173 253.301);
+  --bui-accent-ink: oklch(0.788 0.113 248.33);
+  --bui-accent-tint: oklch(0.68 0.173 253.301 / 0.16);
+  --bui-green: oklch(0.705 0.154 153.814);
+  --bui-green-tint: oklch(0.705 0.154 153.814 / 0.14);
+  --bui-orange: oklch(0.746 0.156 55.642);
+  --bui-orange-tint: oklch(0.746 0.156 55.642 / 0.14);
+  --bui-red: oklch(0.666 0.18 21.433);
+  --bui-red-tint: oklch(0.666 0.18 21.433 / 0.14);
+  --bui-tooltip-bg: oklch(0.182 0.004 264.459);
+  --bui-tooltip-fg: oklch(0.964 0.002 247.839);
+  --bui-tooltip-muted: oklch(0.731 0.008 260.731);
+  --bui-tooltip-border: oklch(0.308 0.006 258.354);
+  --bui-shadow-hairline: 0 0 0 1px var(--bui-line);
+  --bui-shadow-btn: 0 0 0 1px oklch(1 0 0 / 0.1), 0 1px 2px oklch(0 0 0 / 0.3);
+  --bui-shadow-card: 0 0 0 1px oklch(1 0 0 / 0.11), 0 1px 2px oklch(0 0 0 / 0.2), 0 2px 6px oklch(0 0 0 / 0.2);
+  --bui-shadow-raised: 0 0 0 1px oklch(1 0 0 / 0.13), 0 2px 10px oklch(0 0 0 / 0.22);
+  --bui-shadow-overlay: 0 0 0 1px oklch(1 0 0 / 0.15), 0 8px 28px oklch(0 0 0 / 0.34);
+  --bui-shadow-inset-field: inset 0 1px 2px oklch(0 0 0 / 0.4);
+}

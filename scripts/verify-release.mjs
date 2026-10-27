@@ -5,6 +5,7 @@ import { dirname, isAbsolute, relative, resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
+import { isMainModule } from './distribution/entrypoint.mjs'
 
 const repository = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -40,7 +41,7 @@ export function verifyRelease(root, appliedSource) {
   return { upstream: manifest.upstream.commit, patchBytes: bytes.length, sha256, appliedSource: appliedSource ?? null }
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (isMainModule(import.meta.url)) {
   const { values } = parseArgs({ options: { 'applied-source': { type: 'string' } }, allowPositionals: false })
   console.log(JSON.stringify(verifyRelease(repository, values['applied-source']), null, 2))
 }

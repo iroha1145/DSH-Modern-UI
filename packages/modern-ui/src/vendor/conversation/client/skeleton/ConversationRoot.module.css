@@ -1,0 +1,578 @@
+.root {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  background: var(--page, var(--dsw-alias-bg-base));
+}
+
+.header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  flex: none;
+  box-sizing: border-box;
+  min-height: 54px;
+  padding: 8px 32px;
+  border-bottom: 0.5px solid var(--line-soft, var(--dsw-alias-border-l3));
+}
+
+.header:where(:not(:has(.tabs))) {
+  min-height: 54px;
+  padding-bottom: 8px;
+}
+
+/* Blank Sessions retain navigation controls without conversation title or tabs. */
+.headerBlank {
+  height: 44px;
+  min-height: 44px;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.headerBlank .headerCorner {
+  margin-left: auto;
+}
+
+/* Only the macOS titlebar needs reserved drag space before a Session exists. */
+:global(html:not([data-platform='darwin'])) .headerSessionless {
+  padding-top: 0;
+}
+
+:global(html:not([data-platform='darwin'])) .headerSessionless .titleRow {
+  min-height: 0;
+}
+
+/* macOS hiddenInset titlebar: the header block owns the window drag over its
+   own box — title row plus the view tab strip, so the draggable geometry is the
+   header's geometry and no frame band has to match its height. The header marks
+   itself `data-window-drag` (ConversationHeader); below it the title-row clusters
+   subtract their whole boxes, and individual controls are covered by the base.css
+   interactive-element rule. A covering overlay lives beside #root
+   (ui-settings-general), which puts it after this row in document order. */
+:global([data-platform='darwin']) .headerLeading,
+:global([data-platform='darwin']) .headerActions,
+:global([data-platform='darwin']) .headerUtilities,
+:global([data-platform='darwin']) .headerCorner {
+  -webkit-app-region: no-drag;
+}
+
+.titleRow {
+  grid-column: 2;
+  /* Anonymous inline-size container (CSS modules hash container-names per
+     module, so occupants match the nearest container): header occupants such
+     as the preset label and slot actions shed their text at row-width
+     breakpoints. The minmax(0, 1fr) column sizes the row, so inline-size
+     containment cannot collapse it. */
+  container-type: inline-size;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-height: 30px;
+  /* Clears the frame's window-chrome band (traffic lights + shell.leading
+     controls, ui-layout AppFrame) when it is published; the header already
+     pads 20px of it. Zero everywhere else (the fallback makes the max
+     negative). */
+  padding-inline-start: max(0px, calc(var(--dsh-frame-leading-clearance, 0px) - 20px));
+}
+
+.titleCluster {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* The auto grid column collapses with an empty or CSS-hidden occupant.
+   The occupant owns its trailing gap so hidden controls reserve no space. */
+.headerLeading {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.crumbSeg {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.crumbSep {
+  /* figma: "/" separators are 14px caption gray (75:7903), one tint lighter than crumb text. */
+  color: var(--dsw-alias-label-caption);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.crumb {
+  display: inline-block;
+  max-width: 360px;
+  overflow: hidden;
+  padding: 2px 6px;
+  border: none;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  font-size: 0.9375rem;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  color: var(--ink-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.crumbSubagent {
+  font-size: 0.8125rem;
+  line-height: 18px;
+}
+
+@media (hover: hover) {
+  button.crumb:hover {
+    background: var(--hover);
+    color: var(--ink);
+  }
+}
+
+.crumbCurrent {
+  font-weight: 500;
+  color: var(--ink);
+  cursor: default;
+}
+
+.headerStatusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  corner-shape: round;
+  background: var(--green, #127152);
+  flex: none;
+}
+
+.headerActions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+}
+
+.headerUtilities {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.headerCorner {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+}
+
+/* Cloud-Monitor .period-tabs segmented view tabs */
+.tabs {
+  grid-column: 1 / -1;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  padding-left: 4px;
+}
+
+.viewTabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  min-width: 0;
+  padding: 3px;
+  border-radius: var(--dsw-radius-lg);
+  background: var(--canvas);
+}
+
+.tab {
+  position: relative;
+  box-sizing: border-box;
+  min-height: 28px;
+  margin: 0;
+  padding: 4px 12px;
+  border: none;
+  border-radius: var(--dsw-radius-md);
+  background: transparent;
+  font-size: var(--fs-label, 0.75rem);
+  line-height: 1.3;
+  font-weight: 500;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
+}
+
+@media (hover: hover) {
+  .tab:hover {
+    color: var(--ink);
+  }
+}
+
+.tab::after {
+  display: none;
+}
+
+.tabActive {
+  background: var(--surface);
+  color: var(--primary);
+  font-weight: 500;
+  box-shadow: var(--shadow-thumb);
+}
+
+/* The More launcher centers its 22px box on the tab's 16px text line. */
+.viewsMoreAnchor {
+  flex: none;
+}
+
+.viewsMore {
+  width: 22px;
+  height: 22px;
+  margin-top: -3px;
+  padding: 0;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.viewsMoreActive { color: var(--dsw-alias-state-business-primary); }
+
+.tabLabel { display: block; max-width: 88px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.viewsMore[aria-expanded='true'] {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.viewsMoreMenu {
+  width: 288px;
+  max-width: calc(100vw - 24px);
+}
+
+.viewPinGroup {
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--dsw-alias-border-l3);
+}
+
+.viewPinAction {
+  width: 100%;
+  border: 0;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  padding: 8px 10px;
+  text-align: start;
+  cursor: pointer;
+}
+
+.viewPinAction:hover,
+.viewPinAction:focus-visible {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.viewArea {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Composer context stack (Figma 9:937): standalone dock cards share one
+   rhythm above the input card. */
+.composerStack {
+  /* Horizontal geometry (card width, clearance, dock inset) rides the shared
+     .root variables above so takeover siblings match the stack. */
+  --dsh-composer-stack-gap: 6px;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--dsh-composer-stack-gap);
+}
+
+/* Common seat for the composer chain (fallback + elected overlay siblings). */
+.composerSeat {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  /* One cap for every scrolling text region a composer seat can hold: the
+     InputBar draft (figma Input 75:8208 max 14 lines × 24px line) and the
+     takeover panels' bodies top out at the same height, so electing a
+     takeover never grows the footer past the card it replaces. Declared on
+     the seat because it is the chain's only shared ancestor — fallback and
+     elected overlay are siblings — and custom properties inherit down to
+     whichever entry is mounted. */
+  --dsh-composer-text-max-height: 336px;
+}
+
+/* Active phase: header is ordinary column chrome above the scrollport (not
+   sticky). The scroll body holds the transcript and the sticky composer seat
+   so wheel over the footer moves the flow. */
+.root[data-phase='active'] {
+  overflow: hidden;
+}
+
+.root[data-phase='active'] .header {
+  flex: none;
+}
+
+/* Responsive conversation body below the header, with unobstructed scroll gutters. */
+.body {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+
+  /* Cloud-Monitor spacious workbench layout */
+  --dsh-chat-content-width: min(800px, calc(100% - 64px));
+  --dsh-composer-card-max-width: 800px;
+  --dsh-composer-side-clearance: 32px;
+  --dsh-composer-dock-inset: 0px;
+}
+
+.embeddedBody {
+  overflow: hidden;
+  --dsh-chat-content-width: min(calc(100% - 32px), 920px);
+  --dsh-composer-card-max-width: min(calc(100% - 16px), 952px);
+  --dsh-composer-side-clearance: 8px;
+  --dsh-composer-dock-inset: 8px;
+}
+
+.scrollBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  /* The product-wide 2px scrollbar offset (ui-workspace WorkspaceBrowser
+     `.list`, ui-sidebar-files FilesBody `.body`): the bar sits 2px clear of
+     the column's edge instead of flush against it. */
+  margin-right: 2px;
+  overflow-y: auto;
+  /* Reserved unconditionally: the composer seat rides this box's content box in
+     Chat and its padding box under a view's composer overlay, so an `auto`
+     gutter moves the input card sideways by the bar's width whenever the two
+     differ ([decision](../../../../../../.agents/notes/archived/bug-fix/2026-08-04-composer-tab-gutter-reservation.md)). */
+  scrollbar-gutter: stable;
+}
+
+/* The bar also stops 2px short of the scroller's ends, matching its 2px edge
+   offset. WebKit-only: the Firefox path has no track to inset. */
+.scrollBody::-webkit-scrollbar-track {
+  margin: 2px;
+}
+
+.root[data-phase='active'] .viewArea,
+.embeddedBody[data-content-phase='active'] .viewArea {
+  flex: 1 0 auto;
+  min-height: auto;
+}
+
+.root[data-phase='active'] .composerSeat,
+.embeddedBody[data-content-phase='active'] .composerSeat {
+  position: sticky;
+  bottom: 0;
+  /* Above markdown CodeBlock sticky banners (z-index 6) so the footer never
+     paints under a sticking code header while scrolling. The pinned compaction
+     header (MessageItem.module.css, ui-chat) and the turn-navigation rail slot
+     (TurnNavigator.module.css, ui-chat) also take 7 to clear the same banners.
+     Among elements of equal rank the later one in DOM order wins, so the
+     composer stays above the pinned header on the extreme small-viewport
+     overlap and the pinned header stays above the rail. */
+  z-index: 7;
+  /* The input card owns its translucent material; the transcript remains visible behind it. */
+  background: transparent;
+}
+
+/* An open @/slash menu (data-trigger-menu, ui-input-trigger) renders inside
+   the input card, so the seat's stacking context caps its z-index; lift the
+   seat above the back-to-bottom control (z-index 8, ui-chat ChatView) while
+   the menu is open. The steady state stays 7 so the control keeps painting
+   over the card. */
+.root[data-phase='active'] .composerSeat:has([data-trigger-menu]) {
+  z-index: 9;
+}
+
+/* Views may opt into a composer overlay while ConversationRoot retains
+   ownership of the seat geometry and its active-phase precedence. */
+.scrollBody:has([data-conversation-composer-overlay]) {
+  position: relative;
+  /* A clipping box nothing scrolls out of, stated as a scroll container on both
+     axes rather than `overflow: hidden`: a single-axis scroller computes the
+     other axis to `auto`, and the seat's absolute positioning below needs the
+     box to stay a containing block in every engine. */
+  overflow-x: hidden;
+  overflow-y: auto;
+  /* The view owns its own scrollers (the trajectory ledger scrolls inside the
+     view), so this box never scrolls here; reserving a gutter would only
+     narrow the view's content by the bar's width. Chat keeps the reservation
+     on the same element, so the seat below compensates with the bar's width
+     ([decision](../../../../../../.agents/notes/archived/bug-fix/2026-08-04-composer-tab-gutter-reservation.md)). */
+  scrollbar-gutter: auto;
+}
+
+.scrollBody:has([data-conversation-composer-overlay]) > :global([data-slot='conversation.session']) > .viewArea {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.scrollBody:has([data-conversation-composer-overlay]) > .composerSeat {
+  position: absolute;
+  /* Chat's seat rides this box's content box, which its own scrolling shortens
+     by the bar's width; the overlay seat is against the padding box, so it
+     must give back the same width to keep the input card in place across
+     tabs. Reads ui-theme's --dsh-scrollbar-width, which mirrors the WebKit
+     bar's layout width. Chat reserves the engine-resolved width, so on an
+     engine where the resolved width differs from this fixed 8px the card
+     drifts by half the difference — accepted residual risk, recorded in
+     ([decision](../../../../../../.agents/notes/archived/bug-fix/2026-08-12-composer-overlay-seat-width-compensation.md)). */
+  right: var(--dsh-scrollbar-width);
+  bottom: 0;
+  left: 0;
+}
+
+/* Hero phase: the composer stack (hero chrome + workspace row + card) is
+   flex-centered in the column; composer phase docks it at the bottom. Flex,
+   NOT absolute+transform: a transform would make this box the containing
+   block for position:fixed descendants (pickers/modals), shrinking them. */
+.composerHero {
+  align-self: center;
+  /* figma 75:8208 drew 12 between all three rows; the workspace row now sits
+     8 above the card (its margin-top restores 12 under the hero chrome). */
+  gap: 8px;
+  /* Foot inside the centered box floats the stack a bit above true center. */
+  padding-bottom: 32px;
+  /* Card cap + both clearances: the hero input card lands at exactly the same
+     width as the docked composer at every viewport. */
+  width: min(calc(var(--dsh-composer-card-max-width) + 2 * var(--dsh-composer-side-clearance)), 100%);
+  z-index: 1;
+}
+
+.heroWorkspaceRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 2px;
+  margin-bottom: 4px;
+  padding: 0 32px;
+}
+
+/* Plugin options share the row, pushed to its right edge. */
+.heroOptions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  margin-left: auto;
+}
+
+.heroOptions:empty {
+  display: none;
+}
+
+/* Hero: the composer sits inside the session scroll body; center there so
+   the tree seat matches active (sticky footer) without a Root remount. */
+.root[data-phase='hero'] .scrollBody,
+.embeddedBody[data-content-phase='hero'] .scrollBody {
+  justify-content: center;
+  overflow-y: auto;
+}
+
+/* Settling (session replaying, hero/docked unknown): keep the composer seat
+   mounted but invisible so no wrong layout flashes before the phase lands. */
+.root[data-phase='settling'] .composerSeat,
+.embeddedBody[data-content-phase='settling'] .composerSeat {
+  visibility: hidden;
+}
+
+@media (max-width: 640px) {
+  .header {
+    padding-inline: 12px;
+  }
+
+  .body,
+  .embeddedBody {
+    --dsh-chat-content-width: 100%;
+    --dsh-composer-card-max-width: 100%;
+    --dsh-composer-side-clearance: 12px;
+  }
+
+}
+
+/* The phone's current title lives in the compact global navigation bar.
+   Keep ancestry links, plugin actions and view tabs in the session header. */
+@media (max-width: 640px) {
+  .header,
+  .header:where(:not(:has(.tabs))),
+  .headerBlank {
+    height: auto;
+    min-height: 0;
+    padding: 0 12px;
+    border-bottom: none;
+  }
+
+  .titleRow {
+    min-height: 0;
+  }
+
+  .headerStatusDot,
+  .crumbCurrent {
+    display: none;
+  }
+
+  .header:not(:has(button, a, input, [role='tab'])) {
+    display: none;
+  }
+
+  .composerSeat {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .root[data-phase='hero'] .scrollBody,
+  .embeddedBody[data-content-phase='hero'] .scrollBody {
+    justify-content: flex-end;
+  }
+
+  .root[data-phase='hero'] .composerSeat,
+  .embeddedBody[data-content-phase='hero'] .composerSeat {
+    flex: 1;
+    min-height: 100%;
+  }
+
+  .composerHero {
+    flex: 1;
+    justify-content: flex-end;
+    padding-bottom: 0;
+  }
+
+  .heroWorkspaceRow {
+    padding-inline: 12px;
+  }
+}

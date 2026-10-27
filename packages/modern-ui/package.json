@@ -1,0 +1,87 @@
+{
+  "name": "@iroha1145/dsh-modern-ui",
+  "version": "0.1.0-migration.1",
+  "description": "Modern UI browser extension for the unmodified official DSH release",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json",
+    "./translator": "./lib/translator.js",
+    "./mcp-client": "./lib/mcp-client.js",
+    "./migration": "./lib/migration.js"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+    "licenses",
+    "provenance.json",
+    "open-intelligent-ui-upstream.json",
+    "vendor-marks-upstream.json"
+  ],
+  "dsh": {
+    "compatibleHost": "0.2.1-rc.4",
+    "bundle": {
+      "patch": [
+        "./cordis.patch.yml"
+      ]
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-api-session-controller",
+        "@deepseek-ai/dsh-api-workspace-controller",
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-file-upload",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-renderer",
+        "@deepseek-ai/dsh-client-ui-session",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-theme",
+        "@deepseek-ai/dsh-client-shortcuts"
+      ]
+    },
+    "manifestVersion": 1
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "4.0.5",
+    "@deepseek-ai/schemastery": "3.18.5",
+    "@deepseek-ai/dsh-client-ui-chat": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-client-ui-model-selection": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-client-ui-settings": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-client-ui-theme": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-client-ui-attachment": "0.2.1-rc.4",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "@deepseek-ai/dsh-scope": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-timeout": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-credentials": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-launch-environment": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-llm": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-util-values": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-attachment": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-tools": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-session": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-session-persistence": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-subprocess": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-client-ui-subagent": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-mcp-resources": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-system-prompt": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-experimental-translator": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-client-ui-conversation": "0.2.1-rc.4"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/client": "2.3.0"
+  },
+  "bin": {
+    "modern-ui-data": "./lib/migration.js"
+  },
+  "engines": {
+    "dsh": "0.2.1-rc.4",
+    "node": "24.22.1"
+  }
+}

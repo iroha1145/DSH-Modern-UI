@@ -1,0 +1,374 @@
+/* The Models page's picker-details card. It sits beside the provider cards,
+ * so it shares their card material; the rows inside are a flat list divided
+ * by hairlines rather than cards of their own. Every color resolves through a
+ * `--dsw-alias-*` token. */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 0.5px solid var(--dsw-alias-settings-card-stroke);
+  border-radius: var(--dsw-radius-xl);
+  background: var(--dsw-alias-settings-card-fill);
+  padding: 12px 14px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.intro {
+  display: flex;
+  flex: 1 1 260px;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+  text-wrap: balance;
+}
+
+/* Explanations wrap evenly and stop at a reading width, so no last line holds
+ * a single character and the eye finds the next line easily. */
+.text,
+.meta,
+.hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+  text-wrap: pretty;
+}
+
+.text,
+.hint {
+  max-width: 65ch;
+}
+
+.notice {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-state-warn-label);
+}
+
+.error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.retry {
+  margin-inline-start: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--dsw-alias-label-secondary);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .retry:hover {
+    color: var(--dsw-alias-label-primary);
+  }
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row + .row {
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+/* One model: tile, name, and a second line of ratings and price. The grid
+ * keeps the second line under the name at any width. */
+.rowButton {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 4px;
+  width: 100%;
+  margin: 6px 0;
+  padding: 8px;
+  border: 0;
+  border-radius: var(--dsw-radius-lg);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .rowButton:hover:not(:disabled) {
+    background: var(--dsw-alias-interactive-bg-hover);
+  }
+}
+
+.rowButton:disabled {
+  cursor: default;
+}
+
+.glyph {
+  display: grid;
+  grid-row: 1 / span 2;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-module-platform);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+}
+
+/* Vendor marks draw in the tile's text color, so they read as black or white with the theme. */
+.glyph svg {
+  width: 16px;
+  height: 16px;
+  color: var(--dsw-alias-label-primary);
+}
+
+/* The icon choice: the tile it would draw beside the menu. */
+.iconPick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.iconPick > .glyph {
+  flex: none;
+  grid-row: auto;
+}
+
+.iconPick > .selectFrame {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 280px;
+}
+
+.rowName {
+  display: flex;
+  grid-column: 2;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* A long model id wraps instead of truncating: the row is the only place it is shown in full. */
+.name {
+  min-width: 0;
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.rowMeta {
+  display: flex;
+  grid-column: 2;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 16px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.segments {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.segment {
+  width: 7px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--dsw-alias-border-l3);
+}
+
+.filled {
+  background: var(--dsw-alias-label-secondary);
+}
+
+.price {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chevron {
+  display: inline-flex;
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* The editor opens under its row, inside the same list cell. */
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 8px 14px;
+}
+
+.ratings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+/* The wait and the two prices share one set of rows (label, control, note),
+ * so a label that wraps in a longer language pushes all three controls down
+ * together and they stay level. */
+.numbers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.numbers > .field {
+  display: grid;
+  grid-row: span 3;
+  grid-template-rows: subgrid;
+  row-gap: 8px;
+}
+
+/* A label sits 8px above its control, closer than the 12px between fields, so each pair reads as one group. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fieldLabel {
+  padding: 0;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* A grid parent stretches the primitive's inline-flex frame to the column; the
+ * zero minimum lets the frame shrink below its input's default width. */
+.control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.control:has(input[aria-invalid='true']) > span {
+  border-color: var(--dsw-alias-state-error-primary);
+}
+
+/* Same frame as the primitive text field, so the selects line up with it. The
+ * native arrow is replaced by a chevron drawn in the label color, as the
+ * disclosure rows of this page do. */
+.selectFrame {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.selectFrame::after {
+  content: '';
+  position: absolute;
+  inset-inline-end: 14px;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentcolor;
+  border-bottom: 1.5px solid currentcolor;
+  color: var(--dsw-alias-label-tertiary);
+  transform: translateY(-75%) rotate(45deg);
+  pointer-events: none;
+}
+
+.select {
+  box-sizing: border-box;
+  appearance: none;
+  width: 100%;
+  height: var(--control-h-sm);
+  padding: 0 32px 0 8px;
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: var(--dsw-radius-lg);
+  background: var(--dsw-alias-bg-module-platform);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: var(--fs-body);
+  cursor: pointer;
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--dsw-alias-state-business-primary);
+}
+
+.select:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+@media (pointer: coarse) {
+  .select {
+    font-size: 16px;
+  }
+}
+
+.efforts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.effortChoices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.spacer {
+  flex: 1 1 0;
+}

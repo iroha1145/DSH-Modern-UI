@@ -1,0 +1,106 @@
+/* Adapted from slev12397/beautiful-ui TaskRows.tsx List variant (MIT).
+   The dock retains its real plan, collapse control, and status announcements. */
+.root {
+  box-sizing: border-box;
+  flex: none;
+  overflow: hidden;
+  margin: 0 auto;
+  width: calc(100% - var(--dsh-composer-side-clearance) - var(--dsh-composer-side-clearance));
+  max-width: var(--dsh-composer-card-max-width);
+  border: 1px solid var(--bui-line, var(--line));
+  border-radius: var(--bui-radius-card);
+  background: var(--bui-surface, var(--surface));
+  box-shadow: var(--bui-shadow-card, var(--shadow-card));
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+.body { display: flex; flex-direction: column; }
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  width: 100%;
+  padding: 0 10px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 300ms;
+}
+.lead { display: grid; flex: none; place-items: center; width: 24px; height: 24px; }
+.checkBadge {
+  corner-shape: round;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bui-green, var(--green));
+  color: white;
+}
+.title { flex: none; font-size: 13px; line-height: 20px; font-weight: 500; color: var(--bui-ink, var(--ink)); }
+.progress {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+  color: var(--bui-ink-3, var(--ink-3));
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.chevron { display: grid; flex: none; place-items: center; width: 28px; height: 28px; color: var(--bui-ink-3, var(--ink-3)); transition: transform 300ms; }
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--bui-line, var(--line));
+  list-style: none;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 10px;
+  border-bottom: 1px solid var(--bui-line, var(--line));
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--bui-ink, var(--ink));
+  transition: background-color 300ms;
+}
+.item:last-child { border-bottom: 0; }
+.glyph { display: grid; flex: none; place-items: center; width: 24px; height: 24px; }
+.content { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.statusCompleted {
+  corner-shape: round;
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bui-green, var(--green)) 10%, transparent);
+  color: var(--bui-green, var(--green));
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 20px;
+}
+.ring { position: relative; display: inline-flex; flex: none; align-items: center; justify-content: center; width: 24px; height: 24px; }
+.ring > svg { position: absolute; inset: 0; }
+.ringActive { animation: taskSpin 1.1s linear infinite; }
+.step { position: relative; font-size: 10.5px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--bui-ink, var(--ink)); }
+@media (hover: hover) {
+  .header:hover, .item:hover { background: var(--bui-inset, var(--inset)); }
+}
+/* Exact spin from Beautiful UI globals.css, active only for real in-progress tasks. */
+@keyframes taskSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .ringActive { animation: none; }
+  .header, .item, .chevron { transition: none; }
+}

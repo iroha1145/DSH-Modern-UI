@@ -1,0 +1,57 @@
+/* Derived from ui-settings-general/src/client/SettingsRoot.module.css (MIT).
+   Modern UI's actual SettingsRoot.css changes, applied to the unchanged
+   official settings owner through its semantic modal and our sidebar seat. */
+[data-modern-settings-seat] > div { width: 100%; margin: 0; }
+[data-modern-settings-seat][data-rail] > div { width: 36px; margin: 4px 0; }
+[data-modern-settings-seat] button[aria-haspopup="dialog"][aria-expanded] {
+  gap: 10px;
+  min-height: 36px;
+  height: 36px;
+  padding: 0 10px;
+  color: var(--ink-2, var(--dsw-alias-label-secondary));
+  font-size: var(--fs-body, 0.8125rem);
+  font-weight: 500;
+  line-height: 20px;
+  transition: background-color 140ms ease, color 140ms ease, transform 120ms var(--ease-spring);
+}
+[data-shortcut-modal="settings"][role="dialog"] {
+  box-sizing: border-box;
+  border: 0.5px solid var(--card-border, var(--line));
+  background: var(--surface, var(--dsw-alias-bg-layer-2));
+  box-shadow: var(--shadow-float, var(--dsw-elevation-prominent));
+}
+[data-shortcut-modal="settings"][role="dialog"] > [tabindex="-1"] {
+  letter-spacing: -0.02em;
+  color: var(--ink, var(--dsw-alias-label-primary));
+}
+[data-shortcut-modal="settings"][role="dialog"] > nav > div > button {
+  flex: 0 0 auto;
+  gap: 10px;
+  padding: 0 12px;
+  border-radius: var(--dsw-radius-lg);
+  font-size: 0.875rem;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--ink-2, var(--dsw-alias-label-secondary));
+  transition: background-color 140ms ease, color 140ms ease, transform 120ms var(--ease-spring);
+}
+[data-shortcut-modal="settings"][role="dialog"] > nav > div > button[aria-current="true"] {
+  background: var(--accent-tint, var(--dsw-specific-sidebar-nav-item-active));
+  color: var(--primary, var(--ink));
+  font-weight: 500;
+}
+[data-shortcut-modal="settings"][role="dialog"] > nav > div > button[aria-current="true"] > svg { color: var(--primary); }
+@media (hover: hover) {
+  [data-modern-settings-seat] button[aria-haspopup="dialog"][aria-expanded]:hover,
+  [data-shortcut-modal="settings"][role="dialog"] > nav > div > button:hover {
+    background: var(--hover, var(--dsw-alias-interactive-bg-hover));
+    color: var(--ink, var(--dsw-alias-label-primary));
+  }
+  [data-shortcut-modal="settings"][role="dialog"] > nav > div > button[aria-current="true"]:hover {
+    background: var(--accent-tint, var(--dsw-specific-sidebar-nav-item-active));
+    color: var(--primary, var(--ink));
+  }
+}
+[data-modern-settings-seat] button[aria-haspopup="dialog"][aria-expanded]:active,
+[data-shortcut-modal="settings"][role="dialog"] > nav > div > button:active { transform: translateY(1px); }
+[data-modern-settings-seat][data-rail] button[aria-haspopup="dialog"][aria-expanded] { padding: 0; }

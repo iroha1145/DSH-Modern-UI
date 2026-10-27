@@ -1,0 +1,586 @@
+/* Agents view. Connectors are pseudo-elements of the cards and their tree
+   items, so their geometry follows the cards at any width or zoom without
+   measuring the DOM. Below 560px of container width every level hangs under
+   its parent; from 560px the first level sits side by side under the root.
+   Type follows the neighbouring DSH UI: 13px names and titles at 500, 12px
+   everything else at 400; line height 1.2 on single lines, 1.5 where text wraps;
+   hierarchy comes from the label colors, not from extra sizes. */
+
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 16px 16px 24px;
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.spark {
+  flex: none;
+  align-self: center;
+  color: var(--dsw-alias-state-business-primary);
+}
+
+.title {
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+/* Counts and the token total change while agents run: tabular figures, one baseline. */
+.totals,
+.counts {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.totals {
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+.runningCount {
+  color: var(--dsw-alias-state-business-primary);
+}
+
+.waitingCount {
+  color: var(--dsw-alias-state-warn-label);
+}
+
+.failedCount {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+/* The family total is the bar's key figure. */
+.totalTokens {
+  color: var(--dsw-alias-label-primary);
+  font-weight: 500;
+}
+
+.hint,
+.loading {
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 1.5;
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+}
+
+.hint {
+  margin-top: 12px;
+}
+
+.loading {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1120px;
+  margin-inline: auto;
+  padding: 16px;
+}
+
+/* The query container: every card measures its width against this box. */
+.body {
+  container-type: inline-size;
+}
+
+/* Connector and card geometry shared by both layouts. */
+.canvas {
+  --agent-indent: 32px;
+  --agent-pad: 10px;
+  --agent-avatar: 22px;
+  --agent-avatar-top: 4px;
+  --agent-gap: 12px;
+  --agent-bus: 20px;
+  --agent-col-gap: 8px;
+  --agent-stroke: 1.5px;
+  --agent-dot: 6.5px;
+  --agent-radius: var(--dsw-radius-xs);
+  --agent-bus-radius: var(--dsw-radius-sm);
+  /* x of a parent's connector rail, from the parent card's left edge: the avatar center. */
+  --agent-spine: calc(var(--agent-pad) + var(--agent-avatar) / 2);
+  /* y where a hanging connector enters its card, from the card's top edge: the avatar center. */
+  --agent-elbow: calc(var(--agent-pad) + var(--agent-avatar-top) + var(--agent-avatar) / 2);
+  /* How far a rail sits left of its child cards. */
+  --agent-rail: calc(var(--agent-indent) - var(--agent-spine));
+  /* The accent is dark on light surfaces and pale on dark ones, so each scheme
+     takes its own share of it to reach the same soft blue. */
+  --agent-link: light-dark(
+    color-mix(in srgb, var(--dsw-alias-state-business-primary) 50%, var(--dsw-alias-bg-layer-2)),
+    color-mix(in srgb, var(--dsw-alias-state-business-primary) 72%, var(--dsw-alias-bg-layer-2))
+  );
+  --agent-link-muted: color-mix(in srgb, var(--dsw-alias-label-tertiary) 32%, var(--dsw-alias-bg-layer-2));
+  --agent-card: max(176px, calc(100cqi - var(--agent-depth) * var(--agent-indent)));
+
+  position: relative;
+}
+
+.tree {
+  position: relative;
+}
+
+.root,
+.node {
+  position: relative;
+}
+
+.slot {
+  position: relative;
+  width: var(--agent-card);
+}
+
+.card {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  box-sizing: border-box;
+  padding: var(--agent-pad) var(--agent-pad) 8px;
+  border: 0;
+  border-radius: var(--dsw-radius-lg);
+  background: var(--dsw-alias-bg-layer-2);
+  box-shadow: var(--dsw-elevation-panel);
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.card[data-current] {
+  --dsw-elevation-stroke-color: var(--dsw-alias-state-business-primary);
+}
+
+@media (hover: hover) {
+  .card[data-openable]:hover {
+    box-shadow: var(--dsw-elevation-prominent);
+  }
+}
+
+/* The whole card opens the agent; the fold button stays above it. */
+.open {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.open:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 2px;
+}
+
+/* Name across the full width (up to two balanced lines); model and status share the line below. */
+.top {
+  display: grid;
+  grid-template-columns: var(--agent-avatar) minmax(0, 1fr);
+  column-gap: 8px;
+  min-width: 0;
+}
+
+.avatar {
+  display: grid;
+  grid-row: span 2;
+  align-self: start;
+  place-items: center;
+  width: var(--agent-avatar);
+  height: var(--agent-avatar);
+  margin-top: var(--agent-avatar-top);
+  border-radius: var(--dsw-radius-xs);
+  background: var(--dsw-alias-bg-module-platform);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.name {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.sub {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  min-height: 19px;
+}
+
+.model {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Status reads as secondary text in its state color: 400, like the model beside it. */
+.sub .badge {
+  flex: none;
+  margin-left: auto;
+  font-weight: 400;
+}
+
+.badgeContent {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.badgeContent .badgeIcon {
+  flex: none;
+  color: inherit;
+}
+
+.task {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  line-height: 1.5;
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* Tokens, time, and the fold count change while agents run: tabular figures, one baseline. */
+.meta {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-height: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.figures {
+  display: inline-flex;
+  flex: 1;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.fold {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  height: 20px;
+  margin-left: auto;
+  padding: 0 4px 0 6px;
+  border: 0;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.fold svg {
+  flex: none;
+}
+
+.fold[aria-expanded='false'] svg {
+  transform: rotate(-90deg);
+}
+
+@media (hover: hover) {
+  .fold:hover {
+    background: var(--dsw-alias-interactive-bg-hover);
+    color: var(--dsw-alias-label-primary);
+  }
+}
+
+.fold:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 1px;
+}
+
+/* Queued and stopped agents step back one label level; their connectors follow below. */
+.card[data-muted] .name {
+  color: var(--dsw-alias-label-secondary);
+}
+
+.card[data-muted] .avatar,
+.card[data-muted] .model {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* ---- Hanging levels: every level below 560px, deeper levels above it. ---- */
+
+.rootGroup,
+.group {
+  display: grid;
+  gap: var(--agent-gap);
+  margin-top: var(--agent-gap);
+  padding-left: var(--agent-indent);
+}
+
+/* Connector ink. Straight segments are fills and curves are double-size
+   borders scaled by one half: engines snap fractional border widths to whole
+   pixels, which would thin the 1.5px stroke. */
+:is(.rootGroup, .group) > .node::before,
+:is(.rootGroup, .group) > .node:not(:last-child)::after,
+.slot::before,
+.slot::after {
+  --agent-ink: var(--agent-link);
+}
+
+/* Rail from the parent card (or the previous sibling) down to this card's elbow. */
+:is(.rootGroup, .group) > .node::before,
+:is(.rootGroup, .group) > .node:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: calc(-1 * var(--agent-rail) - var(--agent-stroke) / 2);
+  width: var(--agent-stroke);
+  background: var(--agent-ink);
+}
+
+:is(.rootGroup, .group) > .node::before {
+  top: calc(-1 * var(--agent-gap));
+  height: calc(var(--agent-gap) + var(--agent-elbow) - var(--agent-radius));
+}
+
+/* The rail continues past this card's own branch toward later siblings. */
+:is(.rootGroup, .group) > .node:not(:last-child)::after {
+  top: calc(var(--agent-elbow) - var(--agent-radius));
+  bottom: 0;
+}
+
+/* Elbow from the rail into the card's left edge. */
+:is(.rootGroup, .group) > .node > .slot::before {
+  content: '';
+  position: absolute;
+  top: calc(var(--agent-elbow) - var(--agent-radius));
+  left: calc(-1 * var(--agent-rail) - var(--agent-stroke) / 2);
+  box-sizing: border-box;
+  width: calc(2 * (var(--agent-rail) + var(--agent-stroke) / 2));
+  height: calc(2 * (var(--agent-radius) + var(--agent-stroke) / 2));
+  border-bottom: calc(2 * var(--agent-stroke)) solid var(--agent-ink);
+  border-left: calc(2 * var(--agent-stroke)) solid var(--agent-ink);
+  border-bottom-left-radius: calc(2 * var(--agent-radius));
+  transform: scale(0.5);
+  transform-origin: 0 0;
+}
+
+/* Origin dot on a parent card whose subagents are showing. Scoped to the
+   tree, so the copy of a leaving card that the glide overlay fades carries none. */
+.tree .slot[data-open]::after {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  top: calc(100% - var(--agent-dot) / 2);
+  left: calc(var(--agent-spine) - var(--agent-dot) / 2);
+  width: var(--agent-dot);
+  height: var(--agent-dot);
+  border-radius: 50%;
+  corner-shape: round;
+  background: var(--dsw-alias-bg-layer-2);
+  box-shadow: inset 0 0 0 var(--agent-stroke) var(--agent-ink);
+}
+
+/* A path stays blue while it still leads to an agent that is not muted. */
+:is(.rootGroup, .group) > .node[data-muted]:not(:has(~ .node:not([data-muted])))::before,
+:is(.rootGroup, .group) > .node:not(:has(~ .node:not([data-muted])))::after,
+:is(.rootGroup, .group) > .node[data-muted] > .slot::before,
+:is(.root, .node):not(:has(> :is(.rootGroup, .group) > .node:not([data-muted]))) > .slot::after {
+  --agent-ink: var(--agent-link-muted);
+}
+
+/* ---- From 560px: the first level side by side under the root. ---- */
+
+@container (min-width: 560px) {
+  .hint {
+    text-align: center;
+  }
+
+  /* Cards share one width: the first level splits the row, within bounds; a
+     row wider than the column scrolls sideways (AgentScroll.module.css). */
+  .canvas {
+    --agent-reserve: calc((max(var(--agent-depth), 1) - 1) * var(--agent-indent));
+    --agent-card: clamp(
+      184px,
+      calc((100cqi - (var(--agent-columns) - 1) * var(--agent-col-gap)) / var(--agent-columns) - var(--agent-reserve)),
+      240px
+    );
+    --agent-column: calc(var(--agent-card) + var(--agent-reserve));
+    /* Distance between neighbouring first-level card centers. */
+    --agent-step: calc(var(--agent-column) + var(--agent-col-gap));
+  }
+
+  .tree {
+    width: max-content;
+    min-width: 100%;
+  }
+
+  /* The root sits over the row's center, as one more column. */
+  .root > .slot {
+    margin-left: calc((100% - var(--agent-column)) / 2);
+  }
+
+  .root > .slot[data-open]::after {
+    left: calc(50% - var(--agent-dot) / 2);
+  }
+
+  /* Drop from the root to the shared bus. */
+  .root > .slot[data-open]::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: calc(50% - var(--agent-stroke) / 2);
+    width: var(--agent-stroke);
+    height: calc(var(--agent-bus) + var(--agent-stroke) / 2);
+    background: var(--agent-ink);
+  }
+
+  .root:not(:has(> .rootGroup > .node:not([data-muted]))) > .slot::before {
+    --agent-ink: var(--agent-link-muted);
+  }
+
+  .rootGroup {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: var(--agent-col-gap);
+    margin-top: calc(2 * var(--agent-bus));
+    padding-left: 0;
+  }
+
+  .rootGroup > .node {
+    flex: none;
+    width: var(--agent-column);
+  }
+
+  .rootGroup > .node::before,
+  .rootGroup > .node:not(:last-child)::after {
+    content: none;
+  }
+
+  /* Path from the root's drop along the bus to this card's top center. */
+  .rootGroup > .node > .slot::before {
+    top: calc(-1 * var(--agent-bus) - var(--agent-stroke) / 2);
+    height: calc(2 * (var(--agent-bus) + var(--agent-stroke) / 2));
+    border: 0;
+    border-radius: 0;
+  }
+
+  .rootGroup > .node[data-side='center'] > .slot::before {
+    left: calc(50% - var(--agent-stroke) / 2);
+    width: calc(2 * var(--agent-stroke));
+    background: var(--agent-ink);
+  }
+
+  .rootGroup > .node[data-side='left'] > .slot::before {
+    left: calc(50% - var(--agent-stroke) / 2);
+    width: calc(2 * (var(--agent-reach) * var(--agent-step) + var(--agent-stroke)));
+    border-top: calc(2 * var(--agent-stroke)) solid var(--agent-ink);
+    border-left: calc(2 * var(--agent-stroke)) solid var(--agent-ink);
+    border-top-left-radius: calc(2 * var(--agent-bus-radius));
+  }
+
+  .rootGroup > .node[data-side='right'] > .slot::before {
+    left: calc(50% - var(--agent-reach) * var(--agent-step) - var(--agent-stroke) / 2);
+    width: calc(2 * (var(--agent-reach) * var(--agent-step) + var(--agent-stroke)));
+    border-top: calc(2 * var(--agent-stroke)) solid var(--agent-ink);
+    border-right: calc(2 * var(--agent-stroke)) solid var(--agent-ink);
+    border-top-right-radius: calc(2 * var(--agent-bus-radius));
+  }
+
+  /* Paint live paths over muted ones where bus segments overlap. */
+  .rootGroup > .node:not([data-muted]) > .slot::before {
+    z-index: 1;
+  }
+}
+
+@keyframes agent-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes agent-draw {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+
+@keyframes agent-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+
+/* Motion only without a reduced-motion preference; otherwise everything appears at once.
+   A new agent's connector draws from its parent first, then its card rises in. */
+@media (prefers-reduced-motion: no-preference) {
+  .card {
+    transition: box-shadow var(--dsh-feel-control-duration) var(--dsh-feel-control-curve);
+  }
+
+  /* Entry motion stays inside the tree: the glide overlay's copy of a leaving card must not replay it. */
+  .tree .card {
+    animation: agent-rise var(--dsh-feel-panel-duration) var(--dsh-feel-panel-curve) 120ms both;
+  }
+
+  .fold {
+    transition:
+      background-color var(--dsh-feel-control-duration) var(--dsh-feel-control-curve),
+      color var(--dsh-feel-control-duration) var(--dsh-feel-control-curve);
+  }
+
+  .fold svg {
+    transition: transform var(--dsh-feel-control-duration) var(--dsh-feel-control-curve);
+  }
+
+  :is(.rootGroup, .group) > .node::before,
+  :is(.rootGroup, .group) > .node:not(:last-child)::after,
+  .root > .slot[data-open]::before {
+    animation: agent-draw 180ms ease-out both;
+  }
+
+  :is(.rootGroup, .group) > .node > .slot::before {
+    animation: agent-draw 180ms ease-out 60ms both;
+  }
+
+  .tree .slot[data-open]::after {
+    animation: agent-pop 160ms ease-out both;
+  }
+}

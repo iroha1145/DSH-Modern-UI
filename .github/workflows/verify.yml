@@ -1,9 +1,6 @@
-name: Verify release
+name: Legacy patched build (manual)
 
 on:
-  pull_request:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

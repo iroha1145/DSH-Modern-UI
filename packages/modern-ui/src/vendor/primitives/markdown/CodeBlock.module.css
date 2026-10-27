@@ -1,0 +1,176 @@
+/* Beautiful UI CodeBlock.tsx (MIT), adapted to the existing Shiki renderer and toolbar. */
+/* Visual baseline: deepsuite `@deepseek/md` code-block.css. Highlight colors
+   stay on the existing shiki `--shiki-*` sheet (not Prism highlight.css). */
+
+.block {
+  --dsl-code-block-banner-background-color: var(--bui-surface, var(--surface));
+  --dsl-code-block-border-radius: var(--bui-radius-card);
+  --dsl-code-block-banner-font: 12px/18px var(--dsw-font-family);
+  --dsl-code-block-content-font: var(--dsw-font-markdown-code-block);
+  --dsl-code-block-background: var(--surface, var(--dsw-alias-markdown-code-block));
+
+  position: relative;
+  margin: 12px 0;
+  color: var(--ink, var(--dsw-alias-label-primary));
+  background: var(--dsl-code-block-background);
+  border: 1px solid var(--card-border, rgb(23 23 23 / 0.07));
+  border-radius: var(--dsl-code-block-border-radius);
+  box-shadow: var(--bui-shadow-card, var(--shadow-card));
+}
+
+.block:not(:last-child) {
+  margin-bottom: 12px;
+}
+
+.bannerWrap {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  background-color: var(--inset, var(--dsw-alias-bg-base));
+  border-top-left-radius: var(--dsl-code-block-border-radius);
+  border-top-right-radius: var(--dsl-code-block-border-radius);
+}
+
+.banner {
+  background: var(--dsl-code-block-banner-background-color);
+  height: 44px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--bui-line, var(--line));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font: var(--dsl-code-block-banner-font);
+  border-top-left-radius: var(--dsl-code-block-border-radius);
+  border-top-right-radius: var(--dsl-code-block-border-radius);
+}
+
+.infostring {
+  color: var(--ink, var(--dsw-alias-label-primary));
+  font-family: var(--ds-font-family-code);
+  font-size: 12.5px;
+  line-height: 18px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.action {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.copyButton {
+  background-color: transparent;
+  border: none;
+  padding: 4px 6px;
+  border-radius: var(--dsw-radius-sm);
+  margin: 0;
+  color: var(--ink-2);
+  cursor: pointer;
+  font: inherit;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+@media (hover: hover) {
+  .copyButton:hover {
+    background-color: var(--hover-2);
+    color: var(--ink);
+  }
+}
+
+/* Consumers may turn the stable content node into a viewport without changing
+   the default CodeBlock layout. */
+.content {
+  display: contents;
+}
+
+.block :where(pre) {
+  font: var(--dsl-code-block-content-font);
+  padding: 12px 16px;
+  margin: 0 !important;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  background: var(--dsl-code-block-background);
+  border-bottom-left-radius: var(--dsl-code-block-border-radius);
+  border-bottom-right-radius: var(--dsl-code-block-border-radius);
+}
+
+/* Shiki inlines its theme background var; route it to the repo token. */
+.block :where(pre.shiki) {
+  background: var(--dsl-code-block-background) !important;
+}
+
+.block :where(pre) code {
+  font: inherit;
+  background: none;
+  padding: 0;
+}
+
+.plain {
+  color: var(--ink, var(--dsw-alias-label-primary));
+}
+
+.card :where(pre) {
+  padding: 12px 16px;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+.card[data-code-wrap='false'] {
+  --dsl-code-block-line-white-space: pre;
+}
+
+.card[data-code-wrap='false'] :where(pre) {
+  white-space: pre;
+  overflow-wrap: normal;
+}
+
+.numbered :where(pre) code {
+  display: block;
+  counter-reset: source-line;
+  white-space: normal;
+}
+
+.numbered :where(pre) code > :global(.line) {
+  position: relative;
+  display: block;
+  min-height: 1lh;
+  padding-inline-start: calc(var(--dsl-code-block-line-number-width) + 12px);
+  counter-increment: source-line;
+  white-space: var(--dsl-code-block-line-white-space, pre-wrap);
+}
+
+.numbered :where(pre) code > :global(.line)::before {
+  position: absolute;
+  inset-inline-start: 0;
+  width: var(--dsl-code-block-line-number-width);
+  color: var(--dsw-alias-label-tertiary);
+  text-align: end;
+  content: counter(source-line);
+  user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .copyButton { transition: none; }
+}
+
+/* Keep the real highlighted tree mounted during streaming; hidden also removes
+   its selectable/focusable content from keyboard and accessibility navigation. */
+.content[hidden] {
+  display: none;
+}
+
+.block[data-code-collapsed] .bannerWrap {
+  border-bottom-left-radius: inherit;
+  border-bottom-right-radius: inherit;
+}
+
+.block[data-code-collapsed] [data-code-block-banner] {
+  border-bottom: 0;
+  border-bottom-left-radius: inherit;
+  border-bottom-right-radius: inherit;
+}

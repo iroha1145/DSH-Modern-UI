@@ -1,0 +1,51 @@
+/* Resting appearance follows aria-checked; the instance-owned Feel spring
+ * supplies the intermediate position and fill while the controlled state changes.
+ * The capsule track and circular thumb opt out of the global superellipse. */
+.switch {
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 20px;
+  padding: 2px;
+  border: 0;
+  border-radius: 999px;
+  corner-shape: round;
+  --dsh-switch-rest-x: 0px;
+  --dsh-switch-rest-fill: 0%;
+  background: color-mix(in srgb,
+    var(--dsw-alias-brand-primary) var(--dsh-switch-fill, var(--dsh-switch-rest-fill)),
+    var(--dsw-alias-border-l3));
+  cursor: pointer;
+}
+
+.switch[aria-checked='true'] {
+  --dsh-switch-rest-x: 16px;
+  --dsh-switch-rest-fill: 100%;
+}
+
+.switch:disabled,
+.switch[aria-disabled='true'] {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.switch:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 2px;
+}
+
+.thumb {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  corner-shape: round;
+  background: color-mix(in srgb,
+    var(--dsw-alias-label-primary-foreground) var(--dsh-switch-fill, var(--dsh-switch-rest-fill)),
+    var(--dsw-alias-switch-thumb));
+  transform: translateX(var(--dsh-switch-x, var(--dsh-switch-rest-x)));
+}
+
+/* The instance-owned Feel spring writes position and fill from the same body.
+ * Without script, aria-checked still supplies the correct resting appearance. */

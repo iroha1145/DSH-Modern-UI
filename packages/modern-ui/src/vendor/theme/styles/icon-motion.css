@@ -1,0 +1,312 @@
+/*
+ * Product icon motion, modeled on lucide-animated (https://lucide-animated.com,
+ * MIT): an icon plays a short motion while the control around it is hovered or
+ * keyboard-focused, and returns to its drawing once the control is left.
+ *
+ * Two switches carry the state into each icon and, through `<use>`, into its
+ * sprite symbol. `--dsw-icon-play` names no animation at rest and turns
+ * guaranteed-invalid while active, so `var(--dsw-icon-play, <keyframes>)` falls
+ * back to the motion; `--dsw-icon-on` is 0 at rest and 1 while active for
+ * motions that hold a pose. A component may start an icon's motion by setting
+ * both on the icon's `<svg>` itself.
+ *
+ * Whole-glyph motions key on the icon's `data-icon` and animate the `<svg>`
+ * box, so they also move theme-replaced artwork. Part motions are
+ * `dsw-motion-*` classes on elements of the default ui-primitives artwork; a
+ * replacement symbol without them keeps still. Every rule here has zero
+ * specificity, so an animation or transform a component sets on an icon wins.
+ */
+
+:where(svg[data-icon]) {
+  --dsw-icon-play: none;
+  --dsw-icon-on: 0;
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  :where(
+    button, a[href], summary, label,
+    [role="button"], [role="link"], [role="tab"], [role="menuitem"], [role="menuitemradio"],
+    [role="menuitemcheckbox"], [role="option"], [role="switch"], [role="checkbox"], [role="radio"], [role="treeitem"]
+  ):where(:not(:disabled, [aria-disabled="true"])):where(:hover, :focus-visible) :where(svg[data-icon]),
+  :where(svg[data-icon]):hover {
+    --dsw-icon-play: initial;
+    --dsw-icon-on: 1;
+  }
+}
+
+/* Whole-glyph motions. */
+
+:where(
+  svg[data-icon^="dsw-icon-settings-outline-"], svg[data-icon^="dsw-icon-plus-outline-"]
+) {
+  --dsw-icon-turn: 180deg;
+}
+
+:where(
+  svg[data-icon^="dsw-icon-close-circle-fill-"], svg[data-icon^="dsw-icon-plugin-pinwheel-outline-"],
+  svg[data-icon^="dsw-icon-light-outline-"]
+) {
+  --dsw-icon-turn: 90deg;
+}
+
+:where(
+  svg[data-icon^="dsw-icon-settings-outline-"], svg[data-icon^="dsw-icon-plus-outline-"],
+  svg[data-icon^="dsw-icon-close-circle-fill-"], svg[data-icon^="dsw-icon-plugin-pinwheel-outline-"],
+  svg[data-icon^="dsw-icon-light-outline-"]
+) {
+  animation: var(--dsw-icon-play, dsw-icon-turn) 700ms cubic-bezier(0.34, 1.36, 0.64, 1);
+}
+
+:where(svg[data-icon^="dsw-icon-refresh-outline-"]) {
+  animation: var(--dsw-icon-play, dsw-icon-spin) 640ms cubic-bezier(0.45, 0, 0.2, 1);
+}
+
+:where(
+  svg[data-icon^="dsw-icon-new-chat-outline-"], svg[data-icon^="dsw-icon-globe-outline-"],
+  svg[data-icon^="dsw-icon-dark-outline-"], svg[data-icon^="dsw-icon-think-outline-"]
+) {
+  animation: var(--dsw-icon-play, dsw-icon-wobble) 620ms ease-in-out;
+}
+
+:where(svg[data-icon^="dsw-icon-wrench-outline-"]) {
+  transform-origin: 78% 22%;
+  animation: var(--dsw-icon-play, dsw-icon-wrench) 1050ms ease-in-out;
+}
+
+:where(svg[data-icon^="dsw-icon-search-outline-"]) {
+  animation: var(--dsw-icon-play, dsw-icon-search) 900ms ease-in-out;
+}
+
+:where(svg[data-icon^="dsw-icon-send-outline-"]) {
+  --dsw-icon-fly-x: 0px;
+  --dsw-icon-fly-y: -4px;
+}
+
+:where(svg[data-icon^="dsw-icon-paper-plane-outline-"]) {
+  --dsw-icon-fly-x: 3px;
+  --dsw-icon-fly-y: -3px;
+}
+
+:where(svg[data-icon^="dsw-icon-send-outline-"], svg[data-icon^="dsw-icon-paper-plane-outline-"]) {
+  animation: var(--dsw-icon-play, dsw-icon-fly) 700ms ease-in-out;
+}
+
+:where(svg[data-icon^="dsw-icon-share-outline-"], svg[data-icon^="dsw-icon-right-up-outline-"]) {
+  --dsw-motion-x: 1.5px;
+  --dsw-motion-y: -1.5px;
+  animation: var(--dsw-icon-play, dsw-icon-nudge) 460ms ease-in-out;
+}
+
+:where(
+  svg[data-icon^="dsw-icon-like-outline-"], svg[data-icon^="dsw-icon-like-fill-"],
+  svg[data-icon^="dsw-icon-dislike-outline-"], svg[data-icon^="dsw-icon-dislike-fill-"],
+  svg[data-icon^="dsw-icon-paperclip-outline-"], svg[data-icon^="dsw-icon-pin-outline-"],
+  svg[data-icon^="dsw-icon-pin-fill-"], svg[data-icon^="dsw-icon-code-outline-"],
+  svg[data-icon^="dsw-icon-link-outline-"]
+) {
+  animation: var(--dsw-icon-play, dsw-icon-tilt) 540ms ease-in-out;
+}
+
+:where(svg[data-icon^="dsw-icon-alarm-clock-outline-"]) {
+  animation: var(--dsw-icon-play, dsw-icon-shake) 560ms linear;
+}
+
+:where(
+  svg[data-icon^="dsw-icon-stop-fill-"], svg[data-icon^="dsw-icon-deliver-doc-"],
+  svg[data-icon^="dsw-icon-agent-preset-outline-"], svg[data-icon^="dsw-icon-browse-outline-"],
+  svg[data-icon^="dsw-icon-enhance-outline-"], svg[data-icon^="dsw-icon-check-circle-fill-"],
+  svg[data-icon^="dsw-icon-check-circle-outline-"], svg[data-icon^="dsw-icon-cordis-plugin-outline-"],
+  svg[data-icon^="dsw-icon-personalization-outline-"], svg[data-icon^="dsw-icon-folder-open-outline-"],
+  svg[data-icon^="dsw-icon-folder-open-"], svg[data-icon^="dsw-icon-folder-close-"],
+  svg[data-icon^="dsw-icon-followsystem-outline-"], svg[data-icon^="dsw-icon-data-outline-"],
+  svg[data-icon^="dsw-icon-database-outline-"], svg[data-icon^="dsw-icon-queue-outline-"],
+  svg[data-icon^="dsw-icon-checklist-outline-"], svg[data-icon^="dsw-icon-list-pen-outline-"],
+  svg[data-icon^="dsw-icon-goal-outline-"], svg[data-icon^="dsw-icon-skill-outline-"],
+  svg[data-icon^="dsw-icon-wrap-lines-outline-"], svg[data-icon^="dsw-icon-nowrap-fill-"],
+  svg[data-icon^="dsw-icon-wrap-fill-"], svg[data-icon^="dsw-icon-compare-split-outline-"],
+  svg[data-icon^="dsw-icon-plan-outline-"], svg[data-icon^="dsw-icon-compact-outline-"],
+  svg[data-icon^="dsw-icon-shield-outline-"], svg[data-icon^="dsw-icon-flat-list-outline-"],
+  svg[data-icon^="dsw-icon-workspace-tree-outline-"], svg[data-icon^="dsw-icon-drag-handle-outline-"],
+  svg[data-icon^="dsw-icon-archive-off-outline-"], svg[data-icon^="dsw-icon-inspect-outline-"]
+) {
+  animation: var(--dsw-icon-play, dsw-icon-pop) 440ms ease-in-out;
+}
+
+/* Part motions inside the default artwork. Lengths are in the glyph's 16-unit view box. */
+
+.dsw-motion-draw {
+  animation: var(--dsw-icon-play, dsw-icon-draw) 460ms cubic-bezier(0.4, 0, 0.2, 1) backwards;
+}
+
+.dsw-motion-nudge-right { --dsw-motion-x: 1.5px; }
+.dsw-motion-nudge-left { --dsw-motion-x: -1.5px; }
+.dsw-motion-nudge-up { --dsw-motion-y: -1.5px; }
+.dsw-motion-nudge-down { --dsw-motion-y: 1.5px; }
+
+.dsw-motion-nudge-right, .dsw-motion-nudge-left, .dsw-motion-nudge-up, .dsw-motion-nudge-down {
+  animation: var(--dsw-icon-play, dsw-icon-nudge) 440ms ease-in-out;
+}
+
+.dsw-motion-hop {
+  animation: var(--dsw-icon-play, dsw-icon-hop) 560ms ease-in-out;
+}
+
+.dsw-motion-lift, .dsw-motion-sink, .dsw-motion-shift-ne, .dsw-motion-shift-sw {
+  transition: translate 260ms cubic-bezier(0.34, 1.36, 0.64, 1);
+}
+
+.dsw-motion-lift { translate: 0 calc(var(--dsw-icon-on, 0) * -1.2px); }
+.dsw-motion-sink { translate: 0 calc(var(--dsw-icon-on, 0) * 1.2px); }
+.dsw-motion-shift-ne { translate: calc(var(--dsw-icon-on, 0) * 1.1px) calc(var(--dsw-icon-on, 0) * -1.1px); }
+.dsw-motion-shift-sw { translate: calc(var(--dsw-icon-on, 0) * -1.1px) calc(var(--dsw-icon-on, 0) * 1.1px); }
+
+.dsw-motion-twist {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: var(--dsw-icon-play, dsw-icon-twist) 520ms cubic-bezier(0.34, 1.36, 0.64, 1);
+}
+
+.dsw-motion-sweep {
+  transform-box: view-box;
+  transform-origin: 8px 8px;
+  animation: var(--dsw-icon-play, dsw-icon-spin) 760ms cubic-bezier(0.45, 0, 0.2, 1);
+}
+
+.dsw-motion-needle {
+  transform-box: fill-box;
+  transform-origin: 0% 100%;
+  animation: var(--dsw-icon-play, dsw-icon-needle) 680ms ease-in-out;
+}
+
+.dsw-motion-swing {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: var(--dsw-icon-play, dsw-icon-swing) 560ms ease-in-out;
+}
+
+.dsw-motion-blink {
+  animation: var(--dsw-icon-play, dsw-icon-blink) 900ms steps(1, end);
+}
+
+.dsw-motion-scribble {
+  animation: var(--dsw-icon-play, dsw-icon-scribble) 620ms ease-in-out;
+}
+
+.dsw-motion-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: var(--dsw-icon-play, dsw-icon-pulse) 560ms ease-in-out;
+}
+
+.dsw-motion-twinkle {
+  animation: var(--dsw-icon-play, dsw-icon-twinkle) 900ms linear;
+}
+
+.dsw-motion-enter {
+  animation: var(--dsw-icon-play, dsw-icon-enter) 500ms cubic-bezier(0.34, 1.36, 0.64, 1) backwards;
+}
+
+/* Staggered parts; after the motions so the delay survives their shorthands. */
+.dsw-motion-later { animation-delay: 110ms; }
+.dsw-motion-latest { animation-delay: 220ms; }
+
+@keyframes dsw-icon-turn {
+  to { rotate: var(--dsw-icon-turn, 180deg); }
+}
+
+@keyframes dsw-icon-spin {
+  to { rotate: 360deg; }
+}
+
+@keyframes dsw-icon-wobble {
+  20% { rotate: -9deg; }
+  45% { rotate: 8deg; }
+  70% { rotate: -4deg; }
+  88% { rotate: 2deg; }
+}
+
+@keyframes dsw-icon-wrench {
+  42% { rotate: 12deg; }
+  68% { rotate: -14deg; }
+  88% { rotate: 4deg; }
+}
+
+@keyframes dsw-icon-search {
+  33% { translate: 0 -2px; }
+  66% { translate: -1.6px 0; }
+}
+
+@keyframes dsw-icon-fly {
+  40% { translate: var(--dsw-icon-fly-x, 0px) var(--dsw-icon-fly-y, 0px); opacity: 0; }
+  41% { translate: calc(var(--dsw-icon-fly-x, 0px) * -1) calc(var(--dsw-icon-fly-y, 0px) * -1); opacity: 0; }
+}
+
+@keyframes dsw-icon-tilt {
+  30% { rotate: -14deg; }
+  65% { rotate: 6deg; }
+}
+
+@keyframes dsw-icon-shake {
+  12%, 37%, 62% { translate: -0.8px 0; }
+  25%, 50%, 75% { translate: 0.8px 0; }
+}
+
+@keyframes dsw-icon-pop {
+  35% { scale: 0.86; }
+  70% { scale: 1.06; }
+}
+
+@keyframes dsw-icon-draw {
+  from { stroke-dasharray: 1; stroke-dashoffset: 1; }
+  to { stroke-dasharray: 1; stroke-dashoffset: 0; }
+}
+
+@keyframes dsw-icon-nudge {
+  50% { translate: var(--dsw-motion-x, 0px) var(--dsw-motion-y, 0px); }
+}
+
+@keyframes dsw-icon-hop {
+  30% { translate: 0 -1.6px; }
+  60% { translate: 0 0.3px; }
+  80% { translate: 0 -0.5px; }
+}
+
+@keyframes dsw-icon-twist {
+  to { rotate: 90deg; }
+}
+
+@keyframes dsw-icon-needle {
+  35% { rotate: -55deg; }
+  70% { rotate: 12deg; }
+}
+
+@keyframes dsw-icon-swing {
+  20% { rotate: -12deg; }
+  45% { rotate: 10deg; }
+  70% { rotate: -6deg; }
+}
+
+@keyframes dsw-icon-blink {
+  0%, 50% { opacity: 0; }
+  25%, 75% { opacity: 1; }
+}
+
+@keyframes dsw-icon-scribble {
+  25% { translate: -0.8px 1px; }
+  55% { translate: 1px -0.6px; }
+  80% { translate: -0.3px 0.3px; }
+}
+
+@keyframes dsw-icon-pulse {
+  40% { scale: 0.8; }
+  75% { scale: 1.08; }
+}
+
+@keyframes dsw-icon-twinkle {
+  15%, 45% { opacity: 0; }
+  30%, 60% { opacity: 1; }
+}
+
+@keyframes dsw-icon-enter {
+  from { translate: -2px 0; opacity: 0; }
+}
