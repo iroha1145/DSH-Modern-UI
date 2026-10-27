@@ -6,7 +6,7 @@ if [ "$#" -lt 3 ] || [ "$#" -gt 5 ]; then
 fi
 backend=$1; plugin=$2; integrity=$3
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-root=${4:-"${XDG_DATA_HOME:-$HOME/.local/share}/dsh-modern-ui/program"}
+root=$(sh "$here/program-root.sh" "${4:-}")
 node=${DSH_MODERN_NODE:-node}
 if candidate_version=$("$node" --version 2>/dev/null) && [ "$candidate_version" = 'v24.22.1' ]; then
   if [ "$#" -eq 5 ]; then

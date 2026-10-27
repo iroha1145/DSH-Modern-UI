@@ -26,13 +26,15 @@ PowerShell 参数只对这个进程生效，解决 Windows 默认 Restricted 对
 
 官方 `dsh plugin --profile <name> add <tgz>` 会初始化未知 profile，但默认只有 base bundle；`--from-default-profile` 属于启动/配置命令，不属于 plugin add。仅一条裸 add 不足以初始化完整 Web UI，因此薄 wrapper 先安全建立独立 Web profile，再执行官方 plugin add 和自检。它不覆盖其他 profile。若显式在已知数据目录使用 `--from-profile`，只读复制该 profile 配置到新 generation，源文件前后摘要保持一致；不转换会话。
 
-POSIX 对应入口（候选平台，本机未运行）：
+POSIX 对应入口：
 
 ```sh
 sh ./install-existing.sh /absolute/official/package.json '/path/to/program' '/path/to/data'
 ```
 
-要求已有精确 Node，或使用新用户 bootstrap；`DSH_MODERN_NODE` 可指定 Node 路径。没有声明五个平台都已经验收，也不要求五套完整便携包。
+`install-existing.sh` 和直接运行 `install-existing.mjs` 的默认程序目录一致：`${XDG_DATA_HOME:-$HOME/.local/share}/dsh-modern-ui/program`。如果只有旧版大写 `DSH-Modern-UI` 目录存在，两种入口均沿用它及其安装记录中的数据目录；若大小写两套目录同时存在且实际是不同目录，安装会在下载或写入之前拒绝，必须通过 `PROGRAM_ROOT` 位置参数或 `--root` 明确选择。符号链接或大小写不敏感文件系统指向同一目录时不会误判，也不会合并、迁移或删除数据。
+
+`DSH_MODERN_NODE` 可指定 Node 路径；Shell 入口找不到精确 Node 时自动使用私有 bootstrap，JS 入口要求已有精确 Node。生成的预览入口沿用同一目录选择规则。平台验收以当前提交的 CI 为准，本地 Windows 运行不代表已经执行 POSIX 信号和 Shell 检查。
 
 ## 新用户
 
@@ -52,7 +54,7 @@ Windows 私有 PowerShell 固定微软官方 **7.6.5 x64 自包含 ZIP**，来�
 - ZIP SHA256：`32eb8f6cdce08f86e987d625a2733e54ac3e289ae7e1621b14c0b5bcec2434ea`。
 - 保留完整 LICENSE.txt、ThirdPartyNotices.txt 与运行资源；不安装 MSI，不要求 .NET SDK，不编译。
 
-官方 pwsh resolver 先查 ProgramFiles，再查 PATH，因此安装器同时通过受支持的 profile Config 显式绑定 pwshPath，并在实际 launcher PATH 中加入私有目录。用户已有不同/计算型 pwshPath 不被覆盖，会明确拒绝需要人工审查的配置。pwsh-sandbox 的启停和沙箱模式保持原样。
+官方 pwsh resolver 先查 ProgramFiles，再查 PATH，因此安装器同时通过受支持的 profile Config 显式绑定 pwshPath，并在实际 launcher PATH 中加入私有目录。官方 entry patch 会整体替换 config，因此绑定保留有效执行器的 timeoutMs、maxTimeoutMs、cwd、输出/溢出上限、graceMs 等设置，只更新 pwshPath。用户已有不同/计算型 pwshPath 不被覆盖，会明确拒绝需要人工审查的配置。pwsh-sandbox 的启停和沙箱模式保持原样。
 
 已在仅保留 System32 + WindowsPowerShell 的测试 PATH 下真实执行 official agent 的 write/read/pwsh/read，实际 pwsh.exe 位于私有 generation/powershell，非 Codex 缓存；测试清空 PSModulePath、NODE_PATH 和 DOTNET_ROOT。生产环境来自安装后 manager 同一 runtimeEnvironment，测试没有另塞隐藏的 shell 配置。实际沙箱结果为 workspace-write、partial enforcement，不能说 full enforcement。
 
@@ -82,6 +84,8 @@ $installedState = Get-Content -Raw -Encoding UTF8 'D:/DSH Modern/program/current
 community-lock.json 随程序保留三个精确包的真实 URL/SRI：dsh-context@0.75.1、dsh-better-sidebar@0.28.0、dsh-plugins-store@0.1.4。同版本跳过；不同版本保留；声明但缺文件也不擅自覆盖。单包失败继续其他包。
 
 更新仍使用 install-existing / bootstrap。新 generation 下载、校验并自检后才原子切 current.json；先停止使用同一数据目录的进程。程序管理使用 OS 生命周期 TCP 租约，强杀后内核释放；不读取或删除历史 operation.lock 文件。官方会话锁未绕过。
+
+POSIX 启动器将 SIGTERM、SIGINT 和 SIGHUP 转发给 DSH 子进程，并持续持有操作锁直到子进程退出、stdio 关闭。退出后清理信号监听器，保留子进程数值退出码；未处理信号终止使用 `128 + signal number`（例如 SIGTERM 为 143）。SIGKILL 等无法捕获的强制终止不属于此转发保证，内核会释放已被杀死的启动器所持租约。
 
 stage 自检包含官方 Web 启动审计、token 到 Cookie 的正常交换、准确 release/插件 boot graph、revisioned 同源插件资源 HTTP200、无 Cookie API401 和恶意 Host403。响应 Cookie / token 不写入报告。
 

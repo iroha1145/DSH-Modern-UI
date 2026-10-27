@@ -50,7 +50,8 @@ export async function bindPowerShell(profile, effectiveYaml, powershell, yaml) {
     if (row.config !== undefined && (!row.config || Array.isArray(row.config) || Object.getPrototypeOf(row.config) !== Object.prototype)) throw new Error(`Computed executor configuration for ${row.id} requires manual review`)
     const configured = row.config?.pwshPath
     if (configured !== undefined && configured !== '' && configured !== powershell.path) throw new Error(`Executor ${row.id} pins another PowerShell path; source configuration was not overwritten`)
-    if (configured !== powershell.path) additions.push({ id: row.id, name: row.name, config: { pwshPath: powershell.path } })
+    // Official entry patches replace config as a whole, so retain the effective executor settings.
+    if (configured !== powershell.path) additions.push({ id: row.id, name: row.name, config: { ...row.config, pwshPath: powershell.path } })
   }
   if (additions.length) {
     const path = join(profile, 'cordis.patch.yml')

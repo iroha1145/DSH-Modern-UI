@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { spawnSync, spawn } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { cp, mkdir, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
@@ -12,6 +12,7 @@ import { dependencyInventory } from './dependency-inventory.mjs'
 import { verifyReleaseSources } from './verify-release-source.mjs'
 import { bindHostCompatibility, preserveLegacySettings, preserveConversationPreferences } from './profile-settings.mjs'
 import { acquireOperationLock } from './operation-lock.mjs'
+import { launchChild } from './launch-child.mjs'
 import { download, unpack } from './artifacts.mjs'
 import { preparePowerShell, bindPowerShell } from './shell-runtime.mjs'
 import { readSelection, previousState, receiptReference, retainSelection } from './lifecycle.mjs'
@@ -320,11 +321,9 @@ export async function main(argv = process.argv.slice(2)) {
     if (command === 'launch') {
       await verifyOfficial(state)
       console.log(JSON.stringify({ node: state.node, pnpm: state.pnpm, backend: state.backend, version: versions.backend, plugin: state.plugin, profile: state.profile, home: state.home }))
-      return await new Promise((resolvePromise, reject) => {
-        const child = spawn(state.node, [state.cli, '--profile', state.profile, ...(options.args ?? [])], { cwd: state.home, env: runtimeEnvironment(state), stdio: 'inherit' })
-        child.on('error', reject)
-        child.on('exit', code => code === 0 ? resolvePromise({ exitCode: code }) : reject(new Error(`DSH exited ${code}`)))
-      })
+      const result = await launchChild(state.node, [state.cli, '--profile', state.profile, ...(options.args ?? [])], { cwd: state.home, env: runtimeEnvironment(state), stdio: 'inherit' })
+      process.exitCode = result.exitCode
+      return result
     }
     throw new Error(`Unknown command ${command}`)
   } finally { await lease.release() }

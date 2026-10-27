@@ -2,12 +2,13 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { cp, mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 
 const source = fileURLToPath(new URL('../../scripts/distribution/', import.meta.url))
+const preview = process.env.MODERN_UI_ROOT_PREVIEW ? resolve(process.env.MODERN_UI_ROOT_PREVIEW) : undefined
 const posix = process.platform !== 'win32'
 async function fixture(t) {
   const directory = await mkdtemp(join(tmpdir(), 'dsh-root-'))
@@ -17,12 +18,22 @@ async function fixture(t) {
   return { directory, base }
 }
 async function stagedInstaller(directory) {
-  const installer = join(directory, 'installer')
-  await cp(source, installer, { recursive: true })
+  const entry = join(directory, 'entry')
+  const installer = preview ? join(entry, 'installer') : entry
+  await cp(preview ?? source, entry, { recursive: true })
   await writeFile(join(installer, 'manager.mjs'), `export const versions = { node: '24.22.1' }
 export async function main(args) { return { args } }
 `)
-  return installer
+  return { entry, installer }
+}
+function dispatchJs(staged, environment, root) {
+  return spawnSync(process.execPath, [join(staged.entry, 'install-existing.mjs'), '--backend', 'official.json',
+    ...(preview ? [] : ['--plugin', 'plugin.tgz', '--plugin-integrity', 'sha512-fixture']),
+    '--skip-community', 'true', ...(root ? ['--root', root] : [])], { encoding: 'utf8', env: environment })
+}
+function dispatchShell(staged, environment, root) {
+  return spawnSync('sh', [join(staged.entry, 'install-existing.sh'), 'official.json',
+    ...(preview ? [] : ['plugin.tgz', 'sha512-fixture']), ...(root ? [root] : [])], { encoding: 'utf8', env: environment })
 }
 function core(result) {
   assert.equal(result.status, 0, result.stderr)
@@ -37,8 +48,7 @@ test('actual JavaScript installer retains selected data and honors explicit root
   const retained = join(base, 'retained data')
   await mkdir(root)
   await writeFile(join(root, 'current.json'), JSON.stringify({ home: retained }))
-  const result = spawnSync(process.execPath, [join(installer, 'install-existing.mjs'), '--backend', 'official.json',
-    '--plugin', 'plugin.tgz', '--plugin-integrity', 'sha512-fixture', '--root', root, '--skip-community', 'true'], { encoding: 'utf8' })
+  const result = dispatchJs(installer, process.env, root)
   const args = core(result)
   assert.equal(args[args.indexOf('--root') + 1], root)
   assert.equal(args[args.indexOf('--home') + 1], retained)
@@ -54,8 +64,8 @@ test('actual POSIX entries refuse two distinct existing application directories 
   await mkdir(legacy)
   const environment = { ...process.env, XDG_DATA_HOME: base, DSH_MODERN_NODE: process.execPath, DSH_MODERN_SKIP_COMMUNITY: '1' }
   const results = [
-    spawnSync('sh', [join(installer, 'install-existing.sh'), 'official.json', 'plugin.tgz', 'sha512-fixture'], { encoding: 'utf8', env: environment }),
-    spawnSync(process.execPath, [join(installer, 'install-existing.mjs'), '--backend', 'official.json', '--plugin', 'plugin.tgz', '--plugin-integrity', 'sha512-fixture', '--skip-community', 'true'], { encoding: 'utf8', env: environment }),
+    dispatchShell(installer, environment),
+    dispatchJs(installer, environment),
   ]
   for (const result of results) {
     assert.notEqual(result.status, 0, `Ambiguous root must fail before calling the manager: ${result.stdout}`)
@@ -68,8 +78,8 @@ test('actual POSIX shell and JavaScript entries agree for fresh, retained, ambig
   const { directory, base } = await fixture(t)
   const installer = await stagedInstaller(directory)
   const environment = { ...process.env, XDG_DATA_HOME: base, DSH_MODERN_NODE: process.execPath, DSH_MODERN_SKIP_COMMUNITY: '1' }
-  const runShell = root => spawnSync('sh', [join(installer, 'install-existing.sh'), 'official.json', 'plugin.tgz', 'sha512-fixture', ...(root ? [root] : [])], { encoding: 'utf8', env: environment })
-  const runJs = root => spawnSync(process.execPath, [join(installer, 'install-existing.mjs'), '--backend', 'official.json', '--plugin', 'plugin.tgz', '--plugin-integrity', 'sha512-fixture', '--skip-community', 'true', ...(root ? ['--root', root] : [])], { encoding: 'utf8', env: environment })
+  const runShell = root => dispatchShell(installer, environment, root)
+  const runJs = root => dispatchJs(installer, environment, root)
   const assertRoot = expected => {
     for (const result of [runShell(), runJs()]) {
       const args = core(result)
@@ -99,7 +109,7 @@ test('actual POSIX shell and JavaScript entries agree for fresh, retained, ambig
     assert.equal(args[args.indexOf('--home') + 1], retained)
   }
   // A bootstrap stand-in records dispatch before any download or installation.
-  await writeFile(join(installer, 'bootstrap.sh'), '#!/bin/sh\nprintf "%s\\n" "$@"\n')
+  await writeFile(join(installer.installer, 'bootstrap.sh'), '#!/bin/sh\nprintf "%s\\n" "$@"\n')
   environment.DSH_MODERN_NODE = join(directory, 'no node')
   assert.notEqual(runShell().status, 0)
   const fallback = runShell(legacy)

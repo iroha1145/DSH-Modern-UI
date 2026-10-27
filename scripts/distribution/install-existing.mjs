@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs'
 import { readSelection } from './lifecycle.mjs'
 import { randomUUID } from 'node:crypto'
 import { dirname, join, resolve } from 'node:path'
-import { homedir } from 'node:os'
+import { selectProgramRoot } from './program-root.mjs'
 import { fileURLToPath } from 'node:url'
 import { main, versions } from './manager.mjs'
 
@@ -18,10 +18,7 @@ export async function installExisting(argv = process.argv.slice(2)) {
   }
   for (const key of ['--backend', '--plugin', '--plugin-integrity']) if (!options[key]) throw new Error(`${key} is required`)
   if (options['--skip-community'] !== undefined && !['true', 'false'].includes(options['--skip-community'])) throw new Error('--skip-community expects true or false')
-  const base = process.platform === 'win32' ? process.env.LOCALAPPDATA
-    : process.env.XDG_DATA_HOME ?? join(homedir(), '.local/share')
-  if (!base && !options['--root']) throw new Error('Pass --root when the local application data directory is unavailable')
-  const root = resolve(options['--root'] ?? join(base, 'DSH-Modern-UI/program'))
+  const root = selectProgramRoot({ root: options['--root'] })
   const previous = await readSelection(root)
   const home = resolve(options['--home'] ?? previous?.home ?? join(dirname(root), `data-${randomUUID()}`))
   const cacheConditions = {

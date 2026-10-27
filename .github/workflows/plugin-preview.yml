@@ -39,6 +39,10 @@ jobs:
       - run: npm run build
       - run: npm test
       - run: node scripts/create-preview.mjs
+      - name: Verify generated preview root selection
+        run: node --test tests/distribution/install-existing-roots.test.mjs
+        env:
+          MODERN_UI_ROOT_PREVIEW: .artifacts/plugin-preview
       - uses: actions/upload-artifact@v7.0.1
         with:
           name: modern-ui-precompiled-preview
