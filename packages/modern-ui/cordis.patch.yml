@@ -1,0 +1,23 @@
+# Select one client owner for these surfaces. Their source rows/configuration remain
+# in the base profile and return when this bundle is deselected or removed.
+# Layout/sidebar/workspace have empty Host entries; conversation Host Config/apply
+# are reused through the Modern UI entry with explicitly migrated preferences.
+- id: ui-layout
+  name: '@deepseek-ai/dsh-client-ui-layout'
+  disabled: true
+- id: ui-sidebar
+  name: '@deepseek-ai/dsh-client-ui-sidebar'
+  disabled: true
+- id: ui-conversation
+  name: '@deepseek-ai/dsh-client-ui-conversation'
+  disabled: true
+- id: ui-workspace
+  name: '@deepseek-ai/dsh-client-ui-workspace'
+  disabled: true
+- insert:
+    - id: modern-ui
+      name: '@iroha1145/dsh-modern-ui'
+      config:
+        enabled: true
+        models: {}
+        prices: {}

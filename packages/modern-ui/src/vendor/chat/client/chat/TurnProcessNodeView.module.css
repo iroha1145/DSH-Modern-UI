@@ -1,0 +1,74 @@
+.root {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  height: 30px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--dsw-radius-md);
+  background: none;
+  color: var(--ink-2, var(--dsw-alias-label-secondary));
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  transition: color 140ms ease, background-color 140ms ease;
+}
+
+.root:disabled {
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .root:hover:not(:disabled) {
+    color: var(--ink, var(--dsw-alias-label-primary));
+    background: var(--inset);
+  }
+}
+
+.resultIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-3);
+  flex: none;
+}
+
+.chevron {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  margin-left: 0;
+  color: var(--ink-3);
+  transform: rotate(-90deg);
+  transition: transform 200ms ease, color 120ms ease;
+}
+
+.root[data-open] .chevron {
+  transform: rotate(0deg);
+}
+
+.label {
+  min-width: 0;
+  overflow: hidden;
+  font-size: inherit;
+  line-height: calc(24px + var(--dsh-content-font-delta, 0px));
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.durationNumber {
+  font-family: var(--ds-font-family-code);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root,
+  .chevron {
+    transition: none;
+  }
+}

@@ -1,0 +1,47 @@
+/* transitions.dev — Matrix dot loader.
+ * Copyright (c) 2026 Jakub Antalik / Transitions.dev.
+ * https://transitions.dev/detail.html?t=matrix-dot-loader
+ * Original CSS snippet; theme colors are supplied separately below.
+ */
+:root {
+  --matrix-cycle: 1200ms;
+  --matrix-base: #d9d9d9;
+  --matrix-active: #85858f;
+  --matrix-ease: ease-in-out;
+}
+
+.t-matrix {
+  display: grid;
+  grid-template-columns: repeat(4, 2px);
+  grid-auto-rows: 2px;
+  gap: 2px;
+}
+.t-matrix i {
+  display: block;
+  background: var(--matrix-base);
+  animation: t-matrix-pulse var(--matrix-cycle) var(--matrix-ease) infinite;
+  animation-delay: calc(var(--d, 0) * 1ms);
+}
+/* Hole positions (rounded variants) render nothing. */
+.t-matrix i.is-gap { visibility: hidden; animation: none; }
+@keyframes t-matrix-pulse {
+  0%, 45%, 100% { background-color: var(--matrix-base); }
+  15%           { background-color: var(--matrix-active); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-matrix i { animation: none !important; }
+}
+
+body[data-ds-dark-theme] {
+  --matrix-base: #444444;
+  --matrix-active: #d0d0d4;
+}
+
+@media (forced-colors: active) {
+  .t-matrix i {
+    forced-color-adjust: none;
+    animation: none;
+    background: CanvasText;
+  }
+}

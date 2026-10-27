@@ -1,0 +1,64 @@
+{
+  "source": "https://github.com/deepseek-ai/deepseek-harness",
+  "commit": "22ddee3792402c3e70ec5f86a63c3e3e895a2f60",
+  "modernUiCommit": "a9f4c370fa480c9a17d5c9a79cb83aeba26bdf0d",
+  "patchSha256": "111b5c5a0d817685ab32440df6272f895ce385907b0f16f5e036dd443e240000",
+  "purpose": "Explicit replacement plugins retain the existing blank-translation/cache repair and MCP no-redirect behavior. Official package files are never changed.",
+  "files": [
+    {
+      "source": "packages/experimental/translator/src/deepseek.ts",
+      "target": "translator/deepseek.ts",
+      "sourceSha256": "516c8d0656af17912307908c311d7bf50350bfa7c85ce85f6030588bcdf44a87"
+    },
+    {
+      "source": "packages/experimental/translator/src/error.ts",
+      "target": "translator/error.ts",
+      "sourceSha256": "8b0d131bd375f9a57a0eb26ea5c22874ab068682809d04a945697e1dba4269b8"
+    },
+    {
+      "source": "packages/experimental/translator/src/index.ts",
+      "target": "translator/index.ts",
+      "sourceSha256": "195be853258f1a20f2b6cdfdb8bd9915cf4c8256b725fcda9125fb20b0b1a291"
+    },
+    {
+      "source": "packages/experimental/translator/src/provider.ts",
+      "target": "translator/provider.ts",
+      "sourceSha256": "a8f4ca0dd77443d57ed2864edc42010e3495309ef7de3c53f1d498f26b0d76c9"
+    },
+    {
+      "source": "packages/experimental/translator/src/storage.ts",
+      "target": "translator/storage.ts",
+      "sourceSha256": "def693035fa6a6142196ad9baf972d088522c3e22c0604f87da98da60346b173"
+    },
+    {
+      "source": "packages/experimental/translator/src/types.ts",
+      "target": "translator/types.ts",
+      "sourceSha256": "3fb41bf69bb00d443c8821a0f6474423aaf0080280b995659fe167104e940dd5"
+    },
+    {
+      "source": "packages/mcp/mcp-client/src/connection.ts",
+      "target": "mcp-client/connection.ts",
+      "sourceSha256": "06dc1b3a1297b8b23f6ac5c44f3ba6740716c76db71c28cfb8f14d6c0340030e"
+    },
+    {
+      "source": "packages/mcp/mcp-client/src/index.ts",
+      "target": "mcp-client/index.ts",
+      "sourceSha256": "f279bd88743ca73b0d9834915d1bb31e455e21c87f4990808cfd55b273db4d1c"
+    },
+    {
+      "source": "packages/mcp/mcp-client/src/server-context.ts",
+      "target": "mcp-client/server-context.ts",
+      "sourceSha256": "02ca9fe759891788572385a00f0cc7b6e92d6e98e103c1d00dd99ccec0d6319a"
+    },
+    {
+      "source": "packages/mcp/mcp-client/src/tools.ts",
+      "target": "mcp-client/tools.ts",
+      "sourceSha256": "59203150bda479a990afcdaf60483a35a836887926892e1074e02d0294c01af9"
+    },
+    {
+      "source": "packages/mcp/mcp-client/src/transport.ts",
+      "target": "mcp-client/transport.ts",
+      "sourceSha256": "bbb5a81239eb36333b01b9711dc5fb77b5e86f66ac64a89c0f03b8ae1d9ab605"
+    }
+  ]
+}

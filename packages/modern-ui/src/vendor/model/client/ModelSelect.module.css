@@ -1,0 +1,711 @@
+/* Composer model picker: the trigger and its popover. Geometry follows the
+   reference model picker (a 360px card, 44px rows, three 5-segment meters, a
+   footer tray); colors come from the Beautiful UI tokens so the card matches
+   the composer in both palettes. */
+
+/* The popover is portaled out of .root, so both carry the shared tones. */
+.root,
+.menu {
+  --picker-fill: color-mix(in oklab, var(--bui-ink) 5%, transparent);
+  --picker-bar: color-mix(in oklab, var(--bui-ink) 24%, transparent);
+  --picker-bar-off: color-mix(in oklab, var(--bui-ink) 8%, transparent);
+  --picker-ring: color-mix(in oklab, var(--bui-ink) 16%, transparent);
+}
+
+.root {
+  position: relative;
+  min-width: 0;
+}
+
+/* Beautiful UI PromptBar text trigger. */
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: min(360px, 45cqw);
+  height: 28px;
+  padding: 0 6px 0 4px;
+  border: none;
+  border-radius: var(--bui-radius-control);
+  outline: none;
+  background: transparent;
+  color: var(--bui-ink-2);
+  font-size: var(--fs-label, 0.75rem);
+  line-height: 18px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease, transform 120ms var(--ease-spring);
+}
+
+@media (hover: hover) {
+  .trigger:hover:not(:disabled) {
+    background: var(--picker-fill);
+    color: var(--bui-ink);
+  }
+}
+
+.trigger[aria-expanded='true'] {
+  background: var(--picker-fill);
+  color: var(--bui-ink);
+}
+
+.trigger:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+}
+
+.trigger:focus-visible:not([data-selection-focus]) {
+  box-shadow: 0 0 0 2px var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+}
+
+.trigger:disabled {
+  color: var(--dsw-alias-label-dimmed);
+  cursor: default;
+}
+
+.triggerLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Model release labels remain plain text within the exposed composer control
+   and the option rows. */
+.triggerLabel :global([data-tone='quiet']),
+.name :global([data-tone='quiet']) {
+  padding: 0;
+  border-radius: 0;
+  color: var(--bui-ink-3);
+}
+
+/* In the composer control the release label gives way before the model name. */
+.triggerLabel :global([data-tone='quiet']) {
+  display: block;
+  flex-shrink: 1000;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The effort beside the model name gives way first: its huge shrink factor
+   absorbs the deficit before the model name loses a pixel, and its text
+   ellipsizes away while the bulb keeps its place. */
+.triggerEffort {
+  flex-shrink: 1000;
+  /* Room for the bulb (14px) and its gap. */
+  min-width: 17px;
+  overflow: hidden;
+  color: var(--bui-ink-3);
+}
+
+.triggerEffortInner {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.triggerEffortText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bulb {
+  flex: 0 0 auto;
+  color: var(--bui-accent);
+  animation: bulbIn 260ms var(--bui-ease-out);
+}
+
+@keyframes bulbIn {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* The Models glyph stands in for an unknown selection when the composer row
+   cannot fit text; a known selection keeps its vendor tile instead. */
+.triggerIcon {
+  display: var(--dsh-composer-model-icon-display, none);
+  flex: 0 0 auto;
+}
+
+/* The composer measures expanded row demand and owns these display variables.
+   Outside a composer, the trigger retains its text. */
+.triggerLabel,
+.triggerEffort {
+  display: var(--dsh-composer-model-text-display, block);
+}
+
+.chevron {
+  flex: 0 0 auto;
+  color: var(--bui-ink-3);
+  transition: transform 260ms var(--bui-ease-out);
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+/* Vendor tile: the vendor's mark, or a monogram, on a raised square. */
+.glyph {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--dsw-radius-xs);
+  background: var(--bui-surface);
+  box-shadow: 0 0 0 0.5px var(--picker-ring), 0 1px 1px color-mix(in oklab, var(--bui-ink) 7%, transparent);
+  color: var(--bui-ink);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.glyph svg {
+  width: 13px;
+  height: 13px;
+}
+
+.triggerGlyph {
+  width: 18px;
+  height: 18px;
+  font-size: 9.5px;
+}
+
+.triggerGlyph svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Portaled to body and placed from the trigger rect by the component (the
+   Menu primitive's portal rules), so the sidebar and the columns' overflow
+   clips cannot crop it; z matches the primitive's .portal layer. */
+.menu {
+  position: fixed;
+  z-index: 1100;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: min(380px, calc(100vw - 24px));
+  max-height: min(560px, var(--picker-room, calc(100vh - 24px)));
+  overflow: hidden;
+  padding: 4px;
+  border: 0;
+  border-radius: var(--bui-radius-card);
+  box-shadow:
+    0 0 0 0.5px oklch(0 0 0 / 0.08),
+    0 12px 28px -10px oklch(0 0 0 / 0.16),
+    0 1px 2px oklch(0 0 0 / 0.05);
+  color: var(--bui-ink);
+  animation: pickerIn 220ms var(--bui-ease-out);
+  transform-origin: bottom right;
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+
+:global(body[data-ds-dark-theme]) .menu {
+  box-shadow: var(--bui-shadow-overlay);
+}
+
+/* Opacity animation on the menu would isolate its material from the page. */
+@keyframes pickerIn {
+  from { transform: translateY(4px) scale(0.97); }
+  to { transform: none; }
+}
+
+.head {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  height: 26px;
+  padding: 4px 8px 0;
+  color: var(--bui-ink-3);
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.columns,
+.meters {
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: repeat(3, 36px);
+  gap: 8px;
+}
+
+.columns > span {
+  overflow: hidden;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.status,
+.empty {
+  padding: 8px;
+  color: var(--bui-ink-3);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.error,
+.warning {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+  margin: 2px 0 3px;
+  padding: 6px 7px;
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-interactive-bg-hover-danger);
+  color: var(--dsw-alias-state-error-primary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.warning {
+  background: var(--dsw-alias-bg-module-platform);
+  color: var(--dsw-alias-state-warn-label);
+}
+
+.retry {
+  flex: 0 0 auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.searchRow {
+  position: relative;
+  flex-shrink: 0;
+  margin: 2px 0 3px;
+}
+
+.searchRow .search {
+  display: flex;
+  height: auto;
+  padding: 5px 8px;
+  border: 0 solid transparent;
+  border-radius: var(--dsw-radius-xs);
+  background: var(--picker-fill);
+}
+
+.searchRow .searchWithQuery {
+  padding-right: 34px;
+}
+
+.searchClear {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  corner-shape: round;
+  background: transparent;
+  color: var(--bui-ink-2);
+  cursor: pointer;
+}
+
+.searchClear:focus-visible {
+  outline: none;
+  background: var(--picker-fill);
+}
+
+@media (hover: hover) {
+  .searchClear:hover {
+    background: var(--picker-fill);
+  }
+}
+
+.searchRow .search:focus-within {
+  border-color: transparent;
+}
+
+.searchRow .search input {
+  padding: 0;
+  font-size: 12px;
+  line-height: normal;
+}
+
+.searchRow .search input::placeholder {
+  color: var(--bui-ink-3);
+}
+
+.list {
+  display: grid;
+  flex: 0 1 auto;
+  align-content: start;
+  min-height: 0;
+  overflow-y: auto;
+  outline: none;
+}
+
+.option {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 8px;
+  border-radius: var(--dsw-radius-xs);
+  cursor: pointer;
+  transition: background-color 90ms ease-out, opacity 200ms ease;
+}
+
+.option[data-active] {
+  background: var(--picker-fill);
+}
+
+.option[aria-disabled='true'] {
+  cursor: default;
+}
+
+/* Pointing at one row dims the others. */
+.list[data-pointing] .option:not([data-active]) {
+  opacity: 0.55;
+}
+
+.text {
+  display: grid;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  color: var(--bui-ink);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.check {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  color: var(--bui-accent);
+}
+
+.check svg {
+  width: 14px;
+  height: 14px;
+}
+
+.description {
+  overflow: hidden;
+  color: var(--bui-ink-2);
+  font-size: 12px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meter {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2px;
+  height: 4px;
+}
+
+.segment {
+  border-radius: 1px;
+  background: var(--picker-bar-off);
+  transition: background-color 180ms ease;
+}
+
+.segment[data-on] {
+  background: var(--picker-bar);
+}
+
+/* The highlighted row lights its meters column by column, segment by segment. */
+.option[data-active] .segment[data-on] {
+  background: var(--bui-accent);
+  transition-delay: calc(var(--column) * 60ms + var(--segment) * 35ms);
+}
+
+.unrated {
+  flex: 0 0 auto;
+  width: calc(36px * 3 + 16px);
+  overflow: hidden;
+  color: var(--bui-ink-3);
+  font-size: 11px;
+  line-height: 16px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.settings {
+  display: grid;
+  flex: 0 0 auto;
+  margin: 4px -4px 0;
+  padding: 4px 4px 0;
+  border-top: 0.5px solid var(--bui-line);
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  padding: 0 8px;
+  border-radius: var(--dsw-radius-xs);
+  color: var(--bui-ink);
+  font-size: 13px;
+  line-height: 18px;
+  cursor: pointer;
+  transition: background-color 90ms ease-out;
+}
+
+@media (hover: hover) {
+  .toggle:hover {
+    background: var(--picker-fill);
+  }
+}
+
+.toggleIcon {
+  flex: 0 0 auto;
+  margin: 0 2px;
+  color: var(--bui-ink-3);
+}
+
+.toggleLabel {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The shared switch at the reference's compact size (36x20 drawn at 27x15). A
+   transform keeps hit testing exact; the negative margins return the space it
+   no longer draws. */
+.switch {
+  margin: -2.5px -4.5px;
+  transform: scale(0.75);
+}
+
+/* Effort levels unfold under the thinking switch while the model thinks. */
+.fold {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 360ms var(--bui-ease-out), opacity 180ms ease;
+}
+
+.fold[data-open] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition: grid-template-rows 360ms var(--bui-ease-out), opacity 260ms ease 80ms;
+}
+
+/* The clip carries no padding: a collapsed grid track cannot hide its own padding. */
+.clip {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.effort {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 8px 6px 38px;
+}
+
+.effortLabel {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--bui-ink-2);
+  font-size: 12px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pills {
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100%;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 999px;
+  corner-shape: round;
+  background: var(--picker-fill);
+}
+
+.pill {
+  box-sizing: border-box;
+  min-height: 24px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 999px;
+  corner-shape: round;
+  background: transparent;
+  color: var(--bui-ink-2);
+  font: inherit;
+  font-size: 12px;
+  line-height: 24px;
+  white-space: normal;
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.pill[aria-checked='true'] {
+  background: var(--bui-surface);
+  color: var(--bui-ink);
+  box-shadow: 0 0 0 0.5px oklch(0 0 0 / 0.08), 0 1px 2px oklch(0 0 0 / 0.12);
+}
+
+@media (hover: hover) {
+  .pill:hover:not(:disabled):not([aria-disabled='true']):not([aria-checked='true']) {
+    color: var(--bui-ink);
+  }
+}
+
+.pill:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 1px;
+}
+
+.pill:disabled,
+.pill[aria-disabled='true'] {
+  cursor: default;
+}
+
+.tray {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 34px;
+  margin: 4px -4px -4px;
+  padding: 7px 10px 7px 12px;
+  border-top: 0.5px solid var(--bui-line);
+  background: color-mix(in oklab, var(--bui-ink) 2.5%, transparent);
+  color: var(--bui-ink-2);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  min-width: 0;
+}
+
+/* Equal-width digits keep the tray still while the wait and price roll between models. */
+.fact {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fact + .fact::before {
+  content: '·';
+  margin-right: 4px;
+  color: var(--bui-ink-3);
+}
+
+.fact b {
+  color: var(--bui-ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.keys {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 4px;
+}
+
+.key {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 0.5px color-mix(in oklab, var(--bui-ink) 22%, transparent);
+  color: var(--bui-ink-3);
+  font: inherit;
+  font-size: 11px;
+  line-height: 18px;
+}
+
+@media (hover: none) {
+  .keys { display: none; }
+  .option { min-height: 50px; }
+  .toggle { min-height: 42px; }
+}
+
+@media (max-width: 380px) {
+  .effort {
+    padding-left: 8px;
+  }
+
+  .columns,
+  .meters {
+    grid-template-columns: repeat(3, 28px);
+    gap: 4px;
+  }
+
+  .unrated {
+    width: calc(28px * 3 + 8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu,
+  .bulb {
+    animation: none;
+  }
+
+  .segment,
+  .fold,
+  .fold[data-open],
+  .chevron,
+  .option,
+  .pill {
+    transition: none;
+  }
+}

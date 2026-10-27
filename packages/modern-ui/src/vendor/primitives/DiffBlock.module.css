@@ -1,0 +1,89 @@
+/* Beautiful UI CodeBlock.tsx Diff view (MIT): row tints and 3px add/delete accents; real patches remain owned by DiffBlock. */
+.block {
+  overflow: hidden;
+}
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(max-content, 1fr);
+  padding: 12px 0;
+  font: var(--dsw-font-markdown-code-block);
+  overflow-x: auto;
+}
+
+.line {
+  box-sizing: border-box;
+  min-height: 20px;
+  padding: 0 16px;
+  white-space: pre;
+}
+
+.block[data-code-wrap='true'] .body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.block[data-code-wrap='true'] .line {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.path {
+  color: var(--ink-2, var(--dsw-alias-label-secondary));
+  font-weight: 500;
+}
+
+.gap {
+  color: var(--ink-3, var(--dsw-alias-label-tertiary));
+}
+
+.del::before {
+  content: '- ';
+  color: var(--red, var(--dsw-alias-state-error-primary));
+}
+
+.del {
+  color: var(--ink, var(--dsw-alias-label-primary));
+  background: var(--red-tint, var(--dsw-alias-code-diff-deleted));
+  box-shadow: none;
+  background-image: repeating-linear-gradient(45deg, var(--bui-red, var(--red)) 0, var(--bui-red, var(--red)) 1.5px, transparent 1.5px, transparent 3px);
+  background-size: 3px 100%;
+  background-repeat: no-repeat;
+}
+
+.add::before {
+  content: '+ ';
+  color: var(--green, var(--dsw-alias-state-success-primary));
+}
+
+.add {
+  color: var(--ink, var(--dsw-alias-label-primary));
+  background: var(--green-tint, var(--dsw-alias-code-diff-added));
+  box-shadow: inset 3px 0 0 var(--green, var(--dsw-alias-state-success-primary));
+}
+
+.context {
+  color: var(--ink, var(--dsw-alias-label-secondary));
+}
+
+.context::before {
+  content: '  ';
+}
+
+.expand {
+  display: block;
+  width: 100%;
+  padding: 2px 16px;
+  border: none;
+  background: transparent;
+  color: var(--ink-3, var(--dsw-alias-label-tertiary));
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+@media (hover: hover) {
+  .expand:hover {
+    color: var(--ink-2, var(--dsw-alias-label-secondary));
+    background: var(--hover-2);
+  }
+}

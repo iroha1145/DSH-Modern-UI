@@ -1,0 +1,614 @@
+[
+  {
+    "name": "@deepseek-ai/cosmokit",
+    "version": "1.8.6",
+    "license": "MIT",
+    "file": "licenses/npm/deepseek-ai_cosmokit1.8.6.txt"
+  },
+  {
+    "name": "@deepseek-ai/dsh-api-workspace-controller",
+    "version": "0.2.1-rc.4",
+    "license": "MIT",
+    "file": "licenses/npm/deepseek-ai_dsh-api-workspace-controller0.2.1-rc.4.txt"
+  },
+  {
+    "name": "@deepseek-ai/dsh-brand",
+    "version": "0.2.1-rc.4",
+    "license": "MIT",
+    "file": "licenses/npm/deepseek-ai_dsh-brand0.2.1-rc.4.txt"
+  },
+  {
+    "name": "@deepseek-ai/dsh-file-reference",
+    "version": "0.2.1-rc.4",
+    "license": "MIT",
+    "file": "licenses/npm/deepseek-ai_dsh-file-reference0.2.1-rc.4.txt"
+  },
+  {
+    "name": "@deepseek-ai/dsh-output-retention",
+    "version": "0.2.1-rc.4",
+    "license": "MIT",
+    "file": "licenses/npm/deepseek-ai_dsh-output-retention0.2.1-rc.4.txt"
+  },
+  {
+    "name": "@deepseek-ai/dsh-session",
+    "version": "0.2.1-rc.4",
+    "license": "MIT",
+    "file": "licenses/npm/deepseek-ai_dsh-session0.2.1-rc.4.txt"
+  },
+  {
+    "name": "@deepseek-ai/dsh-spill-policy",
+    "version": "0.2.1-rc.4",
+    "license": "MIT",
+    "file": "licenses/npm/deepseek-ai_dsh-spill-policy0.2.1-rc.4.txt"
+  },
+  {
+    "name": "@deepseek-ai/dsh-util-code-language",
+    "version": "0.2.1-rc.4",
+    "license": "MIT",
+    "file": "licenses/npm/deepseek-ai_dsh-util-code-language0.2.1-rc.4.txt"
+  },
+  {
+    "name": "@deepseek-ai/dsh-util-crypto",
+    "version": "0.2.1-rc.4",
+    "license": "MIT",
+    "file": "licenses/npm/deepseek-ai_dsh-util-crypto0.2.1-rc.4.txt"
+  },
+  {
+    "name": "@deepseek-ai/dsh-util-values",
+    "version": "0.2.1-rc.4",
+    "license": "MIT",
+    "file": "licenses/npm/deepseek-ai_dsh-util-values0.2.1-rc.4.txt"
+  },
+  {
+    "name": "@deepseek-ai/dsh-util-workspace-path",
+    "version": "0.2.1-rc.4",
+    "license": "MIT",
+    "file": "licenses/npm/deepseek-ai_dsh-util-workspace-path0.2.1-rc.4.txt"
+  },
+  {
+    "name": "@deepseek-ai/schemastery",
+    "version": "3.18.5",
+    "license": "MIT",
+    "file": "licenses/npm/deepseek-ai_schemastery3.18.5.txt"
+  },
+  {
+    "name": "@lexical/clipboard",
+    "version": "0.49.0",
+    "license": "MIT",
+    "file": "licenses/npm/lexical_clipboard0.49.0.txt"
+  },
+  {
+    "name": "@lexical/dragon",
+    "version": "0.49.0",
+    "license": "MIT",
+    "file": "licenses/npm/lexical_dragon0.49.0.txt"
+  },
+  {
+    "name": "@lexical/extension",
+    "version": "0.49.0",
+    "license": "MIT",
+    "file": "licenses/npm/lexical_extension0.49.0.txt"
+  },
+  {
+    "name": "@lexical/history",
+    "version": "0.49.0",
+    "license": "MIT",
+    "file": "licenses/npm/lexical_history0.49.0.txt"
+  },
+  {
+    "name": "@lexical/html",
+    "version": "0.49.0",
+    "license": "MIT",
+    "file": "licenses/npm/lexical_html0.49.0.txt"
+  },
+  {
+    "name": "@lexical/plain-text",
+    "version": "0.49.0",
+    "license": "MIT",
+    "file": "licenses/npm/lexical_plain-text0.49.0.txt"
+  },
+  {
+    "name": "@lexical/selection",
+    "version": "0.49.0",
+    "license": "MIT",
+    "file": "licenses/npm/lexical_selection0.49.0.txt"
+  },
+  {
+    "name": "@lexical/text",
+    "version": "0.49.0",
+    "license": "MIT",
+    "file": "licenses/npm/lexical_text0.49.0.txt"
+  },
+  {
+    "name": "@lexical/utils",
+    "version": "0.49.0",
+    "license": "MIT",
+    "file": "licenses/npm/lexical_utils0.49.0.txt"
+  },
+  {
+    "name": "@shikijs/core",
+    "version": "4.5.0",
+    "license": "MIT",
+    "file": "licenses/npm/shikijs_core4.5.0.txt"
+  },
+  {
+    "name": "@shikijs/engine-javascript",
+    "version": "4.5.0",
+    "license": "MIT",
+    "file": "licenses/npm/shikijs_engine-javascript4.5.0.txt"
+  },
+  {
+    "name": "@shikijs/langs",
+    "version": "4.5.0",
+    "license": "MIT",
+    "file": "licenses/npm/shikijs_langs4.5.0.txt"
+  },
+  {
+    "name": "@shikijs/primitive",
+    "version": "4.5.0",
+    "license": "MIT",
+    "file": "licenses/npm/shikijs_primitive4.5.0.txt"
+  },
+  {
+    "name": "@shikijs/types",
+    "version": "4.5.0",
+    "license": "MIT",
+    "file": "licenses/npm/shikijs_types4.5.0.txt"
+  },
+  {
+    "name": "@shikijs/vscode-textmate",
+    "version": "10.1.0",
+    "license": "MIT",
+    "file": "licenses/npm/shikijs_vscode-textmate10.1.0.txt"
+  },
+  {
+    "name": "anser",
+    "version": "2.3.5",
+    "license": "MIT",
+    "file": "licenses/npm/anser2.3.5.txt"
+  },
+  {
+    "name": "ccount",
+    "version": "2.0.1",
+    "license": "MIT",
+    "file": "licenses/npm/ccount2.0.1.txt"
+  },
+  {
+    "name": "character-entities-html4",
+    "version": "2.1.0",
+    "license": "MIT",
+    "file": "licenses/npm/character-entities-html42.1.0.txt"
+  },
+  {
+    "name": "character-entities-legacy",
+    "version": "3.0.0",
+    "license": "MIT",
+    "file": "licenses/npm/character-entities-legacy3.0.0.txt"
+  },
+  {
+    "name": "clsx",
+    "version": "2.1.1",
+    "license": "MIT",
+    "file": "licenses/npm/clsx2.1.1.txt"
+  },
+  {
+    "name": "comma-separated-tokens",
+    "version": "2.0.3",
+    "license": "MIT",
+    "file": "licenses/npm/comma-separated-tokens2.0.3.txt"
+  },
+  {
+    "name": "decode-named-character-reference",
+    "version": "1.3.0",
+    "license": "MIT",
+    "file": "licenses/npm/decode-named-character-reference1.3.0.txt"
+  },
+  {
+    "name": "devlop",
+    "version": "1.1.0",
+    "license": "MIT",
+    "file": "licenses/npm/devlop1.1.0.txt"
+  },
+  {
+    "name": "diff",
+    "version": "9.0.0",
+    "license": "BSD-3-Clause",
+    "file": "licenses/npm/diff9.0.0.txt"
+  },
+  {
+    "name": "escape-string-regexp",
+    "version": "5.0.0",
+    "license": "MIT",
+    "file": "licenses/npm/escape-string-regexp5.0.0.txt"
+  },
+  {
+    "name": "hast-util-to-html",
+    "version": "9.0.5",
+    "license": "MIT",
+    "file": "licenses/npm/hast-util-to-html9.0.5.txt"
+  },
+  {
+    "name": "hast-util-whitespace",
+    "version": "3.0.0",
+    "license": "MIT",
+    "file": "licenses/npm/hast-util-whitespace3.0.0.txt"
+  },
+  {
+    "name": "html-void-elements",
+    "version": "3.0.0",
+    "license": "MIT",
+    "file": "licenses/npm/html-void-elements3.0.0.txt"
+  },
+  {
+    "name": "katex",
+    "version": "0.16.47",
+    "license": "MIT",
+    "file": "licenses/npm/katex0.16.47.txt"
+  },
+  {
+    "name": "katex",
+    "version": "0.18.10",
+    "license": "MIT",
+    "file": "licenses/npm/katex0.18.10.txt"
+  },
+  {
+    "name": "lexical",
+    "version": "0.49.0",
+    "license": "MIT",
+    "file": "licenses/npm/lexical0.49.0.txt"
+  },
+  {
+    "name": "longest-streak",
+    "version": "3.1.0",
+    "license": "MIT",
+    "file": "licenses/npm/longest-streak3.1.0.txt"
+  },
+  {
+    "name": "markdown-table",
+    "version": "3.0.4",
+    "license": "MIT",
+    "file": "licenses/npm/markdown-table3.0.4.txt"
+  },
+  {
+    "name": "mdast-util-find-and-replace",
+    "version": "3.0.4",
+    "license": "MIT",
+    "file": "licenses/npm/mdast-util-find-and-replace3.0.4.txt"
+  },
+  {
+    "name": "mdast-util-from-markdown",
+    "version": "2.1.0",
+    "license": "MIT",
+    "file": "licenses/npm/mdast-util-from-markdown2.1.0.txt"
+  },
+  {
+    "name": "mdast-util-gfm-autolink-literal",
+    "version": "2.0.1",
+    "license": "MIT",
+    "file": "licenses/npm/mdast-util-gfm-autolink-literal2.0.1.txt"
+  },
+  {
+    "name": "mdast-util-gfm-footnote",
+    "version": "2.1.0",
+    "license": "MIT",
+    "file": "licenses/npm/mdast-util-gfm-footnote2.1.0.txt"
+  },
+  {
+    "name": "mdast-util-gfm-strikethrough",
+    "version": "2.0.1",
+    "license": "MIT",
+    "file": "licenses/npm/mdast-util-gfm-strikethrough2.0.1.txt"
+  },
+  {
+    "name": "mdast-util-gfm-table",
+    "version": "2.0.0",
+    "license": "MIT",
+    "file": "licenses/npm/mdast-util-gfm-table2.0.0.txt"
+  },
+  {
+    "name": "mdast-util-gfm-task-list-item",
+    "version": "2.0.0",
+    "license": "MIT",
+    "file": "licenses/npm/mdast-util-gfm-task-list-item2.0.0.txt"
+  },
+  {
+    "name": "mdast-util-gfm",
+    "version": "3.1.0",
+    "license": "MIT",
+    "file": "licenses/npm/mdast-util-gfm3.1.0.txt"
+  },
+  {
+    "name": "mdast-util-math",
+    "version": "3.0.0",
+    "license": "MIT",
+    "file": "licenses/npm/mdast-util-math3.0.0.txt"
+  },
+  {
+    "name": "mdast-util-phrasing",
+    "version": "4.1.0",
+    "license": "MIT",
+    "file": "licenses/npm/mdast-util-phrasing4.1.0.txt"
+  },
+  {
+    "name": "mdast-util-to-markdown",
+    "version": "2.2.0",
+    "license": "MIT",
+    "file": "licenses/npm/mdast-util-to-markdown2.2.0.txt"
+  },
+  {
+    "name": "mdast-util-to-string",
+    "version": "4.0.0",
+    "license": "MIT",
+    "file": "licenses/npm/mdast-util-to-string4.0.0.txt"
+  },
+  {
+    "name": "micromark-core-commonmark",
+    "version": "2.0.4",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-core-commonmark2.0.4.txt"
+  },
+  {
+    "name": "micromark-extension-gfm-autolink-literal",
+    "version": "2.1.0",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-extension-gfm-autolink-literal2.1.0.txt"
+  },
+  {
+    "name": "micromark-extension-gfm-footnote",
+    "version": "2.1.0",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-extension-gfm-footnote2.1.0.txt"
+  },
+  {
+    "name": "micromark-extension-gfm-strikethrough",
+    "version": "2.1.0",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-extension-gfm-strikethrough2.1.0.txt"
+  },
+  {
+    "name": "micromark-extension-gfm-table",
+    "version": "2.1.2",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-extension-gfm-table2.1.2.txt"
+  },
+  {
+    "name": "micromark-extension-gfm-tagfilter",
+    "version": "2.0.0",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-extension-gfm-tagfilter2.0.0.txt"
+  },
+  {
+    "name": "micromark-extension-gfm-task-list-item",
+    "version": "2.1.0",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-extension-gfm-task-list-item2.1.0.txt"
+  },
+  {
+    "name": "micromark-extension-gfm",
+    "version": "3.0.0",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-extension-gfm3.0.0.txt"
+  },
+  {
+    "name": "micromark-extension-math",
+    "version": "3.1.0",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-extension-math3.1.0.txt"
+  },
+  {
+    "name": "micromark-factory-destination",
+    "version": "2.0.1",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-factory-destination2.0.1.txt"
+  },
+  {
+    "name": "micromark-factory-label",
+    "version": "2.0.1",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-factory-label2.0.1.txt"
+  },
+  {
+    "name": "micromark-factory-space",
+    "version": "2.1.0",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-factory-space2.1.0.txt"
+  },
+  {
+    "name": "micromark-factory-title",
+    "version": "2.0.1",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-factory-title2.0.1.txt"
+  },
+  {
+    "name": "micromark-factory-whitespace",
+    "version": "2.0.1",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-factory-whitespace2.0.1.txt"
+  },
+  {
+    "name": "micromark-util-character",
+    "version": "2.1.1",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-util-character2.1.1.txt"
+  },
+  {
+    "name": "micromark-util-chunked",
+    "version": "2.0.1",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-util-chunked2.0.1.txt"
+  },
+  {
+    "name": "micromark-util-classify-character",
+    "version": "2.0.1",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-util-classify-character2.0.1.txt"
+  },
+  {
+    "name": "micromark-util-combine-extensions",
+    "version": "2.0.1",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-util-combine-extensions2.0.1.txt"
+  },
+  {
+    "name": "micromark-util-decode-numeric-character-reference",
+    "version": "2.0.2",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-util-decode-numeric-character-reference2.0.2.txt"
+  },
+  {
+    "name": "micromark-util-decode-string",
+    "version": "2.0.1",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-util-decode-string2.0.1.txt"
+  },
+  {
+    "name": "micromark-util-edit-map",
+    "version": "1.0.0",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-util-edit-map1.0.0.txt"
+  },
+  {
+    "name": "micromark-util-encode",
+    "version": "2.0.1",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-util-encode2.0.1.txt"
+  },
+  {
+    "name": "micromark-util-html-tag-name",
+    "version": "2.0.1",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-util-html-tag-name2.0.1.txt"
+  },
+  {
+    "name": "micromark-util-normalize-identifier",
+    "version": "2.0.1",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-util-normalize-identifier2.0.1.txt"
+  },
+  {
+    "name": "micromark-util-resolve-all",
+    "version": "2.0.1",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-util-resolve-all2.0.1.txt"
+  },
+  {
+    "name": "micromark-util-sanitize-uri",
+    "version": "2.0.1",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-util-sanitize-uri2.0.1.txt"
+  },
+  {
+    "name": "micromark-util-subtokenize",
+    "version": "2.1.0",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-util-subtokenize2.1.0.txt"
+  },
+  {
+    "name": "micromark-util-symbol",
+    "version": "2.0.1",
+    "license": "MIT",
+    "file": "licenses/npm/micromark-util-symbol2.0.1.txt"
+  },
+  {
+    "name": "micromark",
+    "version": "4.0.3",
+    "license": "MIT",
+    "file": "licenses/npm/micromark4.0.3.txt"
+  },
+  {
+    "name": "oniguruma-parser",
+    "version": "0.12.2",
+    "license": "MIT",
+    "file": "licenses/npm/oniguruma-parser0.12.2.txt"
+  },
+  {
+    "name": "oniguruma-to-es",
+    "version": "4.3.6",
+    "license": "MIT",
+    "file": "licenses/npm/oniguruma-to-es4.3.6.txt"
+  },
+  {
+    "name": "property-information",
+    "version": "7.2.0",
+    "license": "MIT",
+    "file": "licenses/npm/property-information7.2.0.txt"
+  },
+  {
+    "name": "regex-recursion",
+    "version": "6.0.2",
+    "license": "MIT",
+    "file": "licenses/npm/regex-recursion6.0.2.txt"
+  },
+  {
+    "name": "regex-utilities",
+    "version": "2.3.0",
+    "license": "MIT",
+    "file": "licenses/npm/regex-utilities2.3.0.txt"
+  },
+  {
+    "name": "regex",
+    "version": "6.1.0",
+    "license": "MIT",
+    "file": "licenses/npm/regex6.1.0.txt"
+  },
+  {
+    "name": "shiki",
+    "version": "4.5.0",
+    "license": "MIT",
+    "file": "licenses/npm/shiki4.5.0.txt"
+  },
+  {
+    "name": "simple-icons",
+    "version": "16.31.0",
+    "license": "CC0-1.0",
+    "file": "licenses/npm/simple-icons16.31.0.txt"
+  },
+  {
+    "name": "space-separated-tokens",
+    "version": "2.0.2",
+    "license": "MIT",
+    "file": "licenses/npm/space-separated-tokens2.0.2.txt"
+  },
+  {
+    "name": "stringify-entities",
+    "version": "4.0.4",
+    "license": "MIT",
+    "file": "licenses/npm/stringify-entities4.0.4.txt"
+  },
+  {
+    "name": "unist-util-is",
+    "version": "6.0.1",
+    "license": "MIT",
+    "file": "licenses/npm/unist-util-is6.0.1.txt"
+  },
+  {
+    "name": "unist-util-stringify-position",
+    "version": "4.0.0",
+    "license": "MIT",
+    "file": "licenses/npm/unist-util-stringify-position4.0.0.txt"
+  },
+  {
+    "name": "unist-util-visit-parents",
+    "version": "6.1.0",
+    "license": "MIT",
+    "file": "licenses/npm/unist-util-visit-parents6.1.0.txt"
+  },
+  {
+    "name": "unist-util-visit",
+    "version": "5.2.0",
+    "license": "MIT",
+    "file": "licenses/npm/unist-util-visit5.2.0.txt"
+  },
+  {
+    "name": "zod",
+    "version": "4.6.7",
+    "license": "MIT",
+    "file": "licenses/npm/zod4.6.7.txt"
+  },
+  {
+    "name": "zwitch",
+    "version": "2.0.4",
+    "license": "MIT",
+    "file": "licenses/npm/zwitch2.0.4.txt"
+  }
+]

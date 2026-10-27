@@ -1,0 +1,140 @@
+name: Official runtime plugin preview
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'packages/modern-ui/**'
+      - 'scripts/distribution/**'
+      - 'scripts/migration/**'
+      - 'scripts/build-*.mjs'
+      - 'scripts/*preview*.mjs'
+      - 'tests/plugin/**'
+      - 'tests/official-web/**'
+      - 'tests/distribution/**'
+      - 'tests/host-compat/**'
+      - 'tests/migration/**'
+      - 'package*.json'
+      - 'tsconfig*.json'
+      - '.github/workflows/plugin-preview.yml'
+
+permissions:
+  contents: read
+
+env:
+  DSH_TELEMETRY_DISABLED: '1'
+
+jobs:
+  plugin:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: '24.22.1'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run build
+      - run: npm test
+      - run: node scripts/create-preview.mjs
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: modern-ui-precompiled-preview
+          path: .artifacts/plugin-preview/
+          retention-days: 7
+
+  consumer:
+    needs: plugin
+    # No checkout here: the application must run from the precompiled preview alone.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux-x64
+          - runner: ubuntu-24.04-arm
+            platform: linux-arm64
+          - runner: macos-15-intel
+            platform: darwin-x64
+          - runner: macos-15
+            platform: darwin-arm64
+          - runner: windows-2025
+            platform: win32-x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: modern-ui-precompiled-preview
+          path: preview
+      - name: Install only official releases and the precompiled plugin
+        shell: pwsh
+        run: |
+          $program = Join-Path $env:RUNNER_TEMP 'Modern UI program 空格'
+          $data = Join-Path $env:RUNNER_TEMP 'Modern UI data 数据'
+          if ($IsWindows) {
+            $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot\System32\WindowsPowerShell\v1.0"
+            & ./preview/install.ps1 -Root $program -DataHome $data
+          } else {
+            & sh ./preview/install.sh $program $data
+            if ($LASTEXITCODE -ne 0) { throw 'Consumer install failed' }
+          }
+          $state = Get-Content -Raw (Join-Path $program 'current.json') | ConvertFrom-Json
+          & $state.node ./preview/consumer-check.mjs $program (Join-Path $env:RUNNER_TEMP 'consumer-evidence')
+          if ($LASTEXITCODE -ne 0) { throw 'Consumer acceptance failed' }
+          "DSH_PRIVATE_NODE=$($state.node)" >> $env:GITHUB_ENV
+          "DSH_CURRENT_STATE=$(Join-Path $program 'current.json')" >> $env:GITHUB_ENV
+      - name: Verify official web plugin configuration and new session records
+        shell: pwsh
+        run: |
+          & $env:DSH_PRIVATE_NODE ./preview/tests/official-web/run.mjs $env:DSH_CURRENT_STATE
+          if ($LASTEXITCODE -ne 0) { throw 'Official web configuration acceptance failed' }
+      - name: Verify actual Windows tools with the private shell
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot\System32\WindowsPowerShell\v1.0"
+          & $env:DSH_PRIVATE_NODE ./preview/tests/plugin/runtime-tools.e2e.mjs $env:DSH_CURRENT_STATE
+          if ($LASTEXITCODE -ne 0) { throw 'Private shell tool acceptance failed' }
+      - name: Install the isolated browser test driver
+        shell: pwsh
+        run: |
+          $npmRelative = if ($IsWindows) { 'node_modules/npm/bin/npm-cli.js' } else { '../lib/node_modules/npm/bin/npm-cli.js' }
+          $npm = Join-Path (Split-Path $env:DSH_PRIVATE_NODE) $npmRelative
+          & $env:DSH_PRIVATE_NODE $npm install --prefix ./preview --ignore-scripts --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'Test driver install failed' }
+          $env:PLAYWRIGHT_BROWSERS_PATH = Join-Path $env:RUNNER_TEMP 'preview-browsers'
+          & $env:DSH_PRIVATE_NODE ./preview/node_modules/playwright-core/cli.js install chromium
+          if ($LASTEXITCODE -ne 0) { throw 'Browser installation failed' }
+          "PLAYWRIGHT_BROWSERS_PATH=$env:PLAYWRIGHT_BROWSERS_PATH" >> $env:GITHUB_ENV
+      - name: Exercise installed client and official transport
+        shell: pwsh
+        run: |
+          $env:MODERN_UI_INSTALLED_STATE = $env:DSH_CURRENT_STATE
+          $env:MODERN_UI_BUILD_DEPS = (Resolve-Path ./preview).Path
+          $env:MODERN_UI_BROWSER = & $env:DSH_PRIVATE_NODE -p 'require("./preview/node_modules/playwright-core").chromium.executablePath()'
+          & $env:DSH_PRIVATE_NODE ./preview/tests/plugin/browser.e2e.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Browser acceptance failed' }
+          & $env:DSH_PRIVATE_NODE ./preview/tests/plugin/owners.e2e.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Conversation and mobile owner acceptance failed' }
+          $state = Get-Content -Raw $env:DSH_CURRENT_STATE | ConvertFrom-Json
+          & $state.node $state.manager verify --root $state.root
+          if ($LASTEXITCODE -ne 0) { throw 'Official files changed during acceptance' }
+      - uses: actions/upload-artifact@v7.0.1
+        if: always()
+        with:
+          name: consumer-${{ matrix.platform }}
+          path: |
+            ${{ runner.temp }}/consumer-evidence/*.json
+            preview/.artifacts/plugin-browser/**/result.json
+            preview/.artifacts/plugin-browser/**/failure.json
+            preview/.artifacts/plugin-browser/**/*.png
+            preview/.artifacts/plugin-owners/**/result.json
+            preview/.artifacts/plugin-owners/**/failure.json
+            preview/.artifacts/plugin-owners/**/*.png
+            preview/.artifacts/official-web/**/result.json
+            preview/.artifacts/runtime-tools/**/result.json
+          if-no-files-found: ignore
+          retention-days: 7

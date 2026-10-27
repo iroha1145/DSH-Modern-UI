@@ -1,0 +1,98 @@
+/* Compatibility bridge for the three pinned community bundles:
+ * dsh-better-sidebar 0.28.0, dsh-context 0.75.1, dshmarket 1.70.1.
+ * Roots and class names were checked in the installed browser bundles.
+ * Market exports stable data-dsh-market-root; its nUhMVa_* CSS-module
+ * names below are version-specific and must be checked on a plugin upgrade.
+ * Keep terminal/code fonts, chart palettes, layout and action visibility owned
+ * by the plugins. Only their chrome inherits the host material and type. */
+:is([data-dsh-better-sidebar], [data-dsh-native-tab-host],
+    [data-dsh-market-root], .lc-root, .lc-ov-page, .lc-modal-card) {
+  --dsw-alias-bg-l1: var(--dsw-alias-bg-layer-1);
+  --dsw-alias-bg-l2: var(--dsw-alias-bg-layer-2);
+  --dsw-shadow-lv1: var(--shadow-dropdown);
+  --dsw-shadow-lv3: var(--shadow-float);
+  font-family: var(--dsw-font-family);
+}
+
+/* Context's data surfaces already consume semantic colors, but its card
+ * corners and local 600/700 weights predate the host's lighter hierarchy.
+ * Additional root specificity keeps this independent of injection order. */
+:is(.lc-root, .lc-ov-page, .lc-modal-card) .lc-card {
+  border-radius: var(--r-tile);
+}
+
+:is(.lc-root, .lc-ov-page, .lc-modal-card) :is(.lc-stat, .lc-flow-node) {
+  border-radius: var(--r-control);
+}
+
+.lc-modal-card.lc-modal-card {
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-modal);
+}
+
+:is(.lc-root, .lc-ov-page, .lc-modal-card) :is(
+    .lc-card-title, .lc-stat-label, .lc-stat-value, .lc-flow-label,
+    .lc-flow-total, .lc-ov-balance-value, .lc-ov-update-version,
+    .lc-ov-list-title, .lc-ov-session-title, .lc-modal-title,
+    .lc-flow-pill b, .lc-flow-pair b) {
+  font-weight: 500;
+}
+
+/* Market's cards and controls use host tokens already. Align its own headings
+ * and selected tab with the same quieter emphasis as the native Plugins page. */
+[data-dsh-market-root] :is(
+    .nUhMVa_title, .nUhMVa_introName, .nUhMVa_groupName,
+    .nUhMVa_installCautionHead, .nUhMVa_opPanelTitle) {
+  font-weight: 500;
+}
+
+[data-dsh-market-root] .nUhMVa_tab.nUhMVa_on {
+  color: var(--dsw-alias-state-business-primary);
+  font-weight: 500;
+}
+
+[data-dsh-market-root] .nUhMVa_tab.nUhMVa_on::after {
+  background: var(--dsw-alias-state-business-primary);
+}
+
+/* The plugin already reflows its grids with container queries. Keep a native
+ * page gutter on 320/390px phones without changing its typography or columns. */
+@media (max-width: 600px) {
+  .lc-ov-page .lc-ov-pagecontent {
+    padding-inline: 16px;
+  }
+}
+
+/* Do not let phone taps latch a decorative hover wash. Selected/pressed
+ * classes and keyboard focus retain their own styles. */
+@media (hover: none) {
+  [data-dsh-market-root][data-dsh-market-root] .nUhMVa_card {
+    background-image: none;
+  }
+
+  [data-dsh-market-root][data-dsh-market-root] :is(.nUhMVa_card, .nUhMVa_themeCard)
+      .nUhMVa_installBtn:not(:disabled):not(:active) {
+    background: var(--surface);
+    border-color: var(--dsw-alias-border-l3);
+    color: var(--dsw-alias-label-primary);
+  }
+
+  [data-dsh-market-root][data-dsh-market-root] .nUhMVa_tab:not(.nUhMVa_on) {
+    background: none;
+    color: var(--dsw-alias-label-secondary);
+  }
+
+  :is(.lc-root, .lc-ov-page, .lc-modal-card) .lc-gran-btn.lc-gran-btn:not(.lc-gran-on) {
+    color: var(--dsw-alias-label-secondary);
+  }
+}
+
+/* A coarse pointer uses the same 16px field floor as native settings. This
+ * prevents Safari focus zoom; buttons and data labels keep their own scale. */
+@media (pointer: coarse) {
+  :is([data-dsh-better-sidebar], [data-dsh-native-tab-host],
+      [data-dsh-market-root], .lc-root, .lc-ov-page, .lc-modal-card)
+      :is(input:not([type='checkbox']):not([type='radio']):not([type='range']), textarea, select) {
+    font-size: max(16px, 1em);
+  }
+}

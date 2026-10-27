@@ -1,0 +1,4 @@
+/* Only our marked first admitted message owns the old Turn-tail clearance. */
+[data-slot="conversation.chat.flow"] > [data-chat-flow-kind="steering"]:has(> [data-slot="conversation.chat.node"] > [data-chat-steering-batch="start"]) {
+  --dsh-chat-flow-gap: calc(44px + var(--dsh-content-font-delta, 0px)) !important;
+}

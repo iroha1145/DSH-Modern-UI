@@ -1,0 +1,570 @@
+/* Prompt chrome adapted from Beautiful UI PromptBar.tsx (MIT).
+ * Existing composer slots retain real model, permission and workspace state. */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 var(--dsh-composer-side-clearance) 16px;
+}
+
+.dock {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  max-width: var(--dsh-composer-card-max-width);
+  padding: 4px 10px 0;
+  box-sizing: border-box;
+}
+
+.dock:has(> .dockReadings:empty) {
+  display: none;
+}
+
+/* The readings sit on a frosted capsule, so transcript text scrolling behind
+ * the composer blurs instead of colliding with them. As on the card, the blur
+ * lives on a pseudo-element: a filtered ancestor would become the containing
+ * block of the readings' fixed popovers. */
+.dockReadings {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  padding: 1px 2px;
+  border-radius: 999px;
+  corner-shape: round;
+}
+
+.dockReadings::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--dsw-composer-surface-fill);
+  -webkit-backdrop-filter: var(--dsw-composer-backdrop-filter);
+  backdrop-filter: var(--dsw-composer-backdrop-filter);
+  pointer-events: none;
+}
+
+.hero {
+  padding: 0 var(--dsh-composer-side-clearance);
+}
+
+.notice {
+  width: 100%;
+  max-width: var(--dsh-composer-card-max-width);
+  margin-bottom: 8px;
+  padding: 6px 12px;
+  border-radius: var(--dsw-radius-lg);
+  background: var(--inset);
+  color: var(--ink-2);
+  font-size: var(--fs-label, 0.75rem);
+  line-height: 18px;
+}
+
+/* Beautiful UI Rounded prompt bar; the hero uses its tall 22px variation. */
+.card {
+  box-sizing: border-box;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: var(--dsh-composer-card-max-width);
+  padding: 12px 12px 10px;
+  border: 0;
+  border-radius: var(--bui-radius-window, var(--dsw-radius-lg));
+  background: transparent;
+  isolation: isolate;
+  --dsw-elevation-stroke-color: var(--bui-line, var(--line));
+  box-shadow: var(--dsw-elevation-soft);
+  font-size: 14px;
+  line-height: 22px;
+  transition: box-shadow 150ms var(--bui-ease-out), border-radius 150ms var(--bui-ease-out);
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+
+/* Keep filtering off the content ancestor: composer menus and fixed overlays
+ * must sample the transcript independently and keep their viewport position. */
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--dsw-composer-surface-fill);
+  -webkit-backdrop-filter: var(--dsw-composer-backdrop-filter);
+  backdrop-filter: var(--dsw-composer-backdrop-filter);
+  pointer-events: none;
+}
+
+.card:focus-within {
+  outline: none;
+  --dsw-elevation-stroke-color: var(--bui-line-strong, var(--line-strong));
+}
+
+.hero .card {
+  border-radius: var(--bui-radius-composer-hero, var(--dsw-radius-panel));
+  padding: 14px;
+  gap: 10px;
+}
+
+@media (pointer: coarse) {
+  .card {
+    font-size: max(16px, var(--dsh-content-font-size, 14px));
+  }
+}
+
+@media (forced-colors: active) {
+  .card,
+  .card:focus-within {
+    /* Forced colors paint a transparent outline in the system text color. */
+    outline-width: 1px;
+    outline-style: solid;
+    outline-color: transparent;
+  }
+}
+
+.cardWorkspaceTrigger {
+  --dsw-elevation-stroke-color: transparent;
+  cursor: pointer;
+}
+
+.cardWorkspaceTrigger::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  border: 1px dashed currentColor;
+  border-radius: var(--dsw-radius-panel);
+  color: var(--line-strong);
+  transition: color 100ms ease;
+  pointer-events: none;
+}
+
+.cardWorkspaceTrigger :disabled {
+  pointer-events: none;
+}
+
+@media (hover: hover) {
+  .cardWorkspaceTrigger:hover::after {
+    color: var(--primary);
+  }
+}
+
+.accessory {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 0;
+}
+
+.overlayAnchor {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 0;
+}
+
+.scroll {
+  max-height: var(--dsh-composer-text-max-height);
+  overflow-y: auto;
+  margin-right: 4px;
+}
+
+.scroll::-webkit-scrollbar-track {
+  margin-top: 8px;
+}
+
+.grow {
+  position: relative;
+}
+
+.pending {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  corner-shape: round;
+  background: var(--primary);
+  animation: input-pending 1s ease-in-out infinite alternate;
+}
+
+@keyframes input-pending {
+  from { opacity: 0.35; }
+  to { opacity: 1; }
+}
+
+.input {
+  box-sizing: border-box;
+  min-height: 36px;
+  padding: 4px 8px 0 10px;
+  font-family: var(--dsw-font-family);
+  font-size: inherit;
+  line-height: inherit;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  outline: none;
+  color: var(--ink);
+  caret-color: var(--primary);
+}
+
+.input p {
+  margin: 0;
+}
+
+.input p:last-child::after {
+  content: var(--dsh-composer-hint);
+  color: var(--ink-3);
+}
+
+.input[data-composer-composing] p:last-child::after {
+  content: none;
+}
+
+.input[data-composer-chip-selected] {
+  caret-color: transparent;
+}
+
+.input[data-composer-composing] + .placeholder {
+  visibility: hidden;
+}
+
+.placeholder {
+  position: absolute;
+  inset: 4px 8px auto 10px;
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  user-select: none;
+}
+
+.inputDisabled {
+  color: var(--ink-3);
+  cursor: not-allowed;
+}
+
+.input[aria-haspopup='menu'] {
+  cursor: pointer;
+}
+
+.hero .input {
+  min-height: 68px;
+}
+
+.hero .placeholder {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 4px 2px;
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.row[data-model-compact] {
+  --dsh-composer-model-text-display: block;
+  --dsh-composer-model-icon-display: none;
+}
+
+.tools,
+.modes,
+.trailing {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.tools {
+  gap: 8px;
+}
+
+.modes {
+  gap: 8px;
+}
+
+.trailing {
+  flex: none;
+  margin-left: auto;
+  gap: 8px;
+}
+
+@container (max-width: 560px) {
+  .tools,
+  .modes,
+  .trailing {
+    gap: 6px;
+  }
+}
+
+/* Beautiful UI attachment control: quiet until hovered or pressed. */
+.add {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--bui-radius-control);
+  background: transparent;
+  color: var(--bui-ink-3);
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    transform 120ms var(--ease-spring);
+}
+
+@media (hover: hover) {
+  .add:hover:not(:disabled) {
+    background: var(--hover);
+    border-color: var(--line-strong);
+    color: var(--ink);
+  }
+}
+
+.add:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+}
+
+.add:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Beautiful UI send control follows the real send/stop state. */
+.primary {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--bui-radius-control);
+  background: var(--bui-ink);
+  color: var(--bui-surface, var(--surface));
+  box-shadow: none;
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    opacity 140ms ease,
+    transform 120ms var(--ease-spring);
+}
+
+@media (hover: hover) {
+  .primary:hover:not(:disabled) {
+    opacity: 0.92;
+  }
+}
+
+.primary:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+}
+
+.primary:disabled {
+  background: var(--bui-line-strong, var(--line-strong));
+  color: var(--bui-ink-2);
+  box-shadow: none;
+  cursor: default;
+}
+
+/* Cloud-Monitor .sv-summary-row / .sv-stat suggestion grid */
+.heroSuggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: var(--dsh-composer-card-max-width);
+  margin-top: 12px;
+}
+
+.suggestionGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 720px) {
+  .suggestionGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@keyframes suggestionFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.suggestionRow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 0.5px solid var(--card-border, rgb(23 23 23 / 0.07));
+  border-radius: var(--dsw-radius-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-panel);
+  color: var(--ink);
+  font-size: var(--fs-body, 0.8125rem);
+  line-height: 1.45;
+  text-align: left;
+  cursor: pointer;
+  animation: suggestionFadeUp 420ms var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 180ms ease,
+    transform 140ms var(--ease-spring);
+}
+
+.suggestionTop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.suggestionIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: var(--dsw-radius-sm);
+  background: var(--accent-tint);
+  color: var(--primary);
+}
+
+.suggestionKicker {
+  font-size: var(--fs-meta, 0.6875rem);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+}
+
+.suggestionText {
+  overflow-wrap: anywhere;
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
+@media (hover: hover) {
+  .suggestionRow:hover:not(:disabled) {
+    background: var(--inset);
+    border-color: color-mix(in srgb, var(--primary) 24%, var(--card-border));
+    box-shadow: var(--shadow-panel-lift);
+    transform: translateY(-1px);
+  }
+
+  .suggestionRow:hover:not(:disabled) .suggestionText {
+    color: var(--ink);
+  }
+}
+
+.suggestionRow:active:not(:disabled) {
+  transform: translateY(1px) scale(0.99);
+}
+
+.shuffleRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-top: 2px;
+  padding-right: 4px;
+}
+
+.shuffleButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 0.5px solid var(--line);
+  border-radius: var(--dsw-radius-sm);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: var(--fs-meta, 0.6875rem);
+  font-weight: 500;
+  line-height: 16px;
+  cursor: pointer;
+  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
+}
+
+@media (hover: hover) {
+  .shuffleButton:hover {
+    color: var(--ink);
+    background: var(--inset);
+    border-color: var(--line-strong);
+  }
+}
+
+.retry {
+  margin-left: 8px;
+  padding: 1px 8px;
+  border: 1px solid currentColor;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.standardControls { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.tools[hidden], .standardControls[hidden] { display: none; }
+.trailingActive { flex: 1; margin-left: 0; }
+.activity { display: flex; align-items: center; flex: none; }
+.activity:empty { display: none; }
+.activityExpanded { flex: 1; min-width: 0; }
+
+.suggestionRow:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .suggestionRow,
+  .card,
+  .add,
+  .primary {
+    animation: none;
+    transition: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .root {
+    padding-bottom: 8px;
+  }
+
+  /* Suggested tasks remain available on desktop; phones keep the input at
+     the bottom without a second block underneath the message field. */
+  .heroSuggestions {
+    display: none;
+  }
+}

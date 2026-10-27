@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["react", "react-dom"],
+    "jsx": "react-jsx",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "strict": true,
+    "paths": {
+      "@iroha1145/dsh-modern-ui/primitives": ["./packages/modern-ui/src/vendor/primitives/index.ts"]
+    },
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "files": ["packages/modern-ui/src/client.tsx", "packages/modern-ui/src/index.ts", "packages/modern-ui/src/assets.d.ts"]
+}
