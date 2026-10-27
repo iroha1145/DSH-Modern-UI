@@ -1,11 +1,23 @@
 /** Modern running status rendered into the official flow's running row while a Session runs. */
 import { memo, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { ConnectionStateSource } from '@deepseek-ai/dsh-client-connection/client'
+import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ChatSnapshot } from '../contract/slots.ts'
 import { RunningStatus, type RunningPhase } from './RunningStatus.tsx'
 
-type RunningStatusHostProps = Omit<PropsRuntime<'conversation.composer.dock'>, 't'> & PropsLocale<'modern-chat'>
+/** Registration-side face of the running status host. */
+export interface RunningStatusHostInjected {
+  hooks: {
+    /** Connection recovery lifecycle bound as useConnectionState; the clock freezes while it is not connected. */
+    connectionState: ConnectionStateSource
+  }
+}
+
+type RunningStatusHostProps =
+  Omit<PropsRuntime<'conversation.composer.dock'>, 't'>
+  & PropsLocale<'modern-chat'>
+  & InjectFace<RunningStatusHostInjected>
 
 const FLOW = '[data-slot="conversation.chat.flow"]'
 const OFFICIAL_RUNNING = '[data-chat-running]'
@@ -39,16 +51,19 @@ export function latestTurnStart(snapshot: ChatSnapshot): number | undefined {
  * no slot for it; the Turn tail only exists once a Turn closes. The Modern styles hide that
  * row's own children, and this always-mounted composer-dock entry renders the patched status
  * (matrix, phase label, elapsed time) into the row through a portal, so the row keeps the
- * official flow's placement, spacing and entrance animation. A live reasoning disclosure or
- * process group header already names the thinking activity, so only the clock remains then.
- * @param props - session Chat selector and Modern locale from the dock slot.
+ * official flow's placement, spacing and entrance animation. The matrix and phase label stay in
+ * every phase: the official process group header keeps its own static icon while reasoning
+ * streams, so this row is the only live indicator a folded Turn shows. The clock pauses while
+ * the connection is lost, as the patched flow did; the official rc.4 row no longer does.
+ * @param props - session Chat selector, connection state and Modern locale from the dock slot.
  * @returns a hidden anchor in the dock plus the portal while the official row exists.
  */
-export const RunningStatusHost = memo(function RunningStatusHost({ useChat, t }: RunningStatusHostProps) {
+export const RunningStatusHost = memo(function RunningStatusHost({ useChat, useConnectionState, t }: RunningStatusHostProps) {
   const anchor = useRef<HTMLSpanElement>(null)
   const [target, setTarget] = useState<HTMLElement | null>(null)
   const phase = useChat(runningPhase)
   const startTime = useChat(latestTurnStart)
+  const paused = useConnectionState(state => state === 'disconnected' || state === 'connecting')
   useEffect(() => {
     // The dock and the Chat flow share the Session panel; the nearest ancestor holding a flow
     // scopes the lookup to this Session, whatever the surrounding layout owner renders.
@@ -71,7 +86,7 @@ export const RunningStatusHost = memo(function RunningStatusHost({ useChat, t }:
     <>
       <span ref={anchor} hidden data-modern-running-host="" />
       {target !== null && createPortal(
-        <RunningStatus startTime={startTime} paused={false} phase={phase} activityVisible={phase !== 'thinking'} t={t} />,
+        <RunningStatus startTime={startTime} paused={paused} phase={phase} t={t} />,
         target,
       )}
     </>

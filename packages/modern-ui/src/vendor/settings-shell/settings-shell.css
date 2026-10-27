@@ -3,6 +3,34 @@
    official settings owner through its semantic modal and our sidebar seat. */
 [data-modern-settings-seat] > div { width: 100%; margin: 0; }
 [data-modern-settings-seat][data-rail] > div { width: 36px; margin: 4px 0; }
+/* Account launcher: the official ui-settings-account trigger rendered in the
+   `settings.launcher` slot of this seat. Restores the 36px sidebar-setting row
+   (official: 44px tall, 6px padding, 8px gap, 14px text in the primary color).
+   Hook: button[aria-haspopup="menu"][data-signed-out] (rc.4 AccountMenu
+   .trigger); data-collapsed="true" marks the rail state. The rail keeps its
+   official 36x36 box, so only the wide state sets geometry here.
+   Official rules: .trigger (0,1,0), .trigger[data-collapsed=true] (0,2,0),
+   .trigger[data-signed-out=true]:not([data-collapsed=true]) (0,3,0); the
+   selectors below are (0,3,1) and (0,4,1). The signed-out menu card has no
+   stable hook and is left as the official one. */
+[data-modern-settings-seat] button[aria-haspopup="menu"][data-signed-out] {
+  color: var(--ink-2, var(--dsw-alias-label-secondary));
+  font-size: var(--fs-body, 0.8125rem);
+  font-weight: 500;
+  transition: background-color 140ms ease, color 140ms ease, transform 120ms var(--ease-spring);
+}
+[data-modern-settings-seat] button[aria-haspopup="menu"][data-signed-out]:not([data-collapsed="true"]) {
+  gap: 10px;
+  height: 36px;
+  padding: 0 10px;
+}
+@media (hover: hover) {
+  [data-modern-settings-seat] button[aria-haspopup="menu"][data-signed-out]:hover {
+    background: var(--hover, var(--dsw-alias-interactive-bg-hover));
+    color: var(--ink, var(--dsw-alias-label-primary));
+  }
+}
+[data-modern-settings-seat] button[aria-haspopup="menu"][data-signed-out]:active { transform: translateY(1px); }
 [data-modern-settings-seat] button[aria-haspopup="dialog"][aria-expanded] {
   gap: 10px;
   min-height: 36px;
