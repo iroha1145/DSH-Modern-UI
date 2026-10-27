@@ -213,6 +213,12 @@ try {
   await interactive.getByRole('button', { name: 'Count: 0', exact: true }).click()
   await interactive.getByRole('button', { name: 'Count: 1', exact: true }).waitFor()
   await page.screenshot({ path: path.join(run, 'desktop.png'), fullPage: true })
+  // The official host ships no dsw-icon sprite; the plugin mounts its own. An unresolved
+  // <use> renders as an empty box without any console error, so check the references directly.
+  const unresolvedIcons = await page.evaluate(() => [...document.querySelectorAll('svg use')]
+    .map(use => use.getAttribute('href') ?? use.getAttribute('xlink:href'))
+    .filter(href => href?.startsWith('#') && !document.getElementById(href.slice(1))))
+  assert.deepEqual(unresolvedIcons, [], 'every icon <use> must resolve to a symbol in the document')
   await page.getByRole('tab', { name: '编队', exact: true }).first().click()
   await page.waitForTimeout(300)
   assert.match(await page.locator('body').innerText(), /mock-fast/)

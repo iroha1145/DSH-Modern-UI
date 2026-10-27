@@ -2,6 +2,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type {} from './contracts.ts'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { installThemeStyles } from './vendor/theme/client/styles.ts'
+import { installIconSprite } from './vendor/theme/client/icon-sprite.ts'
 import { AssistantNodeView } from './vendor/chat/client/chat/AssistantNodeView.tsx'
 import { MessageCode } from './vendor/chat/client/chat/MessageCode.tsx'
 import { ReasoningContent } from './vendor/chat/client/chat/ReasoningContent.tsx'
@@ -52,6 +53,7 @@ const dictionaries = <D extends Record<string, string>>(source: Record<typeof LA
 export async function apply(ctx: Context): Promise<void> {
   installPluginStyles(ctx)
   installThemeStyles(ctx)
+  installIconSprite(ctx)
   ctx.effect(() => ctx.locale.register('modern-intelligent', dictionaries(intelligentLocale)))
   ctx.effect(() => ctx.locale.register('modern-model', dictionaries(modelLocale)))
   ctx.effect(() => ctx.locale.register('modern-subagent', dictionaries(subagentLocale)))

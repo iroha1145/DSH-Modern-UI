@@ -134,6 +134,31 @@ test('Modern uses the real theme override layer and restores earlier owners with
   assert.equal(f.dom.window.document.querySelectorAll('style[data-plugin="@iroha1145/dsh-modern-ui"]').length, 0)
 })
 
+test('product icon sprite is owned by the plugin: every dsw-icon symbol resolves, shared across instances, removed with the last owner', async () => {
+  const f = fixture()
+  await f.providers.await()
+  await f.fiber.await()
+  const document = f.dom.window.document
+  const sprite = document.getElementById('modern-ui-icon-sprite')
+  assert.ok(sprite, 'the official host publishes no dsw-icon sprite, so the plugin must mount one')
+  const symbols = [...sprite.querySelectorAll('symbol')]
+  assert.ok(symbols.length >= 100, `expected the whole product icon set, got ${symbols.length}`)
+  assert.ok(symbols.every(symbol => /^dsw-icon-[a-z0-9-]+-(?:regular|medium)$/.test(symbol.id) && symbol.getAttribute('viewBox')))
+  const plus = document.getElementById('dsw-icon-plus-outline-medium')
+  assert.equal(plus?.getAttribute('stroke-width'), '1.3')
+  assert.equal(plus.querySelectorAll('path').length, 2)
+  // Every <use> the bundle can emit points at a symbol that exists in this document.
+  const rendered = renderToStaticMarkup(React.createElement(f.client.IconPlusOutlineMedium ?? (() => null)))
+  for (const match of rendered.matchAll(/href="#([^"]+)"/g)) assert.ok(document.getElementById(match[1]), match[1])
+  const second = f.ctx.plugin(f.client)
+  await second.await()
+  assert.equal(document.querySelectorAll('#modern-ui-icon-sprite').length, 1, 'one sprite per document')
+  await second.dispose()
+  assert.ok(document.getElementById('modern-ui-icon-sprite'), 'the first owner still needs it')
+  await f.fiber.dispose()
+  assert.equal(document.getElementById('modern-ui-icon-sprite'), null)
+})
+
 function translationRemote(f, limits) {
   return f.ctx.plugin({ inject: ['remote'], apply(scope) {
     const cotTranslation = { limits, translate: async request => ({ ok: true, value: `Translated ${request.text}` }) }

@@ -40,3 +40,8 @@ Host 严格 TypeScript 检查通过。构建先用 TypeScript emit，再 bundle�
 | 浏览器与开发库 / Electron / 外部 SDK 修补 | 并非都作为该 CLI 消费闭包的独立 npm 包出现 | 不从“没发现目录”推断已修复；本轮不是 Electron 发行验收 |
 
 这里是在核对旧补丁的依赖修复是否保留，不是新的全面安全认证。官方 bundle 内联的浏览器库、所有外部模型 SDK 和所有平台仍需要更广的发行核验；不把开发依赖表或一次审计结果扩大为完整无风险结论。
+
+## 图标雪碧图
+
+`@iroha1145/dsh-modern-ui/primitives` 的产品图标都渲染成 `<svg data-icon="dsw-icon-<glyph>-<weight>"><use href="#dsw-icon-…"></svg>`，引用文档里的雪碧图符号。旧补丁版由打过补丁的 ui-theme 随外壳发布这张雪碧图；官方 rc.4 没有这些符号，也不会有人替插件挂上，于是每个图标都成了空框（没有任何控制台错误，截图里才看得出来）。2026-10-27 起由插件自己挂：`vendor/theme/client/icon-sprite.ts` 的 `installIconSprite()` 在 `apply` 里把 `ICON_SYMBOLS` 的每个 SVG 文档转成同 id 的 `<symbol>`，放进 `#modern-ui-icon-sprite`（零尺寸、`aria-hidden`）追加到 `<body>`；同一文档里多个插件实例共用一张，按 `data-owners` 计数，最后一个卸载时移除。单测核对整套符号与 `stroke-width`，浏览器验收断言页面里没有落空的 `<use>` 引用。
+
