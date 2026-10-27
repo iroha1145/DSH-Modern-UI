@@ -2,7 +2,7 @@
 import { spawnSync } from 'node:child_process'
 import { cp, mkdir, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
-import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { basename, delimiter, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createHash, randomUUID } from 'node:crypto'
 import { createRequire } from 'node:module'
@@ -33,7 +33,7 @@ function summary(state) {
     plugin: state.plugin, officialSource: state.officialSource, nativeProbe: state.nativeProbe,
     selfTest: state.selfTest, webSelfTest: state.webSelfTest, previousGeneration: state.previous?.generation,
     sourceLedger: state.sourceLedger, sourceProof: state.sourceProof, powershell: state.powershell ? { path: state.powershell.path, version: state.powershell.version, source: state.powershell.source } : undefined,
-    settingsMigration: state.settingsMigration, conversationMigration: state.conversationMigration, shellBinding: state.shellBinding, hostCompatibility: state.hostCompatibility, sourceProfile: state.sourceProfile ? { name: state.sourceProfile.name, path: state.sourceProfile.path } : undefined,
+    settingsMigration: state.settingsMigration, conversationMigration: state.conversationMigration, shellBinding: state.shellBinding, hostCompatibility: state.hostCompatibility, profileStore: state.profileStore, sourceProfile: state.sourceProfile ? { name: state.sourceProfile.name, path: state.sourceProfile.path } : undefined,
     evidence: join(state.generation, 'installation.json') }
 }
 const run = (exe, args, options = {}) => {
@@ -84,6 +84,36 @@ export function runtimeEnvironment(state) {
     npm_config_ignore_scripts: 'true', npm_config_store_dir: join(state.root, 'store'),
     NODE_PATH: '', NODE_OPTIONS: '', PNPM_PACKAGE_MANAGER_STRICT: 'false' }
 }
+/**
+ * Environment for the official process at launch and for the installation self-test.
+ * The agent's shells inherit this, so it carries only what the runtime needs: the data home,
+ * the exact pnpm the profile was installed with (the official plugin manager looks `pnpm` up
+ * on PATH) and, on Windows, the private PowerShell. Installer switches such as
+ * npm_config_ignore_scripts or npm_config_store_dir would otherwise change how the user's own
+ * projects install under the agent, and clearing NODE_OPTIONS/NODE_PATH would drop the user's
+ * settings there too.
+ */
+export function launchEnvironment(state) {
+  const path = [join(state.generation, 'bin'), ...(state.powershell ? [dirname(state.powershell.path)] : []), process.env.PATH, dirname(state.node)]
+  return { ...process.env, DSH_HOME: state.home, PATH: path.filter(Boolean).join(delimiter),
+    ...(state.powershell ? { POWERSHELL_TELEMETRY_OPTOUT: '1', PSModuleAnalysisCachePath: join(state.root, 'runtime-cache', 'powershell-module-analysis') } : {}) }
+}
+/**
+ * Pin the profile's pnpm store to the program root when the profile does not choose one.
+ * The installer installs with this store; the official plugin manager later runs pnpm from
+ * the launch environment, which carries no npm_config_store_dir, so the workspace file is the
+ * one place both agree on. A profile that already names a store keeps it.
+ */
+export async function ensureProfileStore(profile, root) {
+  const file = join(profile, 'pnpm-workspace.yaml')
+  let text = ''
+  try { text = await readFile(file, 'utf8') } catch (error) { if (error.code !== 'ENOENT') throw error }
+  if (/^storeDir\s*:/m.test(text)) return { pinned: false, file }
+  const store = join(root, 'store')
+  if (/[\r\n#]/.test(store)) throw new Error('Program root path cannot be written into pnpm-workspace.yaml')
+  await writeFile(file, `${text}${text && !text.endsWith('\n') ? '\n' : ''}storeDir: ${store}\n`)
+  return { pinned: true, file, store }
+}
 function dsh(state, args, cwd = state.generation) {
   return run(state.node, [state.cli, ...args], { cwd, env: runtimeEnvironment(state), timeout: 180000 })
 }
@@ -96,7 +126,8 @@ function windowsCommandBridge(script) {
 export async function privatePnpm(state) {
   await mkdir(join(state.generation, 'bin'), { recursive: true })
   const paths = [state.node, state.pnpm]
-  if (paths.some(path => /[\r\n%"`$]/.test(path))) throw new Error('Runtime paths contain unsupported shell metacharacters')
+  const forbidden = process.platform === 'win32' ? /[\r\n%"`$]/ : /[\r\n]/
+  if (paths.some(path => forbidden.test(path))) throw new Error('Runtime paths contain unsupported shell metacharacters')
   if (process.platform === 'win32') {
     await save(join(state.generation, 'bin', 'runtime.json'), { node: state.node, pnpm: state.pnpm })
     await writeFile(join(state.generation, 'bin', 'pnpm.ps1'), windowsNodeBridge('runtime.json', '$state.pnpm'))
@@ -245,8 +276,12 @@ async function stage(state, options, bytes, previousReference) {
     await cp(source, profile, { recursive: true, filter: path => relative(join(source, 'node_modules'), path) !== '' })
     state.sourceProfile = { name: sourceName, path: source, baseline: before }
     // Rehydrate dependencies into the new generation via the official profile manager.
+    state.profileStore = await ensureProfileStore(profile, root)
     dsh(state, ['plugin', '--profile', state.profile, 'install', '--ignore-scripts'])
-  } else dsh(state, [state.profile, '--from-default-profile', 'web', '--dump-config'])
+  } else {
+    dsh(state, [state.profile, '--from-default-profile', 'web', '--dump-config'])
+    state.profileStore = await ensureProfileStore(profile, root)
+  }
   dsh(state, ['plugin', '--profile', state.profile, 'add', '--save-exact', '--ignore-scripts', artifact])
   const installed = await json(join(profile, 'node_modules', plugin.name, 'package.json'))
   if (installed.version !== plugin.version) throw new Error('Installed plugin version mismatch')
@@ -262,7 +297,7 @@ async function stage(state, options, bytes, previousReference) {
   const help = dsh(state, [state.profile, '--help'])
   if (!help.includes('--port') || !help.includes('--trusted-host')) throw new Error('Official Web startup self-test did not provide expected supported options')
   state.selfTest = 'configuration composition and official Web --help passed; full Web behavior requires consumer acceptance'
-  state.webSelfTest = await webSelfTest(state, runtimeEnvironment(state))
+  state.webSelfTest = await webSelfTest(state, launchEnvironment(state))
   await verifyOfficial(state)
   if (state.sourceProfile) await verifySnapshot(state.sourceProfile.path, state.sourceProfile.baseline, { excludeNodeModules: true })
   await installEntrypoint(state)
@@ -332,8 +367,14 @@ export async function main(argv = process.argv.slice(2)) {
     }
     if (command === 'launch') {
       await verifyOfficial(state)
-      console.log(JSON.stringify({ node: state.node, pnpm: state.pnpm, backend: state.backend, version: versions.backend, plugin: state.plugin, profile: state.profile, home: state.home }))
-      const result = await launchChild(state.node, [state.cli, '--profile', state.profile, ...(options.args ?? [])], { cwd: state.home, env: runtimeEnvironment(state), stdio: 'inherit' })
+      console.log(JSON.stringify({ node: state.node, pnpm: state.pnpm, backend: state.backend, version: versions.backend, plugin: state.plugin, profile: state.profile, home: state.home, cwd: process.cwd() }))
+      // A terminal delivers Ctrl+C and hangups to its whole foreground process group; a child in
+      // the same group would receive the signal once from the terminal and once more forwarded
+      // here, and the official exit controller treats a second signal as "force quit now".
+      // Its own process group (POSIX) leaves exactly one delivery: the forwarded one.
+      // The invoking directory stays the working directory, as with the official CLI.
+      const result = await launchChild(state.node, [state.cli, '--profile', state.profile, ...(options.args ?? [])],
+        { cwd: process.cwd(), env: launchEnvironment(state), stdio: 'inherit', detached: process.platform !== 'win32' })
       process.exitCode = result.exitCode
       return result
     }

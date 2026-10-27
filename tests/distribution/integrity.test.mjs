@@ -8,7 +8,7 @@ import { existsSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { checkIntegrity, snapshot, verifySnapshot } from '../../scripts/distribution/integrity.mjs'
-import { main } from '../../scripts/distribution/manager.mjs'
+import { ensureProfileStore, launchEnvironment, main } from '../../scripts/distribution/manager.mjs'
 import { acquireOperationLock } from '../../scripts/distribution/operation-lock.mjs'
 
 test('official baseline detects changed, missing and added package code', async () => {
@@ -49,6 +49,43 @@ test('failed staging and concurrent operations preserve the old selection and da
     assert.equal(await readFile(join(root, 'current.json'), 'utf8'), original)
     assert.equal(await readFile(join(root, 'operation.lock'), 'utf8'), 'historical user file')
   } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+test('profile store is pinned to the program root only when the profile names none', async () => {
+  const scratch = await mkdtemp(join(tmpdir(), 'dsh-profile-store-'))
+  try {
+    const root = join(scratch, 'program')
+    const fresh = join(scratch, 'fresh-profile')
+    await mkdir(fresh)
+    await writeFile(join(fresh, 'pnpm-workspace.yaml'), 'packages:\n  - .\n\nnodeLinker: hoisted\nautoInstallPeers: false\n')
+    assert.equal((await ensureProfileStore(fresh, root)).pinned, true)
+    assert.equal(await readFile(join(fresh, 'pnpm-workspace.yaml'), 'utf8'), `packages:\n  - .\n\nnodeLinker: hoisted\nautoInstallPeers: false\nstoreDir: ${join(root, 'store')}\n`)
+    assert.equal((await ensureProfileStore(fresh, root)).pinned, false)
+    const own = join(scratch, 'own-store-profile')
+    await mkdir(own)
+    await writeFile(join(own, 'pnpm-workspace.yaml'), 'packages:\n  - .\nstoreDir: /somewhere/else\n')
+    assert.equal((await ensureProfileStore(own, root)).pinned, false)
+    assert.equal(await readFile(join(own, 'pnpm-workspace.yaml'), 'utf8'), 'packages:\n  - .\nstoreDir: /somewhere/else\n')
+  } finally { await rm(scratch, { recursive: true, force: true }) }
+})
+
+test('launch environment carries no installer switches into the agent shells', () => {
+  const state = { root: '/p/root', generation: '/p/root/versions/g', home: '/d/home', node: '/p/root/versions/g/runtime/bin/node' }
+  const saved = { ...process.env }
+  try {
+    process.env.NODE_OPTIONS = '--max-old-space-size=4096'
+    process.env.npm_config_ignore_scripts = undefined
+    delete process.env.npm_config_ignore_scripts
+    const env = launchEnvironment(state)
+    assert.equal(env.DSH_HOME, '/d/home')
+    assert.equal(env.NODE_OPTIONS, '--max-old-space-size=4096')
+    for (const key of ['npm_config_ignore_scripts', 'npm_config_store_dir', 'PNPM_PACKAGE_MANAGER_STRICT']) assert.equal(key in env, false, key)
+    assert.equal(env.PATH.split(/[;:]/)[0], join('/p/root/versions/g', 'bin'))
+    assert.ok(env.PATH.endsWith(join('/p/root/versions/g/runtime/bin')))
+  } finally {
+    for (const key of Object.keys(process.env)) if (!(key in saved)) delete process.env[key]
+    Object.assign(process.env, saved)
+  }
 })
 
 test('failed staging removes only its own generation and staged profile', async () => {

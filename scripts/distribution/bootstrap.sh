@@ -9,8 +9,8 @@ root=$1; data_home=$2; plugin=$3; integrity=$4
 started=$(date -u +%Y-%m-%dT%H:%M:%SZ); epoch=$(date +%s)
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 case "$(uname -s)-$(uname -m)" in
-  Linux-x86_64) target=linux-x64; extension=tar.xz; hash=6c172a9ab6718f7b801fb5a7bd486af2ee5e32758086a04b84fcce2aa77095e6 ;;
-  Linux-aarch64|Linux-arm64) target=linux-arm64; extension=tar.xz; hash=dbabf7a1cbf947e6059ffad2c27b80041db97dea1e553b62afdee7f13fca336e ;;
+  Linux-x86_64) target=linux-x64; extension=tar.gz; hash=eb6728e77c576a35162c122c45ccadf224d89ff00abc8dae46cc2897c6002d7c ;;
+  Linux-aarch64|Linux-arm64) target=linux-arm64; extension=tar.gz; hash=33c37be234ba8bee041961047b19160f4d7d0f164e8e246f78bdd10feff148b3 ;;
   Darwin-x86_64) target=darwin-x64; extension=tar.gz; hash=d132557e7ee2b85af08b0c8c34338e65c6430f2238d01f727728ef42dc83b035 ;;
   Darwin-arm64) target=darwin-arm64; extension=tar.gz; hash=89c682593d76cd44233fa53b1563264e7de9cbb189cad169135c5b4fadfbc0a7 ;;
   *) echo 'Unsupported platform; no source-build fallback.' >&2; exit 1 ;;

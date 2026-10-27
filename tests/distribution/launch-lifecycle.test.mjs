@@ -16,11 +16,11 @@ async function waitFile(path, signal) {
   }
   throw new Error(`Timed out waiting for ${path}`)
 }
-async function launch(t, mode, missing = false) {
+async function launch(t, mode, missing = false, forkOptions = {}) {
   const root = await mkdtemp(join(tmpdir(), 'dsh-launch-'))
   await writeFile(join(root, 'current.json'), JSON.stringify({ root, home: root, generation: root,
     node: missing ? join(root, 'missing-node') : process.execPath, cli: fixture('launch-child'), profile: 'test', officialBaseline: {} }))
-  const parent = fork(fixture('launch-runner'), [root, mode], { stdio: ['ignore', 'ignore', 'pipe', 'ipc'] })
+  const parent = fork(fixture('launch-runner'), [root, mode], { stdio: ['ignore', 'ignore', 'pipe', 'ipc'], ...forkOptions })
   let stderr = ''
   parent.stderr.on('data', data => { stderr += data })
   let managerSettled = false
@@ -111,6 +111,23 @@ for (const [signal, code] of [['SIGTERM', 143], ['SIGINT', 130], ['SIGHUP', 129]
   assert.deepEqual(message.result, { exitCode: code, signal })
   assert.equal(message.cleanListeners, true)
   assert.deepEqual(await run.closed, [code, null])
+  await unlocked(run.root)
+})
+for (const signal of ['SIGINT', 'SIGHUP']) test(`terminal-style process-group ${signal} reaches the child exactly once`, {
+  timeout: 10000, skip: process.platform === 'win32' ? 'POSIX process groups only' : false,
+}, async t => {
+  // A terminal signals its whole foreground process group. The manager must not add a second
+  // delivery on top of that: the official exit controller force-quits on a repeated signal.
+  const run = await launch(t, 'hold', false, { detached: true })
+  await waitFile(join(run.root, 'child-ready'))
+  process.kill(-run.parent.pid, signal)
+  await waitFile(join(run.root, 'child-signals'))
+  await delay(400)
+  assert.deepEqual((await readFile(join(run.root, 'child-signals'), 'utf8')).trim().split('\n'), [signal])
+  assert.equal(run.parent.exitCode, null)
+  await writeFile(join(run.root, 'child-release'), '')
+  assert.equal((await run.message).cleanListeners, true)
+  assert.deepEqual(await run.closed, [0, null])
   await unlocked(run.root)
 })
 test('normal running child excludes another operation until it exits', { timeout: 10000 }, async t => {

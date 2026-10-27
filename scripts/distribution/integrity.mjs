@@ -10,21 +10,28 @@ export function checkIntegrity(bytes, integrity) {
 
 // Include code, assets, native binaries, permissions and link destinations. Never follow links
 // out of a package tree; dependency trees can be recorded separately as additional roots.
+// Every launch re-verifies the whole official closure (hundreds of packages, tens of thousands of
+// files), so file reads run a bounded number at a time instead of one round trip after another.
+const HASH_CONCURRENCY = 32
 export async function snapshot(root, options = {}) {
   const files = {}
+  const pending = []
   async function visit(path) {
     const stat = await lstat(path)
     if (stat.isSymbolicLink()) throw new Error(`Snapshot requires a symlink-free official package: ${path}`)
     if (stat.isDirectory()) {
       if (relative(join(root, 'node_modules'), path) === '' && options.excludeNodeModules) return
       for (const entry of (await readdir(path)).sort()) await visit(join(path, entry))
-    } else if (stat.isFile()) {
-      files[relative(root, path).replaceAll('\\', '/')] = {
-        sha256: createHash('sha256').update(await readFile(path)).digest('hex'), mode: stat.mode & 0o777,
-      }
-    }
+    } else if (stat.isFile()) pending.push({ key: relative(root, path).replaceAll('\\', '/'), path, mode: stat.mode & 0o777 })
   }
   await visit(root)
+  let next = 0
+  await Promise.all(Array.from({ length: Math.min(HASH_CONCURRENCY, pending.length) }, async () => {
+    while (next < pending.length) {
+      const file = pending[next++]
+      files[file.key] = { sha256: createHash('sha256').update(await readFile(file.path)).digest('hex'), mode: file.mode }
+    }
+  }))
   return files
 }
 

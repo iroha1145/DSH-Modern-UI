@@ -1,4 +1,6 @@
 import { spawn } from 'node:child_process'
+import { writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { request } from 'node:http'
 
@@ -36,8 +38,14 @@ export async function webSelfTest(state, env) {
   const started = performance.now()
   let readyAt
   let readyElapsedMs
-  const child = spawn(state.node, [state.cli, '--profile', state.profile, '--no-open', '--host', '127.0.0.1', '--port', '0'],
-    { cwd: state.generation, env, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true })
+  // The self-test boots the real data home for a few seconds. Without this overlay the official
+  // scheduler would start any reminder that is already due and the SIGTERM below would cut that
+  // turn short, losing it; telemetry stays off for the same throwaway run. Everything else is the
+  // profile exactly as it will launch.
+  const overlay = join(state.generation, 'self-test-overlay.yml')
+  await writeFile(overlay, "# Written by the Modern UI installer for its startup self-test only.\n- id: schedule\n  name: '@deepseek-ai/dsh-schedule'\n  disabled: true\n")
+  const child = spawn(state.node, [state.cli, '--profile', state.profile, '--patch', overlay, '--no-open', '--host', '127.0.0.1', '--port', '0'],
+    { cwd: state.generation, env: { ...env, DSH_TELEMETRY_DISABLED: '1' }, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true })
   let output = ''
   let diagnostics = ''
   let timer

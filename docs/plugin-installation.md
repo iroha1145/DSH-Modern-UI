@@ -36,6 +36,8 @@ sh ./install-existing.sh /absolute/official/package.json '/path/to/program' '/pa
 
 `DSH_MODERN_NODE` 可指定 Node 路径；Shell 入口找不到精确 Node 时自动使用私有 bootstrap，JS 入口要求已有精确 Node。生成的预览入口沿用同一目录选择规则。平台验收以当前提交的 CI 为准，本地 Windows 运行不代表已经执行 POSIX 信号和 Shell 检查。
 
+「已有精确 Node」路径会把该 Node 的真实路径写进 `current.json` 和启动器（Homebrew 的真实路径带版本号的 Cellar 目录、nvm 的版本目录）；之后升级或卸载这个 Node 会让启动器找不到解释器，需要重新安装。要避免这一点，用 bootstrap 入口让安装器准备私有 Node。POSIX 的 bootstrap 需要 `curl` 和 `tar`；Linux 的 Node 归档已改用 gzip 格式，不再依赖 `xz`。
+
 ## 指向已有数据目录
 
 `DATA_HOME`（或 `--home`）可以是已经在用的 DSH 数据目录。安装器只读取其中的 `profiles/web`（或上一代际记录的 profile），复制成新的 `profiles/modern-ui-<uuid>` 再装插件；会话、工作区记录和原 profile 原样保留，安装结束会按文件摘要核对原 profile 没有被改动。复制的 profile 如果选择了固定官方版本不再发布的 bundle，官方加载器会跳过它并打印一行警告，安装照常完成，`webSelfTest.skippedBundles` 列出被跳过的名字；要去掉这行警告，从新 profile 的 `package.json` 的 `dsh.profile.bundles` 里删掉它。`cordis.patch.yml` 里的 `!!js` 表达式按原文搬运，不会被求值写回。复制的 `pnpm-workspace.yaml` 若写了 `storeDir`，官方 profile 管理器安装依赖时以它为准。
@@ -91,9 +93,13 @@ community-lock.json 随程序保留三个精确包的真实 URL/SRI：dsh-contex
 
 更新仍使用 install-existing / bootstrap。新 generation 下载、校验并自检后才原子切 current.json；先停止使用同一数据目录的进程。程序管理使用 OS 生命周期 TCP 租约，强杀后内核释放；不读取或删除历史 operation.lock 文件。官方会话锁未绕过。
 
-POSIX 启动器将 SIGTERM、SIGINT 和 SIGHUP 转发给 DSH 子进程，并持续持有操作锁直到子进程退出、stdio 关闭。退出后清理信号监听器，保留子进程数值退出码；未处理信号终止使用 `128 + signal number`（例如 SIGTERM 为 143）。SIGKILL 等无法捕获的强制终止不属于此转发保证，内核会释放已被杀死的启动器所持租约。
+POSIX 启动器把官方 DSH 放进自己的进程组启动，并将发给启动器的 SIGTERM、SIGINT 和 SIGHUP 各转发一次，持续持有操作锁直到子进程退出、stdio 关闭。这样终端里按 Ctrl+C 或关闭窗口时，官方进程只收到转发来的那一次信号，按官方逻辑有序退出（官方把连续第二次信号当作「立即强制退出」）。退出后清理信号监听器，保留子进程数值退出码；官方 DSH 自己处理 SIGTERM 和 SIGINT 并以 0 或 130 退出，只有子进程不处理的信号（例如 SIGHUP）才得到 `128 + signal number`（129）。SIGKILL 等无法捕获的强制终止不属于此转发保证，内核会释放已被杀死的启动器所持租约。按 cgroup 整体发信号的管理器（systemd 默认的 `KillMode=control-group`）会让启动器和官方进程各收到一次，再加上转发就是两次；这类环境请只向启动器进程发信号（systemd 用 `KillMode=mixed`）。
 
-stage 自检包含官方 Web 启动审计、token 到 Cookie 的正常交换、准确 release/插件 boot graph、revisioned 同源插件资源 HTTP200、无 Cookie API401 和恶意 Host403。响应 Cookie / token 不写入报告。
+启动器以**调用它的目录**为官方进程的工作目录，与直接运行官方 `dsh` 一致；不带工作区的会话创建和沙箱的回退根目录都从这里算。传给官方进程的环境只比调用环境多三样：`DSH_HOME`、PATH 最前面的 `<代际>/bin`（只含固定版本 pnpm 的包装脚本，官方插件管理器按 PATH 找 `pnpm`）和 PATH 末尾的私有 Node 目录；Windows 另加私有 PowerShell 目录。安装器自己用的 `npm_config_ignore_scripts`、`npm_config_store_dir`、`NODE_OPTIONS`/`NODE_PATH` 清空等开关不进入启动环境，因此不会传给代理在用户项目里运行的 shell。代理的 shell 里 `pnpm` 会解析到这个固定版本的包装脚本。
+
+新建的 profile 若 `pnpm-workspace.yaml` 没有写 `storeDir`，安装器会补上 `<程序目录>/store`，使安装时与运行时（官方插件管理器）使用同一个 pnpm 仓库；已经写了 `storeDir` 的 profile 保持原样。
+
+stage 自检包含官方 Web 启动审计、token 到 Cookie 的正常交换、准确 release/插件 boot graph、revisioned 同源插件资源 HTTP200、无 Cookie API401 和恶意 Host403。响应 Cookie / token 不写入报告。 自检在真实数据目录上短暂启动官方进程，为此附带一个只在自检生效的 `--patch` 覆盖层停用 `schedule` 条目（否则到期的定时提醒会在这几秒里被触发又被打断而丢失），并对这次运行关闭遥测；写入代际目录的 `self-test-overlay.yml` 只在自检使用，正常启动不带它。
 
 按需执行以下命令中的一项（先读取 current.json；不是要求依次执行所有操作）：
 
