@@ -293,6 +293,12 @@ try {
   await editor().fill('OWNER_DELAY_START')
   await editor().press('Enter')
   await page.getByText('OWNER_STEP_1', { exact: true }).last().waitFor()
+  // The held stream keeps the Turn open: the Modern tail shows the patched running status and
+  // the official "deep diving" row stays out of the layout.
+  await page.locator('[data-modern-running]').first().waitFor({ timeout: 10000 })
+  assert.match(await page.locator('[data-modern-running]').first().getAttribute('data-modern-running'), /^(?:thinking|tools|responding|working)$/)
+  assert.ok(await page.locator('[data-chat-running]').evaluateAll(rows => rows.every(row => getComputedStyle(row).display === 'none')), 'the official running row is hidden while the Modern tail carries the status')
+  passed.push('Modern running status replaces the official deep-diving row while a Turn is held open')
   const steeringSession = (await ownerRecords()).find(row => row.user && !row.purpose && JSON.stringify(row.user).includes('OWNER_DELAY_START')).sessionId
   await editor().fill('OWNER_STEER_FIRST')
   await editor().press('Enter')

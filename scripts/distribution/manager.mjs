@@ -10,7 +10,7 @@ import { checkIntegrity, snapshot, verifySnapshot } from './integrity.mjs'
 import { webSelfTest } from './web-self-test.mjs'
 import { dependencyInventory } from './dependency-inventory.mjs'
 import { verifyReleaseSources } from './verify-release-source.mjs'
-import { bindHostCompatibility, preserveLegacySettings, preserveConversationPreferences } from './profile-settings.mjs'
+import { bindHostCompatibility, preserveLegacySettings, preserveConversationPreferences, preserveChatPreferences } from './profile-settings.mjs'
 import { acquireOperationLock } from './operation-lock.mjs'
 import { launchChild } from './launch-child.mjs'
 import { download, unpack } from './artifacts.mjs'
@@ -33,7 +33,7 @@ function summary(state) {
     plugin: state.plugin, officialSource: state.officialSource, nativeProbe: state.nativeProbe,
     selfTest: state.selfTest, webSelfTest: state.webSelfTest, previousGeneration: state.previous?.generation,
     sourceLedger: state.sourceLedger, sourceProof: state.sourceProof, powershell: state.powershell ? { path: state.powershell.path, version: state.powershell.version, source: state.powershell.source } : undefined,
-    settingsMigration: state.settingsMigration, conversationMigration: state.conversationMigration, shellBinding: state.shellBinding, hostCompatibility: state.hostCompatibility, profileStore: state.profileStore, sourceProfile: state.sourceProfile ? { name: state.sourceProfile.name, path: state.sourceProfile.path } : undefined,
+    settingsMigration: state.settingsMigration, conversationMigration: state.conversationMigration, chatMigration: state.chatMigration, shellBinding: state.shellBinding, hostCompatibility: state.hostCompatibility, profileStore: state.profileStore, sourceProfile: state.sourceProfile ? { name: state.sourceProfile.name, path: state.sourceProfile.path } : undefined,
     evidence: join(state.generation, 'installation.json') }
 }
 const run = (exe, args, options = {}) => {
@@ -288,6 +288,7 @@ async function stage(state, options, bytes, previousReference) {
   const backendRequire = createRequire(state.backend)
   state.settingsMigration = await preserveLegacySettings(profile, backendRequire('js-yaml'))
   state.conversationMigration = await preserveConversationPreferences(profile, dsh(state, [state.profile, '--dump-config']), backendRequire('js-yaml'))
+  state.chatMigration = await preserveChatPreferences(profile, backendRequire('js-yaml'))
   state.plugin = { name: plugin.name, version: plugin.version, integrity: options['plugin-integrity'], path: join(profile, 'node_modules', plugin.name) }
   const beforeBindings = dsh(state, [state.profile, '--dump-config'])
   state.hostCompatibility = await bindHostCompatibility(profile, beforeBindings, backendRequire('js-yaml'))

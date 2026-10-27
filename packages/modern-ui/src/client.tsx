@@ -25,7 +25,9 @@ import * as subagentLocale from './vendor/subagent/client/locales.ts'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
 import { presentationPolicyFor } from './vendor/chat/client/presentation-policy.ts'
-import { DEFAULT_LINK_OPENING, type ChatSettings } from './vendor/chat/chat-settings.ts'
+import { DEFAULT_LINK_OPENING, type ChatSettings, type FoldedReplies } from './vendor/chat/chat-settings.ts'
+import { RunningTail } from './vendor/chat/client/chat/RunningTail.tsx'
+import { FoldedRepliesRow, type FoldedRepliesRowInjected } from './vendor/chat/client/settings/FoldedRepliesRow.tsx'
 import { installLanguages } from './languages.ts'
 import { installReasoningTranslation } from './reasoning-translation.ts'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-browser/client'
@@ -70,10 +72,35 @@ export async function apply(ctx: Context): Promise<void> {
   for (const owner of owners) await owner.await()
 }
 
+/** Chat preferences the plugin keeps in its own settings namespace. */
+interface ModernChatSettings { foldedReplies?: FoldedReplies }
+const MODERN_SETTINGS_NAMESPACE = 'modern-ui'
+const foldedRepliesOf = (value: ModernChatSettings | undefined): FoldedReplies => value?.foldedReplies === 'final' ? 'final' : 'all'
+
 function installPresentation(ctx: Context): void {
   installReasoningTranslation(ctx)
   installSteeringBatches(ctx)
   installToolCards(ctx)
+  // The official flow keeps its "deep diving" running row; Modern hides it by style and
+  // contributes the patched running status (matrix, phase, elapsed) to the Turn's tail instead.
+  ctx.slots.inject('conversation.chat.turnTail', () => ctx.slots.register({
+    name: 'conversation.chat.turnTail', id: 'modern-running-status', order: -100, locale: 'modern-chat',
+  }, RunningTail))
+  const modernChat = ctx.configForms.get<ModernChatSettings>(MODERN_SETTINGS_NAMESPACE)
+  const foldedReplies = createSnapshotStore<FoldedReplies>(foldedRepliesOf(modernChat.getSnapshot().value))
+  ctx.effect(() => modernChat.subscribe(() => foldedReplies.set(foldedRepliesOf(modernChat.getSnapshot().value))))
+  ctx.slots.inject('settings.general.item', () => ctx.slots.register({
+    name: 'settings.general.item', id: 'modern-folded-replies', order: 13, locale: 'modern-chat',
+    inject: (): FoldedRepliesRowInjected => ({
+      hooks: { foldedReplies },
+      setFoldedReplies: (replies) => {
+        foldedReplies.set(replies)
+        void modernChat.set('foldedReplies', replies).catch((_error: unknown) => {
+          // The local choice remains usable when persistence is unavailable.
+        })
+      },
+    }),
+  }, FoldedRepliesRow))
   const form = ctx.configForms.get<ModelPickerSettings>(MODEL_PICKER_NAMESPACE)
   const picker = createSnapshotStore(form.getSnapshot().value)
   ctx.effect(() => form.subscribe(() => picker.set(form.getSnapshot().value)))
@@ -193,15 +220,24 @@ function installPresentation(ctx: Context): void {
 
 function presentationSource(ctx: Context) {
   const settings = ctx.configForms.get<ChatSettings>('ui-chat')
+  // Work-details mode and collapse timing stay with the official chat settings; the folded-reply
+  // choice has no official field, so the plugin's own namespace holds it (a legacy ui-chat value
+  // still counts until the profile migration has moved it).
+  const modern = ctx.configForms.get<ModernChatSettings>(MODERN_SETTINGS_NAMESPACE)
   const value = () => {
     const current = settings.getSnapshot().value
     const saved = current?.transcriptView
     const mode = saved === 'compact' || saved === 'detailed' || saved === 'verbose' ? saved : 'standard'
-    return presentationPolicyFor(mode, current?.collapseTiming ?? 'completion', current?.foldedReplies ?? 'all')
+    const replies = modern.getSnapshot().value?.foldedReplies ?? current?.foldedReplies
+    return presentationPolicyFor(mode, current?.collapseTiming ?? 'completion', replies === 'final' ? 'final' : 'all')
   }
   let accepted = value()
   return {
     getSnapshot: () => accepted,
-    subscribe: (listener: () => void) => settings.subscribe(() => { accepted = value(); listener() }),
+    subscribe: (listener: () => void) => {
+      const refresh = () => { accepted = value(); listener() }
+      const unsubscribe = [settings.subscribe(refresh), modern.subscribe(refresh)]
+      return () => { for (const release of unsubscribe) release() }
+    },
   }
 }

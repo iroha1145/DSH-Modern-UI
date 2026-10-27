@@ -45,3 +45,9 @@ Host 严格 TypeScript 检查通过。构建先用 TypeScript emit，再 bundle�
 
 `@iroha1145/dsh-modern-ui/primitives` 的产品图标都渲染成 `<svg data-icon="dsw-icon-<glyph>-<weight>"><use href="#dsw-icon-…"></svg>`，引用文档里的雪碧图符号。旧补丁版由打过补丁的 ui-theme 随外壳发布这张雪碧图；官方 rc.4 没有这些符号，也不会有人替插件挂上，于是每个图标都成了空框（没有任何控制台错误，截图里才看得出来）。2026-10-27 起由插件自己挂：`vendor/theme/client/icon-sprite.ts` 的 `installIconSprite()` 在 `apply` 里把 `ICON_SYMBOLS` 的每个 SVG 文档转成同 id 的 `<symbol>`，放进 `#modern-ui-icon-sprite`（零尺寸、`aria-hidden`）追加到 `<body>`；同一文档里多个插件实例共用一张，按 `data-owners` 计数，最后一个卸载时移除。单测核对整套符号与 `stroke-width`，浏览器验收断言页面里没有落空的 `<use>` 引用。
 
+## 运行状态行与「收起后显示的回复」
+
+旧补丁改过聊天流（`ChatFlow`）里的运行状态行：去掉官方的「深度求索中，用时 …」蓝色扫光，换成矩阵式加载指示加阶段文字（正在思考 / 正在使用工具 / 正在输出回复 / 正在处理）和单独的耗时，并在推理阶段只留耗时（分组标题已经在说明活动）。插件没有接管聊天流本身（它是官方 `conversation.chat.flow` 单例，带滚动与虚拟化逻辑），改为：样式里把官方的 `[data-chat-running]` 行隐藏，并向官方回合尾的 `conversation.chat.turnTail` 列表槽登记一条 `modern-running-status`（`vendor/chat/client/chat/RunningTail.tsx`），回合打开期间用 `useChat` 读官方快照的 `legacy.partial` / `legacy.runningCalls` 判断阶段，渲染 `RunningStatus`（补丁版）。官方的回合尾节点、点赞/点踩、交付物、计划、日程等第三方对 `turnTail` / `assistant-actions` 的贡献原样保留；回合尾节点的键不能由插件替换，因为注册表不允许两个条目声明同名子槽，而第三方正是往官方的子槽登记的。没有做的：旧补丁还让运行中的分组标题在推理阶段显示矩阵（`ChatGroupSeat` 的 `runningPhase`），官方分组标题保持官方样式；断线时冻结计时也没有搬。
+
+「收起后显示的回复」（`foldedReplies`，全部回复 / 仅最终回答）是补丁独有的设置，官方 rc.4 的 `ui-chat` 没有这个字段、通用设置里也没有这一项。插件现在把它放进自己的 `modern-ui` 配置（`index.ts` 的 `Config`），在官方通用设置里紧跟「工作步骤展示」登记一行 `modern-folded-replies`（`vendor/chat/client/settings/FoldedRepliesRow.tsx`），展示策略从 `modern-ui` 表单读取（迁移前残留在 `ui-chat` 的旧值仍被承认）。安装器新增第三份迁移回执 `modern-ui-chat-migration.json`：把复制的 profile 里 `ui-chat.foldedReplies` 搬进 `modern-ui` 行（已有值不覆盖，原行保留），已迁移过设置与会话偏好的 profile 在下一次升级时也会补做这一步。
+

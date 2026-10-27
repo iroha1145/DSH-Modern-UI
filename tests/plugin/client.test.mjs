@@ -97,6 +97,8 @@ function fixture({ realTheme = false } = {}) {
       'conversation.view': { kind: 'list', scope: 'session' },
       'conversation.session.header.lineage': { kind: 'single', scope: 'session' },
       'conversation.session.header.actions': { kind: 'list', scope: 'session' },
+      'conversation.chat.turnTail': { kind: 'list', scope: 'session' },
+      'settings.general.item': { kind: 'list', scope: 'root' },
     } }, () => null)
     // The shipped assistant has its own children. Both declarations must coexist.
     scope.slots.register({ name: 'conversation.input.model' }, () => null)
@@ -157,6 +159,57 @@ test('product icon sprite is owned by the plugin: every dsw-icon symbol resolves
   assert.ok(document.getElementById('modern-ui-icon-sprite'), 'the first owner still needs it')
   await f.fiber.dispose()
   assert.equal(document.getElementById('modern-ui-icon-sprite'), null)
+})
+
+test('running status joins the official Turn tail with the patched phases and hides the official deep-diving row', async () => {
+  const f = fixture()
+  await f.providers.await()
+  await f.fiber.await()
+  const entry = f.ctx.slots.entriesOfSlot('conversation.chat.turnTail').find(candidate => candidate.options.id === 'modern-running-status')
+  assert.ok(entry, 'the plugin contributes a running status entry to the official tail')
+  const snapshot = (partial, runningCalls = []) => ({ legacy: { partial, runningCalls } })
+  const render = (turn, chat) => renderToStaticMarkup(React.createElement(entry.component, {
+    turn, seq: 1, openFile: () => {}, useChat: selector => selector(chat), t: key => key,
+  }))
+  const open = { status: 'open', start: { time: Date.now() - 65_000 } }
+  const thinking = render(open, snapshot({ blocks: [{ kind: 'reasoning', text: 'Detailed: ...' }] }))
+  assert.match(thinking, /data-modern-running="thinking"/)
+  assert.doesNotMatch(thinking, /data-loading-label/, 'a live reasoning header already names the activity')
+  assert.match(thinking, /data-loading-elapsed/)
+  assert.doesNotMatch(thinking, /深度求索|chat\.deepDiving/)
+  const tools = render(open, snapshot({ blocks: [{ kind: 'text', text: 'x' }] }, [{ id: 'call' }]))
+  assert.match(tools, /data-modern-running="tools"/)
+  assert.match(tools, /data-loading-label[^>]*>chat\.activity\.tools</)
+  assert.match(tools, /t-matrix/)
+  assert.match(render(open, snapshot({ blocks: [{ kind: 'text', text: 'Answer' }] })), /data-modern-running="responding"/)
+  assert.match(render(open, snapshot(null)), /data-modern-running="working"/)
+  assert.equal(render({ status: 'closed', start: { time: 1 } }, snapshot(null)), '')
+  const styles = [...f.dom.window.document.querySelectorAll('style[data-plugin="@iroha1145/dsh-modern-ui"]')].map(style => style.textContent).join('\n')
+  assert.match(styles, /\[data-chat-running\]\{display:none/)
+  await f.fiber.dispose()
+})
+
+test('folded replies live in the plugin settings namespace, drive the presentation policy and get their own general-settings row', async () => {
+  const f = fixture()
+  await f.providers.await()
+  await f.fiber.await()
+  const row = f.ctx.slots.entriesOfSlot('settings.general.item').find(candidate => candidate.options.id === 'modern-folded-replies')
+  assert.ok(row, 'the plugin registers the folded-reply row next to the official transcript rows')
+  assert.equal(row.options.order, 13)
+  const assistant = f.ctx.slots.entriesOfSlot('conversation.chat.node').find(candidate => candidate.options.key === 'assistant-step' && candidate.options.priority === -100)
+  const policy = () => assistant.inject('session-1').hooks.presentation.getSnapshot()
+  assert.equal(policy().foldedReplies, 'all')
+  const face = row.inject()
+  assert.equal(face.hooks.foldedReplies.getSnapshot(), 'all')
+  face.setFoldedReplies('final')
+  await new Promise(resolve => setTimeout(resolve, 10))
+  assert.equal(face.hooks.foldedReplies.getSnapshot(), 'final')
+  assert.equal(policy().foldedReplies, 'final', 'the modern-ui form value reaches the chat presentation policy')
+  assert.equal(policy().mode, 'standard')
+  const markup = renderToStaticMarkup(React.createElement(row.component, { ...face, useFoldedReplies: selector => selector(face.hooks.foldedReplies.getSnapshot()), t: key => key }))
+  assert.match(markup, /settings\.foldedReplies\.title/)
+  assert.match(markup, /settings\.foldedReplies\.final/)
+  await f.fiber.dispose()
 })
 
 function translationRemote(f, limits) {
