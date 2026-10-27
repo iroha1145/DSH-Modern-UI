@@ -23,7 +23,7 @@
 - 迁移结果：`modern-ui` 条目得到 `models`、`prices`、`pricesUpdatedAt`、`collapsedViews` 与 `busyEnter`；`mcp-exa` 行的 `headers: !!js '…'` **原样保留**在停用的原行与新的 `modern-ui-compat-mcp-exa` 行里，没有被求值写回，环境变量里的密钥不会落盘。
 - 复制的 profile 带着 `pnpm-workspace.yaml` 的 `storeDir`，官方 `dsh plugin install` 以它为准（本机落到 `~/Library/pnpm/store/v11`），没有使用程序目录下的 `store`；依赖安装正常，`github:` 来源的 `dsh-exa-mcp` 与 `dshmarket@1.70.1` 都装上了。这是记录，不是本轮改动。
 - 第一次试安装在修复前失败于网页自检（上表第二条），修复后重跑成功：核心阶段约 49 秒（Node 与官方包已在本机缓存），来源核验 567 个包，原生探针（会话写锁、子进程、终端、ripgrep 15.0.0）通过，网页自检 HTTP 200 / API 401 / 403 通过，三个社区插件 `same-skip`（从复制的 profile 里带过来，没有重装）。
-- 用生成的 `dsh-ui --no-open --host 127.0.0.1 --port 3091` 启动：从启动器到官方「ready」11 秒，其中约 9 秒是每次启动都做的官方文件全量摘要核对（567 个包），官方进程本身 1.8 秒。无头 Chrome 打开页面：Modern UI 的侧栏、工作区「Kimi」及其会话列表（含「展开其余 13 个会话」）、输入框模型卡片（DeepSeek-V4.1-Flash，推理等级「最高」）都在，控制台无错误；启动器以数据目录为工作目录，没有影响会话列表（工作区来自共享的 `storages/workspace.json`）。
+- 用生成的 `dsh-ui --no-open --host 127.0.0.1 --port 3091` 启动（并发核对改动之前）：从启动器到官方「ready」11 秒，其中约 9 秒是每次启动都做的官方文件全量摘要核对（567 个包），官方进程本身 1.8 秒；改成并发读取后，本机正式安装从启动器到就绪 5 到 6 秒。无头 Chrome 打开页面：Modern UI 的侧栏、工作区「Kimi」及其会话列表（含「展开其余 13 个会话」）、输入框模型卡片（DeepSeek-V4.1-Flash，推理等级「最高」）都在，控制台无错误；启动器以数据目录为工作目录，没有影响会话列表（工作区来自共享的 `storages/workspace.json`）。
 - 向启动器发 SIGTERM，启动器与官方子进程 3 秒内一起退出；运行期间 `status` 可用，`verify` 被操作锁拒绝。
 - 同一程序目录第二次安装（升级）：复用上一代的官方包与来源账本，`previousGeneration` 记录正确，profile 从上一代的 `modern-ui-<uuid>` 复制，三项迁移均报告 `alreadyMigrated`，跳过的 bundle 仍被报告。随后 `verify`、`community --check`、`rollback`（回到第一代，启动器 `--help` 正常）、`uninstall`（两次，幂等；启动器给出友好提示并以 1 退出）、再安装（通过 `recovery.json` 复用原数据目录与 profile）全部通过；结束时原 `web` profile 与真实目录逐文件一致。
 - 「已有官方包」入口 `install-existing.sh OFFICIAL_PACKAGE_JSON PROGRAM_ROOT DATA_HOME`，`DSH_MODERN_NODE` 指向精确 Node：全新数据目录，72 秒完成，社区插件三项 `installed`，不下载 Node 与官方包。
