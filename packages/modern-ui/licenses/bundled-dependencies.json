@@ -24,6 +24,12 @@
     "file": "licenses/npm/deepseek-ai_dsh-file-reference0.2.1-rc.4.txt"
   },
   {
+    "name": "@deepseek-ai/dsh-llm",
+    "version": "0.2.1-rc.4",
+    "license": "MIT",
+    "file": "licenses/npm/deepseek-ai_dsh-llm0.2.1-rc.4.txt"
+  },
+  {
     "name": "@deepseek-ai/dsh-output-retention",
     "version": "0.2.1-rc.4",
     "license": "MIT",
@@ -40,6 +46,12 @@
     "version": "0.2.1-rc.4",
     "license": "MIT",
     "file": "licenses/npm/deepseek-ai_dsh-spill-policy0.2.1-rc.4.txt"
+  },
+  {
+    "name": "@deepseek-ai/dsh-token-meter",
+    "version": "0.2.1-rc.4",
+    "license": "MIT",
+    "file": "licenses/npm/deepseek-ai_dsh-token-meter0.2.1-rc.4.txt"
   },
   {
     "name": "@deepseek-ai/dsh-util-code-language",
@@ -160,6 +172,18 @@
     "version": "10.1.0",
     "license": "MIT",
     "file": "licenses/npm/shikijs_vscode-textmate10.1.0.txt"
+  },
+  {
+    "name": "@tanstack/react-virtual",
+    "version": "3.14.10",
+    "license": "MIT",
+    "file": "licenses/npm/tanstack_react-virtual3.14.10.txt"
+  },
+  {
+    "name": "@tanstack/virtual-core",
+    "version": "3.17.8",
+    "license": "MIT",
+    "file": "licenses/npm/tanstack_virtual-core3.17.8.txt"
   },
   {
     "name": "anser",

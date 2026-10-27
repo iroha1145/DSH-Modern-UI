@@ -3,7 +3,7 @@
 import z from '@deepseek-ai/schemastery'
 
 /** Settings namespace owned by the Chat target. */
-export const CHAT_SETTINGS_NAMESPACE = 'ui-chat'
+export const CHAT_SETTINGS_NAMESPACE = 'modern-ui'
 
 /** Field carrying the work-details presentation mode. */
 export const TRANSCRIPT_VIEW_FIELD = 'transcriptView'

@@ -1,0 +1,219 @@
+/** Stable process container; display policy changes visibility, never member parents. */
+import { memo, useCallback, useEffect, useId, useRef, useState, type ComponentProps, type ReactNode } from 'react'
+import { IconBrowseOutlineRegular, IconChevronDownOutlineRegular, IconAgentPresetOutlineRegular, IconApiOutlineRegular, IconChevronUpOutlineRegular, IconCodeOutlineRegular, IconEditOutlineRegular, IconGlobeOutlineRegular, IconQuestionOutlineRegular, IconSearchOutlineRegular, IconThinkOutlineRegular, IconCheckOutlineRegular, IconWrenchOutlineRegular, TextShimmer } from '@iroha1145/dsh-modern-ui/primitives'
+import { IconPlanOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { GroupKey, NodeReference } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { ProcessActivity } from '../contract/process-groups.ts'
+import type { ChatStoreState } from '../contract/store.ts'
+import type { ChatFlowSlotProps } from '../contract/slots.ts'
+import { turnProcessOpen } from '../stores.ts'
+import { ChatNodeSeat } from './ChatNodeSeat.tsx'
+import { hiddenOrCollapsing } from './flow-motion.ts'
+import { chatRenderKey } from './render-entry.ts'
+import { processTitle } from './step-process.ts'
+import { useDisclosure } from './use-disclosure.ts'
+import { RunningWhaleTail } from './RunningWhaleTail.tsx'
+import { useProcessScroll } from './use-process-scroll.ts'
+import css from './ChatGroupSeat.module.css'
+
+type SeatProps = Omit<ComponentProps<typeof ChatNodeSeat>, 'nodeKey' | 'groupPart'>
+type ChatGroupSeatProps = SeatProps & {
+  readonly groupKey: GroupKey
+  readonly runningPhase?: 'thinking' | 'tools' | 'responding' | 'working'
+  readonly useChatGroup: ChatFlowSlotProps['useChatGroup']
+  readonly useGroupHeaderAction: ChatFlowSlotProps['useGroupHeaderAction']
+}
+const PROCESS_TITLE_MINIMUM_MS = 150
+
+type ProcessTitleActivity = ProcessActivity | 'thinking'
+
+interface LiveProcessTitle {
+  readonly activity: ProcessTitleActivity
+  readonly detail: string
+  readonly preparing: boolean
+}
+
+const PROCESS_ICONS: Record<ProcessTitleActivity, ReactNode> = {
+  thinking: <IconThinkOutlineRegular />,
+  read: <IconBrowseOutlineRegular size={14} />,
+  readImage: <IconBrowseOutlineRegular size={14} />,
+  search: <IconSearchOutlineRegular size={14} />,
+  edit: <IconEditOutlineRegular size={14} />,
+  write: <IconEditOutlineRegular size={14} />,
+  commands: <IconApiOutlineRegular />,
+  code: <IconCodeOutlineRegular size={14} />,
+  webSearch: <IconGlobeOutlineRegular />,
+  webFetch: <IconBrowseOutlineRegular size={14} />,
+  subagents: <IconAgentPresetOutlineRegular size={14} />,
+  plan: <IconPlanOutlineRegular />,
+  questions: <IconQuestionOutlineRegular />,
+  tools: <IconWrenchOutlineRegular size={14} />,
+}
+
+function sameLiveProcessTitle(left: LiveProcessTitle, right: LiveProcessTitle): boolean {
+  return left.activity === right.activity && left.detail === right.detail && left.preparing === right.preparing
+}
+
+function useStableLiveProcessTitle(desired: LiveProcessTitle, active: boolean): LiveProcessTitle {
+  const [displayed, setDisplayed] = useState(desired)
+  const displayedRef = useRef(displayed)
+  const desiredRef = useRef(desired)
+  const displayedAtRef = useRef(Date.now())
+  useEffect(() => {
+    desiredRef.current = desired
+    if (!active || sameLiveProcessTitle(displayedRef.current, desired)) return
+    const remaining = PROCESS_TITLE_MINIMUM_MS - (Date.now() - displayedAtRef.current)
+    const commit = (): void => {
+      const next = desiredRef.current
+      displayedRef.current = next
+      displayedAtRef.current = Date.now()
+      setDisplayed(next)
+    }
+    if (remaining <= 0) {
+      commit()
+      return
+    }
+    const timer = setTimeout(commit, remaining)
+    return () => { clearTimeout(timer) }
+  }, [active, desired.activity, desired.detail, desired.preparing])
+  return active ? displayed : desired
+}
+
+
+const GroupMembers = memo(function GroupMembers({ members, ...props }: SeatProps & {
+  readonly members: readonly NodeReference[]
+}) {
+  return members.map(member => <ChatNodeSeat {...props} key={chatRenderKey(member)} nodeKey={member.key}
+    {...member.groupPart === undefined ? {} : { groupPart: member.groupPart }} />)
+})
+
+const ProcessGroupHeader = memo(function ProcessGroupHeader({
+  groupKey, useChatGroup, usePresentation, t, open, bodyId, toggle, runningPhase, completed,
+}: {
+  readonly groupKey: GroupKey
+  readonly useChatGroup: ChatFlowSlotProps['useChatGroup']
+  readonly usePresentation: ChatFlowSlotProps['usePresentation']
+  readonly t: ChatFlowSlotProps['t']
+  readonly open: boolean
+  readonly bodyId: string
+  readonly toggle: () => void
+  readonly runningPhase: 'thinking' | 'tools' | 'responding' | 'working'
+  readonly completed: boolean
+}) {
+  const data = useChatGroup(groupKey, group => group?.data)
+  const detailed = usePresentation(policy => data?.closed === false && policy.liveProcessDetail)
+  const live = useStableLiveProcessTitle({
+    activity: data?.summary.running ?? 'thinking',
+    detail: data?.summary.runningDetail ?? '',
+    preparing: data?.summary.preparing === true,
+  }, data !== undefined && !data.closed)
+  if (data === undefined) return null
+  const label = data.closed ? processTitle(data.summary, t)
+    : live.preparing ? t(`message.stepProcess.prepare.${live.activity === 'thinking' ? 'tools' : live.activity}`)
+      : t(`message.stepProcess.${live.activity}`)
+  const detail = detailed && !data.closed && live.activity !== 'thinking' ? live.detail : ''
+  const statusLabel = data.closed || live.activity !== 'thinking' ? label
+    : open && runningPhase === 'thinking' ? t('message.think') : t(`chat.activity.${runningPhase}`)
+  const title = detail === '' ? statusLabel : `${statusLabel}${t('message.turnProcess.separator')}${detail}`
+  const activity = data.closed ? data.summary.counts[0]?.kind ?? 'thinking' : live.activity
+  return (
+    <button type="button" className={css.title} aria-expanded={open} aria-controls={bodyId}
+      data-process-activity={activity} data-process-live={data.closed ? undefined : ''}
+      onClick={(event) => { event.currentTarget.focus(); toggle() }}>
+      <span className={css.leading} aria-hidden="true">
+        {/* RunningStatus shows the matrix for every phase except thinking, so a live header takes it only then. */}
+        <span className={css.activityIcon} data-step-process-icon>
+          {data.closed ? completed ? <IconCheckOutlineRegular /> : PROCESS_ICONS[activity]
+            : !open && runningPhase === 'thinking' ? <RunningWhaleTail /> : PROCESS_ICONS[activity]}
+        </span>
+        <span className={css.chevron} data-step-process-chevron>
+          {open ? <IconChevronUpOutlineRegular /> : <IconChevronDownOutlineRegular />}
+        </span>
+      </span>
+      <TextShimmer active={!data.closed}>
+        <TextShimmer className={css.label}>{title}</TextShimmer>
+      </TextShimmer>
+    </button>
+  )
+})
+
+/** Render a process group with local disclosure and the existing outer-Turn visibility. */
+export const ChatGroupSeat = memo(function ChatGroupSeat({ groupKey, useChatGroup, useGroupHeaderAction, runningPhase = 'working', ...props }: ChatGroupSeatProps) {
+  const members = useChatGroup(groupKey, group => group?.members)
+  const turn = useChatGroup(groupKey, group => group?.data.turn)
+  const closed = useChatGroup(groupKey, group => group?.data.closed)
+  const foldCompleted = props.usePresentation(policy => policy.foldCompletedTurns)
+  const { expanded: open, setExpanded: setOpen } = useDisclosure()
+  const firstKey = members?.[0]?.key ?? ''
+  const bottom = props.useChatNodeBottom(firstKey)
+  const deferCollapse = bottom === true && props.deferCollapse
+  const presentation = props.useChatNodeProcess(firstKey)
+  const turnLocation = props.useChatNode(firstKey, (node) => {
+    const location = node?.location
+    return location?.kind === 'turn' || location?.kind === 'step' ? location.turn : undefined
+  })
+  // Detailed keeps the latest completed Turn flat, like a running one, until the next input.
+  const grouped = props.usePresentation(policy => policy.stepGrouping === 'collapsed'
+    || (policy.stepGrouping === 'history' && turnLocation?.status !== 'open' && !deferCollapse))
+  const reason = turnLocation?.end?.data.reason.kind
+  const completed = closed === true && reason === 'completed'
+  const alwaysOpen = presentation?.turnClosed === false || presentation?.hasInterleavedInput === true
+    || reason === 'aborted' || reason === 'interrupted' || reason === 'error'
+  const spec = presentation?.spec
+  const selectOpen = useCallback((state: Readonly<ChatStoreState>) => spec !== undefined
+    && turnProcessOpen(state, spec, deferCollapse), [spec, deferCollapse])
+  const storedOpen = props.useStore(selectOpen)
+  const outerHidden = foldCompleted && presentation?.turnClosed === true && spec !== undefined
+    && !alwaysOpen && !storedOpen
+  const revealOuter = useCallback(() => {
+    if (spec !== undefined && !alwaysOpen) props.actions.setTurnProcessOpen(spec.turn, spec.answerStep ?? 0, true)
+  }, [props.actions, spec, alwaysOpen])
+  const rootRef = props.useGroupAction(outerHidden, revealOuter)
+  // The header appears when a flat latest Turn becomes historical; it grows on the fold clock while the
+  // body closes. A group whose whole Turn is folding never shows one in the frame it starts closing.
+  const headerRef = useRef<HTMLDivElement>(null)
+  const deferCompletedTurns = props.usePresentation(policy => policy.collapseTiming === 'next-input')
+  useGroupHeaderAction(headerRef, !grouped || (deferCompletedTurns && outerHidden))
+  useEffect(() => {
+    if (outerHidden && rootRef.current !== null && hiddenOrCollapsing(rootRef.current)) setOpen(false)
+  }, [outerHidden, rootRef, setOpen])
+  const reveal = useCallback(() => { setOpen(true) }, [setOpen])
+  const bodyRef = props.useGroupAction(grouped && !open, reveal)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const bodyId = useId()
+  const { edges, events, initialize } = useProcessScroll(bodyRef, contentRef, open, grouped)
+  const toggle = useCallback(() => {
+    if (!open) initialize(closed === false ? 'bottom' : 'top')
+    setOpen(!open)
+  }, [closed, initialize, open, setOpen])
+  // With next-input timing the height cap applies only to a group the reader opened. A closing body keeps
+  // the cap it was last shown with, so the transition starts from what is on screen: a reader-opened group
+  // closes from its cap, and a flat latest Turn becoming historical closes from its flat height.
+  const shownCap = !grouped ? false : open ? true : undefined
+  const [closingCap, setClosingCap] = useState(shownCap ?? true)
+  if (shownCap !== undefined && shownCap !== closingCap) setClosingCap(shownCap)
+  if (members === undefined) return null
+  const capped = grouped && (!deferCompletedTurns || (shownCap ?? closingCap))
+  const classes = [css.body, !capped ? css.expandedBody : '',
+    capped && edges.canScrollUp ? css.fadeTop : '', capped && edges.canScrollDown ? css.fadeBottom : '']
+  return (
+    <div ref={rootRef} className={css.root} data-chat-group-key={groupKey}
+      data-chat-flow-key={groupKey} data-chat-anchor-key={`group:${groupKey}`} data-chat-turn={turn}
+      data-chat-paging-anchor={grouped && !open || undefined}
+      data-step-process data-group-expanded-mode={!grouped || undefined}>
+      <div ref={headerRef}>
+        <ProcessGroupHeader groupKey={groupKey} useChatGroup={useChatGroup}
+          usePresentation={props.usePresentation} t={props.t} open={open} bodyId={bodyId} toggle={toggle}
+          runningPhase={runningPhase} completed={completed} />
+      </div>
+      <div ref={bodyRef} id={bodyId} className={classes.join(' ')} data-step-process-body
+        data-scroll-up={edges.canScrollUp || undefined} data-scroll-down={edges.canScrollDown || undefined}
+        {...events}>
+        <div ref={contentRef} className={css.content} data-step-process-content data-chat-flow=""
+          data-process-timeline={!grouped || open || undefined}>
+          <GroupMembers {...props} members={members} />
+        </div>
+      </div>
+    </div>
+  )
+})

@@ -31,6 +31,9 @@ const pure = new Set([
   '@deepseek-ai/dsh-brand',
   '@deepseek-ai/dsh-api-workspace-controller/default-workspace',
   '@deepseek-ai/dsh-spill-policy/notice', '@deepseek-ai/dsh-output-retention',
+  // Pure Turn token-usage derivation the vendored chat data layer (turn-tail) folds into its snapshot,
+  // and the pure assistant-stream assembler it reads the last chunk through.
+  '@deepseek-ai/dsh-token-meter/client', '@deepseek-ai/dsh-llm/assistant-stream',
 ])
 const stylePlugin = {
   name: 'modern-ui-owned-resources',

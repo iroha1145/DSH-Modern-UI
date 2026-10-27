@@ -7,7 +7,7 @@ import { parseFollowups } from './parse-followups.ts'
 import './locales.ts'
 import css from './Followups.module.css'
 
-type FollowupsProps = PropsRuntime<'modern.conversation.chat.message.code'> & PropsLocale<'modern-intelligent'> & { matched: object }
+type FollowupsProps = PropsRuntime<'conversation.chat.message.code'> & PropsLocale<'modern-intelligent'> & { matched: object }
 
 /**
  * Render a closed `followups` fence as a localized list of questions.

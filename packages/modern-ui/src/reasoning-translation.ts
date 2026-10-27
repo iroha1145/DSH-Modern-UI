@@ -93,8 +93,8 @@ async function registerUi(ctx: Context, lifetime: AbortController): Promise<void
         return result.value
       },
     })
-    ctx.slots.inject('modern.conversation.chat.reasoning.body', () => ctx.slots.register({
-      name: 'modern.conversation.chat.reasoning.body', locale: NS, priority: -100,
+    ctx.slots.inject('conversation.chat.reasoning.body', () => ctx.slots.register({
+      name: 'conversation.chat.reasoning.body', locale: NS, priority: -100,
       inject: injected,
     }, TranslationBody))
   }

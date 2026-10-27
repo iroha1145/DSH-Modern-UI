@@ -1,0 +1,18 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.actions {
+  /* Beautiful UI StreamingText completion-action transition (MIT).
+     The owner only mounts these actions when the real Turn closes. */
+  /* With tail content, this adds to the root gap; without it, the Chat flow's
+     preceding-item offset supplies the other 16px. */
+  margin-top: 4px;
+  margin-left: -6px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .actions { transition: opacity 400ms; }
+}

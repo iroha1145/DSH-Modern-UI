@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { createHash } from 'node:crypto'
 import { mkdtemp, readFile, writeFile, cp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -136,17 +137,22 @@ test('conversation receipt upgrades a v1 model migration once without overwritin
   assert.equal(yaml.load(await readFile(join(root, 'cordis.patch.yml'), 'utf8')).find(row => row.id === 'modern-ui').config.busyEnter, 'queue')
 })
 
-test('legacy ui-chat foldedReplies moves into the modern-ui row once; computed, invalid and present values refuse or skip', () => {
+test('legacy ui-chat preferences move into the modern-ui row once; computed, invalid and present values refuse or skip', () => {
   const chat = yaml.dump([{ id: 'ui-chat', name: '@deepseek-ai/dsh-client-ui-chat', config: { transcriptView: 'standard', foldedReplies: 'final' } }])
   const moved = transformChatPreferences(chat, yaml)
   const rows = yaml.load(moved.source, { schema: entryListSchema })
   assert.deepEqual(rows[0].config, { transcriptView: 'standard', foldedReplies: 'final' }, 'the retained original row keeps its value')
-  assert.deepEqual(rows[1], { id: 'modern-ui', name: '@iroha1145/dsh-modern-ui', config: { foldedReplies: 'final' } })
-  assert.deepEqual(moved.result, { changed: true, movedFields: ['foldedReplies'], conversionVersion: 1, namespace: 'modern-ui', retainedOriginalEntry: 'ui-chat' })
+  assert.deepEqual(rows[1], { id: 'modern-ui', name: '@iroha1145/dsh-modern-ui', config: { transcriptView: 'standard', foldedReplies: 'final' } })
+  assert.deepEqual(moved.result, { changed: true, movedFields: ['transcriptView', 'foldedReplies'], conversionVersion: 2, namespace: 'modern-ui', retainedOriginalEntry: 'ui-chat' })
   assert.equal(transformChatPreferences(moved.source, yaml).result.changed, false, 'a modern-ui value already present wins')
-  const existing = chat + yaml.dump([{ id: 'modern-ui', config: { foldedReplies: 'all' } }])
+  const existing = chat + yaml.dump([{ id: 'modern-ui', config: { transcriptView: 'detailed', foldedReplies: 'all' } }])
   assert.equal(transformChatPreferences(existing, yaml).result.changed, false)
-  assert.equal(transformChatPreferences(yaml.dump([{ id: 'ui-chat', config: { transcriptView: 'standard' } }]), yaml).result.changed, false)
+  const partial = transformChatPreferences(chat + yaml.dump([{ id: 'modern-ui', config: { foldedReplies: 'all' } }]), yaml)
+  assert.deepEqual(partial.result.movedFields, ['transcriptView'], 'only fields the plugin row lacks move')
+  const every = transformChatPreferences(yaml.dump([{ id: 'ui-chat', config: { transcriptView: 'compact', collapseTiming: 'next-input', performanceUsage: 'compact', linkOpening: 'browser', foldedReplies: 'all', other: 1 } }]), yaml)
+  assert.deepEqual(every.result.movedFields, ['transcriptView', 'collapseTiming', 'foldedReplies', 'performanceUsage', 'linkOpening'])
+  assert.deepEqual(yaml.load(every.source, { schema: entryListSchema })[1].config, { transcriptView: 'compact', collapseTiming: 'next-input', foldedReplies: 'all', performanceUsage: 'compact', linkOpening: 'browser' }, 'unknown ui-chat fields stay behind')
+  assert.throws(() => transformChatPreferences(yaml.dump([{ id: 'ui-chat', config: { transcriptView: 3 } }]), yaml), /plain string/)
   assert.throws(() => transformChatPreferences('- id: ui-chat\n  config:\n    foldedReplies: !!js process.exit(99)\n', yaml), /not evaluated/)
   assert.throws(() => transformChatPreferences(yaml.dump([{ id: 'ui-chat', config: { foldedReplies: 'some' } }]), yaml), /must be "all" or "final"/)
 })
@@ -160,11 +166,43 @@ test('chat receipt upgrades an already migrated profile once and leaves a recove
   assert.deepEqual(first.movedFields, ['foldedReplies'])
   const rows = yaml.load(await readFile(join(root, 'cordis.patch.yml'), 'utf8'), { schema: entryListSchema })
   assert.deepEqual(rows[1].config, { busyEnter: 'steer', foldedReplies: 'final' })
-  assert.equal(await readFile(join(root, 'modern-ui-chat-before-migration.yml'), 'utf8'), original)
+  assert.equal(await readFile(join(root, 'modern-ui-chat-before-migration-v2.yml'), 'utf8'), original)
   const receipt = JSON.parse(await readFile(join(root, 'modern-ui-chat-migration.json'), 'utf8'))
-  assert.equal(receipt.backup, 'modern-ui-chat-before-migration.yml')
+  assert.equal(receipt.backup, 'modern-ui-chat-before-migration-v2.yml')
+  assert.equal(receipt.conversionVersion, 2)
   const second = await preserveChatPreferences(root, yaml)
   assert.equal(second.alreadyMigrated, true)
   assert.deepEqual(yaml.load(await readFile(join(root, 'cordis.patch.yml'), 'utf8'), { schema: entryListSchema }), rows)
+})
+
+test('a profile migrated by the version-1 installer gets one more pass for the remaining chat preferences', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'modern-profile-chat-v1-'))
+  t.after(() => rm(root, { recursive: true, force: true }))
+  const before = yaml.dump([{ id: 'ui-chat', config: { transcriptView: 'standard', foldedReplies: 'final' } }, { id: 'modern-ui', name: '@iroha1145/dsh-modern-ui', config: {} }])
+  const afterV1 = yaml.dump([{ id: 'ui-chat', config: { transcriptView: 'standard', foldedReplies: 'final' } }, { id: 'modern-ui', name: '@iroha1145/dsh-modern-ui', config: { foldedReplies: 'final' } }])
+  const sha = text => createHash('sha256').update(text).digest('hex')
+  await writeFile(join(root, 'modern-ui-chat-before-migration.yml'), before)
+  await writeFile(join(root, 'cordis.patch.yml'), afterV1)
+  await writeFile(join(root, 'modern-ui-chat-migration.json'), JSON.stringify({ changed: true, movedFields: ['foldedReplies'], conversionVersion: 1, namespace: 'modern-ui',
+    retainedOriginalEntry: 'ui-chat', backup: 'modern-ui-chat-before-migration.yml', originalSha256: sha(before), migratedSha256: sha(afterV1) }))
+  const upgraded = await preserveChatPreferences(root, yaml)
+  assert.deepEqual(upgraded.movedFields, ['transcriptView'])
+  assert.equal(upgraded.conversionVersion, 2)
+  assert.equal(upgraded.previousConversionVersion, 1)
+  assert.equal(upgraded.backup, 'modern-ui-chat-before-migration-v2.yml')
+  assert.equal(await readFile(join(root, 'modern-ui-chat-before-migration-v2.yml'), 'utf8'), afterV1, 'the version-2 backup is the file the version-1 pass left')
+  const rows = yaml.load(await readFile(join(root, 'cordis.patch.yml'), 'utf8'), { schema: entryListSchema })
+  assert.deepEqual(rows[1].config, { foldedReplies: 'final', transcriptView: 'standard' })
+  assert.equal((await preserveChatPreferences(root, yaml)).alreadyMigrated, true)
+  // A version-1 profile with nothing left to move is stamped as current against its earlier backup.
+  const settled = await mkdtemp(join(tmpdir(), 'modern-profile-chat-v1-settled-'))
+  t.after(() => rm(settled, { recursive: true, force: true }))
+  const only = yaml.dump([{ id: 'ui-chat', config: { foldedReplies: 'final' } }, { id: 'modern-ui', name: '@iroha1145/dsh-modern-ui', config: { foldedReplies: 'final' } }])
+  await writeFile(join(settled, 'modern-ui-chat-before-migration.yml'), before)
+  await writeFile(join(settled, 'cordis.patch.yml'), only)
+  await writeFile(join(settled, 'modern-ui-chat-migration.json'), JSON.stringify({ conversionVersion: 1, backup: 'modern-ui-chat-before-migration.yml', originalSha256: sha(before), migratedSha256: sha(only) }))
+  const stamped = await preserveChatPreferences(settled, yaml)
+  assert.deepEqual([stamped.changed, stamped.conversionVersion, stamped.previousConversionVersion, stamped.backup], [false, 2, 1, 'modern-ui-chat-before-migration.yml'])
+  assert.equal((await preserveChatPreferences(settled, yaml)).alreadyMigrated, true)
 })
 

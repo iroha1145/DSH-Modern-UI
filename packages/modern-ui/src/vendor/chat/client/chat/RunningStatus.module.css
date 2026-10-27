@@ -53,7 +53,3 @@
 
 /* The official flow still mounts its own "deep diving" row while the Session runs. It keeps
    its place in the flow; its own children step aside for the Modern status rendered into it. */
-/* Equal specificity to the official row's own child rules, which load later: force it. */
-:global([data-chat-running] > :not([data-modern-running])) {
-  display: none !important;
-}
