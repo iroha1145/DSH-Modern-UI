@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-27",
+  "status": "passed",
+  "productSourceRevision": "6f70307d5546ce65d20c020cec02c55726cface9",
+  "platform": "win32-x64",
+  "pluginIntegrity": "sha512-IjUFS37pS39zsE+KJUJl2b6R2uj/IDCAN4xon/UgMwbYlYPdaRXyv/m6r5rWqYv3zN3v5tMplecgeOmvjJD14g==",
+  "nodeVersion": "v24.22.1",
+  "nodeDownloadCount": 1,
+  "bootstrapDirectoriesRemaining": 0,
+  "previousReferenceBytes": 447,
+  "receiptAndLegacyCompatibility": true,
+  "official": {
+    "name": "@deepseek-ai/dsh",
+    "version": "0.2.1-rc.4",
+    "channel": "next (resolved 2026-10-27)",
+    "url": "https://registry.npmjs.org/@deepseek-ai/dsh/-/dsh-0.2.1-rc.4.tgz",
+    "integrity": "sha512-8gxl6zOi6vx1sDolH+vjh9txrpbXD+t74Z2YfWkEBtR3xP2YEtk0bbLkgLZRnYQgDxCoXitXyXDKn5k0+6iXrg=="
+  },
+  "sourceLedgerSha256": "f902ba9763442bcf9405cf7439cce83b5ecfd73cab912bac5c3d642a92e3f3de",
+  "officialUnchanged": {
+    "unchanged": true,
+    "packages": 565
+  },
+  "managerSha256": "d92e6a8f44097458a1685710d8e5a90c032182c7159e3c242ffe0d93b2a9893d",
+  "timings": {
+    "fresh": {
+      "coreElapsedMs": 265080,
+      "elapsedMs": 294662,
+      "outerElapsedMs": 295462,
+      "cache": "release-cache and pnpm store absent; OS cache not flushed"
+    },
+    "upgrade": {
+      "coreElapsedMs": 59542,
+      "elapsedMs": 74696,
+      "outerElapsedMs": 74982,
+      "cache": "existing verified backend/release-cache/store; no Node download"
+    }
+  },
+  "browserPassed": 23,
+  "ownersPassed": 5,
+  "realTools": [
+    "write",
+    "read",
+    "pwsh",
+    "read"
+  ],
+  "bundleLifecyclePassed": 8,
+  "sourceHomeUnchanged": [
+    true,
+    true,
+    true,
+    true
+  ],
+  "limitations": [
+    "Windows x64 local acceptance only; remote CI is being checked separately",
+    "No paid API; real tools exercised through counted mock model",
+    "OS cache not flushed; no machine-cold or page-TTI claim",
+    "Node download count combines bootstrap URL audit, captured --node-archive process invocation, and verified archive-reuse code path; no packet capture",
+    "Legacy embedded-state compatibility was checked through the new lifecycle API; source installation selection was not rewritten to a legacy format",
+    "One private lifecycle fixture initially indexed baseline by package.json instead of package directory; corrected in this private driver only and original failure log retained"
+  ]
+}

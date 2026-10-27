@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { isolatedInstalledFixture, fixtureEnvironment as makeFixtureEnvironment, openSettings, browserExecutable } from './fixtures/e2e-environment.mjs'
+import { hasOwnerSteeringBatch } from './fixtures/owner-stream-barrier.mjs'
 import { createRequire } from 'node:module'
 import { mkdir, mkdtemp, writeFile, readFile, unlink } from 'node:fs/promises'
 import { createServer } from 'node:http'
@@ -76,6 +77,8 @@ await writeFile(overlay, `${ownerSelection}- id: workspace-controller\n  config:
 
 const ownerReport = path.join(run, 'model-requests.jsonl')
 const ownerGate = path.join(run, 'release-stream')
+const secondSteerRpcDelayMs = Number(process.env.MODERN_UI_OWNER_SECOND_STEER_RPC_DELAY_MS ?? 750)
+assert.ok(Number.isFinite(secondSteerRpcDelayMs) && secondSteerRpcDelayMs >= 0 && secondSteerRpcDelayMs <= 10000)
 let child, serverErrors = ''
 async function bootHost() { child = spawn(nodeExecutable, [official, '--profile', profile, ...(installed ? ['--patch', overlay] : []), '--port', '0', '--no-open'], {
   cwd: run, env: { ...fixtureEnvironment, MODERN_UI_OFFICIAL_CLI: official,
@@ -101,6 +104,17 @@ let url = await bootHost()
 const browser = await chromium.launch({ executablePath: browserExecutable(), headless: true })
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, locale: 'zh-CN' })
 const errors = [], passed = [], uploadResponses = [], submitEvidence = [], pinSettings = []
+const rpcDelays = []
+await page.route('**/api/**', async route => {
+  const request = route.request()
+  if (request.method() === 'POST' && request.postData()?.includes('OWNER_STEER_SECOND')) {
+    const started = Date.now()
+    // Deliberately expose optimistic UI text before the real second RPC reaches the Host.
+    await new Promise(resolve => setTimeout(resolve, secondSteerRpcDelayMs))
+    rpcDelays.push({ path: new URL(request.url()).pathname, requestedDelayMs: secondSteerRpcDelayMs, elapsedMs: Date.now() - started })
+  }
+  await route.continue()
+})
 page.on('pageerror', error => errors.push(error.message))
 page.on('console', message => { if (message.type() === 'error') errors.push(message.text().split('\n')[0]) })
 page.on('response', async response => {
@@ -151,6 +165,28 @@ function readModernSettings() {
   const modern = yaml.load(dump.stdout, { schema }).find(entry => entry.id === 'modern-ui')
   assert.ok(modern)
   return { collapsedViews: modern.config.collapsedViews, busyEnter: modern.config.busyEnter }
+}
+async function ownerRecords() {
+  let text
+  try { text = await readFile(ownerReport, 'utf8') }
+  catch (error) { if (error.code === 'ENOENT') return []; throw error }
+  return text.split('\n').slice(0, -1).map(line => JSON.parse(line))
+}
+async function waitForSteeringInbox(sessionId) {
+  const deadline = Date.now() + 10000
+  while (Date.now() < deadline) {
+    const records = await ownerRecords()
+    const events = records.filter(row => row.kind === 'event' && row.sessionId === sessionId).map(row => row.event)
+    const pending = []
+    for (const event of events) if (event.type === 'agent/inbox/spliced' && event.data.target === 'next-step') {
+      pending.splice(event.data.start, event.data.removedCount ?? 0, ...event.data.inserted)
+    }
+    assert.ok(!events.some(event => event.type === 'step/start' && event.data.step > 1), 'The model remains at step 1 until both real steering inputs are pending')
+    assert.ok(!records.some(row => row.kind === 'adapter-abort' && row.sessionId === sessionId), 'Ordinary steering must not cancel the held model response')
+    if (hasOwnerSteeringBatch(pending)) return { pendingIds: pending.map(message => message.id), lastSeq: events.at(-1)?.seq }
+    await page.waitForTimeout(20)
+  }
+  assert.fail('Both real steering inputs did not reach the official next-step inbox')
 }
 try {
   await ready()
@@ -248,12 +284,15 @@ try {
   await editor().fill('OWNER_DELAY_START')
   await editor().press('Enter')
   await page.getByText('OWNER_STEP_1', { exact: true }).last().waitFor()
+  const steeringSession = (await ownerRecords()).find(row => row.user && !row.purpose && JSON.stringify(row.user).includes('OWNER_DELAY_START')).sessionId
   await editor().fill('OWNER_STEER_FIRST')
   await editor().press('Enter')
   await page.getByText('OWNER_STEER_FIRST', { exact: true }).last().waitFor()
   await editor().fill('OWNER_STEER_SECOND')
   await editor().press('Enter')
   await page.getByText('OWNER_STEER_SECOND', { exact: true }).last().waitFor()
+  const steeringAdmission = await waitForSteeringInbox(steeringSession)
+  assert.equal(rpcDelays.length, 1, 'The real second steering POST crossed the intentional slow-admission route')
   await writeFile(ownerGate, 'release')
   await page.getByText('OWNER_STEP_2', { exact: true }).last().waitFor()
   const batch = page.locator('[data-chat-steering-batch="start"]')
@@ -268,6 +307,9 @@ try {
   assert.ok(steering.gap?.includes('44px'), 'real batch-start flow uses 44px gap rule')
   await page.screenshot({ path: path.join(run, 'steering.png'), fullPage: true })
   const allRequests = (await readFile(ownerReport, 'utf8')).trim().split('\n').map(line => JSON.parse(line))
+  const steeringEvents = allRequests.filter(row => row.kind === 'event' && row.sessionId === steeringSession).map(row => row.event)
+  assert.ok(steeringEvents.some(event => event.type === 'agent/inbox/spliced' && event.data.target === 'next-step'
+    && event.data.removedCount === 2 && event.data.inserted.length === 0), 'Official loop claims both pending messages at one next-step boundary')
   assert.ok(allRequests.some(request => request.user && !request.purpose && JSON.stringify(request.user).includes('OWNER_STEER_FIRST') && JSON.stringify(request.user).includes('OWNER_STEER_SECOND')), 'next real model step admits both steering messages')
   passed.push('delayed stream + two steering messages admitted into second step + only first batch marker + 44px gap')
 
@@ -284,6 +326,8 @@ try {
   await queue.getByText('OWNER_QUEUE_REMOVE', { exact: true }).waitFor({ state: 'hidden' })
   await page.getByRole('button', { name: '停止生成', exact: true }).click()
   await page.getByRole('button', { name: '停止生成', exact: true }).waitFor({ state: 'hidden' })
+  const cancellation = (await ownerRecords()).find(row => row.kind === 'adapter-abort' && row.cancellationCase)
+  assert.ok(cancellation, 'Independent Stop case really aborts the held adapter without releasing its gate')
   passed.push('complementary Queue submit + remove real queue occurrence + cancel delayed running turn')
 
   await page.setViewportSize({ width: 390, height: 844 })
@@ -303,12 +347,14 @@ try {
   passed.push('real phone drawer closes after session selection and workspace new-session action')
   await page.setViewportSize({ width: 1440, height: 1000 })
   assert.deepEqual(errors, [])
-  await writeFile(path.join(run, 'result.json'), JSON.stringify({ host: '0.2.1-rc.4', run, passed, steering, pinSettings, uploadResponses, requests: allRequests, errors }, null, 2))
+  await writeFile(path.join(run, 'result.json'), JSON.stringify({ host: '0.2.1-rc.4', run, passed, steering, steeringAdmission,
+    secondSteerRpcDelayMs, rpcDelays, cancellation, pinSettings, uploadResponses, requests: await ownerRecords(), errors }, null, 2))
   console.log(JSON.stringify({ run, passed, steering, errors }, null, 2))
 } catch (error) {
   await page.screenshot({ path: path.join(run, 'failure.png'), fullPage: true })
   const failure = { message: error.stack, errors, body: await page.locator('body').innerText(), uploads: uploadResponses, serverErrors, submitEvidence,
-    files: await page.locator('input[type="file"]').count(), buttons: await page.locator('button').allTextContents() }
+    files: await page.locator('input[type="file"]').count(), buttons: await page.locator('button').allTextContents(),
+    rpcDelays, modelRequests: await ownerRecords() }
   await writeFile(path.join(run, 'failure.json'), JSON.stringify(failure, null, 2))
   console.error(JSON.stringify({ run, ...failure }, null, 2))
   throw error

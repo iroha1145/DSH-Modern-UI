@@ -28,10 +28,16 @@
 
 ## 验证和可复现入口
 
-- 精确 Node 24.22.1：整合后 **112 tests / 112 pass / 0 fail**；UI 严格构建通过，864 browser inputs。
+- 精确 Node 24.22.1：最终整合 **115 tests / 115 pass / 0 fail**，包含三项模型流 barrier 回归；UI 严格构建通过，864 browser inputs。
 - 定向检查包含真实 ThemeRuntime、Gateway fiber、翻译/原文 DOM、手动压缩、Markdown 文件点击，归档路径、发布源字节、配置快照、receipt 边界和 legacy 回滚。
 - Windows bootstrap mock 回归验证一次归档下载传递、成功/失败清理和显式 Node 错误；这不冒充真实网络安装测量。
 - 新隔离测试用旧已消费 tgz 验证 owners 五项、四个真实工具和源数据不变。**修复后新 tgz 的消费者结果必须以当前提交 CI 为准**，不复用旧制品结论代替。
+
+随后修复版新 tgz 也完成了独立 Windows 全新安装和升级：实际只下载一次 Node、临时 bootstrap 目录清零，升级 previous 仅为 447 字节的三字段引用；565 个官方依赖包未改。23 项浏览器、5 项 owners、4 次真实工具和 3 阶段/8 项 bundle 生命周期通过，四组原 home 摘要不变。来源、制品摘要、计时和覆盖边界保存于 [Windows 消费记录](verification/pr5-windows.json)。这一记录对应产品修复提交 `6f70307`，不把本地结果扩大为其他平台的执行结论。
+
+远端后续复验暴露了 UI 测试对异步状态的假设：推理等级必须等待保存后标签更新，再断言并刷新；steering 必须等后台实际收下两条 next-step 消息，再释放受控模型。修复保留持久化、同一批次、首条标记和间距断言，使用真实状态/事件作为检查条件。各平台最终状态见 [PR 检查页](https://github.com/iroha1145/DSH-Modern-UI/pull/5/checks)。
+
+steering 修复用第二条真实 prompt POST 的 1000ms 人工网络延迟验证：实际延迟 1016ms 后，两条 durable next-step 记录都已入队、step 2 尚未启动，随后同一次 claim 消费两条，FIRST 标记与 44px 间距均通过。CANCEL 场景仍立即响应真实 `{kind: 'user'}` abort，没有通过忽略取消掩盖时序。官方 `steer()` 本身只入 next-step 队列，不直接 abort；原问题是测试把乐观回显当成了后台接收确认。
 
 开发单测：
 

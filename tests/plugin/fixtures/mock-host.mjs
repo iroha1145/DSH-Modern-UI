@@ -2,6 +2,7 @@
 import { createRequire } from 'node:module'
 import { pathToFileURL } from 'node:url'
 import { realpathSync, writeFileSync, appendFileSync, existsSync } from 'node:fs'
+import { hasOwnerSteeringBatch, waitForOwnerStreamRelease } from './owner-stream-barrier.mjs'
 const require = createRequire(process.env.MODERN_UI_OFFICIAL_CLI ?? import.meta.url)
 const { LlmAdapter, ReasoningEffortId } = await import(pathToFileURL(require.resolve('@deepseek-ai/dsh-llm')).href)
 if (process.env.MODERN_UI_PEER_REPORT) {
@@ -20,6 +21,7 @@ if (process.env.MODERN_UI_PEER_REPORT) {
 
 const provider = 'modern-ui-fixture'
 const models = ['mock-balanced', 'mock-fast', 'mock-reasoning']
+const ownerNextStep = new Map()
 const reasoning = {
   defaultEffort: ReasoningEffortId('medium'),
   efforts: [
@@ -79,10 +81,14 @@ class FixtureAdapter extends LlmAdapter {
       yield { type: 'block-start', index: 0, blockType: 'text' }
       yield { type: 'text-delta', index: 0, text }
       if (delayed && step === 1) {
-        while (!existsSync(process.env.MODERN_UI_OWNER_GATE)) {
-          options.signal?.throwIfAborted()
-          await new Promise(resolve => setTimeout(resolve, 50))
-        }
+        const cancellationCase = JSON.stringify(user).includes('OWNER_DELAY_START CANCEL')
+        await waitForOwnerStreamRelease({
+          signal: options.signal,
+          released: () => existsSync(process.env.MODERN_UI_OWNER_GATE),
+          admitted: () => cancellationCase || hasOwnerSteeringBatch(ownerNextStep.get(options.sessionId) ?? []),
+          onAbort: reason => appendFileSync(process.env.MODERN_UI_OWNER_REPORT, JSON.stringify({ kind: 'adapter-abort',
+            sessionId: options.sessionId, step, cancellationCase, reason: reason instanceof Error ? reason.message : reason }) + '\n'),
+        })
       }
       yield { type: 'block-end', index: 0, block: { type: 'text', text } }
       yield { type: 'finish', reason: { kind: 'stop' } }
@@ -109,6 +115,11 @@ export const inject = ['llm', 'workspaceController']
 export async function apply(ctx) {
   ctx.llm.registerAdapter([provider], new FixtureAdapter())
   if (process.env.MODERN_UI_OWNER_REPORT) ctx.on('session/event', (session, event) => {
+    if (event.type === 'agent/inbox/spliced' && event.data.target === 'next-step') {
+      const pending = ownerNextStep.get(session.id) ?? []
+      pending.splice(event.data.start, event.data.removedCount ?? 0, ...event.data.inserted)
+      ownerNextStep.set(session.id, pending)
+    }
     if (['user/message', 'agent/inbox/spliced', 'step/start', 'step/end', 'turn/start', 'turn/end'].includes(event.type)) {
       appendFileSync(process.env.MODERN_UI_OWNER_REPORT, JSON.stringify({ kind: 'event', sessionId: session.id, event }) + '\n')
     }

@@ -142,6 +142,7 @@ jobs:
             preview/.artifacts/plugin-owners/**/failure.json
             preview/.artifacts/plugin-owners/**/isolation.json
             preview/.artifacts/plugin-owners/**/peers.json
+            preview/.artifacts/plugin-owners/**/model-requests.jsonl
             preview/.artifacts/plugin-owners/**/*.png
             preview/.artifacts/official-web/**/result.json
             preview/.artifacts/runtime-tools/**/result.json

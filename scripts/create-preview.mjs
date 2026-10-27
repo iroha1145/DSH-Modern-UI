@@ -35,13 +35,13 @@ const communities = JSON.parse(await readFile(path.join(output, 'installer/commu
 const manifest = {
   schemaVersion: 1, status: 'local-preview-unpublished',
   acceptanceRecord: 'docs/plugin-migration.md',
-  compatibilityScope: 'Windows x64 local consumer evidence; no universal compatibility claim',
+  compatibilityScope: 'Pinned host and runtime; platform acceptance is recorded by the matching source revision consumer CI',
   plugin: { name: packed.name, version: packed.version, filename: 'modern-ui.tgz', integrity, bytes: bytes.length },
   backend: officialSource,
   node: versions.node, pnpm: versions.pnpm,
   runtimeSources: runtimes, communityPlugins: communities.plugins,
   decision: 'Modern UI session web controls removed; official plugin configuration remains authoritative',
-  limitations: ['Non-Windows platform execution unverified', 'Real touchscreen, WebKit and Electron multi-window execution unverified', 'Legacy web/search snapshots require the retained legacy environment or read-only export', 'Root owner bundle changes require a browser refresh', 'Profiles with explicit Host compatibility bindings retain the package until those bindings are restored'],
+  limitations: ['Only targets with passing consumer jobs for the source revision are verified', 'Real touchscreen, WebKit and Electron multi-window execution unverified', 'Legacy web/search snapshots require the retained legacy environment or read-only export', 'Root owner bundle changes require a browser refresh', 'Profiles with explicit Host compatibility bindings retain the package until those bindings are restored'],
 }
 await writeFile(path.join(output, 'preview.json'), JSON.stringify(manifest, null, 2) + '\n')
 await writeFile(path.join(output, 'package.json'), JSON.stringify({ private: true, type: 'module',
@@ -92,7 +92,7 @@ if [ "$#" -eq 3 ]; then
 fi
 exec sh "$here/installer/bootstrap.sh" "$1" "$2" "$here/modern-ui.tgz" '${integrity}'
 `, { mode: 0o755 })
-await writeFile(path.join(output, 'README.txt'), `DSH Modern UI - local Windows x64 preview (unpublished)
+await writeFile(path.join(output, 'README.txt'), `DSH Modern UI - precompiled plugin preview (unpublished)
 
 This directory contains the actual precompiled Modern UI tgz and a thin installer.
 There is no published npm/Release URL for this preview. Preserve legacy web/search sessions for the old environment or read-only export.
@@ -108,7 +108,7 @@ Or the PowerShell entry:
 
 The PowerShell execution-policy argument applies only to this process, not system settings.
 
-POSIX candidate platforms (not yet verified locally):
+POSIX targets (check the consumer CI for this source revision):
   sh ./install.sh '/path/to/program' '/path/to/data'
 
 The installer downloads verified official Node, pnpm and DSH release assets; it does not compile source.
