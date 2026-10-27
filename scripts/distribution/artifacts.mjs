@@ -1,13 +1,30 @@
 import { spawnSync } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { basename, dirname, join, relative, resolve, win32 } from 'node:path'
+import { setTimeout as delay } from 'node:timers/promises'
 import { checkIntegrity } from './integrity.mjs'
 
+const RETRIED_CAUSES = new Set(['ECONNRESET', 'ETIMEDOUT', 'EAI_AGAIN', 'ECONNREFUSED', 'EPIPE', 'UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_SOCKET', 'UND_ERR_HEADERS_TIMEOUT', 'UND_ERR_BODY_TIMEOUT'])
 export async function download(url, integrity, output) {
   if (!url.startsWith('https://')) throw new Error('Only HTTPS artifact URLs are accepted')
-  const response = await fetch(url, { signal: AbortSignal.timeout(180000) })
-  if (!response.ok) throw new Error(`Download failed: ${response.status} ${url}`)
-  const bytes = Buffer.from(await response.arrayBuffer())
+  let bytes
+  // A dropped connection during one of the release downloads otherwise ends the whole install
+  // with a bare "fetch failed"; three attempts cover the usual transient break and name the URL.
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(180000) })
+      if ([429, 502, 503, 504].includes(response.status) && attempt < 3) { await delay(1000 * attempt); continue }
+      if (!response.ok) throw new Error(`Download failed: ${response.status} ${url}`)
+      bytes = Buffer.from(await response.arrayBuffer())
+      break
+    } catch (error) {
+      const code = error.cause?.code ?? error.code
+      if (attempt >= 3 || !(RETRIED_CAUSES.has(code) || error.name === 'TimeoutError')) {
+        throw new Error(`Download failed for ${url}: ${error.message}${code ? ` (${code})` : ''}`, { cause: error })
+      }
+      await delay(1000 * attempt)
+    }
+  }
   checkIntegrity(bytes, integrity)
   await writeFile(output, bytes)
 }
