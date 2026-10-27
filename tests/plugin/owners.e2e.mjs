@@ -293,18 +293,18 @@ try {
   await editor().fill('OWNER_DELAY_START')
   await editor().press('Enter')
   await page.getByText('OWNER_STEP_1', { exact: true }).last().waitFor()
-  // The held stream keeps the Turn open: the Modern tail shows the patched running status and
-  // the official "deep diving" row stays out of the layout.
+  // The held stream keeps the Turn open: Modern's own chat flow renders the patched running
+  // status (matrix, phase label, elapsed time); no official "deep diving" row exists any more.
   await page.locator('[data-modern-running]').first().waitFor({ timeout: 10000 })
-  assert.match(await page.locator('[data-modern-running]').first().getAttribute('data-modern-running'), /^(?:thinking|tools|responding|working)$/)
-  const runningRows = await page.locator('[data-chat-running]').evaluateAll(rows => rows.map(row => ({
-    modern: row.querySelector('[data-modern-running]')?.getAttribute('data-modern-running') ?? null,
-    children: [...row.children].map(child => ({ tag: child.tagName, modern: child.hasAttribute('data-modern-running'), display: getComputedStyle(child).display, text: child.textContent.slice(0, 40) })),
-  })))
-  assert.ok(runningRows.length > 0 && runningRows.every(row => row.modern !== null && row.children.filter(child => !child.modern).every(child => child.display === 'none')),
-    `the Modern status renders inside the official running row and the row's own children stay hidden: ${JSON.stringify(runningRows)}`)
+  const runningStatus = await page.locator('[data-modern-running]').first().evaluate(row => ({
+    phase: row.getAttribute('data-modern-running'), matrix: row.querySelector('.t-matrix') !== null,
+    label: row.querySelector('[data-loading-label]')?.textContent ?? null, elapsed: row.querySelector('[data-loading-elapsed]')?.textContent ?? null,
+  }))
+  assert.match(runningStatus.phase, /^(?:thinking|tools|responding|working)$/)
+  assert.ok(runningStatus.matrix && runningStatus.elapsed !== null, `the patched running status shows the matrix and the clock: ${JSON.stringify(runningStatus)}`)
+  assert.equal(await page.locator('[data-chat-running]').count(), 0, 'the official running row is gone with the official ui-chat entry')
   await page.screenshot({ path: path.join(run, 'running-status.png') })
-  passed.push('Modern running status replaces the official deep-diving row while a Turn is held open')
+  passed.push('Modern chat flow renders the patched running status while a Turn is held open')
   const steeringSession = (await ownerRecords()).find(row => row.user && !row.purpose && JSON.stringify(row.user).includes('OWNER_DELAY_START')).sessionId
   await editor().fill('OWNER_STEER_FIRST')
   await editor().press('Enter')

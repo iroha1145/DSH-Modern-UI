@@ -1,18 +1,20 @@
 /** Official reasoning content and its default Body Slot adapter. */
 import { memo, useMemo } from 'react'
 import { MarkdownText } from '@iroha1145/dsh-modern-ui/primitives'
-import type { MarkdownLabels } from '@iroha1145/dsh-modern-ui/primitives'
-import type { PropsLocale, PropsRenderFactories, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { FactoryComponentPropsOf, PropsLocale, PropsRenderFactories, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { markdownLabels } from '../markdown-labels.ts'
 
-type ReasoningBodyProps = PropsRuntime<'modern.conversation.chat.reasoning.body'> & PropsRenderFactories
+type ReasoningBodyProps = PropsRuntime<'conversation.chat.reasoning.body'> & PropsRenderFactories
 
 /**
  * Render compact reasoning with caller-supplied labels or Chat's defaults.
  * @param props - display text, streaming state, optional localized labels, and the Factory's locale seat; no Session is required.
  * @returns the standard reasoning content; supplied labels are used without merging defaults.
  */
-export const ReasoningContent = memo(function ReasoningContent({ text, running, labels, t }: PropsRuntime<'modern.conversation.chat.reasoning.body'> & PropsLocale<'modern-chat'> & { labels?: MarkdownLabels }) {
+/** The official factory declaration fixes the `chat` namespace; Modern's dictionary lives in modern-chat. */
+type ReasoningContentProps = Omit<FactoryComponentPropsOf<'conversation.chat.reasoning.content'>, 't'> & PropsLocale<'modern-chat'>
+
+export const ReasoningContent = memo(function ReasoningContent({ text, running, labels, t }: ReasoningContentProps) {
   const resolvedLabels = useMemo(() => labels ?? markdownLabels(t), [labels, t])
   return <MarkdownText text={text} streaming={running} labels={resolvedLabels} variant="compact" />
 })

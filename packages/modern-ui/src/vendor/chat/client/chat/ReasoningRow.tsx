@@ -29,11 +29,11 @@ export const ReasoningRow = memo(function ReasoningRow({
   useDisclosure: UseDisclosure
   usePresentation: UsePresentation
   t: ChatViewSlotProps['t']
-} & Pick<PropsRenderSlots<'modern.conversation.chat.reasoning.body'>, 'renderSlot'>) {
+} & Pick<PropsRenderSlots<'conversation.chat.reasoning.body'>, 'renderSlot'>) {
   const { expanded, toggle } = useDisclosure()
   const content = useMemo(() => expanded ? (
     <div className={css.thinkBody} data-text-interaction-source={textInteractionSource && !running ? '' : undefined}>
-      {renderSlot('modern.conversation.chat.reasoning.body', { text, running })}
+      {renderSlot('conversation.chat.reasoning.body', { text, running })}
     </div>
   ) : undefined, [expanded, renderSlot, running, text, textInteractionSource])
 

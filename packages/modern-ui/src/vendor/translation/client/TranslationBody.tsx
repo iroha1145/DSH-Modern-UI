@@ -22,7 +22,7 @@ export interface TranslationBodyInjected {
   translate: TranslateText
 }
 
-export type TranslationBodyProps = PropsRuntime<'modern.conversation.chat.reasoning.body'>
+export type TranslationBodyProps = PropsRuntime<'conversation.chat.reasoning.body'>
   & PropsRenderFactories & PropsLocale<typeof NS> & InjectFace<TranslationBodyInjected>
 
 /**

@@ -5,7 +5,7 @@ import { AssistantMarkdown } from './AssistantMarkdown.tsx'
 import { MarkdownScope, type MarkdownNavigationInjected } from '../../../../markdown-scope.tsx'
 
 type AssistantNodeViewProps = ChatNodeViewProps<'assistant-step'> & InjectFace<PresentationInjected> & MarkdownNavigationInjected
-  & PropsRenderSlots<'modern.conversation.chat.reasoning.body' | 'modern.conversation.chat.message.images' | 'modern.conversation.chat.message.code'>
+  & PropsRenderSlots<'conversation.chat.reasoning.body' | 'conversation.chat.message.images' | 'conversation.chat.message.code'>
 
 /** Streaming, settled, and interrupted Assistant states share one keyed renderer instance. */
 export const AssistantNodeView = memo(function AssistantNodeView({

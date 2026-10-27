@@ -7,7 +7,7 @@ import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
  * @param props - Original source, language, stream state, and localized control labels.
  * @returns The standard code block.
  */
-export function MessageCode({ code, lang, streaming, labels }: Pick<PropsRuntime<'modern.conversation.chat.message.code'>, 'code' | 'lang' | 'streaming' | 'labels'>) {
+export function MessageCode({ code, lang, streaming, labels }: Pick<PropsRuntime<'conversation.chat.message.code'>, 'code' | 'lang' | 'streaming' | 'labels'>) {
   if (code === '') return <pre><code className={lang === undefined ? undefined : `language-${lang}`} /></pre>
   return <CodeBlock code={`${code}\n`} lang={lang} streaming={streaming} {...labels} />
 }

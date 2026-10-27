@@ -1,7 +1,7 @@
 /** Chat-owned locale namespace and dictionaries. */
 
 /** Namespace for Chat target, node, statistics, and details copy. */
-export const NS = 'chat'
+export const NS = 'modern-chat'
 
 /** Simplified Chinese dictionary and key-set source of truth. */
 export const zh = {

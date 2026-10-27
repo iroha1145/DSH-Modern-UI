@@ -3,11 +3,7 @@ import type {} from './contracts.ts'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { installThemeStyles } from './vendor/theme/client/styles.ts'
 import { installIconSprite } from './vendor/theme/client/icon-sprite.ts'
-import { AssistantNodeView } from './vendor/chat/client/chat/AssistantNodeView.tsx'
-import { MessageCode } from './vendor/chat/client/chat/MessageCode.tsx'
-import { ReasoningContent } from './vendor/chat/client/chat/ReasoningContent.tsx'
 import * as chatLocale from './vendor/chat/client/locale.ts'
-import { MessageImages } from './vendor/attachment/client/MessageImages.tsx'
 import { IntelligentUI, type ThemeInjected } from './vendor/intelligent/client/IntelligentUI.tsx'
 import { Followups } from './vendor/intelligent/client/Followups.tsx'
 import * as intelligentLocale from './vendor/intelligent/client/locales.ts'
@@ -25,30 +21,23 @@ import { SubagentHeaderLineage, SubagentCatalogAction } from './vendor/subagent/
 import * as subagentLocale from './vendor/subagent/client/locales.ts'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
-import { presentationPolicyFor } from './vendor/chat/client/presentation-policy.ts'
-import { DEFAULT_LINK_OPENING, type ChatSettings, type FoldedReplies } from './vendor/chat/chat-settings.ts'
-import { RunningStatusHost, type RunningStatusHostInjected } from './vendor/chat/client/chat/RunningStatusHost.tsx'
-import { FoldedRepliesRow, type FoldedRepliesRowInjected } from './vendor/chat/client/settings/FoldedRepliesRow.tsx'
 import { installLanguages } from './languages.ts'
 import { installReasoningTranslation } from './reasoning-translation.ts'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-browser/client'
 import { installSteeringBatches } from './steering-batches.ts'
 import { installToolCards } from './tool-cards.tsx'
-// Global sheets over surfaces the official packages still render (see each file's header).
-import './official-chat-view.css'
+import { apply as applyChat } from './vendor/chat/client/apply.ts'
+// Global sheet over surfaces the official packages still render (see the file's header).
 import './official-surfaces.css'
 import { layoutOwner } from './layout-owner.ts'
 import { workspaceOwner } from './workspace-owner.ts'
 import { sidebarOwner } from './sidebar-owner.ts'
 import { settingsOwner } from './settings-owner.ts'
 import * as conversationOwner from './conversation-owner.ts'
-import { TurnProcessNodeView } from './vendor/chat/client/chat/TurnProcessNodeView.tsx'
-import {
-  UserMessageNodeView, SteeringMessageNodeView, ContextMessageNodeView, RetryNodeView, TurnErrorNodeView,
-  TurnMaxTokensNodeView, CompactionNodeView, ManualCompactionNodeView, UnknownNodeView,
-} from './vendor/chat/client/chat/MessageItem.tsx'
 
 export const inject = ['slots', 'theme', 'locale', 'configForms', 'remote', 'remote.session']
+/** The sprite installer, exported so a test can mount a second owner without a second plugin instance. */
+export { installIconSprite }
 
 const LANGUAGES = ['zh', 'en', 'ja', 'es', 'fr', 'de', 'ru', 'pt'] as const
 const dictionaries = <D extends Record<string, string>>(source: Record<typeof LANGUAGES[number], D>) => ({
@@ -76,38 +65,13 @@ export async function apply(ctx: Context): Promise<void> {
   for (const owner of owners) await owner.await()
 }
 
-/** Chat preferences the plugin keeps in its own settings namespace. */
-interface ModernChatSettings { foldedReplies?: FoldedReplies }
-const MODERN_SETTINGS_NAMESPACE = 'modern-ui'
-const foldedRepliesOf = (value: ModernChatSettings | undefined): FoldedReplies => value?.foldedReplies === 'final' ? 'final' : 'all'
-
 function installPresentation(ctx: Context): void {
   installReasoningTranslation(ctx)
   installSteeringBatches(ctx)
   installToolCards(ctx)
-  // The official flow keeps its "deep diving" running row and offers no slot for it; Modern hides
-  // that row's children by style and renders the patched running status into it from an
-  // always-mounted composer-dock entry (see RunningStatusHost).
-  const connection = ctx.get('connection')
-  ctx.slots.inject('conversation.composer.dock', () => ctx.slots.register({
-    name: 'conversation.composer.dock', id: 'modern-running-status', order: -100, locale: 'modern-chat',
-    inject: (): RunningStatusHostInjected => ({ hooks: { connectionState: connection.state } }),
-  }, RunningStatusHost))
-  const modernChat = ctx.configForms.get<ModernChatSettings>(MODERN_SETTINGS_NAMESPACE)
-  const foldedReplies = createSnapshotStore<FoldedReplies>(foldedRepliesOf(modernChat.getSnapshot().value))
-  ctx.effect(() => modernChat.subscribe(() => foldedReplies.set(foldedRepliesOf(modernChat.getSnapshot().value))))
-  ctx.slots.inject('settings.general.item', () => ctx.slots.register({
-    name: 'settings.general.item', id: 'modern-folded-replies', order: 13, locale: 'modern-chat',
-    inject: (): FoldedRepliesRowInjected => ({
-      hooks: { foldedReplies },
-      setFoldedReplies: (replies) => {
-        foldedReplies.set(replies)
-        void modernChat.set('foldedReplies', replies).catch((_error: unknown) => {
-          // The local choice remains usable when persistence is unavailable.
-        })
-      },
-    }),
-  }, FoldedRepliesRow))
+  // The patched Chat target replaces the official ui-chat entry outright (cordis.patch.yml disables
+  // it): data layer, view, flow, node views, factories, quota notice, stats pills and settings rows.
+  ctx.inject(['uiWorkspace', 'uiSession', 'uiConversation', 'connection', 'sidebarRight'], applyChat)
   const form = ctx.configForms.get<ModelPickerSettings>(MODEL_PICKER_NAMESPACE)
   const picker = createSnapshotStore(form.getSnapshot().value)
   ctx.effect(() => form.subscribe(() => picker.set(form.getSnapshot().value)))
@@ -148,49 +112,10 @@ function installPresentation(ctx: Context): void {
   ctx.slots.inject('modern.conversation.input.model.label', () => ctx.slots.register({
     name: 'modern.conversation.input.model.label', locale: 'modern-model',
   }, DeepSeekModelLabel))
-
-  // This renderer owns distinct child declarations; official children remain untouched.
-  ctx.slots.inject('conversation.chat.node', () => ctx.slots.register({
-    name: 'conversation.chat.node', key: 'assistant-step', priority: -100, locale: 'modern-chat',
-    children: {
-      'modern.conversation.chat.reasoning.body': { kind: 'single', scope: 'session' },
-      'modern.conversation.chat.message.images': { kind: 'single', scope: 'session' },
-      'modern.conversation.chat.message.code': { kind: 'chain', scope: 'session' },
-    },
-    inject: () => ({ hooks: { presentation: presentationSource(ctx) },
-      openExternalLink: (url: string) => {
-        const opening = ctx.configForms.get<ChatSettings>('ui-chat').getSnapshot().value?.linkOpening ?? DEFAULT_LINK_OPENING
-        if (opening === 'sidebar' && ctx.get('sidebarRightTabs')?.get('browser') !== undefined) ctx.sidebarRight.openTab('browser', { params: { url } })
-        else window.open(url, '_blank', 'noopener,noreferrer')
-      },
-    }),
-  }, AssistantNodeView))
-  ctx.slots.inject('conversation.chat.node', function* () {
-    const options = { name: 'conversation.chat.node', priority: -100, locale: 'modern-chat' } as const
-    yield ctx.slots.register({ ...options, key: 'user' }, UserMessageNodeView)
-    yield ctx.slots.register({ ...options, key: 'context' }, ContextMessageNodeView)
-    yield ctx.slots.register({ ...options, key: 'model-retry' }, RetryNodeView)
-    yield ctx.slots.register({ ...options, key: 'turn-error' }, TurnErrorNodeView)
-    yield ctx.slots.register({ ...options, key: 'turn-max-tokens' }, TurnMaxTokensNodeView)
-    yield ctx.slots.register({ ...options, key: 'compaction' }, CompactionNodeView)
-    yield ctx.slots.register({ ...options, key: 'manual-compaction' }, ManualCompactionNodeView)
-    yield ctx.slots.register({ ...options, key: 'turn-process' }, TurnProcessNodeView)
-    yield ctx.slots.register({ ...options, key: 'unknown' }, UnknownNodeView)
-  })
-  ctx.inject(['uiConversation'], scope => scope.slots.inject('conversation.chat.node', () => scope.slots.register({
-    name: 'conversation.chat.node', priority: -100, locale: 'modern-chat', key: 'steering',
-    inject: sessionId => ({ hooks: { steeringBatches: scope.uiConversation.binding(sessionId).target('modern-steering') } }),
-  }, SteeringMessageNodeView)))
-  ctx.slots.inject('modern.conversation.chat.reasoning.body', () => ctx.slots.register({
-    name: 'modern.conversation.chat.reasoning.body', locale: 'modern-chat',
-  }, ReasoningContent))
-  ctx.slots.inject('modern.conversation.chat.message.images', () => ctx.slots.register({
-    name: 'modern.conversation.chat.message.images',
-  }, MessageImages))
-  ctx.slots.inject('modern.conversation.chat.message.code', function* () {
-    yield ctx.slots.register({ name: 'modern.conversation.chat.message.code', priority: 100, select: () => ({}) }, MessageCode)
+  // Code-fence presenters beside the standard CodeBlock (priority 100, registered by the chat entry).
+  ctx.slots.inject('conversation.chat.message.code', function* () {
     yield ctx.slots.register({
-      name: 'modern.conversation.chat.message.code', locale: 'modern-intelligent', priority: 0,
+      name: 'conversation.chat.message.code', locale: 'modern-intelligent', priority: 0,
       select: owner => owner.lang?.trim().toLowerCase() === 'openui' ? {} : null,
       inject: (): ThemeInjected => ({ hooks: { theme: {
         getSnapshot: () => ctx.theme.getTheme(),
@@ -198,7 +123,7 @@ function installPresentation(ctx: Context): void {
       } } }),
     }, IntelligentUI)
     yield ctx.slots.register({
-      name: 'modern.conversation.chat.message.code', locale: 'modern-intelligent', priority: 0,
+      name: 'conversation.chat.message.code', locale: 'modern-intelligent', priority: 0,
       select: owner => owner.lang?.trim().toLowerCase() === 'followups' ? {} : null,
     }, Followups)
   })
@@ -228,28 +153,4 @@ function installPresentation(ctx: Context): void {
       }),
     }, AgentsView))
   })
-}
-
-function presentationSource(ctx: Context) {
-  const settings = ctx.configForms.get<ChatSettings>('ui-chat')
-  // Work-details mode and collapse timing stay with the official chat settings; the folded-reply
-  // choice has no official field, so the plugin's own namespace holds it (a legacy ui-chat value
-  // still counts until the profile migration has moved it).
-  const modern = ctx.configForms.get<ModernChatSettings>(MODERN_SETTINGS_NAMESPACE)
-  const value = () => {
-    const current = settings.getSnapshot().value
-    const saved = current?.transcriptView
-    const mode = saved === 'compact' || saved === 'detailed' || saved === 'verbose' ? saved : 'standard'
-    const replies = modern.getSnapshot().value?.foldedReplies ?? current?.foldedReplies
-    return presentationPolicyFor(mode, current?.collapseTiming ?? 'completion', replies === 'final' ? 'final' : 'all')
-  }
-  let accepted = value()
-  return {
-    getSnapshot: () => accepted,
-    subscribe: (listener: () => void) => {
-      const refresh = () => { accepted = value(); listener() }
-      const unsubscribe = [settings.subscribe(refresh), modern.subscribe(refresh)]
-      return () => { for (const release of unsubscribe) release() }
-    },
-  }
 }

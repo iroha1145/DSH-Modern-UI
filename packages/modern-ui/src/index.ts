@@ -2,12 +2,16 @@ import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-system-prompt'
 import z from '@deepseek-ai/schemastery'
 import { Config as ConversationConfig, apply as configureConversation } from '@deepseek-ai/dsh-client-ui-conversation'
+import { Config as ChatConfig } from '@deepseek-ai/dsh-client-ui-chat'
 import { Config as PickerConfig } from './vendor/model/index.ts'
 import { PRESENTATION_PROMPT } from './vendor/intelligent/presentation-prompt.ts'
 
 export const Config = z.object({
   ...PickerConfig.dict,
   ...ConversationConfig.dict,
+  // The official chat preferences (transcriptView, collapseTiming, performanceUsage, linkOpening):
+  // Modern's chat target reads them from this namespace since the ui-chat entry is disabled.
+  ...ChatConfig.dict,
   enabled: z.boolean().default(true),
   collapsedViews: z.array(z.string()).default([]).volatile(),
   // Patch-only chat preference; the official chat schema has no field for it.

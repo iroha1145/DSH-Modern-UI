@@ -56,6 +56,26 @@ function fixture({ realTheme = false } = {}) {
       set: async (field, value) => { store.set({ value: { ...store.getSnapshot().value, [field]: value } }); return true }, mutate: async () => true }
   }
   const connection = createSnapshotStore('connected')
+  // A session scope and binding rich enough for Modern's conversation owner (and so the chat entry) to activate.
+  const sessionId = 'session-1'
+  let actx
+  ctx.plugin({ apply(scope) { actx = scope.extend({ fixtureSessionId: sessionId }) } })
+  const feed = createSnapshotStore({ revision: 0, entries: [], hasMore: false, change: { kind: 'replace' } })
+  const sessionState = createSnapshotStore({ sessionId, blank: false, awaitingFirstTurn: false, running: false, removed: false, subagent: null, promptAttempted: true })
+  const projections = new Map()
+  const session = { sessionId, ...sessionState,
+    projections: { faceOf(key) { if (!projections.has(key)) projections.set(key, createSnapshotStore(undefined)); return projections.get(key) } },
+    prompt: async () => ({ ok: true, value: { accepted: true } }), updateQueue: async () => ({ ok: true, value: { accepted: true } }),
+    cancel: async () => ({ ok: true, value: {} }), loadOlder: async () => {}, loadThrough: async () => {} }
+  const binding = { sessionId, session, get ctx() { return actx }, eventSource: feed }
+  const sessions = {
+    list: createSnapshotStore({ phase: 'ready', ids: [sessionId], byId: { [sessionId]: { id: sessionId, title: 'Fixture', retainedBy: {}, running: false } } }),
+    binding: id => id === sessionId ? binding : undefined, scope: id => id === sessionId ? actx : undefined,
+    scopeOf: scope => scope.fixtureSessionId, sessionOf: scope => scope.fixtureSessionId === sessionId ? session : undefined,
+    retainInfo: () => createSnapshotStore({ retainedBy: {} }), subagentAddress: () => undefined,
+    refreshProjections: async () => {}, fork: async () => sessionId,
+  }
+  const developerTools = createSnapshotStore(true)
   const dir = { store: createSnapshotStore({ current: null, groups: [], failures: [], status: 'ready', pending: null, error: null, routable: null }), load: async () => {}, select: async () => ({ ok: true }) }
   const providers = ctx.plugin({ apply(scope) {
     scope.provide('locale', {
@@ -71,16 +91,21 @@ function fixture({ realTheme = false } = {}) {
         for (const [field, replacement] of Object.entries(params ?? {})) value = value.replace(`{${field}}`, String(replacement))
         return value
       },
+      subscribe: () => () => {},
     })
     const theme = realTheme ? new themeClient.ThemeRuntime(scope, form('ui-theme')) : { getTheme: () => ({ active: { colorScheme: 'light' } }), overrideTokens: () => () => {} }
     if (realTheme) theme.overrideTokens('earlier-theme', { '--page': { light: 'prior-light', dark: 'prior-dark' } })
     scope.provide('theme', theme)
     scope.provide('modelDirectories', { directoryFor: () => dir })
-    scope.provide('sessions', { subagentAddress: () => undefined })
-    scope.provide('uiWorkspace', { openSession: () => {} })
-    scope.provide('sidebarRight', { openResource: () => {} })
-    scope.provide('configForms', { get: form })
+    scope.provide('sessions', sessions)
+    scope.provide('uiWorkspace', { openSession: () => {}, openWorkspace: () => {}, startSession: () => {} })
+    scope.provide('sidebarRight', { openResource: () => {}, openTab: () => {} })
+    scope.provide('configForms', { get: form, developerTools: { enabled: developerTools } })
     scope.provide('connection', { state: connection })
+    scope.provide('fileDrag', { actions: {} })
+    scope.provide('fileUpload', { upload: async () => { throw Error('No file upload requested by this fixture') } })
+    scope.provide('remoteAccess', { source: () => createSnapshotStore(true) })
+    scope.provide('pluginNavigation', { openList() {} })
     scope.provide('commandUi', { catalogFor: () => createSnapshotStore([]) })
     scope.provide('remote', { commands: { execute: async () => ({ ok: false, error: { code: 'missing', message: 'unavailable' } }) }, session: { modelCatalog: async () => { catalogRequests.push(true); return { ok: true, value: { groups: [], failures: [] } } } }, $on: (event, listener) => {
       if (!remoteEvents.has(event)) remoteEvents.set(event, new Set())
@@ -91,26 +116,26 @@ function fixture({ realTheme = false } = {}) {
     scope.provide('remote.session', { modelCatalog: async () => ({ ok: true, value: { groups: [], failures: [] } }) })
   } })
   ctx.plugin(renderer.SlotRegistry)
+  // The official session UI client supplies uiSession, which Modern's conversation owner and chat entry inject.
+  ctx.plugin(load(require.resolve('@deepseek-ai/dsh-client-ui-session/client'), dom.window.document, staticModule.exports))
   ctx.plugin({ inject: ['slots'], apply(scope) {
     scope.slots.register({ name: 'root', children: {
       'conversation.input.model': { kind: 'single', scope: 'session' },
-      'conversation.chat.node': { kind: 'keyed', scope: 'session' },
       'settings.models.footer': { kind: 'list', scope: 'root' },
       'conversation.view': { kind: 'list', scope: 'session' },
       'conversation.session.header.lineage': { kind: 'single', scope: 'session' },
       'conversation.session.header.actions': { kind: 'list', scope: 'session' },
       'conversation.composer.dock': { kind: 'list', scope: 'session' },
       'settings.general.item': { kind: 'list', scope: 'root' },
+      'shell.overlay': { kind: 'list', scope: 'root' },
+      'conversation.approval.detail': { kind: 'single', scope: 'session' },
     } }, () => null)
-    // The shipped assistant has its own children. Both declarations must coexist.
+    // The shipped model selector keeps its own entry; Modern shades it. The chat node seat, its
+    // children and the chat flow are declared by Modern itself now that the official ui-chat is disabled.
     scope.slots.register({ name: 'conversation.input.model' }, () => null)
-    scope.slots.register({ name: 'conversation.chat.node', key: 'assistant-step', children: {
-      'conversation.chat.reasoning.body': { kind: 'single', scope: 'session' },
-      'conversation.chat.message.images': { kind: 'single', scope: 'session' },
-    } }, () => null)
   } })
   const fiber = ctx.plugin(client)
-  return { dom, ctx, fiber, client, dictionaries, providers, remoteEvents, catalogRequests, connection }
+  return { dom, ctx, fiber, client, dictionaries, providers, remoteEvents, catalogRequests, connection, sessionId, session, binding, feed }
 }
 
 test('Modern uses the real theme override layer and restores earlier owners without changing preference', async () => {
@@ -154,7 +179,8 @@ test('product icon sprite is owned by the plugin: every dsw-icon symbol resolves
   // Every <use> the bundle can emit points at a symbol that exists in this document.
   const rendered = renderToStaticMarkup(React.createElement(f.client.IconPlusOutlineMedium ?? (() => null)))
   for (const match of rendered.matchAll(/href="#([^"]+)"/g)) assert.ok(document.getElementById(match[1]), match[1])
-  const second = f.ctx.plugin(f.client)
+  // A second owner of the sprite (a second full plugin instance would re-provide the conversation services).
+  const second = f.ctx.plugin({ apply: scope => { f.client.installIconSprite(scope) } })
   await second.await()
   assert.equal(document.querySelectorAll('#modern-ui-icon-sprite').length, 1, 'one sprite per document')
   await second.dispose()
@@ -163,68 +189,47 @@ test('product icon sprite is owned by the plugin: every dsw-icon symbol resolves
   assert.equal(document.getElementById('modern-ui-icon-sprite'), null)
 })
 
-test('running status is rendered into the official running row from the composer dock, follows the phases and leaves with the row', async () => {
+test('the Modern chat flow renders the patched running status, keeps the matrix outside the thinking phase and pauses while disconnected', async () => {
   const f = fixture()
   await f.providers.await()
-  await f.fiber.await()
-  const entry = f.ctx.slots.entriesOfSlot('conversation.composer.dock').find(candidate => candidate.options.id === 'modern-running-status')
-  assert.ok(entry, 'the plugin contributes an always-mounted dock entry that hosts the running status')
-  const originals = Object.fromEntries(['window', 'document'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
-  globalThis.window = f.dom.window
-  globalThis.document = f.dom.window.document
-  const doc = f.dom.window.document
-  doc.body.innerHTML = '<div id="panel"><div data-slot="conversation.chat.flow"><div data-chat-running=""><span class="official">深度求索中</span></div></div><div data-composer-dock id="dock"></div></div>'
-  const snapshot = (partial, runningCalls = [], start = Date.now() - 65_000) => ({
-    legacy: { partial, runningCalls },
-    navigation: { items: () => [{ anchorKey: 'turn-1' }] },
-    nodes: new Map([['turn-1', { location: { kind: 'turn', turn: { start: { time: start } } } }]]),
-  })
-  const root = require('react-dom/client').createRoot(doc.getElementById('dock'))
-  try {
-    let chat = snapshot({ blocks: [{ kind: 'text', text: 'Answer' }] })
-    const face = entry.inject('session-1')
-    assert.equal(typeof face.hooks.connectionState.subscribe, 'function', 'the entry binds the official connection state as useConnectionState')
-    const render = async () => {
-      root.render(React.createElement(entry.component, {
-        useChat: selector => selector(chat), useConnectionState: selector => selector(f.connection.getSnapshot()), t: key => key,
-      }))
-      await settle(); await settle()
-    }
-    await render()
-    assert.ok(doc.querySelector('[data-composer-dock] [data-modern-running-host]'), 'the dock keeps only a hidden anchor')
-    const status = () => doc.querySelector('[data-chat-running] [data-modern-running]')
-    assert.equal(status()?.getAttribute('data-modern-running'), 'responding', 'the status renders inside the official row')
-    assert.match(status().textContent, /chat\.activity\.responding/)
-    assert.ok(status().querySelector('[data-loading-elapsed]'))
-    assert.ok(status().querySelector('.t-matrix'))
-    chat = snapshot({ blocks: [{ kind: 'reasoning', text: 'Detailed: ...' }] })
-    await render()
-    assert.equal(status().getAttribute('data-modern-running'), 'thinking')
-    assert.match(status().querySelector('[data-loading-label]')?.textContent ?? '', /chat\.activity\.thinking/, 'the official group header shows no live matrix, so the row keeps naming the activity')
-    assert.ok(status().querySelector('.t-matrix'))
-    assert.ok(status().querySelector('[data-loading-elapsed]'))
-    assert.equal(status().hasAttribute('data-modern-paused'), false)
-    f.connection.set('disconnected')
-    await render()
-    assert.ok(status().hasAttribute('data-modern-paused'), 'the clock freezes while the Client cannot observe the Session')
-    f.connection.set('connected')
-    await render()
-    assert.equal(status().hasAttribute('data-modern-paused'), false)
-    chat = snapshot({ blocks: [] }, [{ id: 'call' }])
-    await render()
-    assert.equal(status().getAttribute('data-modern-running'), 'tools')
-    doc.querySelector('[data-chat-running]').remove()
-    await settle(); await settle()
-    assert.equal(doc.querySelectorAll('[data-modern-running]').length, 0, 'the portal leaves with the official row')
-  } finally {
-    root.unmount()
-    for (const [key, descriptor] of Object.entries(originals)) {
-      if (descriptor) Object.defineProperty(globalThis, key, descriptor)
-      else delete globalThis[key]
-    }
-  }
-  const styles = [...doc.querySelectorAll('style[data-plugin="@iroha1145/dsh-modern-ui"]')].map(style => style.textContent).join('\n')
-  assert.match(styles, /\[data-chat-running\]>:not\(\[data-modern-running\]\)\{display:none!important/, 'the official row keeps its place but its own children hide, outranking the official child rules')
+  await f.fiber.await(); await settle()
+  assert.equal(f.ctx.slots.entriesOfSlot('conversation.composer.dock').find(candidate => candidate.options.id === 'modern-running-status'), undefined, 'no portal host remains: the flow is Modern\'s own')
+  const flow = f.ctx.slots.entriesOfSlot('conversation.chat.flow')[0]
+  assert.ok(flow, 'Modern owns the chat flow once the official ui-chat entry is disabled')
+  assert.equal(f.ctx.slots.spec('conversation.chat.node').kind, 'keyed', 'the flow declares the node seat')
+  const snapshot = (partial, runningCalls = []) => ({ legacy: { partial, runningCalls }, nodes: { get: () => undefined }, navigation: { items: () => [{ anchorKey: 'turn-1' }] } })
+  const nodes = { 'turn-1': { location: { kind: 'turn', turn: { status: 'open', start: { time: Date.now() - 65_000 } } } } }
+  let chat = snapshot({ blocks: [{ kind: 'text', text: 'Answer' }] })
+  let connection = 'connected'
+  const render = () => renderToStaticMarkup(React.createElement(flow.component, {
+    entries: [], pendingInputs: [], lastInputTurn: undefined, deferCollapse: false,
+    useSession: selector => selector({ running: true }), useChat: selector => selector(chat),
+    useChatNode: (key, selector) => selector(nodes[key]), useChatNodeBottom: (_key, selector) => selector(undefined),
+    useChatNodeProcess: (_key, selector) => selector(undefined), useChatGroup: (_key, selector) => selector(undefined),
+    usePresentation: selector => selector({ mode: 'standard', collapseTiming: 'completion', foldedReplies: 'all' }),
+    useConnectionState: selector => selector(connection),
+    useStore: selector => selector({}), actions: {}, renderSlot: () => null, renderFactorySlot: () => null, t: key => key,
+    useGroupAction: () => false, useGroupHeaderAction: () => {},
+    cwd: undefined, openFile: () => {}, inspectCall: () => {}, forkAt: () => {}, loadImage: () => undefined, fileMentions: () => undefined,
+  }))
+  let markup = render()
+  assert.match(markup, /data-modern-running="responding"/)
+  assert.match(markup, /chat\.activity\.responding/)
+  assert.match(markup, /t-matrix/)
+  assert.match(markup, /data-loading-elapsed/)
+  assert.doesNotMatch(markup, /data-modern-paused/)
+  chat = snapshot({ blocks: [{ kind: 'reasoning', text: 'Detailed: ...' }] })
+  markup = render()
+  assert.match(markup, /data-modern-running="thinking"/)
+  assert.doesNotMatch(markup, /data-loading-label/, 'while reasoning streams the patched group header carries the matrix and label; the row keeps the clock')
+  assert.match(markup, /data-loading-elapsed/)
+  chat = snapshot({ blocks: [] }, [{ id: 'call' }])
+  markup = render()
+  assert.match(markup, /data-modern-running="tools"/)
+  assert.match(markup, /t-matrix/)
+  connection = 'disconnected'
+  markup = render()
+  assert.match(markup, /data-modern-paused/, 'the clock freezes while the Client cannot observe the Session')
   await f.fiber.dispose()
 })
 
@@ -253,18 +258,20 @@ test('official shell and official surfaces receive the patched global rules', as
   const styles = [...f.dom.window.document.querySelectorAll('style[data-plugin="@iroha1145/dsh-modern-ui"]')].map(style => style.textContent).join('\n')
   assert.match(styles, /html,body\{overscroll-behavior-y:none\}/, 'phones neither rubber-band the whole page nor pull to refresh (PR #4)')
   assert.match(styles, /body\{[^}]*--dsw-alias-bg-l1:var\(--dsw-alias-bg-layer-1\)[^}]*--dsw-alias-bg-l2:var\(--dsw-alias-bg-layer-2\)/, 'the official terminal aliases resolve on body, where the layer tokens live')
-  assert.match(styles, /@media \(width<=640px\)\{:has\(>\[data-chat-flow\]\)\{padding-inline:14px\}\}/, 'the official chat scroll region keeps the patched phone padding')
   await f.fiber.dispose()
 })
 
-test('folded replies live in the plugin settings namespace, drive the presentation policy and get their own general-settings row', async () => {
+test('folded replies live in the plugin settings namespace, drive the presentation policy and sit on the patched transcript-view row', async () => {
   const f = fixture()
   await f.providers.await()
-  await f.fiber.await()
-  const row = f.ctx.slots.entriesOfSlot('settings.general.item').find(candidate => candidate.options.id === 'modern-folded-replies')
-  assert.ok(row, 'the plugin registers the folded-reply row next to the official transcript rows')
-  assert.equal(row.options.order, 13)
-  const assistant = f.ctx.slots.entriesOfSlot('conversation.chat.node').find(candidate => candidate.options.key === 'assistant-step' && candidate.options.priority === -100)
+  await f.fiber.await(); await settle()
+  const rows = f.ctx.slots.entriesOfSlot('settings.general.item')
+  const row = rows.find(candidate => candidate.options.id === 'transcript-view')
+  assert.ok(row, 'Modern registers the patched transcript-view row in place of the official one')
+  assert.equal(row.options.order, 12)
+  assert.ok(rows.find(candidate => candidate.options.id === 'performance-usage'), 'and the performance-usage row')
+  assert.equal(rows.find(candidate => candidate.options.id === 'modern-folded-replies'), undefined, 'the interim folded-reply row is gone')
+  const assistant = f.ctx.slots.entriesOfSlot('conversation.chat.node').find(candidate => candidate.options.key === 'assistant-step')
   const policy = () => assistant.inject('session-1').hooks.presentation.getSnapshot()
   assert.equal(policy().foldedReplies, 'all')
   const face = row.inject()
@@ -273,9 +280,16 @@ test('folded replies live in the plugin settings namespace, drive the presentati
   await new Promise(resolve => setTimeout(resolve, 10))
   assert.equal(face.hooks.foldedReplies.getSnapshot(), 'final')
   assert.equal(policy().foldedReplies, 'final', 'the modern-ui form value reaches the chat presentation policy')
+  assert.equal(f.ctx.configForms.get('modern-ui').getSnapshot().value.foldedReplies, 'final', 'persisted in the plugin namespace, not in ui-chat')
+  face.setTranscriptView('standard')
+  await new Promise(resolve => setTimeout(resolve, 10))
   assert.equal(policy().mode, 'standard')
-  const markup = renderToStaticMarkup(React.createElement(row.component, { ...face, useFoldedReplies: selector => selector(face.hooks.foldedReplies.getSnapshot()), t: key => key }))
-  assert.match(markup, /settings\.foldedReplies\.title/)
+  const markup = renderToStaticMarkup(React.createElement(row.component, { ...face,
+    useTranscriptView: selector => selector(face.hooks.transcriptView.getSnapshot()),
+    useCollapseTiming: selector => selector(face.hooks.collapseTiming.getSnapshot()),
+    useFoldedReplies: selector => selector(face.hooks.foldedReplies.getSnapshot()), t: key => key }))
+  assert.match(markup, /settings\.transcript\.title/)
+  assert.match(markup, /settings\.collapse\.title/)
   assert.match(markup, /settings\.foldedReplies\.final/)
   await f.fiber.dispose()
 })
@@ -307,15 +321,15 @@ for (const failure of ['result', 'throw']) test(`initial translation ${failure} 
   await remote.await()
   await settle(); await settle()
   assert.equal(calls, 1)
-  assert.equal(f.ctx.slots.snapshot('modern.conversation.chat.reasoning.body')[0].occupants.length, 1)
+  assert.equal(f.ctx.slots.snapshot('conversation.chat.reasoning.body')[0].occupants.length, 1)
   successful = true
   f.ctx.emit('connection/reset')
   f.ctx.emit('connection/reset')
   await settle(); await settle(); await settle()
   assert.equal(maximum, 1)
   assert.ok(calls >= 2 && calls <= 3)
-  assert.equal(f.ctx.slots.snapshot('modern.conversation.chat.reasoning.body')[0].occupants.length, 2)
-  assert.equal(f.ctx.slots.entriesOfSlot('modern.conversation.chat.reasoning.body')[0].options.priority, -100)
+  assert.equal(f.ctx.slots.snapshot('conversation.chat.reasoning.body')[0].occupants.length, 2)
+  assert.ok(f.ctx.slots.entriesOfSlot('conversation.chat.reasoning.body').some(entry => entry.options.priority === -100))
   const acceptedCalls = calls
   await settle(); await settle()
   assert.equal(calls, acceptedCalls)
@@ -331,8 +345,8 @@ test('translation mounts after Modern is disabled and enabled before Remote appe
   await again.await()
   const remote = translationRemote(f, async () => translationSnapshot())
   await remote.await(); await settle()
-  assert.equal(f.ctx.slots.snapshot('modern.conversation.chat.reasoning.body')[0].occupants.length, 2)
-  assert.equal(f.ctx.slots.entriesOfSlot('modern.conversation.chat.reasoning.body')[0].options.priority, -100)
+  assert.equal(f.ctx.slots.snapshot('conversation.chat.reasoning.body')[0].occupants.length, 2)
+  assert.ok(f.ctx.slots.entriesOfSlot('conversation.chat.reasoning.body').some(entry => entry.options.priority === -100))
   await remote.dispose()
   await again.dispose()
 })
@@ -342,13 +356,13 @@ test('translation mounts again after its Remote disappears and returns', async (
   await f.fiber.await()
   let remote = translationRemote(f, async () => translationSnapshot())
   await remote.await(); await settle()
-  assert.equal(f.ctx.slots.snapshot('modern.conversation.chat.reasoning.body')[0].occupants.length, 2)
+  assert.equal(f.ctx.slots.snapshot('conversation.chat.reasoning.body')[0].occupants.length, 2)
   await remote.dispose()
-  assert.equal(f.ctx.slots.snapshot('modern.conversation.chat.reasoning.body')[0].occupants.length, 1)
+  assert.equal(f.ctx.slots.snapshot('conversation.chat.reasoning.body')[0].occupants.length, 1)
   remote = translationRemote(f, async () => translationSnapshot())
   await remote.await(); await settle()
-  assert.equal(f.ctx.slots.snapshot('modern.conversation.chat.reasoning.body')[0].occupants.length, 2)
-  assert.equal(f.ctx.slots.entriesOfSlot('modern.conversation.chat.reasoning.body')[0].options.priority, -100)
+  assert.equal(f.ctx.slots.snapshot('conversation.chat.reasoning.body')[0].occupants.length, 2)
+  assert.ok(f.ctx.slots.entriesOfSlot('conversation.chat.reasoning.body').some(entry => entry.options.priority === -100))
   await remote.dispose()
   await f.fiber.dispose()
 })
@@ -374,7 +388,7 @@ test('optional official translation Remote installs and withdraws the Modern bod
   await f.fiber.await()
   // Presentation waits in a child injection so UI owners can mount first.
   await new Promise(resolve => setImmediate(resolve))
-  assert.equal(f.ctx.slots.entriesOfSlot('modern.conversation.chat.reasoning.body').length, 1)
+  assert.equal(f.ctx.slots.entriesOfSlot('conversation.chat.reasoning.body').length, 1)
   const remote = f.ctx.plugin({ inject: ['remote'], apply(scope) {
     const cotTranslation = { limits: async () => ({ ok: true, value: {
       maxTextChars: 1000, preferences: { provider: 'bing', targetLanguage: 'en' }, availableProviders: ['bing'],
@@ -384,8 +398,8 @@ test('optional official translation Remote installs and withdraws the Modern bod
   } })
   await remote.await()
   await new Promise(resolve => setTimeout(resolve, 30))
-  const entries = f.ctx.slots.entriesOfSlot('modern.conversation.chat.reasoning.body')
-  assert.equal(f.ctx.slots.snapshot('modern.conversation.chat.reasoning.body')[0].occupants.length, 2)
+  const entries = f.ctx.slots.entriesOfSlot('conversation.chat.reasoning.body')
+  assert.equal(f.ctx.slots.snapshot('conversation.chat.reasoning.body')[0].occupants.length, 2)
   const translation = entries.find(value => value.options.priority === -100)
   assert.ok(translation)
   const markup = renderToStaticMarkup(React.createElement(translation.component, {
@@ -401,7 +415,7 @@ test('optional official translation Remote installs and withdraws the Modern bod
   assert.match(markup, /Original reasoning/)
   assert.match(markup, /data-cot-translation/)
   await remote.dispose()
-  assert.equal(f.ctx.slots.entriesOfSlot('modern.conversation.chat.reasoning.body').length, 1)
+  assert.equal(f.ctx.slots.entriesOfSlot('conversation.chat.reasoning.body').length, 1)
   await f.fiber.dispose()
 })
 
@@ -422,21 +436,30 @@ test('withdrawing translation Remote cancels pending metadata before registering
   assert.ok(signal)
   await remote.dispose()
   assert.equal(signal.aborted, true)
-  assert.equal(f.ctx.slots.snapshot('modern.conversation.chat.reasoning.body')[0].occupants.length, 1)
+  assert.equal(f.ctx.slots.snapshot('conversation.chat.reasoning.body')[0].occupants.length, 1)
   await f.fiber.dispose()
 })
 
-test('official rc.4 slot registry accepts Modern shades without duplicate declarations', async () => {
+test('Modern owns the chat slots under their standard names once the official ui-chat entry is disabled', async () => {
   const f = fixture()
   await new Promise(resolve => setTimeout(resolve, 30))
   await f.fiber.await()
   const node = f.ctx.slots.snapshot('conversation.chat.node')[0]
   const assistantEntries = node.occupants.filter(entry => entry.key === 'assistant-step')
-  assert.equal(assistantEntries.length, 2)
+  assert.equal(assistantEntries.length, 1, 'the official assistant view is gone with its package; Modern\'s is the only one')
   assert.equal(assistantEntries.filter(entry => entry.active).length, 1)
+  assert.equal(f.ctx.slots.spec('conversation.chat.message.images').kind, 'single', 'standard child names: third-party registrations reach Modern\'s assistant view')
+  assert.equal(f.ctx.slots.spec('conversation.chat.turnTail').kind, 'list')
+  assert.equal(f.ctx.slots.spec('conversation.chat.assistant-actions').kind, 'list')
   assert.equal(f.ctx.slots.spec('conversation.chat.reasoning.body').kind, 'single')
-  assert.equal(f.ctx.slots.spec('modern.conversation.chat.message.code').kind, 'chain')
-  const chain = f.ctx.slots.entriesOfSlot('modern.conversation.chat.message.code')
+  assert.equal(f.ctx.slots.entriesOfSlot('conversation.view').find(entry => entry.options.id === 'chat')?.options.order, 0)
+  for (const key of ['user', 'steering', 'context', 'turn-trigger', 'system-prompt', 'command', 'manual-compaction', 'compaction', 'model-retry', 'turn-error', 'turn-max-tokens', 'turn-process', 'turn-tail', 'unknown']) {
+    assert.ok(node.occupants.some(entry => entry.key === key), `node view ${key}`)
+  }
+  assert.ok(f.ctx.slots.entriesOfSlot('shell.overlay').find(entry => entry.options.id === 'chat.quota-notice'), 'quota notice overlay')
+  assert.equal(f.ctx.slots.entriesOfSlot('conversation.composer.dock').filter(entry => ['activity', 'usage'].includes(entry.options.id)).length, 2, 'stats pills')
+  assert.equal(f.ctx.slots.spec('conversation.chat.message.code').kind, 'chain')
+  const chain = f.ctx.slots.entriesOfSlot('conversation.chat.message.code')
   assert.equal(chain.length, 3)
   assert.equal(f.ctx.slots.snapshot('conversation.input.model')[0].occupants.length, 2)
   assert.equal(f.dictionaries.get('modern-intelligent').ja.loading !== undefined, true)
@@ -450,7 +473,7 @@ test('official rc.4 slot registry accepts Modern shades without duplicate declar
 test('precompiled code chain keeps openui, followups, and ordinary code presentation', async () => {
   const f = fixture()
   await new Promise(resolve => setTimeout(resolve, 30))
-  const chain = f.ctx.slots.entriesOfSlot('modern.conversation.chat.message.code')
+  const chain = f.ctx.slots.entriesOfSlot('conversation.chat.message.code')
   const elected = lang => chain.filter(entry => entry.select({ lang }) !== null).sort((a, b) => (a.options.priority ?? 0) - (b.options.priority ?? 0))[0]
   assert.notEqual(elected('openui'), elected('javascript'))
   assert.notEqual(elected('followups'), elected('javascript'))
@@ -470,7 +493,9 @@ test('artifact does not embed React, Cordis, session services, or host source', 
   const metadata = JSON.parse(readFileSync(path.join(root, 'packages/modern-ui/lib/build-inputs.json'), 'utf8'))
   assert.equal(metadata.host, '0.2.1-rc.4')
   assert.ok(!metadata.inputs.some(file => /node_modules\/(react|react-dom|@deepseek-ai\/cordis)\//.test(file)))
-  assert.ok(!metadata.inputs.some(file => /vendor\/(model\/client\/(service|directory)|chat\/client\/(apply|stores))\.ts$/.test(file)))
+  // The model directory service stays official; the chat entry and stores are Modern's since the ui-chat takeover.
+  assert.ok(!metadata.inputs.some(file => /vendor\/model\/client\/(service|directory)\.ts$/.test(file)))
+  assert.ok(metadata.inputs.some(file => /vendor\/chat\/client\/apply\.ts$/.test(file)))
   const packageJson = JSON.parse(readFileSync(path.join(root, 'packages/modern-ui/package.json'), 'utf8'))
   assert.equal(packageJson.scripts?.prepare, undefined)
   assert.equal(packageJson.scripts?.postinstall, undefined)
@@ -551,7 +576,7 @@ test('translated and original reasoning retain Modern code disclosure and locali
   await f.fiber.await()
   const remote = translationRemote(f, async () => translationSnapshot())
   await remote.await(); await settle()
-  const entry = f.ctx.slots.entriesOfSlot('modern.conversation.chat.reasoning.body').find(value => value.options.priority === -100)
+  const entry = f.ctx.slots.entriesOfSlot('conversation.chat.reasoning.body').find(value => value.options.priority === -100)
   const originals = Object.fromEntries(['window', 'document'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
   globalThis.window = f.dom.window
   globalThis.document = f.dom.window.document
@@ -627,7 +652,7 @@ test('official rc4 Remote subscriptions belong to their calling Cordis fiber', a
 test('Markdown file clicks resolve against the owning workspace and preserve absolute paths and lines', async () => {
   const f = fixture()
   await f.fiber.await(); await settle()
-  const entry = f.ctx.slots.entriesOfSlot('conversation.chat.node').find(value => value.options.key === 'assistant-step' && value.options.priority === -100)
+  const entry = f.ctx.slots.entriesOfSlot('conversation.chat.node').find(value => value.options.key === 'assistant-step')
   const originals = Object.fromEntries(['window', 'document'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
   globalThis.window = f.dom.window
   globalThis.document = f.dom.window.document

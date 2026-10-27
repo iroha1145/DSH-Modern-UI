@@ -200,6 +200,11 @@ export async function preserveConversationPreferences(profile, effectiveYaml, ya
 }
 
 /** Move the patch-only folded-reply chat preference into the plugin's own settings row. */
+/** Chat preferences Modern's own chat target reads from its namespace once the official ui-chat entry is disabled. */
+const CHAT_PREFERENCE_FIELDS = ['transcriptView', 'collapseTiming', 'foldedReplies', 'performanceUsage', 'linkOpening']
+const CHAT_PREFERENCE_VALUES = { foldedReplies: ['all', 'final'] }
+const CHAT_CONVERSION_VERSION = 2
+
 export function transformChatPreferences(source, yaml) {
   const schema = schemaFor(yaml)
   const patch = yaml.load(source, { schema }) ?? []
@@ -216,42 +221,61 @@ export function transformChatPreferences(source, yaml) {
       throw new Error(`Computed or non-object ${row.id} config requires manual review; it was not evaluated`)
     }
   }
-  const unchanged = { source, result: { changed: false, movedFields: [], conversionVersion: 1, namespace: 'modern-ui' } }
-  if (!Object.hasOwn(chat?.config ?? {}, 'foldedReplies') || Object.hasOwn(modern?.config ?? {}, 'foldedReplies')) return unchanged
-  const value = chat.config.foldedReplies
-  if (value !== 'all' && value !== 'final') throw new Error('Legacy foldedReplies must be "all" or "final"; computed values were not evaluated')
-  const target = { ...modern?.config, foldedReplies: value }
+  const unchanged = { source, result: { changed: false, movedFields: [], conversionVersion: CHAT_CONVERSION_VERSION, namespace: 'modern-ui' } }
+  const movedFields = CHAT_PREFERENCE_FIELDS.filter(field => Object.hasOwn(chat?.config ?? {}, field) && !Object.hasOwn(modern?.config ?? {}, field))
+  if (movedFields.length === 0) return unchanged
+  const target = { ...modern?.config }
+  for (const field of movedFields) {
+    const value = chat.config[field]
+    if (typeof value !== 'string') throw new Error(`Legacy ${field} must be a plain string; computed values were not evaluated`)
+    const accepted = CHAT_PREFERENCE_VALUES[field]
+    if (accepted && !accepted.includes(value)) throw new Error(`Legacy ${field} must be ${accepted.map(item => `"${item}"`).join(' or ')}; computed values were not evaluated`)
+    target[field] = value
+  }
   if (modern) modern.config = target
   else patch.push({ id: 'modern-ui', name: '@iroha1145/dsh-modern-ui', config: target })
-  // The ui-chat row keeps its value for the retained original profile; the official schema ignores it.
+  // The ui-chat row keeps its values for the retained original profile; its entry is disabled by the bundle patch.
   return { source: yaml.dump(patch, { schema, lineWidth: -1, noCompatMode: true }), result: {
-    changed: true, movedFields: ['foldedReplies'], conversionVersion: 1, namespace: 'modern-ui', retainedOriginalEntry: chat.id } }
+    changed: true, movedFields, conversionVersion: CHAT_CONVERSION_VERSION, namespace: 'modern-ui', retainedOriginalEntry: chat.id } }
 }
 
-/** Separate receipt: profiles migrated before this preference had a home are upgraded once. */
+/**
+ * Separate receipt: profiles migrated before a preference had a home are upgraded once per
+ * conversion version. Version 1 moved only foldedReplies; version 2 moves every official chat
+ * preference Modern's own chat target reads, so a version-1 profile gets one more pass.
+ */
 export async function preserveChatPreferences(profile, yaml) {
   const filename = join(profile, 'cordis.patch.yml')
   const receiptPath = join(profile, 'modern-ui-chat-migration.json')
-  const backupName = 'modern-ui-chat-before-migration.yml'
+  const backupNames = { 1: 'modern-ui-chat-before-migration.yml', 2: 'modern-ui-chat-before-migration-v2.yml' }
   let previous
   try { previous = JSON.parse(await readFile(receiptPath, 'utf8')) } catch (error) { if (error.code !== 'ENOENT') throw error }
   if (previous) {
-    if (previous.conversionVersion !== 1 || previous.backup !== backupName) throw new Error('Unsupported chat migration receipt')
-    if (hash(await readFile(join(profile, backupName), 'utf8')) !== previous.originalSha256) throw new Error('Chat backup checksum mismatch')
-    return { changed: false, movedFields: [], alreadyMigrated: true, namespace: 'modern-ui' }
+    // A version-2 receipt may still point at the version-1 backup when that pass had nothing left to move.
+    if (!(previous.conversionVersion in backupNames) || !Object.values(backupNames).includes(previous.backup)) throw new Error('Unsupported chat migration receipt')
+    if (hash(await readFile(join(profile, previous.backup), 'utf8')) !== previous.originalSha256) throw new Error('Chat backup checksum mismatch')
+    if (previous.conversionVersion === CHAT_CONVERSION_VERSION) return { changed: false, movedFields: [], alreadyMigrated: true, namespace: 'modern-ui' }
   }
   const info = await lstat(filename)
-  if (!info.isFile() || info.isSymbolicLink() || info.size > 1024 * 1024) throw new Error('Chat migration requires a small regular staged profile patch')
+  if (!info.isFile()) throw new Error('Profile patch must be a regular file')
   const original = await readFile(filename, 'utf8')
   const transformed = transformChatPreferences(original, yaml)
-  if (!transformed.result.changed) return transformed.result
+  const backupName = backupNames[CHAT_CONVERSION_VERSION]
+  if (!transformed.result.changed) {
+    if (!previous) return transformed.result
+    // Nothing left to move: record the current version against the earlier backup, which still verifies.
+    const result = { ...transformed.result, backup: previous.backup, originalSha256: previous.originalSha256, migratedSha256: previous.migratedSha256, previousConversionVersion: previous.conversionVersion }
+    await writeFile(receiptPath, JSON.stringify(result, null, 2) + '\n', { mode: 0o600 })
+    return result
+  }
   await writeFile(join(profile, backupName), original, { flag: 'wx', mode: 0o600 })
   const temporary = join(profile, 'modern-ui-chat.pending.yml')
   await writeFile(temporary, transformed.source, { flag: 'wx', mode: 0o600 })
   if (await readFile(filename, 'utf8') !== original) throw new Error('Chat settings changed during conversion')
   await rename(temporary, filename)
-  const result = { ...transformed.result, backup: backupName, originalSha256: hash(original), migratedSha256: hash(transformed.source) }
-  await writeFile(receiptPath, JSON.stringify(result, null, 2) + '\n', { flag: 'wx', mode: 0o600 })
+  const result = { ...transformed.result, backup: backupName, originalSha256: hash(original), migratedSha256: hash(transformed.source),
+    ...previous ? { previousConversionVersion: previous.conversionVersion } : {} }
+  await writeFile(receiptPath, JSON.stringify(result, null, 2) + '\n', { mode: 0o600 })
   return result
 }
 

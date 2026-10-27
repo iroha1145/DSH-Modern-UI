@@ -28,7 +28,7 @@ export function localPathMediaUrl(base: string, value: string): string | undefin
 }
 
 export interface AssistantMarkdownProps extends
-  Pick<PropsRenderSlots<'modern.conversation.chat.reasoning.body' | 'modern.conversation.chat.message.images' | 'modern.conversation.chat.message.code'>, 'renderSlot' | 'renderSlotChain'>,
+  Pick<PropsRenderSlots<'conversation.chat.reasoning.body' | 'conversation.chat.message.images' | 'conversation.chat.message.code'>, 'renderSlot' | 'renderSlotChain'>,
   Pick<ChatNodeOwnerProps, 'loadImage'> {
   /** Render only the requested business portion, preserving original block indexes. */
   groupPart?: string | undefined
@@ -68,7 +68,7 @@ export const AssistantMarkdown = memo(function AssistantMarkdown({
   // per render would rebuild MarkdownText's component table every chunk.
   const labels = useMemo(() => markdownLabels(t), [t])
   const codeRenderer = useCallback<MarkdownCodeRenderer>(input =>
-    renderSlotChain('modern.conversation.chat.message.code', { ...input, settled: !streaming && interrupted !== true }),
+    renderSlotChain('conversation.chat.message.code', { ...input, settled: !streaming && interrupted !== true }),
   [interrupted, renderSlotChain, streaming])
   // MarkdownText memoizes its vocabulary; keep its identity stable across renders.
   const pathImages = useMemo<MarkdownPathImages>(() => {
@@ -137,7 +137,7 @@ export const AssistantMarkdown = memo(function AssistantMarkdown({
         }
         rendered.push(
           <Fragment key={start}>
-            {renderSlot('modern.conversation.chat.message.images', {
+            {renderSlot('conversation.chat.message.images', {
               images: group.map(({ attachment }) => ({ attachment })), loadImage, align: 'start',
             })}
           </Fragment>,

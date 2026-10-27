@@ -12,7 +12,7 @@ import css from './IntelligentUI.module.css'
 
 /** Framework-bound resolved application palette. */
 export interface ThemeInjected { hooks: { theme: HostObservable<ThemeSnapshot> } }
-type IntelligentProps = PropsRuntime<'modern.conversation.chat.message.code'> & PropsLocale<'modern-intelligent'> & InjectFace<ThemeInjected> & { matched: object }
+type IntelligentProps = PropsRuntime<'conversation.chat.message.code'> & PropsLocale<'modern-intelligent'> & InjectFace<ThemeInjected> & { matched: object }
 
 interface FrameEvents {
   readonly failed: () => void
