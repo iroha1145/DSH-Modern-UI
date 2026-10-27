@@ -4,6 +4,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import yaml from 'js-yaml'
+import { applyEntryPatches, entryListSchema } from '@deepseek-ai/cordis-plugin-include'
 import { bindPowerShell } from '../../scripts/distribution/shell-runtime.mjs'
 import { schemaFor } from '../../scripts/distribution/profile-settings.mjs'
 
@@ -19,9 +20,43 @@ test('private pwsh Config binding preserves sandbox activation and unrelated ine
     const text = await readFile(join(root, 'cordis.patch.yml'), 'utf8')
     assert.match(text, /!!js process.exit\(99\)/)
     const rows = yaml.load(text, { schema: schemaFor(yaml) })
-    assert.deepEqual(rows[1], { id: 'pwsh-sandbox', name: '@deepseek-ai/dsh-pwsh-sandbox', config: { pwshPath: pwsh.path } })
+    assert.deepEqual(rows[1], { id: 'pwsh-sandbox', name: '@deepseek-ai/dsh-pwsh-sandbox', config: { timeoutMs: 4321, pwshPath: pwsh.path } })
     assert.equal(Object.hasOwn(rows[1], 'disabled'), false)
-    assert.equal((await bindPowerShell(root, yaml.dump([{ id: 'pwsh-sandbox', name: '@deepseek-ai/dsh-pwsh-sandbox', config: { pwshPath: pwsh.path } }]), pwsh, yaml)).changed, false)
+    const base = yaml.load(effective, { schema: entryListSchema })
+    const patch = yaml.load(text, { schema: entryListSchema })
+    const composed = applyEntryPatches([{ id: 'unrelated' }, ...base], patch)
+    assert.deepEqual(composed[1], { ...base[0], config: { ...base[0].config, pwshPath: pwsh.path } })
+    assert.deepEqual(composed[0].config.value, { __jsExpr: 'process.exit(99)' })
+    assert.equal((await bindPowerShell(root, yaml.dump(composed, { schema: entryListSchema }), pwsh, yaml)).changed, false)
+    assert.equal(await readFile(join(root, 'cordis.patch.yml'), 'utf8'), text)
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+test('official patch composition retains every effective PowerShell execution setting', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-shell-composed-'))
+  try {
+    const config = { timeoutMs: 4321, maxTimeoutMs: 9876, cwd: 'C:\\work space\\\u6570\u636e',
+      maxOutputBytes: 123456, maxSpillBytes: 654321, graceMs: 432 }
+    const base = ['local', 'sandbox'].map(kind => ({ id: `pwsh-${kind}`, name: `@deepseek-ai/dsh-pwsh-${kind}`,
+      disabled: false, config: { timeoutMs: 1000 } }))
+    base.push({ id: 'disabled-shell', name: '@deepseek-ai/dsh-pwsh-local', disabled: true, config: { pwshPath: 'user-disabled.exe' } })
+    const initialPatch = [
+      { id: 'pwsh-local', config },
+      { id: 'pwsh-sandbox', config: { ...config, timeoutMs: 5678, pwshPath: '' } },
+    ]
+    const warnings = []
+    const warn = (...args) => warnings.push(args)
+    const effective = applyEntryPatches(base, initialPatch, warn)
+    await writeFile(join(root, 'cordis.patch.yml'), yaml.dump(initialPatch))
+    const pwsh = { path: 'C:\\private shell\\pwsh.exe' }
+    assert.equal((await bindPowerShell(root, yaml.dump(effective), pwsh, yaml)).changed, true)
+    const written = await readFile(join(root, 'cordis.patch.yml'), 'utf8')
+    const composed = applyEntryPatches(base, yaml.load(written, { schema: entryListSchema }), warn)
+    assert.deepEqual(composed, effective.map(row => row.disabled ? row : { ...row, config: { ...row.config, pwshPath: pwsh.path } }))
+    assert.deepEqual(warnings, [])
+    assert.equal((await bindPowerShell(root, yaml.dump(composed, { schema: entryListSchema }), pwsh, yaml)).changed, false)
+    assert.equal(await readFile(join(root, 'cordis.patch.yml'), 'utf8'), written)
+    assert.deepEqual(applyEntryPatches(base, yaml.load(written, { schema: entryListSchema }), warn), composed)
   } finally { await rm(root, { recursive: true, force: true }) }
 })
 
@@ -33,6 +68,7 @@ test('explicit or computed user pwsh choices are never overwritten', async () =>
     const pwsh = { path: 'C:\\private\\pwsh.exe' }
     await assert.rejects(bindPowerShell(root, yaml.dump([{ id: 'shell', name: '@deepseek-ai/dsh-pwsh-sandbox', config: { pwshPath: 'C:\\user\\pwsh.exe' } }]), pwsh, yaml), /not overwritten/)
     await assert.rejects(bindPowerShell(root, '- id: shell\n  name: "@deepseek-ai/dsh-pwsh-sandbox"\n  config: !!js process.exit(99)\n', pwsh, yaml), /manual review/)
+    await assert.rejects(bindPowerShell(root, '- id: shell\n  name: "@deepseek-ai/dsh-pwsh-local"\n  config:\n    pwshPath: !!js process.exit(99)\n', pwsh, yaml), /not overwritten/)
     assert.equal(await readFile(join(root, 'cordis.patch.yml'), 'utf8'), original)
   } finally { await rm(root, { recursive: true, force: true }) }
 })
