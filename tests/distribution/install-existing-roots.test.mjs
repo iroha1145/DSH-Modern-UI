@@ -54,6 +54,22 @@ test('actual JavaScript installer retains selected data and honors explicit root
   assert.equal(args[args.indexOf('--home') + 1], retained)
 })
 
+test('entries reached through a symbolic link still run instead of exiting silently', { skip: !posix }, async t => {
+  const { directory, base } = await fixture(t)
+  const installer = await stagedInstaller(directory)
+  // Node canonicalizes the main entry (macOS os.tmpdir() lives under the /var link), so the
+  // caller's spelling and import.meta.url differ; the scripts must still recognize themselves.
+  const linked = join(directory, 'linked entry')
+  await symlink(installer.entry, linked, 'dir')
+  const viaLink = { entry: linked, installer: preview ? join(linked, 'installer') : linked }
+  const root = join(base, 'explicit program')
+  const environment = { ...process.env, DSH_MODERN_NODE: process.execPath, DSH_MODERN_SKIP_COMMUNITY: '1' }
+  for (const result of [dispatchJs(viaLink, environment, root), dispatchShell(viaLink, environment, root)]) {
+    const args = core(result)
+    assert.equal(args[args.indexOf('--root') + 1], root)
+  }
+})
+
 test('actual POSIX entries refuse two distinct existing application directories before installation', { skip: !posix }, async t => {
   const { directory, base } = await fixture(t)
   const installer = await stagedInstaller(directory)

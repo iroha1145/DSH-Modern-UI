@@ -14,6 +14,21 @@ function statusRequest(url, headers) {
   })
 }
 
+const SKIPPED_BUNDLE = /^dsh: skipping profile bundle "([^"\n]+)": .*$/gm
+
+/**
+ * Classify the official startup output. A profile copied from an existing data home may
+ * select bundles the pinned release no longer ships; the official loader skips those with
+ * one warning line and still boots, so that line is reported rather than treated as failure.
+ * Every other error or inactive-entry report remains fatal.
+ */
+export function auditStartupOutput(text) {
+  const skippedBundles = [...text.matchAll(SKIPPED_BUNDLE)].map(match => match[1])
+  const remainder = text.replace(SKIPPED_BUNDLE, '')
+  const problem = /entr(?:y|ies) did not activate|ValidationError|(?:Type|Reference|Syntax)?Error:|startup[^\n]*fail/i.test(remainder)
+  return { skippedBundles: [...new Set(skippedBundles)], problem }
+}
+
 // The official URL is announced before the Loader startup audit. A listening port alone
 // does not prove that the Modern UI Host plugin activated (schema failures can be nonfatal).
 export async function webSelfTest(state, env) {
@@ -41,7 +56,8 @@ export async function webSelfTest(state, env) {
     clearTimeout(timer)
     await delay(2500)
     if (child.exitCode !== null || child.signalCode !== null) throw new Error('Official Web exited during startup audit')
-    if (/entr(?:y|ies) did not activate|ValidationError|(?:Type|Reference|Syntax)?Error:|startup[^\n]*fail/i.test(output + diagnostics)) {
+    const audit = auditStartupOutput(output + diagnostics)
+    if (audit.problem) {
       // Do not persist process-token URLs or configuration values in installer output.
       throw new Error('Official Web startup audit reported inactive or invalid entries; selection retained')
     }
@@ -76,7 +92,10 @@ export async function webSelfTest(state, env) {
       timing: { startedAt, readyAt, readyElapsedMs, completedAt: new Date().toISOString(), elapsedMs: performance.now() - started,
         entry: 'official CLI process start through readiness and HTTP checks; excludes manager integrity scan',
         cacheConditions: 'new process, installed package files already present; OS file cache not flushed' },
-      startupAudit: 'no inactive/invalid entries observed after readiness', fullBrowserAcceptance: 'required separately' }
+      startupAudit: 'no inactive/invalid entries observed after readiness',
+      skippedBundles: audit.skippedBundles,
+      ...(audit.skippedBundles.length ? { skippedBundlesNote: 'The copied profile selects bundles this official release does not ship; the official loader skipped them. Remove them from the profile package.json dsh.profile.bundles to silence the warning.' } : {}),
+      fullBrowserAcceptance: 'required separately' }
   } finally {
     clearTimeout(timer)
     if (child.exitCode === null && child.signalCode === null) {

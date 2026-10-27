@@ -4,8 +4,9 @@ import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
 import { mkdir, realpath, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { pathToFileURL } from 'node:url'
 import { spawnSync } from 'node:child_process'
+import { isMainModule } from './entrypoint.mjs'
 export async function runNativeProbe(backendPath, scratchPath) {
   const backend = await realpath(resolve(backendPath))
   const root = resolve(scratchPath)
@@ -62,7 +63,7 @@ export async function runNativeProbe(backendPath, scratchPath) {
   }
   return result
 }
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (isMainModule(import.meta.url)) {
   await runNativeProbe(process.argv[2], process.argv[3] ?? join(process.cwd(), '.native-probe'))
   process.exit(0)
 }

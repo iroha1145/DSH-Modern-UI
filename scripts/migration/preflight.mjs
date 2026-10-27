@@ -3,8 +3,9 @@ import { createHash } from 'node:crypto'
 import { lstat, mkdir, readFile, realpath, stat, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import path from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { pathToFileURL } from 'node:url'
 import { zstdDecompressSync } from 'node:zlib'
+import { isMainModule } from '../distribution/entrypoint.mjs'
 
 export const PREFLIGHT_VERSION = 2
 const MAX_BYTES = 128 * 1024 * 1024
@@ -184,6 +185,6 @@ async function main(args) {
   process.stdout.write(JSON.stringify(result, null, 2) + '\n')
   if (result.status === 'blocked') process.exitCode = 2
 }
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (isMainModule(import.meta.url)) {
   main(process.argv.slice(2)).catch(error => { console.error(`migration-preflight: ${error.message}`); process.exitCode = 1 })
 }

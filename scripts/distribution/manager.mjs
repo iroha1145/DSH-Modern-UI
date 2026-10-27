@@ -16,6 +16,7 @@ import { launchChild } from './launch-child.mjs'
 import { download, unpack } from './artifacts.mjs'
 import { preparePowerShell, bindPowerShell } from './shell-runtime.mjs'
 import { readSelection, previousState, receiptReference, retainSelection } from './lifecycle.mjs'
+import { isMainModule } from './entrypoint.mjs'
 
 export const versions = { backend: '0.2.1-rc.4', node: '24.22.1', pnpm: '11.28.5', plugin: '0.1.0-migration.1' }
 export const officialSource = {
@@ -173,6 +174,17 @@ async function install(options) {
   const generation = join(root, 'versions', id)
   const state = { root, generation, home, profile: `modern-ui-${id}`, previous, created: new Date().toISOString() }
   await mkdir(generation, { recursive: true })
+  try { return await stage(state, options, bytes, previousReference) }
+  catch (error) {
+    // Only this run's freshly named directories go; caches, earlier generations, the source
+    // profile and the old selection stay, so a retry neither re-verifies nor recovers stale state.
+    await rm(generation, { recursive: true, force: true })
+    await rm(join(home, 'profiles', state.profile), { recursive: true, force: true })
+    throw error
+  }
+}
+async function stage(state, options, bytes, previousReference) {
+  const { root, generation, home, previous } = state
   if (options['runtime-lock']) await provision(state, resolve(options['runtime-lock']), options['node-archive'])
   else {
     if (!options.node) throw new Error('Provide --runtime-lock, or an exact installed --node runtime')
@@ -328,6 +340,6 @@ export async function main(argv = process.argv.slice(2)) {
     throw new Error(`Unknown command ${command}`)
   } finally { await lease.release() }
 }
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (isMainModule(import.meta.url)) {
   main().then(result => console.log(JSON.stringify(result, null, 2))).catch(error => { console.error(error.message); process.exitCode = 1 })
 }

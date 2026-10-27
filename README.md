@@ -59,7 +59,7 @@ npm run preview
 
 预览目录包含真实 tgz、来源/完整性清单、薄安装器和可选消费测试驱动。消费者不在预览目录执行 `npm install` 或构建。
 
-[插件预览 CI](.github/workflows/plugin-preview.yml) 将构建与消费分开：消费 job 没有 checkout，仅取预编译产物，检查官方来源、原生能力、官方联网配置和浏览器交互。PR #5 的远端执行与审计修复见 [复核记录](docs/pr5-audit-followup.md)及 [PR 检查页](https://github.com/iroha1145/DSH-Modern-UI/pull/5/checks)；未通过匹配提交的目标不标为已验证。
+[插件预览 CI](.github/workflows/plugin-preview.yml) 将构建与消费分开：消费 job 没有 checkout，仅取预编译产物，检查官方来源、原生能力、官方联网配置和浏览器交互。PR #5 的远端执行与审计修复见 [复核记录](docs/pr5-audit-followup.md)、[启动生命周期修复](docs/pr5-lifecycle-followup.md)、[macOS / Linux 复核](docs/pr5-posix-followup.md)及 [PR 检查页](https://github.com/iroha1145/DSH-Modern-UI/pull/5/checks)；未通过匹配提交的目标不标为已验证。
 
 旧补丁构建已移出默认 README 和自动 CI 路径。原脚本和固定 patch 保留用于旧数据回看；[历史说明](docs/legacy-patch-installation.md)与手动工作流 `Legacy patched build` 不属于新安装的验收证据。
 

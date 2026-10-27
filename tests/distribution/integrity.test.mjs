@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { cp, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises'
+import { cp, mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createHash } from 'node:crypto'
@@ -49,6 +49,27 @@ test('failed staging and concurrent operations preserve the old selection and da
     assert.equal(await readFile(join(root, 'current.json'), 'utf8'), original)
     assert.equal(await readFile(join(root, 'operation.lock'), 'utf8'), 'historical user file')
   } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+test('failed staging removes only its own generation and staged profile', async () => {
+  const scratch = await mkdtemp(join(tmpdir(), 'dsh-staging-cleanup-'))
+  try {
+    const root = join(scratch, 'program')
+    const home = join(scratch, 'data')
+    await mkdir(join(root, 'versions', 'kept-earlier-generation'), { recursive: true })
+    await mkdir(join(home, 'profiles', 'web'), { recursive: true })
+    await writeFile(join(home, 'profiles', 'web', 'package.json'), '{"name":"dsh-profile-web"}')
+    const plugin = join(scratch, 'plugin.tgz')
+    const bytes = Buffer.from('artifact bytes')
+    await writeFile(plugin, bytes)
+    const integrity = 'sha512-' + createHash('sha512').update(bytes).digest('base64')
+    const lock = join(scratch, 'runtime-lock.json')
+    await writeFile(lock, JSON.stringify({ nodeVersion: '0.0.0', pnpmVersion: '0.0.0', node: {} }))
+    await assert.rejects(main(['install', '--root', root, '--home', home, '--plugin', plugin, '--plugin-integrity', integrity, '--runtime-lock', lock]), /Missing exact runtime artifacts/)
+    assert.deepEqual(await readdir(join(root, 'versions')), ['kept-earlier-generation'])
+    assert.deepEqual(await readdir(join(home, 'profiles')), ['web'])
+    assert.equal(existsSync(join(root, 'current.json')), false)
+  } finally { await rm(scratch, { recursive: true, force: true }) }
 })
 
 test('uninstall only removes selected entry; preserves other profiles, sessions, official program', async () => {

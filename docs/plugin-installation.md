@@ -36,6 +36,12 @@ sh ./install-existing.sh /absolute/official/package.json '/path/to/program' '/pa
 
 `DSH_MODERN_NODE` 可指定 Node 路径；Shell 入口找不到精确 Node 时自动使用私有 bootstrap，JS 入口要求已有精确 Node。生成的预览入口沿用同一目录选择规则。平台验收以当前提交的 CI 为准，本地 Windows 运行不代表已经执行 POSIX 信号和 Shell 检查。
 
+## 指向已有数据目录
+
+`DATA_HOME`（或 `--home`）可以是已经在用的 DSH 数据目录。安装器只读取其中的 `profiles/web`（或上一代际记录的 profile），复制成新的 `profiles/modern-ui-<uuid>` 再装插件；会话、工作区记录和原 profile 原样保留，安装结束会按文件摘要核对原 profile 没有被改动。复制的 profile 如果选择了固定官方版本不再发布的 bundle，官方加载器会跳过它并打印一行警告，安装照常完成，`webSelfTest.skippedBundles` 列出被跳过的名字；要去掉这行警告，从新 profile 的 `package.json` 的 `dsh.profile.bundles` 里删掉它。`cordis.patch.yml` 里的 `!!js` 表达式按原文搬运，不会被求值写回。复制的 `pnpm-workspace.yaml` 若写了 `storeDir`，官方 profile 管理器安装依赖时以它为准。
+
+安装在创建代际目录之后失败时，只删除本轮新建的 `versions/<uuid>` 和 `profiles/modern-ui-<uuid>`；`release-cache`、`store`、既往代际、原 profile 和旧的 `current.json` 不动，重试直接复用缓存。入口脚本可以经符号链接路径调用（例如 macOS 上 `/tmp`、`/var` 下的目录）。
+
 ## 新用户
 
 ```powershell

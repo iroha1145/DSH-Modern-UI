@@ -1,7 +1,7 @@
 import { readFile, writeFile, rename, realpath } from 'node:fs/promises'
 import { dirname, join, relative, resolve, sep } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { createHash, randomUUID } from 'node:crypto'
+import { isMainModule } from './entrypoint.mjs'
 
 const digest = bytes => createHash('sha256').update(bytes).digest('hex')
 async function validateReceipt(root, generation, receipt) {
@@ -49,7 +49,7 @@ export async function retainSelection(root, state) {
   await rename(temporary, join(root, 'recovery.json'))
   return retained
 }
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (isMainModule(import.meta.url)) {
   const root = resolve(process.argv[2])
   readSelection(root).then(state => console.log(state?.home ?? join(dirname(root), `data-${randomUUID()}`)))
     .catch(error => { console.error(error.message); process.exitCode = 1 })

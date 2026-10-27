@@ -4,8 +4,8 @@ import { readSelection } from './lifecycle.mjs'
 import { randomUUID } from 'node:crypto'
 import { dirname, join, resolve } from 'node:path'
 import { selectProgramRoot } from './program-root.mjs'
-import { fileURLToPath } from 'node:url'
 import { main, versions } from './manager.mjs'
+import { isMainModule } from './entrypoint.mjs'
 
 export async function installExisting(argv = process.argv.slice(2)) {
   if (process.version !== `v${versions.node}`) throw new Error(`Use Node ${versions.node}, or the bootstrap entry to prepare it privately.`)
@@ -46,6 +46,6 @@ export async function installExisting(argv = process.argv.slice(2)) {
   console.log(JSON.stringify({ phase: 'timing', result: timing }, null, 2))
   return { core, community, timing }
 }
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (isMainModule(import.meta.url)) {
   installExisting().catch(error => { console.error(error.message); process.exitCode = 1 })
 }
