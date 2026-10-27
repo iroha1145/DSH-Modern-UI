@@ -26,7 +26,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
 import { presentationPolicyFor } from './vendor/chat/client/presentation-policy.ts'
 import { DEFAULT_LINK_OPENING, type ChatSettings, type FoldedReplies } from './vendor/chat/chat-settings.ts'
-import { RunningTail } from './vendor/chat/client/chat/RunningTail.tsx'
+import { RunningStatusHost } from './vendor/chat/client/chat/RunningStatusHost.tsx'
 import { FoldedRepliesRow, type FoldedRepliesRowInjected } from './vendor/chat/client/settings/FoldedRepliesRow.tsx'
 import { installLanguages } from './languages.ts'
 import { installReasoningTranslation } from './reasoning-translation.ts'
@@ -81,11 +81,12 @@ function installPresentation(ctx: Context): void {
   installReasoningTranslation(ctx)
   installSteeringBatches(ctx)
   installToolCards(ctx)
-  // The official flow keeps its "deep diving" running row; Modern hides it by style and
-  // contributes the patched running status (matrix, phase, elapsed) to the Turn's tail instead.
-  ctx.slots.inject('conversation.chat.turnTail', () => ctx.slots.register({
-    name: 'conversation.chat.turnTail', id: 'modern-running-status', order: -100, locale: 'modern-chat',
-  }, RunningTail))
+  // The official flow keeps its "deep diving" running row and offers no slot for it; Modern hides
+  // that row's children by style and renders the patched running status into it from an
+  // always-mounted composer-dock entry (see RunningStatusHost).
+  ctx.slots.inject('conversation.composer.dock', () => ctx.slots.register({
+    name: 'conversation.composer.dock', id: 'modern-running-status', order: -100, locale: 'modern-chat',
+  }, RunningStatusHost))
   const modernChat = ctx.configForms.get<ModernChatSettings>(MODERN_SETTINGS_NAMESPACE)
   const foldedReplies = createSnapshotStore<FoldedReplies>(foldedRepliesOf(modernChat.getSnapshot().value))
   ctx.effect(() => modernChat.subscribe(() => foldedReplies.set(foldedRepliesOf(modernChat.getSnapshot().value))))

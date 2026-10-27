@@ -25,7 +25,7 @@ function load(file, document, primitives) {
   let descriptor
   const window = document.defaultView
   window.__ModuleLoader__ = { load: value => { descriptor = value } }
-  vm.runInNewContext(readFileSync(file, 'utf8'), { window, document, navigator: window.navigator, console, setTimeout, clearTimeout, URL, URLSearchParams, TextEncoder, TextDecoder, AbortController, fetch })
+  vm.runInNewContext(readFileSync(file, 'utf8'), { window, document, navigator: window.navigator, console, setTimeout, clearTimeout, setInterval, clearInterval, URL, URLSearchParams, TextEncoder, TextDecoder, AbortController, fetch })
   assert.ok(descriptor?.factory, `${file} must register a module factory`)
   return descriptor.factory(name => name === '@deepseek-ai/dsh-client-ui-primitives' ? primitives : require(name))
 }
@@ -97,7 +97,7 @@ function fixture({ realTheme = false } = {}) {
       'conversation.view': { kind: 'list', scope: 'session' },
       'conversation.session.header.lineage': { kind: 'single', scope: 'session' },
       'conversation.session.header.actions': { kind: 'list', scope: 'session' },
-      'conversation.chat.turnTail': { kind: 'list', scope: 'session' },
+      'conversation.composer.dock': { kind: 'list', scope: 'session' },
       'settings.general.item': { kind: 'list', scope: 'root' },
     } }, () => null)
     // The shipped assistant has its own children. Both declarations must coexist.
@@ -161,31 +161,56 @@ test('product icon sprite is owned by the plugin: every dsw-icon symbol resolves
   assert.equal(document.getElementById('modern-ui-icon-sprite'), null)
 })
 
-test('running status joins the official Turn tail with the patched phases and hides the official deep-diving row', async () => {
+test('running status is rendered into the official running row from the composer dock, follows the phases and leaves with the row', async () => {
   const f = fixture()
   await f.providers.await()
   await f.fiber.await()
-  const entry = f.ctx.slots.entriesOfSlot('conversation.chat.turnTail').find(candidate => candidate.options.id === 'modern-running-status')
-  assert.ok(entry, 'the plugin contributes a running status entry to the official tail')
-  const snapshot = (partial, runningCalls = []) => ({ legacy: { partial, runningCalls } })
-  const render = (turn, chat) => renderToStaticMarkup(React.createElement(entry.component, {
-    turn, seq: 1, openFile: () => {}, useChat: selector => selector(chat), t: key => key,
-  }))
-  const open = { status: 'open', start: { time: Date.now() - 65_000 } }
-  const thinking = render(open, snapshot({ blocks: [{ kind: 'reasoning', text: 'Detailed: ...' }] }))
-  assert.match(thinking, /data-modern-running="thinking"/)
-  assert.doesNotMatch(thinking, /data-loading-label/, 'a live reasoning header already names the activity')
-  assert.match(thinking, /data-loading-elapsed/)
-  assert.doesNotMatch(thinking, /深度求索|chat\.deepDiving/)
-  const tools = render(open, snapshot({ blocks: [{ kind: 'text', text: 'x' }] }, [{ id: 'call' }]))
-  assert.match(tools, /data-modern-running="tools"/)
-  assert.match(tools, /data-loading-label[^>]*>chat\.activity\.tools</)
-  assert.match(tools, /t-matrix/)
-  assert.match(render(open, snapshot({ blocks: [{ kind: 'text', text: 'Answer' }] })), /data-modern-running="responding"/)
-  assert.match(render(open, snapshot(null)), /data-modern-running="working"/)
-  assert.equal(render({ status: 'closed', start: { time: 1 } }, snapshot(null)), '')
-  const styles = [...f.dom.window.document.querySelectorAll('style[data-plugin="@iroha1145/dsh-modern-ui"]')].map(style => style.textContent).join('\n')
-  assert.match(styles, /\[data-chat-running\]\{display:none/)
+  const entry = f.ctx.slots.entriesOfSlot('conversation.composer.dock').find(candidate => candidate.options.id === 'modern-running-status')
+  assert.ok(entry, 'the plugin contributes an always-mounted dock entry that hosts the running status')
+  const originals = Object.fromEntries(['window', 'document'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
+  globalThis.window = f.dom.window
+  globalThis.document = f.dom.window.document
+  const doc = f.dom.window.document
+  doc.body.innerHTML = '<div id="panel"><div data-slot="conversation.chat.flow"><div data-chat-running=""><span class="official">深度求索中</span></div></div><div data-composer-dock id="dock"></div></div>'
+  const snapshot = (partial, runningCalls = [], start = Date.now() - 65_000) => ({
+    legacy: { partial, runningCalls },
+    navigation: { items: () => [{ anchorKey: 'turn-1' }] },
+    nodes: new Map([['turn-1', { location: { kind: 'turn', turn: { start: { time: start } } } }]]),
+  })
+  const root = require('react-dom/client').createRoot(doc.getElementById('dock'))
+  try {
+    let chat = snapshot({ blocks: [{ kind: 'text', text: 'Answer' }] })
+    const render = async () => {
+      root.render(React.createElement(entry.component, { useChat: selector => selector(chat), t: key => key }))
+      await settle(); await settle()
+    }
+    await render()
+    assert.ok(doc.querySelector('[data-composer-dock] [data-modern-running-host]'), 'the dock keeps only a hidden anchor')
+    const status = () => doc.querySelector('[data-chat-running] [data-modern-running]')
+    assert.equal(status()?.getAttribute('data-modern-running'), 'responding', 'the status renders inside the official row')
+    assert.match(status().textContent, /chat\.activity\.responding/)
+    assert.ok(status().querySelector('[data-loading-elapsed]'))
+    assert.ok(status().querySelector('.t-matrix'))
+    chat = snapshot({ blocks: [{ kind: 'reasoning', text: 'Detailed: ...' }] })
+    await render()
+    assert.equal(status().getAttribute('data-modern-running'), 'thinking')
+    assert.equal(status().querySelector('[data-loading-label]'), null, 'a live reasoning header already names the activity')
+    assert.ok(status().querySelector('[data-loading-elapsed]'))
+    chat = snapshot({ blocks: [] }, [{ id: 'call' }])
+    await render()
+    assert.equal(status().getAttribute('data-modern-running'), 'tools')
+    doc.querySelector('[data-chat-running]').remove()
+    await settle(); await settle()
+    assert.equal(doc.querySelectorAll('[data-modern-running]').length, 0, 'the portal leaves with the official row')
+  } finally {
+    root.unmount()
+    for (const [key, descriptor] of Object.entries(originals)) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor)
+      else delete globalThis[key]
+    }
+  }
+  const styles = [...doc.querySelectorAll('style[data-plugin="@iroha1145/dsh-modern-ui"]')].map(style => style.textContent).join('\n')
+  assert.match(styles, /\[data-chat-running\]>:not\(\[data-modern-running\]\)\{display:none/, 'the official row keeps its place but its own children hide')
   await f.fiber.dispose()
 })
 

@@ -297,7 +297,8 @@ try {
   // the official "deep diving" row stays out of the layout.
   await page.locator('[data-modern-running]').first().waitFor({ timeout: 10000 })
   assert.match(await page.locator('[data-modern-running]').first().getAttribute('data-modern-running'), /^(?:thinking|tools|responding|working)$/)
-  assert.ok(await page.locator('[data-chat-running]').evaluateAll(rows => rows.every(row => getComputedStyle(row).display === 'none')), 'the official running row is hidden while the Modern tail carries the status')
+  assert.ok(await page.locator('[data-chat-running]').evaluateAll(rows => rows.length > 0 && rows.every(row => row.querySelector('[data-modern-running]') !== null
+    && [...row.children].filter(child => !child.hasAttribute('data-modern-running')).every(child => getComputedStyle(child).display === 'none'))), 'the Modern status renders inside the official running row and the row\'s own children stay hidden')
   await page.screenshot({ path: path.join(run, 'running-status.png') })
   passed.push('Modern running status replaces the official deep-diving row while a Turn is held open')
   const steeringSession = (await ownerRecords()).find(row => row.user && !row.purpose && JSON.stringify(row.user).includes('OWNER_DELAY_START')).sessionId

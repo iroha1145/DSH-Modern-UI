@@ -51,8 +51,8 @@
   }
 }
 
-/* The official flow still mounts its own "deep diving" row while the Session runs;
-   the Modern tail carries the status now, so that row stays out of the layout. */
-:global([data-chat-running]) {
+/* The official flow still mounts its own "deep diving" row while the Session runs. It keeps
+   its place in the flow; its own children step aside for the Modern status rendered into it. */
+:global([data-chat-running] > :not([data-modern-running])) {
   display: none;
 }
