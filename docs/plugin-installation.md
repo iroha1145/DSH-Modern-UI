@@ -95,6 +95,10 @@ stage 自检包含官方 Web 启动审计、token 到 Cookie 的正常交换、�
 
 rollback 选择旧程序及旧 profile，不回滚数据格式；uninstall 只移除 Modern UI 当前入口选择，保留官方安装、所有 profile、原始数据和恢复目录。不要把程序回退当成数据兼容证明。若要恢复已保留的某个代际，先停止该数据目录的进程，再将该代际的 `installation.json` 复制为程序目录的 `current.json`，然后执行 verify。不要混用另一个数据目录的 receipt。
 
+PR #5 复核后，uninstall 可重复执行；保留的启动器会明确提示当前没有启用的安装，不再显示原始 ENOENT。`recovery.json` 保存上一选择的受管 receipt 引用与 SHA256；再次使用默认 install-existing 入口会复用原 data home 和 profile 配置。凭据被改写或越界时拒绝恢复，不静默创建新的空数据目录。新代际的 previous 只保存验证过的 receipt 引用，旧嵌套格式仍可回滚。全部代际继续保留，因为后端、Node 或 PowerShell 可能被后续代际复用；不要手动删除仍被引用的目录。
+
+bootstrap 将同一次已校验下载的 Node 归档交给 manager，在持久代际中校验/解压，并在退出时清理临时启动目录。应用使用的 runtime 不依赖该临时目录。Windows 预览入口可显式传 `-Node`；没有可用精确 Node 时，PowerShell/POSIX 安装入口自动准备私有运行时。
+
 ## 切换官方界面与移除插件包
 
 在官方插件管理页面停用**整个 `@iroha1145/dsh-modern-ui` bundle**，随后刷新浏览器。这样恢复原 layout/sidebar/workspace/conversation 四个 owner；仅关闭 bundle 内 `modern-ui` 单 entry 会留下四个原 owner 被停用，不能作为切换方式。如果此前手动关过该 entry，重新启用 bundle 后还需重新启用该 entry，再刷新。

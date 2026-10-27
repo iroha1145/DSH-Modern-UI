@@ -79,6 +79,7 @@ async function registerUi(ctx: Context, lifetime: AbortController): Promise<void
     ctx.effect(() => ctx.locale.register(NS, dictionaries))
     const injected = (sessionId: SessionId): TranslationBodyInjected => ({
       hooks: { preferences, translationLocale: ctx.locale, translationLimit },
+      reasoningT: ctx.locale.bind('modern-chat'),
       translate: async (request, signal) => {
         if (acceptedRevision !== revision) refresh()
         while (updating !== undefined) await updating

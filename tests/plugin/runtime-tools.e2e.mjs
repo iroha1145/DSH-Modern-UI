@@ -6,25 +6,30 @@ import { spawn } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { randomUUID } from 'node:crypto'
+import { isolatedInstalledFixture } from './fixtures/e2e-environment.mjs'
 
 const script = fileURLToPath(import.meta.url)
 const root = path.resolve(path.dirname(script), '../..')
 if (process.argv[2] !== '--worker') {
   const statePath = process.env.MODERN_UI_INSTALLED_STATE ?? process.argv[2]
   assert.ok(statePath, 'Pass an installed current.json path or MODERN_UI_INSTALLED_STATE')
-  const state = JSON.parse(await readFile(statePath, 'utf8'))
-  const artifacts = path.join(root, '.artifacts/runtime-tools')
+  const source = JSON.parse(await readFile(statePath, 'utf8'))
+  const artifacts = path.join(process.env.MODERN_UI_E2E_ARTIFACTS ?? path.join(root, '.artifacts'), 'runtime-tools')
   await mkdir(artifacts, { recursive: true })
   const run = await mkdtemp(path.join(artifacts, 'run-'))
-  const { runtimeEnvironment } = await import(pathToFileURL(state.manager).href)
-  const environment = { ...runtimeEnvironment(state), DSH_TELEMETRY_DISABLED: '1' }
+  const isolation = await isolatedInstalledFixture(source, run)
+  const state = isolation.state
+  const isolatedStatePath = path.join(run, 'current.json')
+  await writeFile(isolatedStatePath, JSON.stringify({ cli: state.cli, profile: state.profile, powershell: state.powershell ? { path: state.powershell.path } : undefined }))
+  const environment = isolation.environment
   for (const key of Object.keys(environment)) if (/(?:API_KEY|ACCESS_TOKEN|AUTH_TOKEN|SECRET_KEY)$/i.test(key)) delete environment[key]
-  const child = spawn(state.node, [script, '--worker', path.resolve(statePath), run], { env: environment, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] })
+  const child = spawn(state.node, [script, '--worker', isolatedStatePath, run], { env: environment, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] })
   let diagnostics = ''
   for (const stream of [child.stdout, child.stderr]) stream.on('data', data => { diagnostics += data })
   const timeout = setTimeout(() => child.kill(), 90000)
   const code = await new Promise((resolve, reject) => { child.once('error', reject); child.once('exit', resolve) })
   clearTimeout(timeout)
+  await isolation.verifySource()
   await writeFile(path.join(run, 'diagnostics.txt'), diagnostics.replace(/([?&]token=)[^\s&]+/g, '$1[redacted]'))
   console.log(JSON.stringify({ run, exit: code, result: path.join(run, 'result.json') }))
   assert.equal(code, 0, `Tool consumption failed; inspect ${path.join(run, 'result.json')}`)

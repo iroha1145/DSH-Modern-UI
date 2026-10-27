@@ -1,12 +1,14 @@
 /** Translation controls for one expanded reasoning body. */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Button, IconLoadingOutlineRegular } from '@iroha1145/dsh-modern-ui/primitives'
+import { Button, IconLoadingOutlineRegular, MarkdownText } from '@iroha1145/dsh-modern-ui/primitives'
 import type { LocaleSnapshot } from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { HostObservable, InjectFace, PropsLocale, PropsRenderFactories, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { CotTranslationPreferences } from '../types.ts'
 import { ReasoningTranslation, type TranslateText, type TranslationState } from './translation.ts'
 import { NS } from './locales.ts'
+import { markdownLabels } from '../../chat/client/markdown-labels.ts'
+import type { ChatViewSlotProps } from '../../chat/client/contract/slots.ts'
 import css from './Translation.module.css'
 
 /** Registry-side values and callbacks bound for the reasoning contribution. */
@@ -16,6 +18,7 @@ export interface TranslationBodyInjected {
     translationLocale: HostObservable<LocaleSnapshot>
     translationLimit: HostObservable<number>
   }
+  reasoningT: ChatViewSlotProps['t']
   translate: TranslateText
 }
 
@@ -28,7 +31,7 @@ export type TranslationBodyProps = PropsRuntime<'modern.conversation.chat.reason
  * @returns compact Markdown and translation status with a retry action on failure.
  */
 export function TranslationBody(props: TranslationBodyProps) {
-  const { text, running, translate, t, renderFactorySlot } = props
+  const { text, running, translate, t, reasoningT } = props
   const preferences = props.usePreferences(value => value)
   const locale = props.useTranslationLocale(value => value.active)
   const maxTextChars = props.useTranslationLimit(value => value)
@@ -43,8 +46,7 @@ export function TranslationBody(props: TranslationBodyProps) {
   }, [preferences.provider, targetLanguage, maxTextChars, translate])
   useEffect(() => { translation.current?.update(text, running) },
     [text, running, preferences.provider, targetLanguage, maxTextChars, translate])
-  const labels = useMemo(() => ({ code: { copyLabel: t('copy'), copiedLabel: t('copied'),
-    toolbarLabels: { codeLabel: t('codeTitle'), wrapLabel: t('wrap'), unwrapLabel: t('unwrap') } }, footnotes: t('footnotes') }), [t])
+  const labels = useMemo(() => markdownLabels(reasoningT), [reasoningT, t])
   const showOriginal = original || state.failed
   const actionLabel = t(showOriginal ? 'translation' : 'original')
   return <div data-cot-translation="true" data-translation-state={state.failed ? 'failed' : state.pending ? 'pending' : 'ready'}
@@ -56,7 +58,7 @@ export function TranslationBody(props: TranslationBodyProps) {
       {state.failed && <><span className={css.failure} role="status">{t('failed')}</span>
         <Button size="sm" variant="ghost" onClick={() => { translation.current?.retry() }}>{t('retry')}</Button></>}
     </div>
-    {renderFactorySlot('conversation.chat.reasoning.content', { text: showOriginal ? text : state.text, running, labels })}
+    <MarkdownText text={showOriginal ? text : state.text} streaming={running} labels={labels} variant="compact" />
   </div>
 }
 

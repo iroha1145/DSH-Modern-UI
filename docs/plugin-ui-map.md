@@ -25,6 +25,8 @@ Manifest 的 inject 是模块到达与组合边，immediately 只控制预取，
 
 ## 已执行验证
 
+以下 run id 与数量对应 `18c4e38` 的历史本地产物索引，不是仓库链接。当前 PR 修复新增主题、翻译/压缩、凭据事件和 Markdown 导航回归；验证入口与最新结果见 [PR #5 复核](pr5-audit-followup.md)。
+
 - 固定 Node 24.22.1；严格 TypeScript 与构建通过，861 browser inputs；构建检查共享边界并收集实际依赖许可证。消费者不需本地编译。
 - client/translation/steering-batches/tool-cards 四组共25项通过：真实rc.4 registry、ThemeRuntime、官方primitives、Remote生命周期、翻译重试/单飞、代码链、子代理树、assembler与工具席位。
 - layout-owner/shell-owner 共10项通过：nested owner、真实renderer/controller、卸载重启、手机drawer及已有shared namespace语言包共存。conversation-owner 7项通过：真实renderer/uiSession/官方附件和入口贡献、binding/input/queue、pin写入失败恢复、卸载重启、rc.4图片/文件receipt。

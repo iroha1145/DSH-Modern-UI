@@ -109,16 +109,26 @@ test('explicit Modern preferences win, while computed or invalid source preferen
   assert.throws(() => transformConversationPreferences('[]', expression, yaml), /not evaluated/)
 })
 
+test('stale composed settings refuse before a staged field can be dropped or overwritten', () => {
+  const local = { ...model, localPresentation: 'keep-me' }
+  const patch = yaml.dump([{ id: 'modern-ui', config: local }])
+  assert.throws(() => transformConversationPreferences(patch, yaml.dump(ownerEntries({ busyEnter: 'steer' }, model)), yaml), /do not match the staged profile/)
+  assert.throws(() => transformConversationPreferences(patch, yaml.dump(ownerEntries({ busyEnter: 'steer' }, { ...local, localPresentation: 'stale' })), yaml), /do not match the staged profile/)
+  const current = transformConversationPreferences(patch, yaml.dump(ownerEntries({ busyEnter: 'steer' }, local)), yaml)
+  assert.deepEqual(yaml.load(current.source, { schema: entryListSchema })[0].config, { ...local, busyEnter: 'steer' })
+})
+
 test('conversation receipt upgrades a v1 model migration once without overwriting later preferences', async t => {
   const root = await mkdtemp(join(tmpdir(), 'modern-conversation-settings-'))
   t.after(() => rm(root, { recursive: true, force: true }))
   await writeFile(join(root, 'cordis.patch.yml'), source)
   await preserveLegacySettings(root, yaml)
   const before = await readFile(join(root, 'cordis.patch.yml'), 'utf8')
-  const first = await preserveConversationPreferences(root, yaml.dump(ownerEntries({ busyEnter: 'steer' }, model)), yaml)
+  const first = await preserveConversationPreferences(root, yaml.dump(ownerEntries({ busyEnter: 'steer' }, { ...model, collapsedViews: ['agents'] })), yaml)
   assert.deepEqual(first.movedFields, ['busyEnter'])
   assert.equal(await readFile(join(root, first.backup), 'utf8'), before)
   const changed = yaml.load(await readFile(join(root, 'cordis.patch.yml'), 'utf8'), { schema: entryListSchema })
+  assert.deepEqual(changed.find(row => row.id === 'modern-ui').config.collapsedViews, ['agents'])
   changed.find(row => row.id === 'modern-ui').config.busyEnter = 'queue'
   await writeFile(join(root, 'cordis.patch.yml'), yaml.dump(changed))
   assert.equal((await preserveLegacySettings(root, yaml)).alreadyMigrated, true)

@@ -158,6 +158,11 @@ export function transformConversationPreferences(source, effectiveYaml, yaml) {
       if (row.config !== undefined && (!row.config || Array.isArray(row.config) || Object.getPrototypeOf(row.config) !== Object.prototype)) {
         throw new Error('Computed Modern UI settings require explicit review')
       }
+      for (const [key, value] of Object.entries(row.config ?? {})) {
+        if (!Object.hasOwn(target, key) || !isDeepStrictEqual(target[key], value)) {
+          throw new Error('Composed Modern UI settings do not match the staged profile; retry migration without concurrent edits')
+        }
+      }
       row.config = { ...target, ...additions }
     } else patch.push({ id: 'modern-ui', name: '@iroha1145/dsh-modern-ui', config: { ...target, ...additions } })
   }

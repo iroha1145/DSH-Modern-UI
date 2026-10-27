@@ -24,12 +24,12 @@ await mkdir(path.join(output, 'tests/plugin'), { recursive: true })
 for (const name of (await readdir(path.join(root, 'tests/plugin'))).filter(name => name.endsWith('.e2e.mjs') || name === 'fixtures')) {
   await cp(path.join(root, 'tests/plugin', name), path.join(output, 'tests/plugin', name), { recursive: true })
 }
-await mkdir(path.join(output, 'docs'), { recursive: true })
-for (const name of ['plugin-migration.md', 'plugin-ui-map.md', 'plugin-host-compat.md', 'plugin-data-migration.md', 'plugin-installation.md', 'legacy-patch-installation.md']) {
-  await cp(path.join(root, 'docs', name), path.join(output, 'docs', name))
-}
+await cp(path.join(root, 'docs'), path.join(output, 'docs'), { recursive: true })
+await cp(path.join(root, 'LICENSE'), path.join(output, 'LICENSE'))
 await cp(path.join(root, 'scripts/preview-consumer-check.mjs'), path.join(output, 'consumer-check.mjs'))
 await cp(path.join(root, 'tests/official-web'), path.join(output, 'tests/official-web'), { recursive: true })
+await mkdir(path.join(output, 'tests/distribution'), { recursive: true })
+await cp(path.join(root, 'tests/distribution/bootstrap-lifecycle.ps1'), path.join(output, 'tests/distribution/bootstrap-lifecycle.ps1'))
 const runtimes = JSON.parse(await readFile(path.join(output, 'installer/runtime-lock.json'), 'utf8'))
 const communities = JSON.parse(await readFile(path.join(output, 'installer/community-lock.json'), 'utf8'))
 const manifest = {
@@ -51,10 +51,11 @@ await writeFile(path.join(output, 'install.ps1'), `param(
   [Parameter(Mandatory=$true)][string]$Root,
   [Parameter(Mandatory=$true)][string]$DataHome,
   [string]$Backend,
+  [string]$Node,
   [switch]$SkipCommunity
 )
 $ErrorActionPreference = 'Stop'
-& (Join-Path $PSScriptRoot 'installer/bootstrap.ps1') -Root $Root -DataHome $DataHome -Plugin (Join-Path $PSScriptRoot 'modern-ui.tgz') -PluginIntegrity '${integrity}' -Backend $Backend -SkipCommunity:$SkipCommunity
+& (Join-Path $PSScriptRoot 'installer/bootstrap.ps1') -Root $Root -DataHome $DataHome -Plugin (Join-Path $PSScriptRoot 'modern-ui.tgz') -PluginIntegrity '${integrity}' -Backend $Backend -Node $Node -SkipCommunity:$SkipCommunity
 `)
 await writeFile(path.join(output, 'install-existing.ps1'), `param(
   [Parameter(Mandatory=$true)][string]$Backend,

@@ -11,6 +11,7 @@ import type {
 import type { ModelRetryNode, TurnErrorNode, UserMessageNode } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type {} from '../../../../steering-batches.ts'
 import { CompactionItem } from './CompactionItem.tsx'
+import { CompactionCommandCard } from './CompactionCommandCard.tsx'
 import { ContextInjectionRow } from './ContextInjectionRow.tsx'
 import { MessageIconActions } from './MessageIconActions.tsx'
 import css from './MessageItem.module.css'
@@ -352,6 +353,12 @@ export const ContextMessageNodeView = memo(function ContextMessageNodeView({ nod
 /** Automatic compaction keyed Chat renderer. */
 export const CompactionNodeView = memo(function CompactionNodeView({ node, t }: ChatNodeViewProps<'compaction'>) {
   return <CompactionItem node={node.data} t={t} />
+})
+
+/** Manual compaction lifecycle, including pending and failed commands without a marker. */
+export const ManualCompactionNodeView = memo(function ManualCompactionNodeView({ node, t }: ChatNodeViewProps<'manual-compaction'>) {
+  const { command, compaction } = node.data
+  return <CompactionCommandCard node={command} {...compaction === null ? {} : { compaction }} t={t} />
 })
 
 /** Correlated retry-chain keyed Chat renderer. */

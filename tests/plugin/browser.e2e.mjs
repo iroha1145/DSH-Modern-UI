@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { isolatedInstalledFixture, fixtureEnvironment as makeFixtureEnvironment, openSettings, browserExecutable } from './fixtures/e2e-environment.mjs'
 import { createRequire } from 'node:module'
 import { mkdir, mkdtemp, writeFile, readFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
@@ -10,7 +11,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const require = createRequire(process.env.MODERN_UI_BUILD_DEPS
   ? path.join(path.resolve(process.env.MODERN_UI_BUILD_DEPS), 'package.json') : path.join(root, 'package.json'))
 const { chromium } = require('playwright-core')
-const artifacts = path.join(root, '.artifacts/plugin-browser')
+const artifacts = path.join(process.env.MODERN_UI_E2E_ARTIFACTS ?? path.join(root, '.artifacts'), 'plugin-browser')
 await mkdir(artifacts, { recursive: true })
 const run = await mkdtemp(path.join(artifacts, 'run-'))
 const workspace = path.join(run, 'm1-fixture-workspace')
@@ -18,16 +19,15 @@ const runMarker = `M1 fixture ${path.basename(run)}`
 await mkdir(workspace)
 await writeFile(path.join(workspace, 'm1-note.txt'), 'First fixture line\nSecond fixture line\n')
 await writeFile(path.join(workspace, 'm1-image.png'), Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6fV8AAAAASUVORK5CYII=', 'base64'))
-const installed = process.env.MODERN_UI_INSTALLED_STATE ? JSON.parse(await readFile(process.env.MODERN_UI_INSTALLED_STATE, 'utf8')) : undefined
+const sourceInstalled = process.env.MODERN_UI_INSTALLED_STATE ? JSON.parse(await readFile(process.env.MODERN_UI_INSTALLED_STATE, 'utf8')) : undefined
+const isolation = sourceInstalled ? await isolatedInstalledFixture(sourceInstalled, run) : undefined
+const installed = isolation?.state
 const official = installed?.cli ?? process.env.MODERN_UI_OFFICIAL_CLI ?? path.join(root, 'node_modules/@deepseek-ai/dsh/lib/bin.js')
 const nodeExecutable = installed?.node ?? process.execPath
 const plugin = installed ? path.join(installed.plugin.path, 'lib/index.js') : process.env.MODERN_UI_INSTALLED_PLUGIN ?? path.join(root, 'packages/modern-ui/lib/index.js')
 const home = installed?.home ?? path.join(run, 'home')
 const profile = installed?.profile ?? 'modern-ui-browser-fixture'
-const fixtureEnvironment = { ...process.env, DSH_HOME: home, DSH_TELEMETRY_DISABLED: '1' }
-for (const name of Object.keys(fixtureEnvironment)) {
-  if (/(?:API_KEY|ACCESS_TOKEN|AUTH_TOKEN|SECRET_KEY)$/i.test(name)) delete fixtureEnvironment[name]
-}
+const fixtureEnvironment = isolation?.environment ?? makeFixtureEnvironment(home)
 let translations = 0
 const translationServer = createServer(async (request, response) => {
   if (request.url.startsWith('/external')) {
@@ -93,10 +93,10 @@ const url = await new Promise((resolve, reject) => {
   child.stderr.on('data', chunk => { serverErrors += chunk })
 })
 const browser = await chromium.launch({
-  executablePath: process.env.MODERN_UI_BROWSER ?? (process.platform === 'win32' ? 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe' : undefined),
+  executablePath: browserExecutable(),
   headless: true,
 })
-const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
+const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, locale: 'zh-CN' })
 const errors = []
 const sockets = []
 const remoteRequests = []
@@ -181,7 +181,7 @@ try {
   const modernTrigger = page.getByRole('button', { name: /mock-fast/ })
   await modernTrigger.click()
   assert.equal(await modernTrigger.getAttribute('aria-expanded'), 'true')
-  await page.keyboard.press('Control+Alt+Comma')
+  await openSettings(page)
   const officialSettings = page.getByRole('dialog').filter({ has: page.getByRole('button', { name: '通用设置', exact: true }) })
   await officialSettings.waitFor()
   await page.keyboard.press('Tab')
@@ -228,7 +228,7 @@ try {
   assert.match(await page.getByRole('button', { name: /mock-fast/ }).innerText(), /高/)
   assert.equal(await page.locator('[data-followups] button').count(), 2)
   await page.setViewportSize({ width: 1440, height: 1000 })
-  await page.keyboard.press('Control+Alt+Comma')
+  await openSettings(page)
   const settings = page.getByRole('dialog')
   await settings.waitFor()
   await settings.getByRole('button', { name: '模型', exact: true }).click()
@@ -242,7 +242,7 @@ try {
   await page.getByRole('button', { name: /mock-fast/ }).click()
   await page.getByText('Durable fixture card', { exact: true }).waitFor()
   await page.keyboard.press('Escape')
-  await page.keyboard.press('Control+Alt+Comma')
+  await openSettings(page)
   await settings.getByRole('button', { name: '通用设置', exact: true }).click()
   const captureTheme = async label => {
     const state = await page.evaluate(() => {
@@ -265,7 +265,7 @@ try {
     await page.reload()
     await page.getByRole('button', { name: /mock-fast/ }).waitFor()
     assert.equal(await page.locator('body').evaluate(body => body.hasAttribute('data-ds-dark-theme')), dark)
-    await page.keyboard.press('Control+Alt+Comma')
+    await openSettings(page)
     await settings.getByRole('button', { name: '通用设置', exact: true }).click()
     assert.equal(await settings.getByRole('button', { name: label, exact: true }).getAttribute('aria-pressed'), 'true')
   }
@@ -281,7 +281,7 @@ try {
   await page.getByRole('button', { name: /mock-fast/ }).waitFor()
   await captureTheme('system-light-reloaded')
   assert.equal(themeStates.at(-1).preference, 'system')
-  await page.keyboard.press('Control+Alt+Comma')
+  await openSettings(page)
   await settings.getByRole('button', { name: '通用设置', exact: true }).click()
   assert.equal(await settings.getByRole('button', { name: '跟随系统', exact: true }).getAttribute('aria-pressed'), 'true')
   const sidebarPreference = settings.getByRole('button', { name: '应用内侧边栏', exact: true })
@@ -297,7 +297,7 @@ try {
   await external.waitForLoadState('domcontentloaded')
   assert.equal(external.url(), externalUrl)
   await external.close()
-  await page.keyboard.press('Control+Alt+Comma')
+  await openSettings(page)
   await settings.getByRole('button', { name: '通用设置', exact: true }).click()
   await settings.getByRole('button', { name: '中文', exact: true }).click()
   await page.getByText('日本語', { exact: true }).click()
@@ -327,13 +327,14 @@ try {
   const boot = await page.evaluate(() => window.__DSH_BOOT__)
   const failure = { message: error.message, errors, sockets, remoteRequests, body: await page.locator('body').innerText(), serverErrors, frames, visuals, boot }
   await writeFile(path.join(run, 'failure.json'), JSON.stringify(failure, null, 2))
-  console.error(JSON.stringify(failure, null, 2))
+  console.error(JSON.stringify({ run, message: failure.message, errors, body: failure.body.slice(0, 2000), diagnostics: path.join(run, 'failure.json') }, null, 2))
   throw error
 } finally {
   await browser.close()
   await new Promise(resolve => translationServer.close(resolve))
   child.kill('SIGINT')
   await new Promise(resolve => { child.once('exit', resolve); setTimeout(resolve, 5000) })
+  await isolation?.verifySource()
 }
 
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { existsSync } from 'node:fs'
-import { readFile } from 'node:fs/promises'
+import { readSelection } from './lifecycle.mjs'
 import { randomUUID } from 'node:crypto'
 import { dirname, join, resolve } from 'node:path'
 import { homedir } from 'node:os'
@@ -22,8 +22,7 @@ export async function installExisting(argv = process.argv.slice(2)) {
     : process.env.XDG_DATA_HOME ?? join(homedir(), '.local/share')
   if (!base && !options['--root']) throw new Error('Pass --root when the local application data directory is unavailable')
   const root = resolve(options['--root'] ?? join(base, 'DSH-Modern-UI/program'))
-  const current = join(root, 'current.json')
-  const previous = existsSync(current) ? JSON.parse(await readFile(current, 'utf8')) : undefined
+  const previous = await readSelection(root)
   const home = resolve(options['--home'] ?? previous?.home ?? join(dirname(root), `data-${randomUUID()}`))
   const cacheConditions = {
     releaseCacheDirectoryExisted: existsSync(join(root, 'release-cache')),

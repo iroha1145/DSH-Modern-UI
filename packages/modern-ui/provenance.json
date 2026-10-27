@@ -53,6 +53,13 @@
       "adapted": true
     },
     {
+      "source": "packages/client/ui-chat/src/client/chat/CompactionCommandCard.tsx",
+      "target": "src/vendor/chat/client/chat/CompactionCommandCard.tsx",
+      "sourceSha256": "4dc3650ef3abfc42350868f16f90ea1d668ac534a23bab9ffff52d0845716cbd",
+      "targetSha256": "4dc3650ef3abfc42350868f16f90ea1d668ac534a23bab9ffff52d0845716cbd",
+      "adapted": false
+    },
+    {
       "source": "packages/client/ui-chat/src/client/chat/CompactionItem.tsx",
       "target": "src/vendor/chat/client/chat/CompactionItem.tsx",
       "sourceSha256": "3e8f5a4b1392fa2d824d25e068667cbb982e3f9c11913977ff7806fb3ccc3f30",
@@ -85,6 +92,20 @@
       "target": "src/vendor/chat/client/chat/ContextInjectionRow.tsx",
       "sourceSha256": "0cb1121df57c18d158ab077ebf3ad69675b97d78137b7d53699db3dfa22f6eb1",
       "targetSha256": "5ca799248df6237923e88fdd8d9f7b5bc5d92690ac04be195af5f27866a75487",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-chat/src/client/chat/GenericCommandCard.module.css",
+      "target": "src/vendor/chat/client/chat/GenericCommandCard.module.css",
+      "sourceSha256": "b20c378e81c992132575f631bb134c52043d62b1c802b5817472cc74896312c5",
+      "targetSha256": "b20c378e81c992132575f631bb134c52043d62b1c802b5817472cc74896312c5",
+      "adapted": false
+    },
+    {
+      "source": "packages/client/ui-chat/src/client/chat/GenericCommandCard.tsx",
+      "target": "src/vendor/chat/client/chat/GenericCommandCard.tsx",
+      "sourceSha256": "7cd4a6dea27fc17a3f682432b5c1a9da5872d710c214894e931c90bee0da65b7",
+      "targetSha256": "8b38bf1d14903b35bf162ab26ddaec342ce90c54d036f792e0a41299372efbcf",
       "adapted": true
     },
     {
@@ -126,7 +147,7 @@
       "source": "packages/client/ui-chat/src/client/chat/MessageItem.tsx",
       "target": "src/vendor/chat/client/chat/MessageItem.tsx",
       "sourceSha256": "acb5f4ef131a1afc9db9e75e3e37c5bb802803abd966ea059327ce7627b0cf72",
-      "targetSha256": "40c9a15f03b0c42bd5d888cdab33cc5d499ec661726fa9c80c685f6ed23ed5c6",
+      "targetSha256": "5e998f69bf27ef8de8b74035f0548b5c65c0a8e89e155d5e405da199fa9a5d77",
       "adapted": true
     },
     {
@@ -2149,7 +2170,7 @@
       "source": "packages/client/ui-theme/src/client/styles.ts",
       "target": "src/vendor/theme/client/styles.ts",
       "sourceSha256": "36d0fadcf87d9903ed84c0cfb64096598e4a1863c84327337eda8da00d157c3e",
-      "targetSha256": "27d20f38d4e57021deb37ef031bddc8fe1620201fe9316935f0c2d12cb3f698a",
+      "targetSha256": "20c39a2a4fff30f4ff5e2a74585fdec0cae31a0d0a98e44e0155931cc6ee198e",
       "adapted": true
     },
     {
@@ -2555,7 +2576,7 @@
       "source": "packages/experimental/client-ui-cot-translation/src/client/TranslationBody.tsx",
       "target": "src/vendor/translation/client/TranslationBody.tsx",
       "sourceSha256": "4a6525c4cfa0d59138f68d076bb1306a5d62e845bceed507bcabf7a654ef11cc",
-      "targetSha256": "7374bb82beab81daaf9713836faea871871939c3c806517e3191d5dcb0e3e708",
+      "targetSha256": "cf954d0649034c2eed76af94d66bca93083b5108ade4a270473878fe122e0b55",
       "adapted": true
     },
     {
@@ -2794,6 +2815,12 @@
           "sourceSha256": "8510ef6f54a4f2e8dcaa2fb6c81b272cd6cca5ab5353092b6b6e6a55bd14ed40"
         }
       ]
+    },
+    {
+      "target": "src/markdown-scope.tsx",
+      "targetSha256": "c3a8cadcb291d2177e182cffb9a975fefcd93a648fcd53111c13c7866686c976",
+      "sources": [],
+      "description": "Bridge the public chat owner workspace and navigation capabilities into Modern Markdown; resolve local image and file paths with the official workspace-path helper."
     }
   ],
   "translations": [

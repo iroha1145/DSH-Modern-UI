@@ -167,7 +167,7 @@ tests/installers.py              不联网的安装、续装、故障恢复与�
 
 ## 许可证
 
-MIT，见 [LICENSE](LICENSE)。DeepSeek Harness 本身也是 MIT 许可证，版权归 DeepSeek。补丁里带的 Lobe Icons 图标是 MIT 许可证，说明在补丁新增的 `THIRD_PARTY_NOTICES.md` 和 `licenses/` 里。图标动画参照 lucide-animated（MIT）的动作设计，用 CSS 重新实现，没有复制它的代码。三个社区插件由各自作者发布，许可证以它们的仓库为准。
+MIT，见 [LICENSE](../LICENSE)。DeepSeek Harness 本身也是 MIT 许可证，版权归 DeepSeek。补丁里带的 Lobe Icons 图标是 MIT 许可证，说明在补丁新增的 `THIRD_PARTY_NOTICES.md` 和 `licenses/` 里。图标动画参照 lucide-animated（MIT）的动作设计，用 CSS 重新实现，没有复制它的代码。三个社区插件由各自作者发布，许可证以它们的仓库为准。
 
 ## English
 

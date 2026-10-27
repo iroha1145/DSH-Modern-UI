@@ -98,6 +98,11 @@ jobs:
           $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot\System32\WindowsPowerShell\v1.0"
           & $env:DSH_PRIVATE_NODE ./preview/tests/plugin/runtime-tools.e2e.mjs $env:DSH_CURRENT_STATE
           if ($LASTEXITCODE -ne 0) { throw 'Private shell tool acceptance failed' }
+      - name: Verify Windows bootstrap reuse and cleanup
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          & ./preview/tests/distribution/bootstrap-lifecycle.ps1 -Node $env:DSH_PRIVATE_NODE -Installer (Resolve-Path ./preview/installer).Path
       - name: Install the isolated browser test driver
         shell: pwsh
         run: |
@@ -130,11 +135,16 @@ jobs:
             ${{ runner.temp }}/consumer-evidence/*.json
             preview/.artifacts/plugin-browser/**/result.json
             preview/.artifacts/plugin-browser/**/failure.json
+            preview/.artifacts/plugin-browser/**/isolation.json
+            preview/.artifacts/plugin-browser/**/peers.json
             preview/.artifacts/plugin-browser/**/*.png
             preview/.artifacts/plugin-owners/**/result.json
             preview/.artifacts/plugin-owners/**/failure.json
+            preview/.artifacts/plugin-owners/**/isolation.json
+            preview/.artifacts/plugin-owners/**/peers.json
             preview/.artifacts/plugin-owners/**/*.png
             preview/.artifacts/official-web/**/result.json
             preview/.artifacts/runtime-tools/**/result.json
+            preview/.artifacts/runtime-tools/**/isolation.json
           if-no-files-found: ignore
           retention-days: 7

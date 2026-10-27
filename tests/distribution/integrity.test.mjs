@@ -52,13 +52,16 @@ test('failed staging and concurrent operations preserve the old selection and da
 })
 
 test('uninstall only removes selected entry; preserves other profiles, sessions, official program', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'dsh-uninstall-'))
+  const scratch = await mkdtemp(join(tmpdir(), 'dsh-uninstall-'))
   try {
-    await saveFixture(root)
+    const { root, home } = await saveFixture(scratch)
     await main(['uninstall', '--root', root])
+    assert.equal(existsSync(join(root, 'current.json')), false)
     assert.equal(await readFile(join(root, 'official.js'), 'utf8'), 'official')
-    assert.equal(await readFile(join(root, 'other-profile', 'settings.json'), 'utf8'), 'settings')
-  } finally { await rm(root, { recursive: true, force: true }) }
+    assert.equal(await readFile(join(home, 'profiles', 'other-profile', 'settings.json'), 'utf8'), 'settings')
+    assert.equal(await readFile(join(home, 'sessions', 'fixture.jsonl'), 'utf8'), 'retained session bytes')
+    assert.equal(JSON.parse(await readFile(join(root, 'recovery.json'), 'utf8')).home, home)
+  } finally { await rm(scratch, { recursive: true, force: true }) }
 })
 test('junction/symlink aliases cannot mix the program and data directories', async () => {
   const root = await mkdtemp(join(tmpdir(), 'dsh-path-boundary-'))
@@ -94,9 +97,18 @@ test('copied production manager checks pinned community packages without a check
     assert.equal(plugins.every(plugin => plugin.state === 'missing' && plugin.integrity.startsWith('sha512-')), true)
   } finally { await rm(root, { recursive: true, force: true }) }
 })
-async function saveFixture(root) {
-  await mkdir(join(root, 'other-profile'))
-  await writeFile(join(root, 'current.json'), '{}')
+async function saveFixture(scratch) {
+  const root = join(scratch, 'program')
+  const home = join(scratch, 'data')
+  const generation = join(root, 'versions', 'fixture')
+  await mkdir(generation, { recursive: true })
+  await mkdir(join(home, 'profiles', 'other-profile'), { recursive: true })
+  await mkdir(join(home, 'sessions'))
+  const state = JSON.stringify({ root, home, generation, profile: 'modern-fixture', officialBaseline: {} })
+  await writeFile(join(root, 'current.json'), state)
+  await writeFile(join(generation, 'installation.json'), state)
   await writeFile(join(root, 'official.js'), 'official')
-  await writeFile(join(root, 'other-profile', 'settings.json'), 'settings')
+  await writeFile(join(home, 'profiles', 'other-profile', 'settings.json'), 'settings')
+  await writeFile(join(home, 'sessions', 'fixture.jsonl'), 'retained session bytes')
+  return { root, home }
 }

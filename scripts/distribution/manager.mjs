@@ -14,6 +14,7 @@ import { bindHostCompatibility, preserveLegacySettings, preserveConversationPref
 import { acquireOperationLock } from './operation-lock.mjs'
 import { download, unpack } from './artifacts.mjs'
 import { preparePowerShell, bindPowerShell } from './shell-runtime.mjs'
+import { readSelection, previousState, receiptReference, retainSelection } from './lifecycle.mjs'
 
 export const versions = { backend: '0.2.1-rc.4', node: '24.22.1', pnpm: '11.28.5', plugin: '0.1.0-migration.1' }
 export const officialSource = {
@@ -85,7 +86,7 @@ function dsh(state, args, cwd = state.generation) {
   return run(state.node, [state.cli, ...args], { cwd, env: runtimeEnvironment(state), timeout: 180000 })
 }
 function windowsNodeBridge(metadataFile, firstArgument) {
-  return `# DSH Modern UI managed dispatcher\r\n$ErrorActionPreference = 'Stop'\r\n$state = ConvertFrom-Json ([IO.File]::ReadAllText((Join-Path $PSScriptRoot '${metadataFile}'), [Text.Encoding]::UTF8))\r\nfunction ConvertTo-NativeArgument([string]$value) {\r\n  if ($value.Length -gt 0 -and $value -notmatch '[\\s"]') { return $value }\r\n  $escaped = [regex]::Replace($value, '(\\\\*)"', '$1$1\\"')\r\n  $escaped = [regex]::Replace($escaped, '(\\\\+)$', '$1$1')\r\n  return '"' + $escaped + '"'\r\n}\r\n$nativeArguments = @(${firstArgument}) + $args\r\n$start = New-Object Diagnostics.ProcessStartInfo\r\n$start.FileName = $state.node\r\n$start.UseShellExecute = $false\r\n$start.Arguments = [string]::Join(' ', @($nativeArguments | ForEach-Object { ConvertTo-NativeArgument ([string]$_) }))\r\n$child = [Diagnostics.Process]::Start($start)\r\n$child.WaitForExit()\r\n$code = $child.ExitCode\r\n$child.Dispose()\r\nexit $code\r\n`
+  return `# DSH Modern UI managed dispatcher\r\n$ErrorActionPreference = 'Stop'\r\nif (-not (Test-Path -LiteralPath (Join-Path $PSScriptRoot '${metadataFile}'))) { [Console]::Error.WriteLine('Modern UI is not installed. Reinstall to recover retained data and profiles.'); exit 1 }\r\n$state = ConvertFrom-Json ([IO.File]::ReadAllText((Join-Path $PSScriptRoot '${metadataFile}'), [Text.Encoding]::UTF8))\r\nfunction ConvertTo-NativeArgument([string]$value) {\r\n  if ($value.Length -gt 0 -and $value -notmatch '[\\s"]') { return $value }\r\n  $escaped = [regex]::Replace($value, '(\\\\*)"', '$1$1\\"')\r\n  $escaped = [regex]::Replace($escaped, '(\\\\+)$', '$1$1')\r\n  return '"' + $escaped + '"'\r\n}\r\n$nativeArguments = @(${firstArgument}) + $args\r\n$start = New-Object Diagnostics.ProcessStartInfo\r\n$start.FileName = $state.node\r\n$start.UseShellExecute = $false\r\n$start.Arguments = [string]::Join(' ', @($nativeArguments | ForEach-Object { ConvertTo-NativeArgument ([string]$_) }))\r\n$child = [Diagnostics.Process]::Start($start)\r\n$child.WaitForExit()\r\n$code = $child.ExitCode\r\n$child.Dispose()\r\nexit $code\r\n`
 }
 function windowsCommandBridge(script) {
   return `@echo off\r\nrem DSH Modern UI managed dispatcher\r\n"%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%~dp0${script}" %*\r\n`
@@ -105,7 +106,7 @@ export async function installEntrypoint(state) {
   const marker = 'DSH Modern UI managed dispatcher'
   await cp(here, join(state.generation, 'manager'), { recursive: true })
   state.manager = join(state.generation, 'manager', 'manager.mjs')
-  const dispatcher = `// ${marker}\nimport { readFile } from 'node:fs/promises'\nimport { dirname, join } from 'node:path'\nimport { fileURLToPath, pathToFileURL } from 'node:url'\nconst root = dirname(fileURLToPath(import.meta.url))\nconst state = JSON.parse(await readFile(join(root, 'current.json'), 'utf8'))\nconst { main } = await import(pathToFileURL(state.manager).href)\nawait main(['launch', '--root', root, '--', ...process.argv.slice(2)])\n`
+  const dispatcher = `// ${marker}\nimport { readFile } from 'node:fs/promises'\nimport { dirname, join } from 'node:path'\nimport { fileURLToPath, pathToFileURL } from 'node:url'\nconst root = dirname(fileURLToPath(import.meta.url))\nlet state\ntry { state = JSON.parse(await readFile(join(root, 'current.json'), 'utf8')) } catch (error) { if (error.code !== 'ENOENT') throw error; console.error('Modern UI is not installed. Reinstall to recover retained data and profiles.'); process.exit(1) }\nconst { main } = await import(pathToFileURL(state.manager).href)\nawait main(['launch', '--root', root, '--', ...process.argv.slice(2)])\n`
   const files = [[join(state.root, 'launch.mjs'), dispatcher]]
   if (process.platform === 'win32') {
     // ASCII wrappers let Windows use Unicode paths without a console code-page dependency.
@@ -123,13 +124,17 @@ export async function installEntrypoint(state) {
     await rename(temporary, path)
   }
 }
-async function provision(state, lockPath) {
+async function provision(state, lockPath, nodeArchive) {
   const lock = await json(lockPath)
   const target = `${process.platform}-${process.arch}`
   const node = lock.node?.[target]
   if (!node || lock.nodeVersion !== versions.node || lock.pnpmVersion !== versions.pnpm) throw new Error(`Missing exact runtime artifacts for ${target}`)
   const archive = join(state.generation, 'node.archive')
-  await download(node.url, node.integrity, archive)
+  if (nodeArchive) {
+    const bytes = await readFile(resolve(nodeArchive))
+    checkIntegrity(bytes, node.integrity)
+    await writeFile(archive, bytes)
+  } else await download(node.url, node.integrity, archive)
   await unpack(archive, join(state.generation, 'runtime'))
   state.node = join(state.generation, 'runtime', node.executable)
   await provisionPnpm(state, lock)
@@ -152,7 +157,8 @@ async function install(options) {
   if (!options.home || !options.plugin || !options['plugin-integrity']) throw new Error('install requires --home, --plugin tgz and --plugin-integrity')
   const bytes = await readFile(resolve(options.plugin))
   checkIntegrity(bytes, options['plugin-integrity'])
-  const previous = existsSync(join(root, 'current.json')) ? await json(join(root, 'current.json')) : undefined
+  const previous = await readSelection(root)
+  const previousReference = previous ? await receiptReference(previous) : undefined
   const home = await futureRealpath(options.home)
   const contains = (parent, child) => {
     const path = relative(parent, child)
@@ -166,7 +172,7 @@ async function install(options) {
   const generation = join(root, 'versions', id)
   const state = { root, generation, home, profile: `modern-ui-${id}`, previous, created: new Date().toISOString() }
   await mkdir(generation, { recursive: true })
-  if (options['runtime-lock']) await provision(state, resolve(options['runtime-lock']))
+  if (options['runtime-lock']) await provision(state, resolve(options['runtime-lock']), options['node-archive'])
   else {
     if (!options.node) throw new Error('Provide --runtime-lock, or an exact installed --node runtime')
     state.node = await realpath(resolve(options.node))
@@ -247,6 +253,7 @@ async function install(options) {
   await verifyOfficial(state)
   if (state.sourceProfile) await verifySnapshot(state.sourceProfile.path, state.sourceProfile.baseline, { excludeNodeModules: true })
   await installEntrypoint(state)
+  state.previous = previousReference
   await save(join(generation, 'installation.json'), state)
   await atomicState(root, state)
   return summary(state)
@@ -255,21 +262,28 @@ export async function main(argv = process.argv.slice(2)) {
   const { command, options } = parse(argv)
   await mkdir(options.root, { recursive: true })
   options.root = await realpath(options.root)
-  if (command === 'status') return summary(await json(join(options.root, 'current.json')))
+  if (command === 'status') {
+    const state = await readSelection(options.root, { recovery: false })
+    return state ? summary(state) : { installed: false, recoverable: Boolean(await readSelection(options.root)) }
+  }
   const lease = await acquireOperationLock(options.root)
   try {
     if (command === 'install') return await install(options)
-    const state = await json(join(options.root, 'current.json'))
+    if (command === 'uninstall') {
+      const selected = await readSelection(options.root)
+      if (selected) await retainSelection(options.root, selected)
+      await rm(join(options.root, 'current.json'), { force: true })
+      return { removed: 'Modern UI entry selection', retained: ['official backend', 'all profiles and data', 'program generations for recovery'], recovery: selected ? join(options.root, 'recovery.json') : undefined }
+    }
+    const state = await readSelection(options.root, { recovery: false })
+    if (!state) throw new Error('Modern UI is not installed. Reinstall to recover retained data and profiles.')
     if (command === 'verify') return await verifyOfficial(state)
     if (command === 'rollback') {
       if (!state.previous) throw new Error('No previous program/profile generation')
-      await verifyOfficial(state.previous)
-      await atomicState(options.root, state.previous)
-      return { rolledBackTo: state.previous.generation, dataRollback: false, note: 'Shared sessions are not rewritten. Check data-version compatibility before resuming.' }
-    }
-    if (command === 'uninstall') {
-      await rm(join(options.root, 'current.json'))
-      return { removed: 'Modern UI entry selection', retained: ['official backend', 'all profiles and data', 'program generations for recovery'] }
+      const previous = await previousState(state.previous, options.root)
+      await verifyOfficial(previous)
+      await atomicState(options.root, previous)
+      return { rolledBackTo: previous.generation, dataRollback: false, note: 'Shared sessions are not rewritten. Check data-version compatibility before resuming.' }
     }
     if (command === 'community') {
       const manifest = await json(resolve(options.manifest ?? join(here, 'community-lock.json')))

@@ -38,7 +38,7 @@ import * as conversationOwner from './conversation-owner.ts'
 import { TurnProcessNodeView } from './vendor/chat/client/chat/TurnProcessNodeView.tsx'
 import {
   UserMessageNodeView, SteeringMessageNodeView, ContextMessageNodeView, RetryNodeView, TurnErrorNodeView,
-  TurnMaxTokensNodeView, CompactionNodeView, UnknownNodeView,
+  TurnMaxTokensNodeView, CompactionNodeView, ManualCompactionNodeView, UnknownNodeView,
 } from './vendor/chat/client/chat/MessageItem.tsx'
 
 export const inject = ['slots', 'theme', 'locale', 'configForms', 'remote', 'remote.session']
@@ -81,6 +81,8 @@ function installPresentation(ctx: Context): void {
   ctx.on('connection/reset', () => catalog.resetGeneration())
   ctx.remote.$on('llm/adapters-updated', () => catalog.refresh())
   ctx.remote.$on('settings/document-updated', () => catalog.refresh())
+  ctx.remote.$on('credentials/record-updated', () => catalog.refresh())
+  ctx.remote.$on('credentials/reference-updated', () => catalog.refresh())
   registerModelPickerSettings(ctx, {
     form,
     catalog: catalog.store,
@@ -130,6 +132,7 @@ function installPresentation(ctx: Context): void {
     yield ctx.slots.register({ ...options, key: 'turn-error' }, TurnErrorNodeView)
     yield ctx.slots.register({ ...options, key: 'turn-max-tokens' }, TurnMaxTokensNodeView)
     yield ctx.slots.register({ ...options, key: 'compaction' }, CompactionNodeView)
+    yield ctx.slots.register({ ...options, key: 'manual-compaction' }, ManualCompactionNodeView)
     yield ctx.slots.register({ ...options, key: 'turn-process' }, TurnProcessNodeView)
     yield ctx.slots.register({ ...options, key: 'unknown' }, UnknownNodeView)
   })

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { isolatedInstalledFixture, fixtureEnvironment as makeFixtureEnvironment, openSettings, browserExecutable } from './fixtures/e2e-environment.mjs'
 import { createRequire } from 'node:module'
 import { mkdir, mkdtemp, writeFile, readFile, unlink } from 'node:fs/promises'
 import { createServer } from 'node:http'
@@ -10,7 +11,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const require = createRequire(process.env.MODERN_UI_BUILD_DEPS
   ? path.join(path.resolve(process.env.MODERN_UI_BUILD_DEPS), 'package.json') : path.join(root, 'package.json'))
 const { chromium } = require('playwright-core')
-const artifacts = path.join(root, '.artifacts/plugin-owners')
+const artifacts = path.join(process.env.MODERN_UI_E2E_ARTIFACTS ?? path.join(root, '.artifacts'), 'plugin-owners')
 await mkdir(artifacts, { recursive: true })
 const run = await mkdtemp(path.join(artifacts, 'run-'))
 const workspace = path.join(run, 'm1-fixture-workspace')
@@ -18,16 +19,15 @@ const runMarker = `M1 fixture ${path.basename(run)}`
 await mkdir(workspace)
 await writeFile(path.join(workspace, 'm1-note.txt'), 'First fixture line\nSecond fixture line\n')
 await writeFile(path.join(workspace, 'm1-image.png'), Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6fV8AAAAASUVORK5CYII=', 'base64'))
-const installed = process.env.MODERN_UI_INSTALLED_STATE ? JSON.parse(await readFile(process.env.MODERN_UI_INSTALLED_STATE, 'utf8')) : undefined
+const sourceInstalled = process.env.MODERN_UI_INSTALLED_STATE ? JSON.parse(await readFile(process.env.MODERN_UI_INSTALLED_STATE, 'utf8')) : undefined
+const isolation = sourceInstalled ? await isolatedInstalledFixture(sourceInstalled, run) : undefined
+const installed = isolation?.state
 const official = installed?.cli ?? process.env.MODERN_UI_OFFICIAL_CLI ?? path.join(root, 'node_modules/@deepseek-ai/dsh/lib/bin.js')
 const nodeExecutable = installed?.node ?? process.execPath
 const plugin = installed ? path.join(installed.plugin.path, 'lib/index.js') : process.env.MODERN_UI_INSTALLED_PLUGIN ?? path.join(root, 'packages/modern-ui/lib/index.js')
 const home = installed?.home ?? path.join(run, 'home')
 const profile = installed?.profile ?? 'modern-ui-browser-fixture'
-const fixtureEnvironment = { ...process.env, DSH_HOME: home, DSH_TELEMETRY_DISABLED: '1' }
-for (const name of Object.keys(fixtureEnvironment)) {
-  if (/(?:API_KEY|ACCESS_TOKEN|AUTH_TOKEN|SECRET_KEY)$/i.test(name)) delete fixtureEnvironment[name]
-}
+const fixtureEnvironment = isolation?.environment ?? makeFixtureEnvironment(home)
 let translations = 0
 const translationServer = createServer(async (request, response) => {
   if (request.url.startsWith('/external')) {
@@ -76,7 +76,6 @@ await writeFile(overlay, `${ownerSelection}- id: workspace-controller\n  config:
 
 const ownerReport = path.join(run, 'model-requests.jsonl')
 const ownerGate = path.join(run, 'release-stream')
-if (!installed) await writeFile(overlay, await readFile(overlay, 'utf8') + '\n- id: modern-ui\n  config:\n    busyEnter: steer\n')
 let child, serverErrors = ''
 async function bootHost() { child = spawn(nodeExecutable, [official, '--profile', profile, ...(installed ? ['--patch', overlay] : []), '--port', '0', '--no-open'], {
   cwd: run, env: { ...fixtureEnvironment, MODERN_UI_OFFICIAL_CLI: official,
@@ -99,8 +98,8 @@ return await new Promise((resolve, reject) => {
 })
  }
 let url = await bootHost()
-const browser = await chromium.launch({ executablePath: process.env.MODERN_UI_BROWSER ?? 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', headless: true })
-const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
+const browser = await chromium.launch({ executablePath: browserExecutable(), headless: true })
+const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, locale: 'zh-CN' })
 const errors = [], passed = [], uploadResponses = [], submitEvidence = [], pinSettings = []
 page.on('pageerror', error => errors.push(error.message))
 page.on('console', message => { if (message.type() === 'error') errors.push(message.text().split('\n')[0]) })
@@ -121,8 +120,10 @@ async function ready() {
   if (await accept.isVisible()) await accept.click()
   await page.getByRole('button', { name: /mock-balanced/ }).waitFor()
   await page.waitForFunction(() => [...document.querySelectorAll('button')].some(button => /mock-balanced/.test(button.textContent) && !button.disabled))
+  await page.getByRole('dialog').waitFor({ state: 'hidden' })
+  await page.waitForTimeout(1000)
   if (await page.getByRole('button', { name: /新規セッション/ }).count()) {
-    await page.keyboard.press('Control+Alt+Comma')
+    await openSettings(page)
     await page.getByRole('dialog').getByRole('button', { name: '日本語', exact: true }).click()
     await page.getByText('中文', { exact: true }).click()
     await page.keyboard.press('Escape')
@@ -153,6 +154,14 @@ function readModernSettings() {
 }
 try {
   await ready()
+  await openSettings(page)
+  const settings = page.getByRole('dialog')
+  await settings.getByRole('button', { name: '通用设置', exact: true }).click()
+  await settings.getByRole('button', { name: '排队发送', exact: true }).click()
+  await page.getByRole('menuitem', { name: '插话发送', exact: true }).click()
+  await page.keyboard.press('Escape')
+  await page.waitForTimeout(300)
+  assert.equal(readModernSettings().busyEnter, 'steer', 'UI persists the explicit steering prerequisite in the isolated profile')
   await newSession()
   await editor().fill('OWNER_BASELINE')
   await page.waitForTimeout(200)
@@ -307,4 +316,5 @@ try {
   await browser.close()
   await new Promise(resolve => translationServer.close(resolve))
   await stopHost()
+  await isolation?.verifySource()
 }

@@ -17,6 +17,9 @@ case "$(uname -s)-$(uname -m)" in
 esac
 mkdir -p -- "$root"
 bootstrap=$(mktemp -d "$root/bootstrap-XXXXXXXX")
+trap 'rm -rf -- "$bootstrap"' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 archive="$bootstrap/node.$extension"
 curl --fail --location --proto '=https' --proto-redir '=https' --output "$archive" "https://nodejs.org/dist/v24.22.1/node-v24.22.1-$target.$extension"
 if command -v sha256sum >/dev/null 2>&1; then actual=$(sha256sum "$archive"); else actual=$(shasum -a 256 "$archive"); fi
@@ -24,10 +27,11 @@ actual=${actual%% *}
 if [ "$actual" != "$hash" ]; then echo 'Private Node integrity mismatch; previous entry retained.' >&2; exit 1; fi
 tar -xf "$archive" -C "$bootstrap"
 node="$bootstrap/node-v24.22.1-$target/bin/node"
+if [ -z "$data_home" ]; then data_home=$("$node" "$here/lifecycle.mjs" "$root"); fi
 if [ "$#" -eq 5 ]; then
-  if core_output=$("$node" "$here/manager.mjs" install --root "$root" --home "$data_home" --plugin "$plugin" --plugin-integrity "$integrity" --runtime-lock "$here/runtime-lock.json" --backend "$5"); then core_exit=0; else core_exit=$?; fi
+  if core_output=$("$node" "$here/manager.mjs" install --root "$root" --home "$data_home" --plugin "$plugin" --plugin-integrity "$integrity" --runtime-lock "$here/runtime-lock.json" --node-archive "$archive" --backend "$5"); then core_exit=0; else core_exit=$?; fi
 else
-  if core_output=$("$node" "$here/manager.mjs" install --root "$root" --home "$data_home" --plugin "$plugin" --plugin-integrity "$integrity" --runtime-lock "$here/runtime-lock.json"); then core_exit=0; else core_exit=$?; fi
+  if core_output=$("$node" "$here/manager.mjs" install --root "$root" --home "$data_home" --plugin "$plugin" --plugin-integrity "$integrity" --runtime-lock "$here/runtime-lock.json" --node-archive "$archive"); then core_exit=0; else core_exit=$?; fi
 fi
 if [ "$core_exit" -ne 0 ]; then
   printf '{"phase":"core","result":{"state":"failed","exitCode":%s}}\n' "$core_exit"

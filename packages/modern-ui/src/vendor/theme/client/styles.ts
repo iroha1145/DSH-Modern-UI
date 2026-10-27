@@ -40,7 +40,7 @@ export function modernThemeTokens(): import('@deepseek-ai/dsh-client-ui-theme/cl
     for (const rule of source.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
       const selector = rule[1].trim()
       if (![':root', 'body', 'body[data-ds-dark-theme]'].includes(selector)) continue
-      for (const declaration of rule[2].matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) {
+      for (const declaration of rule[2].matchAll(/(--[\w-]+)\s*:\s*([^;]+?)(?:;|$)/g)) {
         const [, name, value] = declaration
         if (/^--(?:dsw-static|dsw-font|dsh-)/.test(name)) continue
         if (selector !== 'body[data-ds-dark-theme]') light[name] = value.trim()

@@ -2,9 +2,9 @@ import { createHash, randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { spawnSync } from 'node:child_process'
 import { setTimeout as delay } from 'node:timers/promises'
 import { checkIntegrity, snapshot } from './integrity.mjs'
+import { unpack } from './artifacts.mjs'
 
 const json = async path => JSON.parse(await readFile(path, 'utf8'))
 async function cacheWrite(path, bytes) {
@@ -38,11 +38,8 @@ export async function verifyReleaseSource(packageRoot, source, cache, scratch) {
   const staging = join(scratch, randomUUID())
   await mkdir(staging, { recursive: true })
   try {
-    const listing = spawnSync('tar', ['-tf', archive], { encoding: 'utf8' })
-    if (listing.status !== 0 || listing.stdout.split(/\r?\n/).some(path => path.startsWith('/') || path.split(/[\\/]/).includes('..'))) throw new Error('Invalid release archive')
-    const extraction = spawnSync('tar', ['-xf', archive, '-C', staging], { encoding: 'utf8' })
-    if (extraction.status !== 0) throw new Error('Cannot extract official release archive')
-    const roots = [...new Set(listing.stdout.split(/\r?\n/).filter(Boolean).map(path => path.replace(/^\.\//, '').split('/')[0]))]
+    const entries = await unpack(archive, staging)
+    const roots = [...new Set(entries.map(path => path.replace(/^(?:\.\/)+/, '').split(/[\\/]/)[0]))]
     const unpacked = existsSync(join(staging, 'package.json')) ? staging : roots.length === 1 ? join(staging, roots[0]) : undefined
     if (!unpacked || !existsSync(join(unpacked, 'package.json'))) throw new Error(`Release archive has no unique package root for ${source.name}@${source.version}`)
     const metadata = await json(join(unpacked, 'package.json'))

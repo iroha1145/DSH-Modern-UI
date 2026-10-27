@@ -43,6 +43,8 @@ function fixture({ realTheme = false } = {}) {
   const dictionaries = new Map()
   const languages = new Map([['zh', { id: 'zh' }], ['en', { id: 'en' }]])
   const values = new Map()
+  const remoteEvents = new Map()
+  const catalogRequests = []
   if (realTheme) values.set('ui-theme', createSnapshotStore({ value: {
     preference: 'system', fontSize: 14, codeFontSize: 13, terminalFontSize: 13,
     textFontFamily: '', codeFontFamily: '', terminalFontFamily: '',
@@ -78,7 +80,11 @@ function fixture({ realTheme = false } = {}) {
     scope.provide('sidebarRight', { openResource: () => {} })
     scope.provide('configForms', { get: form })
     scope.provide('commandUi', { catalogFor: () => createSnapshotStore([]) })
-    scope.provide('remote', { commands: { execute: async () => ({ ok: false, error: { code: 'missing', message: 'unavailable' } }) }, session: { modelCatalog: async () => ({ ok: true, value: { groups: [], failures: [] } }) }, $on: () => () => {} })
+    scope.provide('remote', { commands: { execute: async () => ({ ok: false, error: { code: 'missing', message: 'unavailable' } }) }, session: { modelCatalog: async () => { catalogRequests.push(true); return { ok: true, value: { groups: [], failures: [] } } } }, $on: (event, listener) => {
+      if (!remoteEvents.has(event)) remoteEvents.set(event, new Set())
+      remoteEvents.get(event).add(listener)
+      return () => remoteEvents.get(event).delete(listener)
+    } })
     scope.provide('remote.commands', { execute: async () => ({ ok: false, error: { code: 'missing', message: 'unavailable' } }) })
     scope.provide('remote.session', { modelCatalog: async () => ({ ok: true, value: { groups: [], failures: [] } }) })
   } })
@@ -100,7 +106,7 @@ function fixture({ realTheme = false } = {}) {
     } }, () => null)
   } })
   const fiber = ctx.plugin(client)
-  return { dom, ctx, fiber, client, dictionaries, providers }
+  return { dom, ctx, fiber, client, dictionaries, providers, remoteEvents, catalogRequests }
 }
 
 test('Modern uses the real theme override layer and restores earlier owners without changing preference', async () => {
@@ -111,6 +117,12 @@ test('Modern uses the real theme override layer and restores earlier owners with
   assert.match(f.ctx.theme.getTheme().active.tokens['--page'], /^#fff(?:fff)?$/)
   f.ctx.theme.setTheme('dark')
   assert.match(f.ctx.theme.getTheme().active.tokens['--page'], /^#111(?:111)?$/)
+  assert.match(f.ctx.theme.getTheme().active.tokens['--bui-ease-out'], /^cubic-bezier\(/)
+  const darkShadow = f.ctx.theme.getTheme().active.tokens['--bui-shadow-inset-field']
+  assert.match(darkShadow, /(?:\.4|40%)/)
+  f.ctx.theme.setTheme('light')
+  assert.notEqual(f.ctx.theme.getTheme().active.tokens['--bui-shadow-inset-field'], darkShadow)
+  f.ctx.theme.setTheme('dark')
   const stale = f.ctx.theme.overrideTokens('later-theme', { '--page': { light: 'old', dark: 'old-dark' } })
   const newest = f.ctx.theme.overrideTokens('later-theme', { '--page': { light: 'new', dark: 'new-dark' } })
   stale()
@@ -237,7 +249,8 @@ test('optional official translation Remote installs and withdraws the Modern bod
     useTranslationLocale: selector => selector({ active: 'en' }),
     useTranslationLimit: selector => selector(1000),
     t: key => key,
-    renderFactorySlot: (_name, props) => React.createElement('p', null, props.text),
+    reasoningT: key => key,
+    renderFactorySlot: () => { throw new Error('Translated reasoning must use Modern Markdown') },
   }))
   assert.match(markup, /Original reasoning/)
   assert.match(markup, /data-cot-translation/)
@@ -347,4 +360,163 @@ test('agent tree preserves nested parentage, models, statuses, usage and externa
   assert.match(document.body.textContent, /External worker/)
   assert.ok(document.querySelector('[aria-level="3"]'))
   await f.fiber.dispose()
+})
+
+test('model catalog refreshes after either credential event', async () => {
+  const f = fixture()
+  await f.fiber.await(); await settle()
+  for (const event of ['credentials/record-updated', 'credentials/reference-updated']) {
+    const before = f.catalogRequests.length
+    assert.equal(f.remoteEvents.get(event)?.size, 1)
+    for (const listener of f.remoteEvents.get(event)) listener()
+    await settle()
+    assert.equal(f.catalogRequests.length, before + 1)
+  }
+  await f.fiber.dispose()
+})
+
+test('manual compaction uses Modern checkpoints and retains running and complete failure output', async () => {
+  const f = fixture()
+  await f.fiber.await(); await settle()
+  const entry = f.ctx.slots.entriesOfSlot('conversation.chat.node').find(value => value.options.key === 'manual-compaction')
+  assert.ok(entry)
+  const render = (command, compaction = null) => renderToStaticMarkup(React.createElement(entry.component, {
+    node: { kind: 'manual-compaction', data: { command, compaction } }, t: key => key,
+  }))
+  const running = render({ name: 'compact', outcome: null })
+  assert.match(running, /data-state="running"/)
+  assert.match(running, /message.compaction.running/)
+  const failure = render({ name: 'compact', outcome: { kind: 'error', text: 'First failure line\nSecond failure line' } })
+  assert.match(failure, /data-state="error"/)
+  assert.match(failure, /First failure line/)
+  assert.match(failure, /Second failure line/)
+  const checkpoint = render({ name: 'compact', outcome: { kind: 'ok', text: 'Saved summary' } }, {
+    summary: 'Full summary', shadowedItemCount: null, shadowedTokenCount: null,
+  })
+  assert.match(checkpoint, /data-compaction-icon="context"/)
+  assert.match(checkpoint, /message.compaction.commandTitle/)
+  assert.match(checkpoint, /Saved summary/)
+  assert.doesNotMatch(checkpoint, /data-state=/)
+  await f.fiber.dispose()
+})
+
+test('translated and original reasoning retain Modern code disclosure and localized labels', async () => {
+  const f = fixture()
+  await f.fiber.await()
+  const remote = translationRemote(f, async () => translationSnapshot())
+  await remote.await(); await settle()
+  const entry = f.ctx.slots.entriesOfSlot('modern.conversation.chat.reasoning.body').find(value => value.options.priority === -100)
+  const originals = Object.fromEntries(['window', 'document'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
+  globalThis.window = f.dom.window
+  globalThis.document = f.dom.window.document
+  const root = require('react-dom/client').createRoot(f.dom.window.document.body.appendChild(f.dom.window.document.createElement('div')))
+  try {
+    root.render(React.createElement(entry.component, {
+      text: '```text\nOriginal body\n```', running: false,
+      translate: async () => '```text\nTranslated body\n```',
+      usePreferences: selector => selector({ provider: 'bing', targetLanguage: 'en' }),
+      useTranslationLocale: selector => selector({ active: 'en' }),
+      useTranslationLimit: selector => selector(1000),
+      t: key => key,
+      reasoningT: key => `localized:${key}`,
+      renderFactorySlot: () => { throw new Error('Official reasoning factory must not be used') },
+    }))
+    await settle(); await settle()
+    const doc = f.dom.window.document
+    assert.match(doc.body.textContent, /Translated body/)
+    const collapse = doc.querySelector('button[aria-label="localized:codeBlock.collapse"]')
+    assert.ok(collapse, 'translated code exposes the Modern collapse control')
+    collapse.click(); await settle()
+    assert.ok(doc.querySelector('button[aria-label="localized:codeBlock.expand"]'))
+    ;[...doc.querySelectorAll('button')].find(button => button.textContent === 'original').click()
+    await settle()
+    assert.match(doc.body.textContent, /Original body/)
+    assert.equal(doc.querySelector('[data-translation-view]').dataset.translationView, 'original')
+    assert.ok(doc.querySelector('button[aria-label^="localized:codeBlock."]'))
+  } finally {
+    root.unmount()
+    for (const [key, descriptor] of Object.entries(originals)) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor)
+      else delete globalThis[key]
+    }
+    await remote.dispose(); await f.fiber.dispose()
+  }
+})
+
+test('official rc4 Remote subscriptions belong to their calling Cordis fiber', async () => {
+  const gateway = await import('@deepseek-ai/dsh-api-gateway/client')
+  const ctx = new Context()
+  const providers = ctx.plugin({ apply(scope) {
+    scope.provide('typert', {})
+    scope.provide('connection', {
+      interactions: 'answer', rpc: { open: () => { throw new Error('No transport is used in this fixture') } },
+      registerGenerationSource: () => () => {}, start: () => ({ stop() {} }),
+    })
+  } })
+  await providers.await()
+  const service = ctx.plugin(gateway)
+  await service.await()
+  let calls = 0
+  const listener = { inject: ['remote'], apply(scope) {
+    scope.remote.$on('credentials/record-updated', () => { calls += 1 })
+  } }
+  let owner = ctx.plugin(listener)
+  await owner.await()
+  const deliver = async () => {
+    ctx.remote.events.deliver({ event: 'credentials/record-updated', args: [] })
+    await settle()
+  }
+  await deliver()
+  assert.equal(calls, 1)
+  await owner.dispose()
+  await deliver()
+  assert.equal(calls, 1, 'bare $on is automatically withdrawn with its caller')
+  owner = ctx.plugin(listener)
+  await owner.await()
+  await deliver()
+  assert.equal(calls, 2, 'reload registers one listener')
+  await owner.dispose(); await service.dispose(); await providers.dispose()
+})
+
+test('Markdown file clicks resolve against the owning workspace and preserve absolute paths and lines', async () => {
+  const f = fixture()
+  await f.fiber.await(); await settle()
+  const entry = f.ctx.slots.entriesOfSlot('conversation.chat.node').find(value => value.options.key === 'assistant-step' && value.options.priority === -100)
+  const originals = Object.fromEntries(['window', 'document'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
+  globalThis.window = f.dom.window
+  globalThis.document = f.dom.window.document
+  const root = require('react-dom/client').createRoot(f.dom.window.document.body.appendChild(f.dom.window.document.createElement('div')))
+  const opens = []
+  try {
+    for (const [cwd, expected] of [['/isolated/workspace', '/isolated/workspace/m1-note.txt'], ['C:\\isolated\\workspace', 'C:\\isolated\\workspace\\m1-note.txt'], [undefined, 'm1-note.txt']]) {
+      root.render(React.createElement(entry.component, {
+        node: { location: { kind: 'root' }, data: { status: 'settled', blocks: [{ kind: 'text',
+          text: '[Relative](m1-note.txt#L2) [Absolute](/outside/note.txt#L4) [Drive](C:/outside/note.txt#L6)',
+        }] } },
+        cwd, openFile: (path, options) => opens.push({ path, line: options?.line }),
+        openExternalLink: () => { throw new Error('Local paths must not open an external link') },
+        useChat: selector => selector({ legacy: { runningCalls: [] } }),
+        useTurnData: () => undefined, usePresentation: selector => selector({ foldedReplies: 'all' }),
+        fileMentions: () => undefined, renderSlot: () => null, renderSlotChain: () => null,
+        t: key => key,
+      }))
+      await settle()
+      const buttons = [...f.dom.window.document.querySelectorAll('button')]
+      for (const label of ['Relative', 'Absolute', 'Drive']) {
+        const button = buttons.find(value => value.textContent === label)
+        assert.ok(button, `${label} renders as a local Markdown file action`)
+        button.click()
+      }
+      assert.deepEqual(opens.splice(0), [
+        { path: expected, line: 2 }, { path: '/outside/note.txt', line: 4 }, { path: 'C:/outside/note.txt', line: 6 },
+      ])
+    }
+  } finally {
+    root.unmount()
+    for (const [key, descriptor] of Object.entries(originals)) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor)
+      else delete globalThis[key]
+    }
+    await f.fiber.dispose()
+  }
 })
