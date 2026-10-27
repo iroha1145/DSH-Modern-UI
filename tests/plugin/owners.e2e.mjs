@@ -131,7 +131,9 @@ async function ready() {
   await page.goto(url)
   const accept = page.getByRole('button', { name: '继续', exact: true })
   await page.waitForTimeout(800)
-  if (await accept.isVisible()) await accept.click()
+  if (await accept.isVisible()) {
+    try { await accept.click({ timeout: 10000 }) } catch (error) { if (await accept.count()) throw error }
+  }
   await page.getByRole('button', { name: /mock-balanced/ }).waitFor()
   await page.waitForFunction(() => [...document.querySelectorAll('button')].some(button => /mock-balanced/.test(button.textContent) && !button.disabled))
   await page.getByRole('dialog').waitFor({ state: 'hidden' })
@@ -196,8 +198,15 @@ try {
   await settings.getByRole('button', { name: '排队发送', exact: true }).click()
   await page.getByRole('menuitem', { name: '插话发送', exact: true }).click()
   await page.keyboard.press('Escape')
-  await page.waitForTimeout(300)
-  assert.equal(readModernSettings().busyEnter, 'steer', 'UI persists the explicit steering prerequisite in the isolated profile')
+  // The preference reaches the profile through the official config editor after the menu closes.
+  // On a slow runner (macOS Intel CI) the file lags the UI by more than a fixed pause, so poll the
+  // composed profile instead of asserting after one wait.
+  let persisted
+  for (let attempt = 0; attempt < 40 && persisted !== 'steer'; attempt++) {
+    await page.waitForTimeout(250)
+    persisted = readModernSettings().busyEnter
+  }
+  assert.equal(persisted, 'steer', 'UI persists the explicit steering prerequisite in the isolated profile')
   await newSession()
   await editor().fill('OWNER_BASELINE')
   await page.waitForTimeout(200)

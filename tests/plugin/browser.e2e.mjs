@@ -122,12 +122,19 @@ try {
   await page.goto(url)
   await page.waitForTimeout(1500)
   const accept = page.getByRole('button', { name: '继续', exact: true })
-  if (await accept.count()) await accept.click()
+  // The welcome notice's button starts disabled and the dialog can re-render or dismiss itself
+  // before it is clickable (seen on macOS Intel CI); click once it is enabled, and move on if it
+  // has gone away by then.
+  const acceptNotice = async () => {
+    if (!(await accept.count())) return
+    try { await accept.click({ timeout: 10000 }) } catch (error) { if (await accept.count()) throw error }
+  }
+  await acceptNotice()
   const picker = page.getByRole('button', { name: /mock-balanced/ })
   await picker.waitFor()
   await page.waitForFunction(() => [...document.querySelectorAll('button')].some(button => /mock-balanced/.test(button.textContent) && !button.disabled))
   await page.waitForTimeout(1000)
-  if (await accept.isVisible()) await accept.click()
+  if (await accept.isVisible()) await acceptNotice()
   await page.locator('button').filter({ hasText: '新会话' }).first().click()
   await page.waitForFunction(() => !document.querySelector('[data-followups]'))
   const defaultWorkspace = page.getByRole('button', { name: '默认工作区', exact: true }).last()
