@@ -13,6 +13,7 @@ import { Followups } from './vendor/intelligent/client/Followups.tsx'
 import * as intelligentLocale from './vendor/intelligent/client/locales.ts'
 import * as modelLocale from './vendor/model/client/locales.ts'
 import { ModelSelect } from './vendor/model/client/ModelSelect.tsx'
+import { DeepSeekModelLabel } from './vendor/model/client/DeepSeekModelLabel.tsx'
 import { MODEL_PICKER_NAMESPACE } from './vendor/model/model-settings.ts'
 import type { ModelPickerSettings } from './vendor/model/model-settings.ts'
 import { registerModelPickerSettings } from './vendor/model/client/settings/register.ts'
@@ -26,13 +27,16 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
 import { presentationPolicyFor } from './vendor/chat/client/presentation-policy.ts'
 import { DEFAULT_LINK_OPENING, type ChatSettings, type FoldedReplies } from './vendor/chat/chat-settings.ts'
-import { RunningStatusHost } from './vendor/chat/client/chat/RunningStatusHost.tsx'
+import { RunningStatusHost, type RunningStatusHostInjected } from './vendor/chat/client/chat/RunningStatusHost.tsx'
 import { FoldedRepliesRow, type FoldedRepliesRowInjected } from './vendor/chat/client/settings/FoldedRepliesRow.tsx'
 import { installLanguages } from './languages.ts'
 import { installReasoningTranslation } from './reasoning-translation.ts'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-browser/client'
 import { installSteeringBatches } from './steering-batches.ts'
 import { installToolCards } from './tool-cards.tsx'
+// Global sheets over surfaces the official packages still render (see each file's header).
+import './official-chat-view.css'
+import './official-surfaces.css'
 import { layoutOwner } from './layout-owner.ts'
 import { workspaceOwner } from './workspace-owner.ts'
 import { sidebarOwner } from './sidebar-owner.ts'
@@ -84,8 +88,10 @@ function installPresentation(ctx: Context): void {
   // The official flow keeps its "deep diving" running row and offers no slot for it; Modern hides
   // that row's children by style and renders the patched running status into it from an
   // always-mounted composer-dock entry (see RunningStatusHost).
+  const connection = ctx.get('connection')
   ctx.slots.inject('conversation.composer.dock', () => ctx.slots.register({
     name: 'conversation.composer.dock', id: 'modern-running-status', order: -100, locale: 'modern-chat',
+    inject: (): RunningStatusHostInjected => ({ hooks: { connectionState: connection.state } }),
   }, RunningStatusHost))
   const modernChat = ctx.configForms.get<ModernChatSettings>(MODERN_SETTINGS_NAMESPACE)
   const foldedReplies = createSnapshotStore<FoldedReplies>(foldedRepliesOf(modernChat.getSnapshot().value))
@@ -137,6 +143,11 @@ function installPresentation(ctx: Context): void {
       }
     },
   }, ModelSelect))
+  // The official 1017 release label registers into the slot the official selector declares,
+  // which Modern's selector cannot render; Modern's own label slot carries the same badge.
+  ctx.slots.inject('modern.conversation.input.model.label', () => ctx.slots.register({
+    name: 'modern.conversation.input.model.label', locale: 'modern-model',
+  }, DeepSeekModelLabel))
 
   // This renderer owns distinct child declarations; official children remain untouched.
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register({

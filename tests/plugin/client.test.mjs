@@ -55,6 +55,7 @@ function fixture({ realTheme = false } = {}) {
     return { getSnapshot: store.getSnapshot, subscribe: store.subscribe,
       set: async (field, value) => { store.set({ value: { ...store.getSnapshot().value, [field]: value } }); return true }, mutate: async () => true }
   }
+  const connection = createSnapshotStore('connected')
   const dir = { store: createSnapshotStore({ current: null, groups: [], failures: [], status: 'ready', pending: null, error: null, routable: null }), load: async () => {}, select: async () => ({ ok: true }) }
   const providers = ctx.plugin({ apply(scope) {
     scope.provide('locale', {
@@ -79,6 +80,7 @@ function fixture({ realTheme = false } = {}) {
     scope.provide('uiWorkspace', { openSession: () => {} })
     scope.provide('sidebarRight', { openResource: () => {} })
     scope.provide('configForms', { get: form })
+    scope.provide('connection', { state: connection })
     scope.provide('commandUi', { catalogFor: () => createSnapshotStore([]) })
     scope.provide('remote', { commands: { execute: async () => ({ ok: false, error: { code: 'missing', message: 'unavailable' } }) }, session: { modelCatalog: async () => { catalogRequests.push(true); return { ok: true, value: { groups: [], failures: [] } } } }, $on: (event, listener) => {
       if (!remoteEvents.has(event)) remoteEvents.set(event, new Set())
@@ -108,7 +110,7 @@ function fixture({ realTheme = false } = {}) {
     } }, () => null)
   } })
   const fiber = ctx.plugin(client)
-  return { dom, ctx, fiber, client, dictionaries, providers, remoteEvents, catalogRequests }
+  return { dom, ctx, fiber, client, dictionaries, providers, remoteEvents, catalogRequests, connection }
 }
 
 test('Modern uses the real theme override layer and restores earlier owners without changing preference', async () => {
@@ -180,8 +182,12 @@ test('running status is rendered into the official running row from the composer
   const root = require('react-dom/client').createRoot(doc.getElementById('dock'))
   try {
     let chat = snapshot({ blocks: [{ kind: 'text', text: 'Answer' }] })
+    const face = entry.inject('session-1')
+    assert.equal(typeof face.hooks.connectionState.subscribe, 'function', 'the entry binds the official connection state as useConnectionState')
     const render = async () => {
-      root.render(React.createElement(entry.component, { useChat: selector => selector(chat), t: key => key }))
+      root.render(React.createElement(entry.component, {
+        useChat: selector => selector(chat), useConnectionState: selector => selector(f.connection.getSnapshot()), t: key => key,
+      }))
       await settle(); await settle()
     }
     await render()
@@ -194,8 +200,16 @@ test('running status is rendered into the official running row from the composer
     chat = snapshot({ blocks: [{ kind: 'reasoning', text: 'Detailed: ...' }] })
     await render()
     assert.equal(status().getAttribute('data-modern-running'), 'thinking')
-    assert.equal(status().querySelector('[data-loading-label]'), null, 'a live reasoning header already names the activity')
+    assert.match(status().querySelector('[data-loading-label]')?.textContent ?? '', /chat\.activity\.thinking/, 'the official group header shows no live matrix, so the row keeps naming the activity')
+    assert.ok(status().querySelector('.t-matrix'))
     assert.ok(status().querySelector('[data-loading-elapsed]'))
+    assert.equal(status().hasAttribute('data-modern-paused'), false)
+    f.connection.set('disconnected')
+    await render()
+    assert.ok(status().hasAttribute('data-modern-paused'), 'the clock freezes while the Client cannot observe the Session')
+    f.connection.set('connected')
+    await render()
+    assert.equal(status().hasAttribute('data-modern-paused'), false)
     chat = snapshot({ blocks: [] }, [{ id: 'call' }])
     await render()
     assert.equal(status().getAttribute('data-modern-running'), 'tools')
@@ -211,6 +225,35 @@ test('running status is rendered into the official running row from the composer
   }
   const styles = [...doc.querySelectorAll('style[data-plugin="@iroha1145/dsh-modern-ui"]')].map(style => style.textContent).join('\n')
   assert.match(styles, /\[data-chat-running\]>:not\(\[data-modern-running\]\)\{display:none!important/, 'the official row keeps its place but its own children hide, outranking the official child rules')
+  await f.fiber.dispose()
+})
+
+test('the 1017 release badge decorates the official Flash entry inside the Modern label slot', async () => {
+  const f = fixture()
+  await f.providers.await()
+  await f.fiber.await()
+  const entry = f.ctx.slots.entriesOfSlot('modern.conversation.input.model.label')[0]
+  assert.ok(entry, 'the official label plugin cannot reach the Modern selector, so Modern carries the badge itself')
+  const flash = { provider: { id: 'deepseek-official', name: 'DeepSeek' }, model: { id: 'deepseek-flash', name: 'DeepSeek-V4.1-Flash' }, placement: 'trigger', selected: true, t: key => key }
+  const markup = renderToStaticMarkup(React.createElement(entry.component, flash))
+  assert.match(markup, /data-model-release="1017"/)
+  assert.match(markup, /data-tone="quiet"[^>]*>1017</, 'the patched quiet tone, not the official info tint')
+  assert.match(markup, /DeepSeek-V4\.1-Flash/)
+  const other = renderToStaticMarkup(React.createElement(entry.component, { ...flash, model: { id: 'deepseek-pro', name: 'DeepSeek-V4.1-Pro' } }))
+  assert.equal(other, 'DeepSeek-V4.1-Pro', 'every other entry keeps its catalog name')
+  const account = renderToStaticMarkup(React.createElement(entry.component, { ...flash, provider: { id: 'other-vendor', name: 'Other' } }))
+  assert.equal(account, 'DeepSeek-V4.1-Flash')
+  await f.fiber.dispose()
+})
+
+test('official shell and official surfaces receive the patched global rules', async () => {
+  const f = fixture()
+  await f.providers.await()
+  await f.fiber.await()
+  const styles = [...f.dom.window.document.querySelectorAll('style[data-plugin="@iroha1145/dsh-modern-ui"]')].map(style => style.textContent).join('\n')
+  assert.match(styles, /html,body\{overscroll-behavior-y:none\}/, 'phones neither rubber-band the whole page nor pull to refresh (PR #4)')
+  assert.match(styles, /body\{[^}]*--dsw-alias-bg-l1:var\(--dsw-alias-bg-layer-1\)[^}]*--dsw-alias-bg-l2:var\(--dsw-alias-bg-layer-2\)/, 'the official terminal aliases resolve on body, where the layer tokens live')
+  assert.match(styles, /@media \(width<=640px\)\{:has\(>\[data-chat-flow\]\)\{padding-inline:14px\}\}/, 'the official chat scroll region keeps the patched phone padding')
   await f.fiber.dispose()
 })
 

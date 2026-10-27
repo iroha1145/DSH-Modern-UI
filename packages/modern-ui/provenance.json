@@ -2037,7 +2037,7 @@
       "source": "packages/client/ui-settings-general/src/client/SettingsRoot.module.css",
       "target": "src/vendor/settings-shell/settings-shell.css",
       "sourceSha256": "c6a47f4d8f4abd80e1b23148c2d3b135b051cc4f7c8098d40c3c731b3f8ed8fc",
-      "targetSha256": "07085d024f341533a250bb1820d0277d8b78df7f648f742b7645ed6d150e26dd",
+      "targetSha256": "3146797c1339dfbc70d03a32cebfbb08f3a812dceaba1843e0b854933d691373",
       "adapted": true
     },
     {
@@ -2177,8 +2177,8 @@
       "source": "packages/client/ui-theme/src/styles/base.css",
       "target": "src/vendor/theme/styles/base.css",
       "sourceSha256": "eca218aa6a72c1c69dcb991b0cac7f0252248a6db710906bec214a18fcf55940",
-      "targetSha256": "eca218aa6a72c1c69dcb991b0cac7f0252248a6db710906bec214a18fcf55940",
-      "adapted": false
+      "targetSha256": "7d772ed7a615f393bc61122f438f4897efc911f780a2807fc358b5d4a2e09a52",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-theme/src/styles/beautiful-ui.css",
@@ -2760,6 +2760,48 @@
       "sourceSha256": "37431a4bf706729c16a6502f8e57222a373f182bf165011f1cdb4f21678f04f8",
       "targetSha256": "39632d23f9af56d3b46be9b4e4e2244a73f266a77fdfcda3dce02ba4bc5e3ab9",
       "adapted": true
+    },
+    {
+      "source": "packages/client/ui-chat/src/client/chat/RunningStatus.tsx",
+      "target": "src/vendor/chat/client/chat/RunningStatus.tsx",
+      "sourceSha256": "c45f216e0f832c7b6cbb142ebe474fdfec47c4a1967ff343b0bafedc691b210a",
+      "targetSha256": "4b0784b8e53e017ab2ec8f6ac1903cede3c7d6ed942809a5e2428361cb500a7a",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-chat/src/client/chat/LoadingState.module.css",
+      "target": "src/vendor/chat/client/chat/RunningStatus.module.css",
+      "sourceSha256": "9fadc7e1c485ebb8cb3acbb0bc12bd6969c54c0a0ce4b4438130aeb15b61668f",
+      "targetSha256": "3d4361bd044c86547d3ec79166f8784e94c9680148340bdec249bbce4d6c81f7",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-chat/src/client/settings/PreferenceRow.tsx",
+      "target": "src/vendor/chat/client/settings/PreferenceRow.tsx",
+      "sourceSha256": "f16f2b1103247e918e5831340677dbb78c225a27697ca3025ae65cc2a2559979",
+      "targetSha256": "31eb1ff360bcad58fe9bf67ae0ec7ac3b261fb38222dd6e097b4f32f0e0cd42d",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-chat/src/client/settings/PreferenceRow.module.css",
+      "target": "src/vendor/chat/client/settings/PreferenceRow.module.css",
+      "sourceSha256": "30d793fd7b9f3d762849fee68cb1315172f956dddcdd4b761fb3649c774f91a9",
+      "targetSha256": "30d793fd7b9f3d762849fee68cb1315172f956dddcdd4b761fb3649c774f91a9",
+      "adapted": false
+    },
+    {
+      "source": "packages/client/ui-deepseek-model-label-1017/src/client/DeepSeekModelLabel.tsx",
+      "target": "src/vendor/model/client/DeepSeekModelLabel.tsx",
+      "sourceSha256": "cdc321cf37219196a3542f63d3011a914148cc9cc481a00912cdea062b3b20dc",
+      "targetSha256": "957eccbcae44f295ad0e1c63513a36bb7f92ca9bd60ac4df82b2c84f72471df6",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-deepseek-model-label-1017/src/client/DeepSeekModelLabel.module.css",
+      "target": "src/vendor/model/client/DeepSeekModelLabel.module.css",
+      "sourceSha256": "e5de544bb01c82d092e71a75f9fc68d631d0803d0bb01b63118bbfd52b3077e8",
+      "targetSha256": "e5de544bb01c82d092e71a75f9fc68d631d0803d0bb01b63118bbfd52b3077e8",
+      "adapted": false
     }
   ],
   "authored": [
@@ -2767,6 +2809,16 @@
       "target": "src/vendor/layout/modern-layout.ts",
       "targetSha256": "3708b59454d17bb093505c3ceb404714af9cc3cacef9c84122505bae88a8f8e5",
       "description": "Original private cooperation face over the selected layout owner geometry store."
+    },
+    {
+      "target": "src/vendor/chat/client/chat/RunningStatusHost.tsx",
+      "targetSha256": "9256e6432d725b9d3de1a5e17249df8c3ca279f284d1fdf9fd39a64bda763052",
+      "description": "Composer-dock entry that portals the patched running status into the official ChatFlow running row."
+    },
+    {
+      "target": "src/vendor/theme/client/icon-sprite.ts",
+      "targetSha256": "bb38d17ace855fd28ec35ca8d1e1a628b34562950253349131bbee3ef1517812",
+      "description": "Mounts the product icon sprite the patched ui-theme shipped with the shell; the official rc.4 shell has no symbols."
     }
   ],
   "adapters": [
@@ -2821,6 +2873,60 @@
       "targetSha256": "c3a8cadcb291d2177e182cffb9a975fefcd93a648fcd53111c13c7866686c976",
       "sources": [],
       "description": "Bridge the public chat owner workspace and navigation capabilities into Modern Markdown; resolve local image and file paths with the official workspace-path helper."
+    },
+    {
+      "target": "src/vendor/chat/client/settings/FoldedRepliesRow.tsx",
+      "targetSha256": "80c3fb44565dfe129a53501a3cf6bbabf46c0642a9aae3c009b8dff8de09133a",
+      "sources": [
+        {
+          "source": "packages/client/ui-chat/src/client/settings/TranscriptViewRow.tsx",
+          "sourceSha256": "7a1964c12ab626a9a6ebbe3adbe16ffe564f19510915f92d2013b87e554eeae9"
+        }
+      ]
+    },
+    {
+      "target": "src/official-chat-view.css",
+      "targetSha256": "a6e1466a10e44d4c742514529b1865f65b8ce0247882529b5e0ed1bace820583",
+      "sources": [
+        {
+          "source": "packages/client/ui-chat/src/client/chat/ChatView.module.css",
+          "sourceSha256": "583fae08b6b12581b605c5da197122f7d86b2831f0d11628ccd8e56ca38c4111"
+        }
+      ]
+    },
+    {
+      "target": "src/official-surfaces.css",
+      "targetSha256": "63e139c819a127183e871064938d7e43d3bfd9139fbbe781c6b58ef5612efc82",
+      "sources": [
+        {
+          "source": "packages/client/ui-input-trigger/src/client/MenuView.module.css",
+          "sourceSha256": "fbc1530a02e1ced460df1133dfb4cf2acc2294cfcbc98535a4326b975a5f7565"
+        },
+        {
+          "source": "packages/client/ui-permission-presets/src/client/PermissionSelect.module.css",
+          "sourceSha256": "23b046253c175e253ff867184859102789066a35b7d4998ac9e73dd0c26dbf75"
+        },
+        {
+          "source": "packages/client/ui-approval/src/client/ApprovalPanel.module.css",
+          "sourceSha256": "91da3954648edaacbb52713d6afbc7ead84acb35364668d5411a57f9f1a0f213"
+        },
+        {
+          "source": "packages/client/ui-user-questions/src/client/QuestionComposer.module.css",
+          "sourceSha256": "5affa985350a503fc541eab770c3ac514f8f545a65fa9a540a25e81212af73de"
+        },
+        {
+          "source": "packages/client/ui-deliverables/src/client/ChangedFiles.module.css",
+          "sourceSha256": "1df535abee87e7dd0a3f53a54bdec9ae747b71d69691fb59feb19cb181c3695f"
+        },
+        {
+          "source": "packages/client/ui-shortcuts/src/client/Reference.module.css",
+          "sourceSha256": "471721c687269d29148c0b6d79de7a1c531276268168f93ab620301d2e7fee37"
+        },
+        {
+          "source": "packages/client/ui-chat/src/client/chat/MessageIconActions.module.css",
+          "sourceSha256": "ca6eb71aee0a4d0a2db0214dd075320088124971af19adfbd560cf17e12a15ba"
+        }
+      ]
     }
   ],
   "translations": [

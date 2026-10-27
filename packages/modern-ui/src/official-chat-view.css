@@ -1,0 +1,13 @@
+/* Over the official ui-chat ChatView, which Modern does not own (its flow hosts
+   Modern's node views). Only what the patched view changed and a stable hook
+   can reach; the view's own classes are hashed and stay untouched. */
+
+/* On phones the official scroll region pads by the composer clearance plus
+   16px, 28px with Modern's 12px clearance; the patched view used 14px, and
+   the column already spans the full width. The scroll region is the element
+   holding the flow column directly. */
+@media (max-width: 640px) {
+  :has(> [data-chat-flow]) {
+    padding-inline: 14px;
+  }
+}

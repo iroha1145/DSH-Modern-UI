@@ -83,10 +83,24 @@
   --duration-spring-smooth: var(--dsh-feel-panel-duration);
 }
 
+/* The app frame owns every scroll region; the document itself never scrolls.
+   A swipe past a region's top or bottom edge would otherwise chain to the
+   root, where phones drag the whole page with its top bar (iOS rubber-band)
+   or start a pull-to-refresh (Android). The official shell sets none of this. */
+html,
+body {
+  overscroll-behavior-y: none;
+}
+
 /* User font lists (--dsh-font-family-text/-code, written on body by the theme
  * boot script and ThemePresenter) lead the built-in stacks. An unset list
  * falls back to the built-in stack itself; the repeated families are inert. */
 body {
+  /* The official right-Sidebar terminal still names two layer aliases the
+     official theme never defines (its status bar, error bar and rename input).
+     The layer tokens live on body, so the aliases must resolve here, not on :root. */
+  --dsw-alias-bg-l1: var(--dsw-alias-bg-layer-1);
+  --dsw-alias-bg-l2: var(--dsw-alias-bg-layer-2);
   --dsw-font-family: var(--dsh-font-family-text, var(--dsh-font-family-text-default)), var(--dsh-font-family-text-default);
   --ds-font-family-code: var(--dsh-font-family-code, var(--dsh-font-family-code-default)), var(--dsh-font-family-code-default);
   --dsw-alias-settings-card-fill: var(--surface);

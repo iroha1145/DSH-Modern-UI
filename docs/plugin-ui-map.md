@@ -45,4 +45,6 @@ Manifest 的 inject 是模块到达与组合边，immediately 只控制预取，
 
 真实最终包的 bundle off/on 和 remove 已验证恢复四个官方 owner、主题 token 及 90 个 style。root owner 切换需要刷新页面；单 entry off 不是 bundle off。Lexical 的一个模块级 textInput 时间戳监听器保留到页面刷新，刷新/移除后重启为零，不能声称同一页卸载立即释放全部依赖全局监听器。详见安装文档。原 Web Shell 启动页与故障页仍为官方样式。
 
+官方包仍在渲染的几处界面（输入触发菜单、权限选择器、审批卡、提问卡、变更文件卡、快捷键弹窗、回合尾操作行、聊天滚动区的手机内边距、左下角账号触发器）由 `src/official-surfaces.css`、`src/official-chat-view.css` 和 `settings-shell.css` 以稳定钩子覆盖成旧补丁的样子；其余官方包（模型设置页、Plan/文件预览的代码块折叠、定时任务私有选择器、调试轨迹、文件树）保持官方样式，取舍依据见 [2026-10-28 审计复核](audit-20261028.md)。
+
 未逐个平台验证Electron拖动、多窗口、全部WebKit/输入法/触屏/屏幕阅读器组合；未对每种工具与Schedule状态做全像素对比。已迁移源码与已执行测试分别陈述，不以服务功能保留代替视觉验收。

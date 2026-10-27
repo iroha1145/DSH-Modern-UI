@@ -36,7 +36,7 @@ export const RunningStatus = memo(function RunningStatus({ startTime, paused, ph
     : formatRunDuration(Math.max(0, now - startTime), t).map(part => part.text).join('')
   const label = t(`chat.activity.${phase}`)
   return (
-    <div className={css.running} data-modern-running={phase}>
+    <div className={css.running} data-modern-running={phase} data-modern-paused={paused ? '' : undefined}>
       <span className={a11yCss.visuallyHidden} role="status" aria-live="polite" aria-atomic="true">{label}</span>
       <span className={css.runningContent}>
         {activityVisible && <RunningWhaleTail />}

@@ -1,0 +1,334 @@
+/* Global style overrides for official-package surfaces that Modern UI does not
+   replace. Each block restores what the earlier source patch changed in an
+   official package's CSS Module (all pure CSS), now through public data-*,
+   role and aria hooks instead of rewriting the package.
+
+   Boundary: only surfaces whose owner is still the official package belong
+   here. Anything Modern UI renders itself (its own composer, sidebar, model
+   picker, chat rows) is styled in its own vendored module, never in this file.
+
+   Rules of this sheet:
+   - The sheet is appended as an unscoped <style>, and official sheets may load
+     after it. No rule relies on load order: every selector outranks the official
+     rule it overrides by specificity (stated in the comment above the block).
+   - A class substring like [class*="_header"] is used only where the official
+     markup has no data-*, role or aria hook. The official CSS Modules compile
+     class names to "<hash>_<sourceName>", so the hash is never written, only
+     "_<sourceName>". Each such rule names the rc.4 class it depends on.
+   - Colors, radii and shadows come from the theme tokens in
+     vendor/theme/styles (design-platform.css, base.css, beautiful-ui.css), so
+     light and dark follow the palette. Nothing here is a hard-coded color.
+   - Animations are switched off under prefers-reduced-motion.
+   - No colored side stripes. */
+
+
+/* ==========================================================================
+   ui-input-trigger: the "/" and "@" completion menu.
+   Restores: 8px gap above the composer, 10px corners, raised shadow, and the
+   180ms scale-in (0.95 to 1) from the bottom edge.
+   Hook: [data-trigger-menu] on MenuView's MenuSurface (rc.4 client.js:1734).
+   Official rules: ._3e4SsG_menu (0,1,0) and the primitives' .surface (0,1,0);
+   the doubled attribute makes this (0,2,0).
+   ========================================================================== */
+[data-trigger-menu][data-trigger-menu] {
+  bottom: calc(100% + 8px);
+  border-radius: var(--bui-radius-card);
+  box-shadow: var(--bui-shadow-raised);
+  transform-origin: bottom center;
+  animation: promptMenuIn 180ms var(--bui-ease-out);
+}
+
+/* Opacity is left alone on purpose: fading the menu would isolate its
+   translucent material from the page behind it. */
+@keyframes promptMenuIn {
+  from { transform: scale(0.95); }
+  to { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-trigger-menu][data-trigger-menu] { animation: none; }
+}
+
+
+/* ==========================================================================
+   ui-permission-presets: the permission picker in the composer's mode row.
+   Restores: 12px text, 4px side padding, no leading permission icon, quiet
+   hover (no fill, text goes to full ink), and on a narrow row the label stays
+   and is cut with an ellipsis at 28cqw instead of being hidden.
+   Hook: the composer row has no data attribute on its mode container (the
+   plugin's own InputBar .modes is a CSS Module class), so the stable ancestor
+   is [data-composer-card] (InputBar.tsx:300, also the official contract used by
+   ui-input-trigger). The trigger is picked out of it by structure:
+     - a <button> with no aria-haspopup (the model picker has aria-haspopup="dialog",
+       the add button "listbox", the plan chip has no label span), and
+     - a direct child span of class "_triggerLabel" (rc.4 .iWlSmW_triggerLabel).
+   Class substrings used: _triggerLabel, _triggerIcon (rc.4 client.js, region
+   PermissionSelect.module.css).
+   Official rules: .trigger (0,1,0); .trigger:hover:not(:disabled) (0,3,0);
+   narrow-row label hiding .trigger:has(.triggerIcon) .triggerLabel (0,3,0)
+   inside @container (width<=460px). Here: base (0,3,1), narrow-row label
+   (0,4,1), hover (0,5,1).
+   ========================================================================== */
+[data-composer-card] button:not([aria-haspopup]):has(> [class*="_triggerLabel"]) {
+  padding: 0 4px;
+  font-size: 12px;
+}
+
+/* A disabled trigger keeps the official dimmed color. */
+[data-composer-card] button:not([aria-haspopup]):has(> [class*="_triggerLabel"]):not(:disabled) {
+  color: var(--bui-ink-2);
+}
+
+[data-composer-card] button:not([aria-haspopup]):has(> [class*="_triggerLabel"]):hover:not(:disabled) {
+  background: transparent;
+  color: var(--bui-ink);
+}
+
+[data-composer-card] button:not([aria-haspopup]):has(> [class*="_triggerLabel"]) > [class*="_triggerIcon"] {
+  display: none;
+}
+
+/* The row (the plugin's InputBar .row) is the inline-size container, so 460px
+   and cqw both resolve against it, as in the official rule. */
+@container (width <= 460px) {
+  [data-composer-card] button:not([aria-haspopup]):has(> [class*="_triggerLabel"]) {
+    max-width: 28cqw;
+  }
+
+  [data-composer-card] button:not([aria-haspopup]):has(> [class*="_triggerLabel"]) > [class*="_triggerLabel"] {
+    display: block;
+  }
+}
+
+
+/* ==========================================================================
+   ui-approval: the tool-approval card above the composer.
+   Restores: neutral 1px card border (the official one is warning orange),
+   panel radius, panel shadow, 12.5px/500 status strip, 14px/22px headline.
+   The strip colors and card fill already resolve to --orange-tint, --orange
+   and --surface through the theme's warn and input-major aliases; they are
+   restated so the card does not depend on those aliases.
+   Hooks: [data-approval-key] on the root (rc.4 client.js:83), its first child
+   card, the strip as the card's first child, and [data-approval-scroll] on the
+   body whose first child is the headline.
+   Official rules: .card, .strip, .headline, each (0,1,0).
+   ========================================================================== */
+[data-approval-key] > div {
+  border: 1px solid var(--card-border);
+  border-radius: var(--dsw-radius-panel);
+  background: var(--surface);
+  box-shadow: var(--shadow-panel);
+}
+
+[data-approval-key] > div > div:first-child {
+  background: var(--orange-tint);
+  color: var(--orange);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+[data-approval-key] [data-approval-scroll] > div:first-child {
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+
+/* ==========================================================================
+   ui-user-questions: the question card above the composer.
+   Restores: 1px card border, panel radius, panel shadow, 14px title, 13px
+   option text, 18px round number badge that inverts on the chosen option,
+   --accent-tint for the chosen row and --inset on hover, medium-weight
+   "recommended" badge. At 720px and below the official responsive values
+   (xl radius, 15px title, 8px 6px row padding) are kept, as before.
+   rc.4 has no optionRow wrapper: the option itself is the <button
+   role="radio|checkbox" aria-checked> and carries the border and transition,
+   so the border is removed there and the padding compensates (10px left).
+   Hooks: [data-question-key] > section (card), [data-question-scroll] (body,
+   rendered only while the card is expanded), role and aria-checked on the
+   option buttons. Chosen row = role="radio" + aria-checked="true", which is
+   exactly where rc.4 adds .optionSelected (single choice only).
+   Class substrings used: _number (rc.4 .Mbwy4a_number), _optionLabel
+   (.Mbwy4a_optionLabel), _badge (.Mbwy4a_badge); rc.4 client.js, region
+   QuestionComposer.module.css.
+   Official rules: .card, .title, .option, .optionSelected, .number
+   (0,1,0); .option:hover:not(:disabled) (0,3,0). Overrides are (0,2,1) to
+   (0,4,1); the hover rule is (0,4,1) and therefore also beats the chosen-row
+   fill, so a hovered chosen row shows --inset (the badge still shows the
+   choice), the same precedence as before.
+   ========================================================================== */
+[data-question-key] > section {
+  border: 1px solid var(--card-border);
+  background: var(--surface);
+  box-shadow: var(--shadow-panel);
+}
+
+@media (width > 720px) {
+  [data-question-key] > section {
+    border-radius: var(--dsw-radius-panel);
+  }
+
+  [data-question-key] > section > header h2 {
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  [data-question-scroll] :is(button[role="radio"], button[role="checkbox"]) {
+    padding: 8px 12px 8px 10px;
+  }
+}
+
+[data-question-scroll] :is(button[role="radio"], button[role="checkbox"]) {
+  border: none;
+  border-radius: var(--dsw-radius-lg);
+  transition: background-color 140ms ease;
+}
+
+[data-question-scroll] button[role="radio"][aria-checked="true"] {
+  background: var(--accent-tint);
+}
+
+[data-question-scroll] :is(button[role="radio"], button[role="checkbox"]):hover:not(:disabled) {
+  background: var(--inset);
+}
+
+[data-question-scroll] :is(button[role="radio"], button[role="checkbox"]) [class*="_optionLabel"] {
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 22px;
+}
+
+[data-question-scroll] :is(button[role="radio"], button[role="checkbox"]) [class*="_badge"] {
+  font-weight: 500;
+}
+
+/* The same badge marks the "write your own answer" row, which is not a button. */
+[data-question-scroll] [role="radiogroup"] [class*="_number"] {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+  border: 0.5px solid var(--line-strong);
+  /* Fully round: the theme's superellipse corner shape would squash a circle. */
+  border-radius: 999px;
+  corner-shape: round;
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+}
+
+[data-question-scroll] button[role="radio"][aria-checked="true"] > [class*="_number"] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--canvas);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-question-scroll] :is(button[role="radio"], button[role="checkbox"]) {
+    transition: none;
+  }
+}
+
+
+/* ==========================================================================
+   ui-deliverables: the changed-files card under a finished turn.
+   Restores: --surface card with a 1px border, xl radius and panel shadow,
+   52px header with 8px 14px padding, 34px --inset tile (--field in dark, as
+   before), 11px summary line. Header, row and toggle colors already come from
+   the theme through the official aliases and are not repeated. The 120ms
+   header hover fade is left as the official value (the old 140ms was not
+   perceptible).
+   Hooks: [data-changed-files] on the card (rc.4 client.js:1399); header and
+   tile are found by class substring because the single-file card wraps the
+   header in a HoverCard span, so no fixed child path exists.
+   Class substrings used: _header (rc.4 .hz8-rW_header), _tile (.hz8-rW_tile),
+   _stat (.hz8-rW_stat, excluding .hz8-rW_statCounts which inherits the size).
+   Official rules: .card (0,1,0), .card[data-single=true] (0,2,0),
+   body[data-ds-dark-theme] .card and .tile (0,2,1). The card rule repeats its
+   attribute three times to reach (0,3,0), which also covers data-single and
+   the dark-theme --changes-fill/--changes-hover that feed the header colors.
+   ========================================================================== */
+[data-changed-files][data-changed-files][data-changed-files] {
+  --changes-fill: var(--surface);
+  --changes-hover: var(--inset);
+  border: 1px solid var(--card-border);
+  border-radius: var(--dsw-radius-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-panel);
+}
+
+[data-changed-files] button[class*="_header"] {
+  height: 52px;
+  padding: 8px 14px;
+}
+
+[data-changed-files] button[class*="_header"] > [class*="_tile"] {
+  width: 34px;
+  height: 34px;
+  border: 0.5px solid var(--line);
+  background: var(--inset);
+}
+
+body[data-ds-dark-theme] [data-changed-files] button[class*="_header"] > [class*="_tile"] {
+  background: var(--field);
+}
+
+[data-changed-files] button[class*="_header"] [class*="_stat"]:not([class*="_statCounts"]) {
+  font-size: 11px;
+}
+
+
+/* ==========================================================================
+   ui-shortcuts: the keyboard shortcuts dialog (opened with the shortcut
+   reference command).
+   Restores: card-sized radius and the modal shadow in place of the official
+   24px radius and hairline shadow. Same approach as the settings dialog in
+   vendor/settings-shell/settings-shell.css.
+   Hook: data-shortcut-modal="shortcuts" passed to the Modal (rc.4
+   client.js:693). Official rule: .dialog (0,1,0); this is (0,2,0).
+   The search field's 12px radius (old patch: 10px) is not restored.
+   ========================================================================== */
+[data-shortcut-modal="shortcuts"][role="dialog"] {
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-modal);
+}
+
+
+/* ==========================================================================
+   ui-chat: the action row at the end of a turn (copy, branch, usage, time).
+   Restores the Modern UI row used for user messages: 2px between actions
+   (official 8px), 15px icons (official 17px on the end row) and the ink hover
+   color with a short fade. Button size (28px), corner radius, resting color
+   and hover fill are already identical through theme aliases.
+   Hooks: [data-turn-tail] on TurnTailNodeView's root (rc.4 client.js:6984,
+   6991) and [data-clock="end"] on MessageIconActions' row. Buttons are
+   selected as buttons without aria-haspopup, which leaves out the token-usage
+   trigger (aria-haspopup="dialog"). The feedback buttons from
+   ui-message-feedback sit in the same row and are 28px/15px already, so they
+   follow the same hover color. No class substrings.
+   Official rules: .actions (0,1,0); .actions[data-clock=end] .action svg
+   (0,3,1), beaten here by (0,3,2); .action:hover (0,2,0).
+   ========================================================================== */
+[data-turn-tail] [data-clock="end"] {
+  gap: 2px;
+}
+
+[data-turn-tail] [data-clock="end"] button:not([aria-haspopup]) {
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+[data-turn-tail] [data-clock="end"] button:not([aria-haspopup]) svg {
+  width: calc(15px + var(--dsh-content-font-delta, 0px));
+  height: calc(15px + var(--dsh-content-font-delta, 0px));
+}
+
+/* An unavailable branch button (data-unavailable) and a disabled feedback
+   button keep their official resting look on hover. */
+@media (hover: hover) {
+  [data-turn-tail] [data-clock="end"] button:not([aria-haspopup]):hover:not([data-unavailable], :disabled) {
+    background: var(--hover-2);
+    color: var(--ink);
+  }
+}
