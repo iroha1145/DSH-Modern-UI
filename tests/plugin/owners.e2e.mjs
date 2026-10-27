@@ -131,7 +131,9 @@ async function ready() {
   await page.goto(url)
   const accept = page.getByRole('button', { name: '继续', exact: true })
   await page.waitForTimeout(800)
-  if (await accept.isVisible()) await accept.click()
+  if (await accept.isVisible()) {
+    try { await accept.click({ timeout: 10000 }) } catch (error) { if (await accept.count()) throw error }
+  }
   await page.getByRole('button', { name: /mock-balanced/ }).waitFor()
   await page.waitForFunction(() => [...document.querySelectorAll('button')].some(button => /mock-balanced/.test(button.textContent) && !button.disabled))
   await page.getByRole('dialog').waitFor({ state: 'hidden' })
@@ -196,8 +198,15 @@ try {
   await settings.getByRole('button', { name: '排队发送', exact: true }).click()
   await page.getByRole('menuitem', { name: '插话发送', exact: true }).click()
   await page.keyboard.press('Escape')
-  await page.waitForTimeout(300)
-  assert.equal(readModernSettings().busyEnter, 'steer', 'UI persists the explicit steering prerequisite in the isolated profile')
+  // The preference reaches the profile through the official config editor after the menu closes.
+  // On a slow runner (macOS Intel CI) the file lags the UI by more than a fixed pause, so poll the
+  // composed profile instead of asserting after one wait.
+  let persisted
+  for (let attempt = 0; attempt < 40 && persisted !== 'steer'; attempt++) {
+    await page.waitForTimeout(250)
+    persisted = readModernSettings().busyEnter
+  }
+  assert.equal(persisted, 'steer', 'UI persists the explicit steering prerequisite in the isolated profile')
   await newSession()
   await editor().fill('OWNER_BASELINE')
   await page.waitForTimeout(200)
@@ -284,6 +293,18 @@ try {
   await editor().fill('OWNER_DELAY_START')
   await editor().press('Enter')
   await page.getByText('OWNER_STEP_1', { exact: true }).last().waitFor()
+  // The held stream keeps the Turn open: the Modern tail shows the patched running status and
+  // the official "deep diving" row stays out of the layout.
+  await page.locator('[data-modern-running]').first().waitFor({ timeout: 10000 })
+  assert.match(await page.locator('[data-modern-running]').first().getAttribute('data-modern-running'), /^(?:thinking|tools|responding|working)$/)
+  const runningRows = await page.locator('[data-chat-running]').evaluateAll(rows => rows.map(row => ({
+    modern: row.querySelector('[data-modern-running]')?.getAttribute('data-modern-running') ?? null,
+    children: [...row.children].map(child => ({ tag: child.tagName, modern: child.hasAttribute('data-modern-running'), display: getComputedStyle(child).display, text: child.textContent.slice(0, 40) })),
+  })))
+  assert.ok(runningRows.length > 0 && runningRows.every(row => row.modern !== null && row.children.filter(child => !child.modern).every(child => child.display === 'none')),
+    `the Modern status renders inside the official running row and the row's own children stay hidden: ${JSON.stringify(runningRows)}`)
+  await page.screenshot({ path: path.join(run, 'running-status.png') })
+  passed.push('Modern running status replaces the official deep-diving row while a Turn is held open')
   const steeringSession = (await ownerRecords()).find(row => row.user && !row.purpose && JSON.stringify(row.user).includes('OWNER_DELAY_START')).sessionId
   await editor().fill('OWNER_STEER_FIRST')
   await editor().press('Enter')

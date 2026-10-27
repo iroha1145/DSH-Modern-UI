@@ -25,7 +25,7 @@ function load(file, document, primitives) {
   let descriptor
   const window = document.defaultView
   window.__ModuleLoader__ = { load: value => { descriptor = value } }
-  vm.runInNewContext(readFileSync(file, 'utf8'), { window, document, navigator: window.navigator, console, setTimeout, clearTimeout, URL, URLSearchParams, TextEncoder, TextDecoder, AbortController, fetch })
+  vm.runInNewContext(readFileSync(file, 'utf8'), { window, document, navigator: window.navigator, console, setTimeout, clearTimeout, setInterval, clearInterval, URL, URLSearchParams, TextEncoder, TextDecoder, AbortController, fetch })
   assert.ok(descriptor?.factory, `${file} must register a module factory`)
   return descriptor.factory(name => name === '@deepseek-ai/dsh-client-ui-primitives' ? primitives : require(name))
 }
@@ -97,6 +97,8 @@ function fixture({ realTheme = false } = {}) {
       'conversation.view': { kind: 'list', scope: 'session' },
       'conversation.session.header.lineage': { kind: 'single', scope: 'session' },
       'conversation.session.header.actions': { kind: 'list', scope: 'session' },
+      'conversation.composer.dock': { kind: 'list', scope: 'session' },
+      'settings.general.item': { kind: 'list', scope: 'root' },
     } }, () => null)
     // The shipped assistant has its own children. Both declarations must coexist.
     scope.slots.register({ name: 'conversation.input.model' }, () => null)
@@ -132,6 +134,107 @@ test('Modern uses the real theme override layer and restores earlier owners with
   assert.equal(f.ctx.theme.getTheme().preference, 'dark')
   assert.equal(f.ctx.theme.getTheme().active.tokens['--page'], 'prior-dark')
   assert.equal(f.dom.window.document.querySelectorAll('style[data-plugin="@iroha1145/dsh-modern-ui"]').length, 0)
+})
+
+test('product icon sprite is owned by the plugin: every dsw-icon symbol resolves, shared across instances, removed with the last owner', async () => {
+  const f = fixture()
+  await f.providers.await()
+  await f.fiber.await()
+  const document = f.dom.window.document
+  const sprite = document.getElementById('modern-ui-icon-sprite')
+  assert.ok(sprite, 'the official host publishes no dsw-icon sprite, so the plugin must mount one')
+  const symbols = [...sprite.querySelectorAll('symbol')]
+  assert.ok(symbols.length >= 100, `expected the whole product icon set, got ${symbols.length}`)
+  assert.ok(symbols.every(symbol => /^dsw-icon-[a-z0-9-]+-(?:regular|medium)$/.test(symbol.id) && symbol.getAttribute('viewBox')))
+  const plus = document.getElementById('dsw-icon-plus-outline-medium')
+  assert.equal(plus?.getAttribute('stroke-width'), '1.3')
+  assert.equal(plus.querySelectorAll('path').length, 2)
+  // Every <use> the bundle can emit points at a symbol that exists in this document.
+  const rendered = renderToStaticMarkup(React.createElement(f.client.IconPlusOutlineMedium ?? (() => null)))
+  for (const match of rendered.matchAll(/href="#([^"]+)"/g)) assert.ok(document.getElementById(match[1]), match[1])
+  const second = f.ctx.plugin(f.client)
+  await second.await()
+  assert.equal(document.querySelectorAll('#modern-ui-icon-sprite').length, 1, 'one sprite per document')
+  await second.dispose()
+  assert.ok(document.getElementById('modern-ui-icon-sprite'), 'the first owner still needs it')
+  await f.fiber.dispose()
+  assert.equal(document.getElementById('modern-ui-icon-sprite'), null)
+})
+
+test('running status is rendered into the official running row from the composer dock, follows the phases and leaves with the row', async () => {
+  const f = fixture()
+  await f.providers.await()
+  await f.fiber.await()
+  const entry = f.ctx.slots.entriesOfSlot('conversation.composer.dock').find(candidate => candidate.options.id === 'modern-running-status')
+  assert.ok(entry, 'the plugin contributes an always-mounted dock entry that hosts the running status')
+  const originals = Object.fromEntries(['window', 'document'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
+  globalThis.window = f.dom.window
+  globalThis.document = f.dom.window.document
+  const doc = f.dom.window.document
+  doc.body.innerHTML = '<div id="panel"><div data-slot="conversation.chat.flow"><div data-chat-running=""><span class="official">深度求索中</span></div></div><div data-composer-dock id="dock"></div></div>'
+  const snapshot = (partial, runningCalls = [], start = Date.now() - 65_000) => ({
+    legacy: { partial, runningCalls },
+    navigation: { items: () => [{ anchorKey: 'turn-1' }] },
+    nodes: new Map([['turn-1', { location: { kind: 'turn', turn: { start: { time: start } } } }]]),
+  })
+  const root = require('react-dom/client').createRoot(doc.getElementById('dock'))
+  try {
+    let chat = snapshot({ blocks: [{ kind: 'text', text: 'Answer' }] })
+    const render = async () => {
+      root.render(React.createElement(entry.component, { useChat: selector => selector(chat), t: key => key }))
+      await settle(); await settle()
+    }
+    await render()
+    assert.ok(doc.querySelector('[data-composer-dock] [data-modern-running-host]'), 'the dock keeps only a hidden anchor')
+    const status = () => doc.querySelector('[data-chat-running] [data-modern-running]')
+    assert.equal(status()?.getAttribute('data-modern-running'), 'responding', 'the status renders inside the official row')
+    assert.match(status().textContent, /chat\.activity\.responding/)
+    assert.ok(status().querySelector('[data-loading-elapsed]'))
+    assert.ok(status().querySelector('.t-matrix'))
+    chat = snapshot({ blocks: [{ kind: 'reasoning', text: 'Detailed: ...' }] })
+    await render()
+    assert.equal(status().getAttribute('data-modern-running'), 'thinking')
+    assert.equal(status().querySelector('[data-loading-label]'), null, 'a live reasoning header already names the activity')
+    assert.ok(status().querySelector('[data-loading-elapsed]'))
+    chat = snapshot({ blocks: [] }, [{ id: 'call' }])
+    await render()
+    assert.equal(status().getAttribute('data-modern-running'), 'tools')
+    doc.querySelector('[data-chat-running]').remove()
+    await settle(); await settle()
+    assert.equal(doc.querySelectorAll('[data-modern-running]').length, 0, 'the portal leaves with the official row')
+  } finally {
+    root.unmount()
+    for (const [key, descriptor] of Object.entries(originals)) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor)
+      else delete globalThis[key]
+    }
+  }
+  const styles = [...doc.querySelectorAll('style[data-plugin="@iroha1145/dsh-modern-ui"]')].map(style => style.textContent).join('\n')
+  assert.match(styles, /\[data-chat-running\]>:not\(\[data-modern-running\]\)\{display:none!important/, 'the official row keeps its place but its own children hide, outranking the official child rules')
+  await f.fiber.dispose()
+})
+
+test('folded replies live in the plugin settings namespace, drive the presentation policy and get their own general-settings row', async () => {
+  const f = fixture()
+  await f.providers.await()
+  await f.fiber.await()
+  const row = f.ctx.slots.entriesOfSlot('settings.general.item').find(candidate => candidate.options.id === 'modern-folded-replies')
+  assert.ok(row, 'the plugin registers the folded-reply row next to the official transcript rows')
+  assert.equal(row.options.order, 13)
+  const assistant = f.ctx.slots.entriesOfSlot('conversation.chat.node').find(candidate => candidate.options.key === 'assistant-step' && candidate.options.priority === -100)
+  const policy = () => assistant.inject('session-1').hooks.presentation.getSnapshot()
+  assert.equal(policy().foldedReplies, 'all')
+  const face = row.inject()
+  assert.equal(face.hooks.foldedReplies.getSnapshot(), 'all')
+  face.setFoldedReplies('final')
+  await new Promise(resolve => setTimeout(resolve, 10))
+  assert.equal(face.hooks.foldedReplies.getSnapshot(), 'final')
+  assert.equal(policy().foldedReplies, 'final', 'the modern-ui form value reaches the chat presentation policy')
+  assert.equal(policy().mode, 'standard')
+  const markup = renderToStaticMarkup(React.createElement(row.component, { ...face, useFoldedReplies: selector => selector(face.hooks.foldedReplies.getSnapshot()), t: key => key }))
+  assert.match(markup, /settings\.foldedReplies\.title/)
+  assert.match(markup, /settings\.foldedReplies\.final/)
+  await f.fiber.dispose()
 })
 
 function translationRemote(f, limits) {

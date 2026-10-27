@@ -10,6 +10,8 @@ export const Config = z.object({
   ...ConversationConfig.dict,
   enabled: z.boolean().default(true),
   collapsedViews: z.array(z.string()).default([]).volatile(),
+  // Patch-only chat preference; the official chat schema has no field for it.
+  foldedReplies: z.union(['all', 'final']).default('all').volatile(),
 })
 
 /** Register only plugin-owned settings and additive guidance through public services. */

@@ -40,3 +40,14 @@ Host 严格 TypeScript 检查通过。构建先用 TypeScript emit，再 bundle�
 | 浏览器与开发库 / Electron / 外部 SDK 修补 | 并非都作为该 CLI 消费闭包的独立 npm 包出现 | 不从“没发现目录”推断已修复；本轮不是 Electron 发行验收 |
 
 这里是在核对旧补丁的依赖修复是否保留，不是新的全面安全认证。官方 bundle 内联的浏览器库、所有外部模型 SDK 和所有平台仍需要更广的发行核验；不把开发依赖表或一次审计结果扩大为完整无风险结论。
+
+## 图标雪碧图
+
+`@iroha1145/dsh-modern-ui/primitives` 的产品图标都渲染成 `<svg data-icon="dsw-icon-<glyph>-<weight>"><use href="#dsw-icon-…"></svg>`，引用文档里的雪碧图符号。旧补丁版由打过补丁的 ui-theme 随外壳发布这张雪碧图；官方 rc.4 没有这些符号，也不会有人替插件挂上，于是每个图标都成了空框（没有任何控制台错误，截图里才看得出来）。2026-10-27 起由插件自己挂：`vendor/theme/client/icon-sprite.ts` 的 `installIconSprite()` 在 `apply` 里把 `ICON_SYMBOLS` 的每个 SVG 文档转成同 id 的 `<symbol>`，放进 `#modern-ui-icon-sprite`（零尺寸、`aria-hidden`）追加到 `<body>`；同一文档里多个插件实例共用一张，按 `data-owners` 计数，最后一个卸载时移除。单测核对整套符号与 `stroke-width`，浏览器验收断言页面里没有落空的 `<use>` 引用。
+
+## 运行状态行与「收起后显示的回复」
+
+旧补丁改过聊天流（`ChatFlow`）里的运行状态行：去掉官方的「深度求索中，用时 …」蓝色扫光，换成矩阵式加载指示加阶段文字（正在思考 / 正在使用工具 / 正在输出回复 / 正在处理）和单独的耗时，并在推理阶段只留耗时（分组标题已经在说明活动）。插件没有接管聊天流本身（它是官方 `conversation.chat.flow` 单例，带滚动与虚拟化逻辑），官方也没有给这一行留槽位；回合尾节点只在回合结束后才存在，并且它的键不能由插件替换（注册表不允许两个条目声明同名子槽，而点赞/点踩、交付物、计划、日程、dsh-context 都往官方的 `turnTail` / `assistant-actions` 子槽登记）。做法：样式里把官方 `[data-chat-running]` 行自己的子元素隐藏（行本身保留，沿用官方的位置、间距与入场动画），由插件自己拥有的输入框读数行槽位 `conversation.composer.dock` 登记一条始终挂载的 `modern-running-status`（`vendor/chat/client/chat/RunningStatusHost.tsx`），它在会话面板里找到官方运行行后用 React portal 把 `RunningStatus`（补丁版）渲染进去，用会话级标准属性 `useChat` 读官方快照的 `legacy.partial` / `legacy.runningCalls` 判断阶段、取最新回合的开始时间计时。没有做的：旧补丁还让运行中的分组标题在推理阶段显示矩阵（`ChatGroupSeat` 的 `runningPhase`），官方分组标题保持官方样式；断线时冻结计时也没有搬。
+
+「收起后显示的回复」（`foldedReplies`，全部回复 / 仅最终回答）是补丁独有的设置，官方 rc.4 的 `ui-chat` 没有这个字段、通用设置里也没有这一项。插件现在把它放进自己的 `modern-ui` 配置（`index.ts` 的 `Config`），在官方通用设置里紧跟「工作步骤展示」登记一行 `modern-folded-replies`（`vendor/chat/client/settings/FoldedRepliesRow.tsx`），展示策略从 `modern-ui` 表单读取（迁移前残留在 `ui-chat` 的旧值仍被承认）。安装器新增第三份迁移回执 `modern-ui-chat-migration.json`：把复制的 profile 里 `ui-chat.foldedReplies` 搬进 `modern-ui` 行（已有值不覆盖，原行保留），已迁移过设置与会话偏好的 profile 在下一次升级时也会补做这一步。
+
