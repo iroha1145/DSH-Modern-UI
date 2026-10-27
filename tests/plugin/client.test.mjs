@@ -210,7 +210,7 @@ test('running status is rendered into the official running row from the composer
     }
   }
   const styles = [...doc.querySelectorAll('style[data-plugin="@iroha1145/dsh-modern-ui"]')].map(style => style.textContent).join('\n')
-  assert.match(styles, /\[data-chat-running\]>:not\(\[data-modern-running\]\)\{display:none/, 'the official row keeps its place but its own children hide')
+  assert.match(styles, /\[data-chat-running\]>:not\(\[data-modern-running\]\)\{display:none!important/, 'the official row keeps its place but its own children hide, outranking the official child rules')
   await f.fiber.dispose()
 })
 
