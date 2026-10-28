@@ -1,0 +1,114 @@
+{
+  "stages": [
+    {
+      "stage": "initial",
+      "rows": [
+        [
+          "probe-newer-model",
+          "on"
+        ],
+        [
+          "gpt-4.1",
+          "off"
+        ]
+      ],
+      "stored": [
+        {
+          "id": "probe-newer-model",
+          "reasoningEfforts": {
+            "off": null,
+            "low": "low",
+            "high": "high"
+          }
+        },
+        {
+          "id": "gpt-4.1",
+          "reasoningEfforts": false
+        }
+      ]
+    },
+    {
+      "stage": "turned-on",
+      "rows": [
+        [
+          "probe-newer-model",
+          "on"
+        ],
+        [
+          "gpt-4.1",
+          "on"
+        ]
+      ],
+      "stored": [
+        {
+          "id": "probe-newer-model",
+          "reasoningEfforts": {
+            "off": null,
+            "low": "low",
+            "high": "high"
+          }
+        },
+        {
+          "id": "gpt-4.1",
+          "reasoningEfforts": {
+            "off": null,
+            "low": "low",
+            "medium": "medium",
+            "high": "high"
+          }
+        }
+      ]
+    },
+    {
+      "stage": "xhigh-ticked",
+      "stored": [
+        {
+          "id": "probe-newer-model",
+          "reasoningEfforts": {
+            "off": null,
+            "low": "low",
+            "high": "high"
+          }
+        },
+        {
+          "id": "gpt-4.1",
+          "reasoningEfforts": {
+            "off": null,
+            "low": "low",
+            "medium": "medium",
+            "high": "high",
+            "xhigh": "xhigh"
+          }
+        }
+      ]
+    },
+    {
+      "stage": "turned-off",
+      "rows": [
+        [
+          "probe-newer-model",
+          "on"
+        ],
+        [
+          "gpt-4.1",
+          "off"
+        ]
+      ],
+      "stored": [
+        {
+          "id": "probe-newer-model",
+          "reasoningEfforts": {
+            "off": null,
+            "low": "low",
+            "high": "high"
+          }
+        },
+        {
+          "id": "gpt-4.1",
+          "reasoningEfforts": false
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

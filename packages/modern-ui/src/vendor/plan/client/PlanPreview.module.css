@@ -1,0 +1,9 @@
+/* Derived from deepseek-ai/deepseek-harness (MIT): the preview rules of ui-plan's
+ * PlanPreview.module.css. The card rules stay with the official PlanCards, which the
+ * plugin does not draw. */
+.preview { position: relative; height: 100%; overflow: auto; padding: 20px 24px 40px; box-sizing: border-box; }
+.document { color: var(--dsw-alias-label-primary); font-size: 14px; line-height: 1.75; overflow-wrap: anywhere; }
+.message { padding: 24px; color: var(--dsw-alias-label-secondary); font-size: 14px; }
+@media (max-width: 767px) {
+  .preview { padding: 16px 18px 32px; }
+}

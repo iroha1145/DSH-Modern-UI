@@ -1,0 +1,14 @@
+{
+  "host": "0.2.1-rc.4",
+  "passed": [
+    "real image inline + ordinary file upload receipt reaches actual model request",
+    "Markdown file preview renders through the Modern body: frontmatter box, fence collapse/expand",
+    "More hides/restores Agents; modern-ui.collapsedViews survives reload and a new Host process; hidden navigation does not pin; focus returns",
+    "Modern chat flow renders the patched running status while a Turn is held open",
+    "delayed stream + two steering messages admitted into second step + only first batch marker + 44px gap",
+    "complementary Queue submit + remove real queue occurrence + cancel delayed running turn",
+    "real phone drawer closes after session selection and workspace new-session action"
+  ],
+  "errors": [],
+  "note": "owners.e2e on a clean scratch install of the 2026-10-28 preview (local macOS arm64, headless Chrome); the Markdown step screenshots sit beside this file"
+}

@@ -13,6 +13,7 @@ import { DeepSeekModelLabel } from './vendor/model/client/DeepSeekModelLabel.tsx
 import { MODEL_PICKER_NAMESPACE } from './vendor/model/model-settings.ts'
 import type { ModelPickerSettings } from './vendor/model/model-settings.ts'
 import { registerModelPickerSettings } from './vendor/model/client/settings/register.ts'
+import { registerReasoningDeclaration, PI_AI_NAMESPACE } from './vendor/settings-models/client/register.ts'
 import { EFFORT_SHORT } from './vendor/model/client/profiles.ts'
 import { ModelCatalogDirectory } from './vendor/model/client/catalog.ts'
 import { installPluginStyles } from './styles.ts'
@@ -26,6 +27,7 @@ import { installReasoningTranslation } from './reasoning-translation.ts'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-browser/client'
 import { installSteeringBatches } from './steering-batches.ts'
 import { installToolCards } from './tool-cards.tsx'
+import { installPreviews } from './previews.ts'
 import { apply as applyChat } from './vendor/chat/client/apply.ts'
 // Global sheet over surfaces the official packages still render (see the file's header).
 import './official-surfaces.css'
@@ -69,6 +71,8 @@ function installPresentation(ctx: Context): void {
   installReasoningTranslation(ctx)
   installSteeringBatches(ctx)
   installToolCards(ctx)
+  // Markdown file preview and plan preview bodies, drawn through the Modern MarkdownText (code fences fold).
+  installPreviews(ctx)
   // The patched Chat target replaces the official ui-chat entry outright (cordis.patch.yml disables
   // it): data layer, view, flow, node views, factories, quota notice, stats pills and settings rows.
   ctx.inject(['uiWorkspace', 'uiSession', 'uiConversation', 'connection', 'sidebarRight'], applyChat)
@@ -93,6 +97,20 @@ function installPresentation(ctx: Context): void {
       return key === undefined ? fallback : t(key)
     },
   })
+  // Per-model reasoning declarations for pi-ai routes whose model is newer than the installed
+  // catalog: a block in each pi-ai provider card, writing the stored models list through the
+  // shared settings form. The official editor keeps every hidden field on save (verified against
+  // rc.4, see docs/reasoning-and-preview-fold-20261028.md), so the two never fight over the row.
+  ctx.inject(['remote.llm', 'settingsSchema'], scope => registerReasoningDeclaration(scope, {
+    namespace: PI_AI_NAMESPACE,
+    form: scope.configForms.get<Record<string, unknown>>(PI_AI_NAMESPACE),
+    describe: scope.configForms.describe(),
+    schema: scope.settingsSchema,
+    discoverCatalog: async provider => {
+      const answer = await scope.remote.llm.discoverModels(PI_AI_NAMESPACE, { provider })
+      return answer.ok ? answer.value.map(model => model.id) : undefined
+    },
+  }))
   ctx.slots.inject('conversation.input.model', () => ctx.slots.register({
     name: 'conversation.input.model', priority: -100, locale: 'modern-model',
     children: { 'modern.conversation.input.model.label': { kind: 'single', scope: 'session', inline: true } },

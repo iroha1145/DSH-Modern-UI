@@ -10,6 +10,9 @@ import type * as modelLocale from './vendor/model/client/locales.ts'
 import type * as subagentLocale from './vendor/subagent/client/locales.ts'
 import type * as chatLocale from './vendor/chat/client/locale.ts'
 import type * as translationLocale from './vendor/translation/client/locales.ts'
+import type * as markdownPreviewLocale from './vendor/documentpreview/client/markdown/locales.ts'
+import type * as planPreviewLocale from './vendor/plan/client/locales.ts'
+import type * as reasoningLocale from './vendor/settings-models/client/locales.ts'
 
 export type { MessageCodeOwnerProps }
 
@@ -20,6 +23,9 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'modern-subagent': keyof typeof subagentLocale.zh
     'modern-chat': keyof typeof chatLocale.zh
     'modern-cot-translation': keyof typeof translationLocale.zh
+    'modern-document-markdown': keyof typeof markdownPreviewLocale.zh
+    'modern-plan': keyof typeof planPreviewLocale.zh
+    'modern-reasoning': keyof typeof reasoningLocale.zh
   }
   interface SlotMap {
     /** Code-fence presenters select from authored content; the standard CodeBlock has priority 100. */

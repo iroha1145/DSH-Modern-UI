@@ -25,10 +25,53 @@ function load(file, document, primitives) {
   let descriptor
   const window = document.defaultView
   window.__ModuleLoader__ = { load: value => { descriptor = value } }
-  vm.runInNewContext(readFileSync(file, 'utf8'), { window, document, navigator: window.navigator, console, setTimeout, clearTimeout, setInterval, clearInterval, URL, URLSearchParams, TextEncoder, TextDecoder, AbortController, fetch })
+  // Frame and clock globals the Modern Switch motion reads; jsdom supplies the clock, frames run on the timer.
+  const requestAnimationFrame = callback => setTimeout(() => callback(window.performance.now()), 16)
+  vm.runInNewContext(readFileSync(file, 'utf8'), { window, document, navigator: window.navigator, console, setTimeout, clearTimeout, setInterval, clearInterval, URL, URLSearchParams, TextEncoder, TextDecoder, AbortController, fetch,
+    performance: window.performance, requestAnimationFrame, cancelAnimationFrame: clearTimeout, structuredClone })
   assert.ok(descriptor?.factory, `${file} must register a module factory`)
   return descriptor.factory(name => name === '@deepseek-ai/dsh-client-ui-primitives' ? primitives : require(name))
 }
+
+// A pi-ai settings schema shaped like the adapter's own (`reasoningEfforts` is `false` or a dict keyed by the
+// thinking levels), serialized the way the Host's describe answer carries it, plus the schema operations the
+// settings-owned service offers; the reasoning declaration reads its levels out of this envelope.
+const Schema = require('@deepseek-ai/schemastery')
+const PI_AI_LEVELS = ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']
+const piAiSchema = Schema.object({ providers: Schema.dict(Schema.object({
+  apiKeyEnv: Schema.string(),
+  models: Schema.array(Schema.object({
+    id: Schema.string().required(), name: Schema.string(),
+    reasoningEfforts: Schema.union([Schema.const(false), Schema.dict(Schema.union([Schema.string(), Schema.const(null)]), Schema.union(PI_AI_LEVELS))]),
+  })),
+})).default({}) })
+const serializedPiAi = JSON.parse(JSON.stringify(piAiSchema))
+function pathValue(value, path) {
+  let current = value
+  for (const key of path) {
+    if (Array.isArray(current)) { current = current[Number(key)]; continue }
+    if (typeof current !== 'object' || current === null) return undefined
+    current = current[key]
+  }
+  return current
+}
+const settingsSchema = {
+  rehydrate: serialized => new Schema(serialized),
+  nodeAtPath(root, path) {
+    let node = root
+    for (const key of path) {
+      if (node === undefined) return undefined
+      if (node.type === 'object') node = node.dict?.[key]
+      else if (node.type === 'dict' || node.type === 'array') node = node.inner
+      else return undefined
+    }
+    return node
+  },
+  getPath: pathValue,
+}
+const piAiUser = () => ({ providers: { openai: { apiKeyEnv: 'OPENAI_API_KEY', models: [
+  { id: 'gpt-4.1' }, { id: 'gpt-5.5-new', name: 'GPT 5.5' }, { id: 'o9', reasoningEfforts: false },
+] } } })
 
 function fixture({ realTheme = false } = {}) {
   const dom = new JSDOM('<!doctype html><html><head></head><body></body></html>', { url: 'http://localhost:3080/' })
@@ -49,12 +92,32 @@ function fixture({ realTheme = false } = {}) {
     preference: 'system', fontSize: 14, codeFontSize: 13, terminalFontSize: 13,
     textFontFamily: '', codeFontFamily: '', terminalFontFamily: '',
   } }))
+  const mutations = []
+  values.set('llm-pi-ai', createSnapshotStore({ status: 'ready', value: piAiUser(), user: piAiUser(), base: undefined, revision: 3, writable: true }))
   const form = name => {
     if (!values.has(name)) values.set(name, createSnapshotStore({ value: {} }))
     const store = values.get(name)
     return { getSnapshot: store.getSnapshot, subscribe: store.subscribe,
-      set: async (field, value) => { store.set({ value: { ...store.getSnapshot().value, [field]: value } }); return true }, mutate: async () => true }
+      set: async (field, value) => { store.set({ value: { ...store.getSnapshot().value, [field]: value } }); return true },
+      // Path ops land on the user layer the way the Host applies them, so a card re-reads what it wrote.
+      mutate: async (ops, expectedRevision) => {
+        mutations.push({ namespace: name, ops: structuredClone(ops), expectedRevision })
+        const current = store.getSnapshot()
+        const user = structuredClone(current.user ?? {})
+        for (const op of ops) {
+          let parent = user
+          for (const key of op.path.slice(0, -1)) parent = parent[key] ??= {}
+          if (op.op === 'set') parent[op.path.at(-1)] = structuredClone(op.value)
+          else delete parent[op.path.at(-1)]
+        }
+        store.set({ ...current, user, value: user, revision: (current.revision ?? 0) + 1 })
+        return true
+      } }
   }
+  const mirror = { getSnapshot: () => ({ status: 'ready', error: null, view: { writable: true, hasDocument: true,
+    namespaces: [{ ns: 'llm-pi-ai', autoGenerate: true, applies: 'live', secrets: [], schema: serializedPiAi, value: values.get('llm-pi-ai').getSnapshot().value, user: values.get('llm-pi-ai').getSnapshot().user, revision: values.get('llm-pi-ai').getSnapshot().revision }] } }),
+    subscribe: listener => values.get('llm-pi-ai').subscribe(listener), ensure: async () => {}, acceptView() {} }
+  const llmRemote = { discoverModels: async (ns, request) => ({ ok: true, value: ns === 'llm-pi-ai' && request.provider === 'openai' ? [{ id: 'gpt-4.1' }, { id: 'gpt-4o' }] : [] }) }
   const connection = createSnapshotStore('connected')
   // A session scope and binding rich enough for Modern's conversation owner (and so the chat entry) to activate.
   const sessionId = 'session-1'
@@ -100,14 +163,16 @@ function fixture({ realTheme = false } = {}) {
     scope.provide('sessions', sessions)
     scope.provide('uiWorkspace', { openSession: () => {}, openWorkspace: () => {}, startSession: () => {} })
     scope.provide('sidebarRight', { openResource: () => {}, openTab: () => {} })
-    scope.provide('configForms', { get: form, developerTools: { enabled: developerTools } })
+    scope.provide('configForms', { get: form, developerTools: { enabled: developerTools }, describe: () => mirror })
+    scope.provide('settingsSchema', settingsSchema)
+    scope.provide('remote.llm', llmRemote)
     scope.provide('connection', { state: connection })
     scope.provide('fileDrag', { actions: {} })
     scope.provide('fileUpload', { upload: async () => { throw Error('No file upload requested by this fixture') } })
     scope.provide('remoteAccess', { source: () => createSnapshotStore(true) })
     scope.provide('pluginNavigation', { openList() {} })
     scope.provide('commandUi', { catalogFor: () => createSnapshotStore([]) })
-    scope.provide('remote', { commands: { execute: async () => ({ ok: false, error: { code: 'missing', message: 'unavailable' } }) }, session: { modelCatalog: async () => { catalogRequests.push(true); return { ok: true, value: { groups: [], failures: [] } } } }, $on: (event, listener) => {
+    scope.provide('remote', { commands: { execute: async () => ({ ok: false, error: { code: 'missing', message: 'unavailable' } }) }, session: { modelCatalog: async () => { catalogRequests.push(true); return { ok: true, value: { groups: [], failures: [] } } } }, llm: llmRemote, $on: (event, listener) => {
       if (!remoteEvents.has(event)) remoteEvents.set(event, new Set())
       remoteEvents.get(event).add(listener)
       return () => remoteEvents.get(event).delete(listener)
@@ -129,13 +194,20 @@ function fixture({ realTheme = false } = {}) {
       'settings.general.item': { kind: 'list', scope: 'root' },
       'shell.overlay': { kind: 'list', scope: 'root' },
       'conversation.approval.detail': { kind: 'single', scope: 'session' },
+      'settings.models.provider-card': { kind: 'keyed', scope: 'root' },
+      'sidebar.right.pane.tab': { kind: 'keyed', scope: 'session' },
     } }, () => null)
+    // The official document owner declares the keyed document-body seat from its own pane.tab entry; the official
+    // Markdown body and plan preview sit under their keys at the default priority, for Modern to shade.
+    scope.slots.register({ name: 'sidebar.right.pane.tab', key: 'official-text-preview', children: { 'sidebar.right.tab.document': { kind: 'keyed', scope: 'session' } } }, () => null)
+    scope.slots.register({ name: 'sidebar.right.tab.document', key: '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/markdown' }, () => null)
+    scope.slots.register({ name: 'sidebar.right.pane.tab', key: '@deepseek-ai/dsh-client-ui-plan' }, () => null)
     // The shipped model selector keeps its own entry; Modern shades it. The chat node seat, its
     // children and the chat flow are declared by Modern itself now that the official ui-chat is disabled.
     scope.slots.register({ name: 'conversation.input.model' }, () => null)
   } })
   const fiber = ctx.plugin(client)
-  return { dom, ctx, fiber, client, dictionaries, providers, remoteEvents, catalogRequests, connection, sessionId, session, binding, feed }
+  return { dom, ctx, fiber, client, dictionaries, providers, remoteEvents, catalogRequests, connection, sessionId, session, binding, feed, mutations, piAiForm: () => values.get('llm-pi-ai') }
 }
 
 test('Modern uses the real theme override layer and restores earlier owners without changing preference', async () => {
@@ -690,4 +762,152 @@ test('Markdown file clicks resolve against the owning workspace and preserve abs
     }
     await f.fiber.dispose()
   }
+})
+
+/** Mount a slot component in the fixture's jsdom and settle React; restores the globals afterwards. */
+async function mounted(f, element, body) {
+  const originals = Object.fromEntries(['window', 'document'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]))
+  globalThis.window = f.dom.window
+  globalThis.document = f.dom.window.document
+  const host = f.dom.window.document.body.appendChild(f.dom.window.document.createElement('div'))
+  const root = require('react-dom/client').createRoot(host)
+  try {
+    root.render(element)
+    await settle(); await settle()
+    await body(host)
+  } finally {
+    root.unmount()
+    host.remove()
+    for (const [key, descriptor] of Object.entries(originals)) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor)
+      else delete globalThis[key]
+    }
+  }
+}
+const fence = (lang, lines) => `\`\`\`${lang}\n${Array.from({ length: lines }, (_line, index) => `const line${index} = ${index}`).join('\n')}\n\`\`\`\n`
+
+test('Modern shades the official Markdown file preview and plan preview bodies under their keys and folds their code fences', async () => {
+  const f = fixture(); await f.fiber.await(); await settle()
+  const markdownKey = '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/markdown'
+  const planKey = '@deepseek-ai/dsh-client-ui-plan'
+  const body = f.ctx.slots.entriesOfSlot('sidebar.right.tab.document').find(entry => entry.options.key === markdownKey)
+  assert.equal(body?.options.priority, -100, 'the Modern Markdown body wins the keyed cell')
+  assert.equal(f.ctx.slots.entries('sidebar.right.tab.document').filter(entry => entry.options.key === markdownKey).length, 2, 'the official body stays registered, only shaded')
+  const plan = f.ctx.slots.entriesOfSlot('sidebar.right.pane.tab').find(entry => entry.options.key === planKey)
+  assert.equal(plan?.options.priority, -100, 'the Modern plan preview wins the keyed cell')
+  assert.equal(f.ctx.slots.entries('sidebar.right.pane.tab').filter(entry => entry.options.key === planKey).length, 2)
+  assert.equal(f.ctx.slots.entriesOfSlot('sidebar.right.pane.tab').find(entry => entry.options.key === 'official-text-preview')?.options.priority, undefined, 'other keyed cells keep their official entries')
+  for (const language of ['zh', 'en', 'ja', 'pt']) {
+    assert.ok(f.dictionaries.get('modern-document-markdown')[language]['codeBlock.collapse'])
+    assert.ok(f.dictionaries.get('modern-plan')[language]['codeBlock.expand'])
+  }
+  const documentProps = {
+    content: { kind: 'text', text: `---\ntitle: Probe guide\n---\n\n# Guide\n\n${fence('typescript', 40)}`, pages: [], eof: true },
+    resourceAddress: 'dsh-resource://file/session/session-1/guide.md', wrap: false, scrollportRef() {}, addResource() {}, setResources() {},
+    useResource: () => ({ status: 'ready', value: { absolutePath: '/workspace/guide.md' } }), useTabInfo: () => ({}), t: key => `md:${key}`,
+  }
+  await mounted(f, React.createElement(body.component, documentProps), async host => {
+    assert.ok(host.querySelector('[data-document-markdown]'))
+    assert.match(host.querySelector('[data-document-frontmatter]').textContent, /title/)
+    assert.match(host.querySelector('[data-document-frontmatter]').textContent, /Probe guide/)
+    const block = host.querySelector('.md-code-block')
+    assert.ok(block, 'the fence renders through the Modern CodeBlock')
+    assert.equal(block.hasAttribute('data-code-collapsed'), false)
+    const collapse = host.querySelector('button[aria-label="md:codeBlock.collapse"]')
+    assert.ok(collapse, 'the file preview exposes the collapse control')
+    collapse.click(); await settle()
+    assert.equal(block.getAttribute('data-code-collapsed'), 'true')
+    assert.equal(block.querySelector('[data-code-block-content]').hidden, true)
+    const expand = host.querySelector('button[aria-label="md:codeBlock.expand"]')
+    assert.ok(expand)
+    expand.click(); await settle()
+    assert.equal(block.hasAttribute('data-code-collapsed'), false)
+    assert.equal(block.querySelector('[data-code-block-content]').hidden, false)
+  })
+  const tab = { tab: { title: 'Plan', navigation: { address: 'dsh-resource://plan/session-1/call-1', params: undefined } } }
+  const planProps = {
+    useTabInfo: () => tab, t: key => `plan:${key}`,
+    useResource: () => ({ status: 'ready', value: { callId: 'call-1', title: 'Release plan', markdown: `# Release plan\n\n${fence('js', 30)}` } }),
+  }
+  await mounted(f, React.createElement(plan.component, planProps), async host => {
+    const section = host.querySelector('[data-plan-preview="call-1"]')
+    assert.ok(section)
+    assert.equal(section.getAttribute('aria-label'), 'Release plan')
+    const collapse = host.querySelector('button[aria-label="plan:codeBlock.collapse"]')
+    assert.ok(collapse, 'the plan preview exposes the collapse control')
+    collapse.click(); await settle()
+    assert.equal(host.querySelector('.md-code-block').getAttribute('data-code-collapsed'), 'true')
+    assert.ok(host.querySelector('button[aria-label="plan:codeBlock.expand"]'))
+  })
+  await mounted(f, React.createElement(plan.component, { ...planProps, useResource: () => ({ status: 'failed', value: undefined, failure: { code: 'plan/not-found', message: 'gone' } }) }), async host => {
+    assert.match(host.textContent, /plan:preview\.failed/)
+    assert.match(host.textContent, /plan:preview\.notFound/)
+  })
+  await f.fiber.dispose()
+  assert.equal(f.ctx.slots.entries('sidebar.right.tab.document').filter(entry => entry.options.key === markdownKey).length, 1, 'the official body is back alone once Modern leaves')
+})
+
+test('pi-ai provider cards carry the reasoning declaration: rows newer than the installed catalog, false on off, schema levels', async () => {
+  const f = fixture(); await f.fiber.await(); await settle(); await settle()
+  const entry = f.ctx.slots.entriesOfSlot('settings.models.provider-card').find(candidate => candidate.options.key === 'llm-pi-ai')
+  assert.ok(entry, 'the block registers under the pi-ai settings namespace')
+  assert.equal(entry.options.priority, -100)
+  assert.ok(f.dictionaries.get('modern-reasoning').ja.title)
+  const face = entry.inject()
+  const bind = source => selector => React.useSyncExternalStore(source.subscribe, () => selector(source.getSnapshot()))
+  const t = (key, params) => params === undefined ? key : `${key}:${params.model}`
+  const provider = (extra = {}) => ({ provider: 'openai', displayName: 'OpenAI', settingsNs: 'llm-pi-ai', settingsPath: ['providers', 'openai'], ...extra })
+  function Harness({ owner }) {
+    return React.createElement(entry.component, {
+      provider: owner, configured: true, keyConfigured: false, t,
+      useForm: bind(face.hooks.form), useMirror: bind(face.hooks.mirror), useDeclaration: bind(face.hooks.declaration),
+      levels: face.levels, loadCatalog: face.loadCatalog, setReasoning: face.setReasoning, toggleLevel: face.toggleLevel,
+    })
+  }
+  assert.deepEqual([...face.levels(serializedPiAi)], PI_AI_LEVELS, 'levels come out of the namespace schema in escalation order')
+  assert.deepEqual([...face.levels({ type: 'object' })], [], 'a schema without the field offers nothing')
+  await mounted(f, React.createElement(Harness, { owner: provider() }), async host => {
+    await settle(); await settle()
+    const rows = () => [...host.querySelectorAll('[data-model-id]')].map(row => [row.dataset.modelId, row.dataset.reasoning])
+    assert.deepEqual(rows(), [['gpt-5.5-new', 'off'], ['o9', 'off']], 'catalog-described gpt-4.1 stays with the official editor; the newer id and the explicit false row are offered')
+    assert.match(host.querySelector('[data-model-id="gpt-5.5-new"]').textContent, /GPT 5\.5/)
+    const switchFor = id => host.querySelector(`[data-model-id="${id}"] button[role="switch"]`)
+    assert.equal(switchFor('gpt-5.5-new').getAttribute('aria-label'), 'switch:gpt-5.5-new')
+    switchFor('gpt-5.5-new').click(); await settle(); await settle()
+    assert.equal(f.mutations.length, 1)
+    assert.deepEqual(f.mutations[0].ops[0].path, ['providers', 'openai', 'models'])
+    assert.equal(f.mutations[0].expectedRevision, 3, 'the write is fenced by the revision the row was read at')
+    const written = () => f.mutations.at(-1).ops[0].value
+    assert.deepEqual(written().map(model => model.id), ['gpt-4.1', 'gpt-5.5-new', 'o9'], 'the whole list is written back with every other row intact')
+    assert.deepEqual(written()[1].reasoningEfforts, { off: null, low: 'low', medium: 'medium', high: 'high' }, 'turning on declares Off plus the common trio')
+    assert.deepEqual(written()[2], { id: 'o9', reasoningEfforts: false })
+    assert.equal(switchFor('gpt-5.5-new').getAttribute('aria-checked'), 'true')
+    const boxes = () => Object.fromEntries([...host.querySelectorAll('[data-model-id="gpt-5.5-new"] input[type="checkbox"]')].map(input => [input.parentElement.textContent.trim(), { checked: input.checked, disabled: input.disabled }]))
+    assert.deepEqual(Object.keys(boxes()), ['minimal', 'low', 'medium', 'high', 'xhigh', 'max'], 'every schema level but off is offered')
+    assert.deepEqual(boxes().low, { checked: true, disabled: false })
+    assert.deepEqual(boxes().xhigh, { checked: false, disabled: false })
+    const box = name => [...host.querySelectorAll('[data-model-id="gpt-5.5-new"] input[type="checkbox"]')].find(input => input.parentElement.textContent.trim() === name)
+    box('xhigh').click(); await settle(); await settle()
+    assert.deepEqual(written()[1].reasoningEfforts, { off: null, low: 'low', medium: 'medium', high: 'high', xhigh: 'xhigh' }, 'a ticked level joins in schema order with its own name as the wire value')
+    box('low').click(); await settle(); await settle()
+    box('medium').click(); await settle(); await settle()
+    box('xhigh').click(); await settle(); await settle()
+    assert.deepEqual(written()[1].reasoningEfforts, { off: null, high: 'high' })
+    assert.deepEqual(boxes().high, { checked: true, disabled: true }, 'the last offered level cannot be unticked: pi-ai refuses a declaration with no level beyond off')
+    switchFor('gpt-5.5-new').click(); await settle(); await settle()
+    assert.deepEqual(written()[1], { id: 'gpt-5.5-new', name: 'GPT 5.5', reasoningEfforts: false }, 'turning off stores false on a catalog route instead of deleting the field')
+    assert.deepEqual(rows(), [['gpt-5.5-new', 'off'], ['o9', 'off']], 'an explicit false keeps the row offered for repair')
+    assert.equal(host.querySelector('[data-model-id="gpt-4.1"]'), null)
+    assert.equal(host.querySelector('[role="alert"]'), null)
+  })
+  await mounted(f, React.createElement(Harness, { owner: provider({ declared: true }) }), async host => {
+    await settle()
+    assert.equal(host.querySelector('[data-modern-reasoning-declaration]'), null, 'a hand-declared route keeps the official per-row control alone')
+  })
+  await mounted(f, React.createElement(Harness, { owner: provider({ provider: 'anthropic', settingsPath: ['providers', 'anthropic'] }) }), async host => {
+    await settle(); await settle()
+    assert.equal(host.querySelector('[data-modern-reasoning-declaration]'), null, 'a route with no stored models renders nothing')
+  })
+  await f.fiber.dispose()
+  assert.equal(f.ctx.slots.entries('settings.models.provider-card').length, 0)
 })
