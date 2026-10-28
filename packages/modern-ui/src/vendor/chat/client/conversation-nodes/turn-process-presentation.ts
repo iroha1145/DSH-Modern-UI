@@ -4,6 +4,7 @@ import type {
   ChatLocationNodeIndex, ChatNodeStore, ChatTurnProcessPresentation,
 } from '../contract/snapshot.ts'
 import { isAtOrOutside } from '../contract/group-tree.ts'
+import { isAnswerStep } from '../contract/turn-process.ts'
 
 function nodeTurn(node: ChatNode | undefined): number | undefined {
   const location = node?.location
@@ -57,10 +58,9 @@ function derivePresentation(
       && (openingHumanAnchor === undefined || node.anchorSeq > openingHumanAnchor)) {
       hasInterleavedInput = true
     }
-    if (isAtOrOutside(node, 'turn')
-      || node.anchorSeq < spec.processStartSeq
-      || (spec.answerAnchorSeq !== null && node.anchorSeq >= spec.answerAnchorSeq)) continue
-    if (node.kind !== 'assistant-step' || spec.answerStep === null || node.data.step !== spec.answerStep) {
+    if (isAtOrOutside(node, 'turn') || node.anchorSeq < spec.processStartSeq) continue
+    // Answer Steps' reasoning is counted through `inlineReasoning`; every other row of the Turn is process.
+    if (node.kind !== 'assistant-step' || !isAnswerStep(spec, node.data)) {
       hasExternalProcess = true
       // When every reply stays visible, another Step's reply folds only its reasoning.
       if (node.kind !== 'assistant-step'

@@ -7,7 +7,7 @@ import { hasAssistantReplyContent } from '../contract/assistant-content.ts'
 import type { ChatNode } from '../contract/chat-nodes.ts'
 import type { ChatNodeStore } from '../contract/snapshot.ts'
 import { isAtOrOutside } from '../contract/group-tree.ts'
-import { turnProcessAlwaysOpen } from '../contract/turn-process.ts'
+import { isAnswerStep, turnProcessAlwaysOpen } from '../contract/turn-process.ts'
 import { turnProcessOpen } from '../stores.ts'
 import { hiddenOrCollapsing } from './flow-motion.ts'
 import css from './ChatView.module.css'
@@ -82,22 +82,18 @@ export const ChatNodeSeat = memo(function ChatNodeSeat({
     && routedNode?.kind === 'assistant-step'
     && groupPart !== 'reasoning'
     && hasAssistantReplyContent(routedNode.data.blocks)
+  // An answer Step's reply row stays outside whole-Turn folding; its reasoning row and every other row of the Turn fold.
+  const answerRow = processSpec !== undefined
+    && routedNode?.kind === 'assistant-step'
+    && groupPart !== 'reasoning'
+    && isAnswerStep(processSpec, routedNode.data)
   const processMember = routedNode !== undefined
     && processWindowReady
     && !replyRow
     && !isAtOrOutside(routedNode, 'turn')
     && routedNode.anchorSeq >= processSpec.processStartSeq
-    && (liveProcess || processSpec.answerAnchorSeq === null || routedNode.anchorSeq < processSpec.answerAnchorSeq
-      || (groupPart === 'reasoning' && routedNode.kind === 'assistant-step'
-        && processSpec.answerStep !== null && routedNode.data.step >= processSpec.answerStep))
-  // The answer Step and the tool-free Steps after it stay visible but fold their reasoning with the Turn.
-  const processAnswer = routedNode !== undefined
-    && processWindowReady
-    && !liveProcess
-    && groupPart !== 'reasoning'
-    && routedNode.kind === 'assistant-step'
-    && processSpec.answerStep !== null
-    && routedNode.data.step >= processSpec.answerStep
+    && (liveProcess || !answerRow)
+  const processAnswer = processWindowReady && !liveProcess && answerRow
   const ownsDisclosure = routedNode?.kind === 'turn-process' || processAnswer || replyRow
   const foldable = processWindowReady
     && (liveProcess || processMember || ownsDisclosure)

@@ -87,7 +87,14 @@ export function turnNavigationItem(
   const user = loaded.find(node => node.kind === 'user')
   const anchor = user ?? loaded[0]
   if (anchor === undefined) return undefined
-  const response = loaded.findLast(node => responseText(node) !== '')
+  // Preview the answer's first reply rather than a later closing note, falling back to the latest reply.
+  const location = anchor.location
+  const answerStep = location.kind === 'turn' || location.kind === 'step'
+    ? location.turn.data.get('turn-process')?.answerStep ?? null
+    : null
+  const answer = answerStep === null ? undefined
+    : loaded.find(node => node.kind === 'assistant-step' && node.data.step === answerStep && responseText(node) !== '')
+  const response = answer ?? loaded.findLast(node => responseText(node) !== '')
   return {
     turn,
     anchorKey: anchor.key,
