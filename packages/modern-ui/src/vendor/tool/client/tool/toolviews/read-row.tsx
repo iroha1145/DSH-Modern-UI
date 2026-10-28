@@ -26,6 +26,6 @@ export const readToolview = {
   inject: ['slots'],
   apply(ctx: Context): void {
     ctx.slots.inject('tool.call.toolview', () =>
-      ctx.slots.register({ name: 'tool.call.toolview', priority: -100, key: 'read', locale: NS }, ReadRow))
+      ctx.slots.register({ name: 'tool.call.toolview', key: 'read', locale: NS }, ReadRow))
   },
 }

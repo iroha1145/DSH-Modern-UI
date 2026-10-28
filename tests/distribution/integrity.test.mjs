@@ -70,14 +70,14 @@ test('profile store is pinned to the program root only when the profile names no
 })
 
 test('launch environment carries no installer switches into the agent shells', () => {
-  const state = { root: '/p/root', generation: '/p/root/versions/g', home: '/d/home', node: '/p/root/versions/g/runtime/bin/node' }
+  const state = { root: join('/p/root'), generation: join('/p/root/versions/g'), home: join('/d/home'), node: join('/p/root/versions/g/runtime/bin/node') }
   const saved = { ...process.env }
   try {
     process.env.NODE_OPTIONS = '--max-old-space-size=4096'
     process.env.npm_config_ignore_scripts = undefined
     delete process.env.npm_config_ignore_scripts
     const env = launchEnvironment(state)
-    assert.equal(env.DSH_HOME, '/d/home')
+    assert.equal(env.DSH_HOME, join('/d/home'))
     assert.equal(env.NODE_OPTIONS, '--max-old-space-size=4096')
     for (const key of ['npm_config_ignore_scripts', 'npm_config_store_dir', 'PNPM_PACKAGE_MANAGER_STRICT']) assert.equal(key in env, false, key)
     assert.equal(env.PATH.split(/[;:]/)[0], join('/p/root/versions/g', 'bin'))
@@ -105,6 +105,9 @@ test('failed staging removes only its own generation and staged profile', async 
     await assert.rejects(main(['install', '--root', root, '--home', home, '--plugin', plugin, '--plugin-integrity', integrity, '--runtime-lock', lock]), /Missing exact runtime artifacts/)
     assert.deepEqual(await readdir(join(root, 'versions')), ['kept-earlier-generation'])
     assert.deepEqual(await readdir(join(home, 'profiles')), ['web'])
+    const backups = await readdir(join(root, 'data-backups'))
+    assert.equal(backups.length, 1)
+    assert.equal(await readFile(join(root, 'data-backups', backups[0], 'data', 'profiles', 'web', 'package.json'), 'utf8'), '{"name":"dsh-profile-web"}')
     assert.equal(existsSync(join(root, 'current.json')), false)
   } finally { await rm(scratch, { recursive: true, force: true }) }
 })

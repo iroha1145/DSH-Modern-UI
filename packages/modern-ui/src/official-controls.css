@@ -1,0 +1,140 @@
+/* Exact classes from the pinned rc.4 Web shell and official client bundles.
+ * Verified against published CSS and real official React markup by
+ * tests/plugin/official-controls.test.mjs. This is a delta over official CSS;
+ * colors/radius tokens already come from Modern's theme. No substring selectors.
+ * The body attribute is owned and withdrawn by installOfficialControls. */
+body[data-modern-official-controls] ._button_1rv3m_2 {
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: var(--dsw-radius-lg);
+  padding: 0 12px;
+  font-size: var(--fs-body, .8125rem);
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--ink, var(--dsw-alias-label-primary));
+  transition: background-color var(--dsh-feel-control-duration) var(--dsh-feel-control-curve),
+    border-color var(--dsh-feel-control-duration) var(--dsh-feel-control-curve),
+    color var(--dsh-feel-control-duration) var(--dsh-feel-control-curve),
+    opacity var(--dsh-feel-control-duration) var(--dsh-feel-control-curve),
+    transform var(--dsh-feel-control-duration) var(--dsh-feel-control-curve);
+}
+body[data-modern-official-controls] ._button_1rv3m_2:active:not(:disabled) { transform: translateY(1px) scale(.98); }
+body[data-modern-official-controls] ._button_1rv3m_2:disabled { opacity: .45; }
+body[data-modern-official-controls] ._sm_1rv3m_28 {
+  font-size: var(--fs-label, .75rem);
+  line-height: 18px;
+  padding: 0 10px;
+  border-radius: var(--dsw-radius-md);
+}
+body[data-modern-official-controls] ._primary_1rv3m_36 {
+  background: var(--primary, var(--dsw-alias-button-primary-fill));
+  color: var(--dsw-alias-label-primary-foreground);
+}
+body[data-modern-official-controls] ._outline_1rv3m_54 {
+  border: .5px solid transparent;
+  background: var(--surface, transparent);
+}
+body[data-modern-official-controls] ._toolbar_1rv3m_63 {
+  border: .5px solid var(--dsw-alias-border-l3);
+  background: var(--surface, var(--dsw-alias-button-tool-bar-fill));
+}
+body[data-modern-official-controls] ._icon_1rv3m_71 { width: 14px; height: 14px; }
+@media (hover: hover) {
+  body[data-modern-official-controls] ._primary_1rv3m_36:hover:not(:disabled) {
+    background: var(--primary, var(--dsw-alias-button-primary-fill));
+    opacity: .92;
+  }
+  body[data-modern-official-controls] ._ghost_1rv3m_45:hover:not(:disabled) { background: var(--hover, var(--dsw-alias-interactive-bg-hover)); }
+  body[data-modern-official-controls] ._outline_1rv3m_54:hover:not(:disabled),
+  body[data-modern-official-controls] ._toolbar_1rv3m_63:hover:not(:disabled) {
+    background: var(--inset, var(--dsw-alias-interactive-bg-hover));
+    border-color: var(--line-strong);
+  }
+}
+body[data-modern-official-controls] ._ghost_1rv3m_45:active:not(:disabled) { background: var(--hover-2, var(--dsw-alias-interactive-bg-active)); }
+
+body[data-modern-official-controls] ._wrap_14sgc_1 {
+  box-sizing: border-box;
+  height: var(--control-h-sm);
+  border-radius: var(--dsw-radius-lg);
+  background: var(--dsw-alias-bg-module-platform);
+}
+body[data-modern-official-controls] ._input_14sgc_25 { font-size: var(--fs-body); }
+@media (pointer: coarse) { body[data-modern-official-controls] ._input_14sgc_25 { font-size: 16px; } }
+
+body[data-modern-official-controls] ._card_38jqx_9 {
+  --dsw-hovercard-bg: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+  box-shadow: var(--dsw-elevation-panel);
+}
+body[data-modern-official-controls] ._copied_38jqx_36 { color: var(--dsw-alias-label-primary); }
+body[data-modern-official-controls] ._row_k7ery_26 {
+  padding: 0 6px;
+  border-radius: var(--dsw-radius-md);
+  color: var(--ink-2, var(--dsw-alias-label-secondary));
+  transition: color 140ms ease, background-color 140ms ease;
+}
+@media (hover: hover) {
+  body[data-modern-official-controls] ._row_k7ery_26:hover { color: var(--ink, var(--dsw-alias-label-primary)); }
+  body[data-modern-official-controls] ._row_k7ery_26[data-expandable]:hover { background: var(--inset, var(--dsw-alias-interactive-bg-hover)); }
+}
+body[data-modern-official-controls] ._field_bjqpo_3 { gap: 8px; }
+body[data-modern-official-controls] ._indicator_1p79o_9 { transition: transform var(--dsh-feel-control-duration) var(--dsh-feel-control-curve); }
+body[data-modern-official-controls] ._tab_1p79o_1 { transition: color var(--dsh-feel-control-duration) var(--dsh-feel-control-curve); }
+body[data-modern-official-controls] ._tab_1p79o_1[aria-selected='true'] { font-weight: 500; }
+body[data-modern-official-controls] ._material_ri079_21 { -webkit-backdrop-filter: var(--dsw-menu-backdrop-filter); }
+body[data-modern-official-controls] ._mask_o6lrb_18::after,
+body[data-modern-official-controls] ._dialog_o6lrb_33 {
+  animation-duration: var(--dsh-feel-dialog-duration);
+  animation-timing-function: var(--dsh-feel-dialog-curve);
+}
+@media (forced-colors: active) {
+  body[data-modern-official-controls] ._surface_ri079_1 { outline: 1px solid CanvasText; }
+}
+
+/* Only the official switch is adapted. Modern's own Switch already owns Feel. */
+body[data-modern-official-controls] ._switch_1ik0f_5[role='switch'] {
+  --dsh-switch-rest-x: 0px;
+  --dsh-switch-rest-fill: 0%;
+  background: color-mix(in srgb, var(--dsw-alias-brand-primary) var(--dsh-switch-fill, var(--dsh-switch-rest-fill)), var(--dsw-alias-border-l3));
+}
+body[data-modern-official-controls] ._switch_1ik0f_5[aria-checked='true'] { --dsh-switch-rest-x: 16px; --dsh-switch-rest-fill: 100%; }
+body[data-modern-official-controls] ._switch_1ik0f_5[aria-disabled='true'] { cursor: default; opacity: .5; }
+body[data-modern-official-controls] ._switch_1ik0f_5 > ._thumb_1ik0f_33 {
+  transition: none;
+  background: color-mix(in srgb, var(--dsw-alias-label-primary-foreground) var(--dsh-switch-fill, var(--dsh-switch-rest-fill)), var(--dsw-alias-switch-thumb));
+  transform: translateX(var(--dsh-switch-x, var(--dsh-switch-rest-x)));
+}
+
+/* Portaled account surfaces are outside the existing settings launcher seat. */
+body[data-modern-official-controls] .yHnPSG_avatar { background: var(--inset, var(--dsw-alias-bg-skeleton)); color: var(--ink-3, var(--dsw-alias-label-tertiary)); }
+body[data-modern-official-controls] .yHnPSG_signedOutMenu[role='menu'] {
+  min-width: 148px;
+  padding: 6px;
+  border: .5px solid var(--card-border, var(--line));
+  border-radius: var(--dsw-radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-dropdown);
+}
+body[data-modern-official-controls] .yHnPSG_signedOutMenu [role='menuitem'] {
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: var(--fs-body, .8125rem);
+  line-height: 20px;
+}
+body[data-modern-official-controls] .zwW4-W_card { border-radius: var(--dsw-radius-lg); }
+body[data-modern-official-controls] .JqwYuG_panelHeader h3 { font-weight: 500; }
+body[data-modern-official-controls] .Y0dWHa_requestBoundaryControl::after { border: 0; box-shadow: var(--shadow-dropdown, var(--dsw-elevation-panel)); }
+body[data-modern-official-controls] .Y0dWHa_kindTag,
+body[data-modern-official-controls] .Y0dWHa_collapsedTurnEllipsis,
+body[data-modern-official-controls] .Y0dWHa_programError::first-line { font-weight: 500; }
+body[data-modern-official-controls] .Y0dWHa_details { border-left: 0; box-shadow: inset .5px 0 0 var(--dsw-alias-border-l2); }
+@media (max-width: 760px) { body[data-modern-official-controls] .Y0dWHa_details { box-shadow: var(--shadow-float, var(--dsw-elevation-prominent)); } }
+@media (prefers-reduced-motion: reduce) {
+  body[data-modern-official-controls] ._button_1rv3m_2,
+  body[data-modern-official-controls] ._row_k7ery_26,
+  body[data-modern-official-controls] ._indicator_1p79o_9,
+  body[data-modern-official-controls] ._tab_1p79o_1 { transition: none; }
+  body[data-modern-official-controls] ._mask_o6lrb_18::after,
+  body[data-modern-official-controls] ._dialog_o6lrb_33 { animation: none; }
+}

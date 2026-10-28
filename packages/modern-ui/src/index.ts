@@ -5,6 +5,7 @@ import { Config as ConversationConfig, apply as configureConversation } from '@d
 import { Config as ChatConfig } from '@deepseek-ai/dsh-client-ui-chat'
 import { Config as PickerConfig } from './vendor/model/index.ts'
 import { PRESENTATION_PROMPT } from './vendor/intelligent/presentation-prompt.ts'
+import { apply as installBootStyle } from './host-compat/official-style/index.ts'
 
 export const Config = z.object({
   ...PickerConfig.dict,
@@ -22,6 +23,7 @@ export const Config = z.object({
 export function apply(ctx: Context, config: { enabled: boolean }): void {
   configureConversation(ctx)
   if (!config.enabled) return
+  installBootStyle(ctx)
   ctx.inject(['systemPrompt'], scope => scope.effect(() => scope.systemPrompt.section({
     name: 'modern-ui:response-presentation',
     order: scope.systemPrompt.getSectionOrder('DEPLOYMENT_PERSONA_SUFFIX') - 1,

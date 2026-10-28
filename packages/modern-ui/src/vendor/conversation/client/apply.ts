@@ -1,5 +1,6 @@
 /** Registers the target-neutral Conversation assembly, shell, input, and docks. */
 import type {} from '@deepseek-ai/dsh-client-product-analytics/client'
+import type {} from '../../../file-drag.ts'
 import type { Context } from '@deepseek-ai/cordis'
 import { createElement } from 'react'
 import z from '@deepseek-ai/schemastery'
@@ -499,6 +500,7 @@ export function apply(ctx: Context, config: Config = Config({})): void {
       const bridge = hostPathBridge()
       return {
         keyboard: shell,
+        readFileDrag: ctx.get('fileDrag')?.read,
         addFiles: (files, directories = new Set()) => {
           if (sessions.binding(sessionId) === undefined) return t('file.sessionUnavailable')
           if (shell.snapshot.phase === 'adjudicating' || shell.snapshot.phase === 'submitting') {

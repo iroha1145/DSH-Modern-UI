@@ -11,8 +11,8 @@
    official 36x36 box, so only the wide state sets geometry here.
    Official rules: .trigger (0,1,0), .trigger[data-collapsed=true] (0,2,0),
    .trigger[data-signed-out=true]:not([data-collapsed=true]) (0,3,0); the
-   selectors below are (0,3,1) and (0,4,1). The signed-out menu card has no
-   stable hook and is left as the official one. */
+   selectors below are (0,3,1) and (0,4,1). Portaled menu styling uses the
+   separately verified rc.4 module mapping in official-controls.css. */
 [data-modern-settings-seat] button[aria-haspopup="menu"][data-signed-out] {
   color: var(--ink-2, var(--dsw-alias-label-secondary));
   font-size: var(--fs-body, 0.8125rem);

@@ -12,7 +12,7 @@ import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client
 import type { ConfigForm, ConfigFormSnapshot, SettingsDescribeFace, SettingsMirrorSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import {
-  initialEntries, modelDrafts, readEfforts, reasoningLevelChoices, toggledLevel, valueAt, withEfforts,
+  inheritedModelDrafts, reasoningLevelChoices, validateReasoningEfforts,
   type ModelRowDraft, type SchemaReader,
 } from './reasoning-declaration.ts'
 
@@ -72,10 +72,8 @@ export interface ReasoningDeclarationFace {
   levels: (serialized: unknown) => readonly string[]
   /** Start the installed-catalog read for a route unless it already answered. */
   loadCatalog: (provider: string) => void
-  /** Turn one row's reasoning on (Off plus the common trio) or off (`false`). */
-  setReasoning: (target: ModelTarget, on: boolean) => void
-  /** Keep or drop one level in a row's declaration. */
-  toggleLevel: (target: ModelTarget, level: string, checked: boolean) => void
+  /** Commit a complete drafted row at the revision where editing began. */
+  saveModel: (target: ModelTarget, model: ModelRowDraft, revision: number | undefined) => Promise<boolean>
 }
 
 /** A plain snapshot source; the form and the mirror are class instances, so their methods are wrapped rather than handed over unbound. */
@@ -101,10 +99,7 @@ export class ReasoningDeclarationController {
       },
       levels: serialized => this.levels(serialized),
       loadCatalog: provider => { this.loadCatalog(provider) },
-      setReasoning: (target, on) => { void this.write(target, model => withEfforts(model, on ? initialEntries(this.levelsOfForm()) : undefined)) },
-      toggleLevel: (target, level, checked) => {
-        void this.write(target, model => withEfforts(model, toggledLevel(readEfforts(model) ?? [], level, this.levelsOfForm(), checked)))
-      },
+      saveModel: (target, model, revision) => this.write(target, model, revision),
     }
   }
 
@@ -120,11 +115,6 @@ export class ReasoningDeclarationController {
     const levels = reasoningLevelChoices(serialized, this.deps.schema)
     this.levelCache.set(serialized, levels)
     return levels
-  }
-
-  /** The levels the form's namespace offers, read from the mirror's current view. */
-  private levelsOfForm(): readonly string[] {
-    return this.levels(this.deps.describe.getSnapshot().view?.namespaces.find(candidate => candidate.ns === this.deps.namespace)?.schema)
   }
 
   private loadCatalog(provider: string): void {
@@ -145,20 +135,28 @@ export class ReasoningDeclarationController {
    * Replace one stored row and write the route's whole `models` list back, as
    * the official editor does, fenced by the revision the row was read at.
    */
-  private async write(target: ModelTarget, replace: (model: ModelRowDraft) => ModelRowDraft): Promise<void> {
+  private async write(target: ModelTarget, replacement: ModelRowDraft, revision: number | undefined): Promise<boolean> {
     const snapshot = this.deps.form.getSnapshot()
+    if (!snapshot.writable || this.disposed || this.store.getSnapshot().saving !== undefined) return false
+    if (snapshot.revision !== revision) {
+      this.store.set({ ...this.store.getSnapshot(), refused: target.provider })
+      return false
+    }
     const path = [...target.settingsPath, 'models']
-    const models = modelDrafts(valueAt(snapshot.user, path))
-    if (models[target.index] === undefined) return
-    const next = models.map((model, at) => at === target.index ? replace(model) : model)
+    const models = inheritedModelDrafts(snapshot.user, snapshot.base, path)
+    if (models[target.index] === undefined || validateReasoningEfforts([replacement]) !== undefined) return false
+    const next = models.map((model, at) => at === target.index ? replacement : model)
     const ops: SettingsPathOpView[] = [{ op: 'set', path, value: structuredClone(next) as JsonValue }]
     this.store.set({ ...this.store.getSnapshot(), saving: target.provider, refused: undefined })
     let accepted = false
     try {
-      accepted = await (snapshot.revision === undefined ? this.deps.form.mutate(ops) : this.deps.form.mutate(ops, snapshot.revision))
+      accepted = await (revision === undefined ? this.deps.form.mutate(ops) : this.deps.form.mutate(ops, revision))
+    } catch {
+      accepted = false
     } finally {
       if (!this.disposed) this.store.set({ ...this.store.getSnapshot(), saving: undefined, refused: accepted ? undefined : target.provider })
     }
+    return accepted
   }
 }
 

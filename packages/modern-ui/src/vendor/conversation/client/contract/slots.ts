@@ -335,6 +335,8 @@ export interface ComposerBarOwnerProps {
 /** Package-private operations injected into the resident composer bar. */
 export interface ComposerBarInjected {
   keyboard: ComposerKeyboard | undefined
+  /** Resolve original bytes retained by this activation's image drag. Ordinary file drops remain attachment-owned. */
+  readFileDrag?: (transfer: DataTransfer) => File | undefined
   /**
    * Register one picked batch; resolves to the rejection copy or null. Where
    * the browser shell reports host paths (the Desktop application), files

@@ -5,9 +5,98 @@ import { mkdtemp, readFile, writeFile, cp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import yaml from 'js-yaml'
-import { preserveLegacySettings, transformProfileSettings, transformHostBindings,
+import { preserveEffectivePreferences, transformEffectivePreferences, preserveLegacySettings, transformProfileSettings, transformHostBindings,
   preserveConversationPreferences, transformConversationPreferences, preserveChatPreferences, transformChatPreferences } from '../../scripts/distribution/profile-settings.mjs'
 import { applyEntryPatches, entryListSchema } from '@deepseek-ai/cordis-plugin-include'
+
+test('effective preferences preserve inherited values by module name and explicit Modern overrides', () => {
+  const inherited = [
+    { id: 'custom-picker', name: '@deepseek-ai/dsh-client-ui-model-selection', config: { models: { inherited: { quality: 3 } }, prices: { inherited: 2 } } },
+    { id: 'custom-chat', name: '@deepseek-ai/dsh-client-ui-chat', config: { foldedReplies: 'final', linkOpening: 'new-tab' } },
+  ]
+  const modern = { id: 'modern-ui', name: '@iroha1145/dsh-modern-ui', config: { models: {}, prices: {}, busyEnter: 'steer' } }
+  const result = transformEffectivePreferences('- id: modern-ui\n  config: {linkOpening: sidebar}\n', yaml.dump(inherited), yaml.dump([...inherited, modern]), yaml)
+  const applied = applyEntryPatches([...inherited, modern], yaml.load(result.source, { schema: entryListSchema }), () => {})
+  const config = applied.find(row => row.id === 'modern-ui').config
+  assert.deepEqual(config.models, inherited[0].config.models)
+  assert.equal(config.foldedReplies, 'final')
+  assert.equal(config.busyEnter, 'steer')
+  assert.equal(config.linkOpening, 'sidebar')
+  const upgrade = transformEffectivePreferences('[]', yaml.dump([...inherited, modern]), yaml.dump([...inherited, modern]), yaml)
+  assert.deepEqual(yaml.load(upgrade.source)[0].config.models, inherited[0].config.models)
+  const emptyOverride = transformEffectivePreferences('- id: modern-ui\n  config: {models: {}}', yaml.dump([...inherited, modern]), yaml.dump([...inherited, modern]), yaml)
+  assert.deepEqual(yaml.load(emptyOverride.source)[0].config.models, {})
+  assert.throws(() => transformEffectivePreferences('[]', yaml.dump([...inherited, inherited[0]]), yaml.dump([modern]), yaml), /Multiple/)
+})
+
+test('effective migration upgrades patch-only receipts once and retains later edits', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'modern-effective-'))
+  t.after(() => rm(root, { recursive: true, force: true }))
+  await writeFile(join(root, 'cordis.patch.yml'), '[]\n')
+  await writeFile(join(root, 'modern-ui-chat-migration.json'), '{"conversionVersion":2}\n')
+  const before = [{ id: 'chat', name: '@deepseek-ai/dsh-client-ui-chat', config: { foldedReplies: 'final' } }]
+  const after = [...before, { id: 'modern-ui', name: '@iroha1145/dsh-modern-ui', config: { models: {} } }]
+  const result = await preserveEffectivePreferences(root, yaml.dump(before), yaml.dump(after), yaml)
+  assert.deepEqual(result.movedFields, ['foldedReplies'])
+  assert.equal(await readFile(join(root, result.backup), 'utf8'), '[]\n')
+  await writeFile(join(root, 'cordis.patch.yml'), '- id: modern-ui\n  config: {foldedReplies: all}\n')
+  assert.equal((await preserveEffectivePreferences(root, yaml.dump(before), yaml.dump(after), yaml)).alreadyMigrated, true)
+  assert.match(await readFile(join(root, 'cordis.patch.yml'), 'utf8'), /foldedReplies: all/)
+})
+
+test('document migration preserves separate manager/market policies and Modern overrides', () => {
+  const before = [
+    { id: 'custom-manager', name: '@deepseek-ai/dsh-plugin-manager', config: { detailMaxBytes: 1000, detailImageMaxBytes: 101,
+      detailFetchTimeoutMs: 1100, detailNpmFileSources: ['npmmirror'] } },
+    { id: 'custom-market', name: '@deepseek-ai/dsh-plugin-market', config: { detailMaxBytes: 2000, detailImageMaxBytes: 202,
+      fetchTimeoutMs: 2200, cacheTtlMs: 2300, detailNpmFileSources: ['jsdelivr'], detailGitlabHosts: ['gitlab.example.org'],
+      detailRepositoryMaxBytes: 3000, detailCacheMaxBytes: 4000, detailCacheDir: '.old-market-cache', detailGitTimeoutMs: 5000 } },
+  ]
+  const docs = { id: 'modern-plugin-documents', name: '@iroha1145/dsh-modern-ui/plugin-documents',
+    config: { maxImageBytes: 999, market: { npmFileSources: ['unpkg'] } } }
+  const after = [...before, { id: 'modern-ui', name: '@iroha1145/dsh-modern-ui', config: {} }, docs]
+  const transformed = transformEffectivePreferences('[]', yaml.dump(before), yaml.dump(after), yaml)
+  const applied = applyEntryPatches(after, yaml.load(transformed.source, { schema: entryListSchema }), message => assert.fail(message))
+  const result = applied.find(row => row.id === docs.id).config
+  assert.deepEqual(result.bundle, { maxDocumentBytes: 1000, fetchTimeoutMs: 1100, npmFileSources: ['npmmirror'] })
+  assert.deepEqual(result.market, { maxDocumentBytes: 2000, fetchTimeoutMs: 2200, cacheTtlMs: 2300, npmFileSources: ['unpkg'],
+    gitlabHosts: ['gitlab.example.org'], maxRepositoryBytes: 3000, maxCacheBytes: 4000, cacheDir: '.old-market-cache', gitTimeoutMs: 5000 })
+  assert.equal(result.maxImageBytes, 999)
+  assert.equal(transformed.result.conversionVersion, 2)
+})
+
+test('v1 effective receipt upgrades document policies without replaying UI migration', async t => {
+  const profile = await mkdtemp(join(tmpdir(), 'modern-document-migration-'))
+  t.after(() => rm(profile, { recursive: true, force: true }))
+  const original = '- id: modern-ui\n  config: {models: {}, foldedReplies: all}\n'
+  const oldBackup = 'modern-ui-effective-preferences-before-v1.yml'
+  await writeFile(join(profile, 'cordis.patch.yml'), original)
+  await writeFile(join(profile, oldBackup), '[]\n')
+  await writeFile(join(profile, 'modern-ui-effective-preferences-v1.json'), JSON.stringify({ conversionVersion: 1,
+    backup: oldBackup, originalSha256: createHash('sha256').update('[]\n').digest('hex') }))
+  const before = [
+    { id: 'old-model', name: '@deepseek-ai/dsh-client-ui-model-selection', config: { models: { mustNotReturn: {} } } },
+    { id: 'old-manager', name: '@deepseek-ai/dsh-plugin-manager', config: { detailNpmFileSources: ['npmmirror'] } },
+    { id: 'modern-ui', name: '@iroha1145/dsh-modern-ui', config: { models: {}, foldedReplies: 'all' } },
+  ]
+  const after = [...before, { id: 'modern-plugin-documents', name: '@iroha1145/dsh-modern-ui/plugin-documents', config: {} }]
+  const result = await preserveEffectivePreferences(profile, yaml.dump(before), yaml.dump(after), yaml)
+  assert.equal(result.conversionVersion, 2)
+  assert.equal(result.backup, 'modern-ui-effective-preferences-before-v2.yml')
+  assert.equal(await readFile(join(profile, result.backup), 'utf8'), original)
+  const rows = yaml.load(await readFile(join(profile, 'cordis.patch.yml'), 'utf8'))
+  assert.deepEqual(rows.find(row => row.id === 'modern-ui').config.models, {})
+  assert.deepEqual(rows.find(row => row.id === 'modern-plugin-documents').config.bundle.npmFileSources, ['npmmirror'])
+  assert.equal((await preserveEffectivePreferences(profile, yaml.dump(before), yaml.dump(after), yaml)).alreadyMigrated, true)
+})
+
+test('computed old document fields are never evaluated and explicit Modern values take precedence', () => {
+  const before = '- id: manager\n  name: "@deepseek-ai/dsh-plugin-manager"\n  config:\n    detailMaxBytes: !!js process.exit(99)\n'
+  const modern = { id: 'modern-ui', name: '@iroha1145/dsh-modern-ui', config: {} }
+  const docs = { id: 'modern-plugin-documents', name: '@iroha1145/dsh-modern-ui/plugin-documents', config: { bundle: { maxDocumentBytes: 7000 } } }
+  assert.equal(transformEffectivePreferences('[]', before, yaml.dump([modern, docs]), yaml).result.changed, false)
+  assert.throws(() => transformEffectivePreferences('[]', before, yaml.dump([modern, { ...docs, config: {} }]), yaml), /not evaluated/)
+})
 
 const model = { models: { 'my/model': { icon: 'letter', efforts: ['low', 'high'], priceInput: 1.23 } },
   prices: { 'my/model': { input: 1, output: 2, provider: 'fixture' } }, pricesUpdatedAt: '2026-10-27T00:00:00Z' }

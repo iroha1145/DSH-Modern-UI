@@ -8,7 +8,7 @@
   "modernUiSource": "https://github.com/iroha1145/DSH-Modern-UI",
   "modernUiCommit": "a9f4c370fa480c9a17d5c9a79cb83aeba26bdf0d",
   "patchSha256": "111b5c5a0d817685ab32440df6272f895ce385907b0f16f5e036dd443e240000",
-  "adaptation": "Presentation components/styles, selected layout/conversation/sidebar/workspace UI owners, public contract adapters, model-card configuration, language data, and explicitly selected compatibility modules are packaged. Bundle selection disables exactly the replaced official UI owners. Original Host session, command, remote, model directory, locale and theme providers remain official. Since the ui-chat takeover the patched Chat target (data layer, view, flow, node views, factories, quota notice, stats pills and settings rows) is packaged and the official ui-chat entry is disabled; its SlotMap declarations stay the type source, bridged by compat.ts. Since the ui-chat takeover the patched Chat target (data layer, view, flow, node views, factories, quota notice, stats pills and settings rows) is packaged and the official ui-chat entry is disabled; its SlotMap declarations stay the type source, bridged by compat.ts. Since the 2026-10-28 preview-fold and reasoning-declaration change the Markdown file preview body and the plan preview body are packaged as keyed entries shadowing the official ones (priority -100), and a reasoning-declaration block joins every pi-ai provider card through the official settings.models.provider-card seat; the official documentpreview, plan and settings-models packages stay enabled.",
+  "adaptation": "Packages the selected Modern layout, workspace, sidebar, conversation, chat, model-selector and Tool UI owners, presentation primitives/styles, public-contract adapters and language data. The composition disables only the replaced official UI entries. Chat includes its data/view/flow/node/factory/settings closure; Tool includes generic/denied fallback, atomic views, todo-history and standard image child slots. The model selector uses a minimal attributed client catalog/directory/resolver checked against the published rc.4 browser artifact, with standard model-label contributions; Host model catalog and selection execution remain official. Ordinary question and preset-help presentations reuse official faces and the same question store; plan-review remains official. Quotes and browser original-byte image transfers use public conversation/slot contracts. Plugin README utilities and selected Host compatibility entries are explicitly attributed below. Original Host session, command, remote, model catalog/selection, locale, theme, attachment-upload, plugin inventory/installer and question/preset business services remain official. No official package files, module tables or prototypes are modified. Retired per-session web controls and an unavailable Electron native file-drag bridge are not restored.",
   "files": [
     {
       "source": "packages/client/ui-attachment/src/client/MessageImages.tsx",
@@ -203,7 +203,7 @@
       "source": "packages/client/ui-chat/src/client/contract/slots.ts",
       "target": "src/vendor/chat/client/contract/slots.ts",
       "sourceSha256": "37f685abcb155b1ed98b446ce529911395fc98efd960e57a5206d21fc2b9a594",
-      "targetSha256": "2a4470ed05c6f6f92da17f3e8877547a3160c248057a827be6e4778beb446c19",
+      "targetSha256": "f351d1f2368ab9782d14df042fd84f13a9f79186129c7fa135c4a1b4d8709ffc",
       "adapted": true
     },
     {
@@ -238,7 +238,7 @@
       "source": "packages/client/ui-conversation/src/client/apply.ts",
       "target": "src/vendor/conversation/client/apply.ts",
       "sourceSha256": "ea62b83128fd24a60252e8d9636c43219e9bdc171c8b88cab2be04081da34ab2",
-      "targetSha256": "357a8e8f9c899282b11382e80e5c7e41a716a0b0fd1c2d092de774f416e8449a",
+      "targetSha256": "d2b32b082edff7189e08cb12fdf2d84e8c2b9b8803c6271789187f035f15c552",
       "adapted": true
     },
     {
@@ -315,7 +315,7 @@
       "source": "packages/client/ui-conversation/src/client/contract/slots.ts",
       "target": "src/vendor/conversation/client/contract/slots.ts",
       "sourceSha256": "8a56dfab0c74a506a7c58d8ce49521c3fa999a3db078597a62d5cd27486db196",
-      "targetSha256": "268ac46fb3c68305a7ac70ddccd65c9b3dc886707518dcd799140fbb80d2a2ca",
+      "targetSha256": "2248164faa0ecb6b02cd3803e93b746062951ce8f5b0bfc3dad6fe81ed345bd8",
       "adapted": true
     },
     {
@@ -784,7 +784,7 @@
       "source": "packages/client/ui-conversation/src/client/skeleton/InputBar.tsx",
       "target": "src/vendor/conversation/client/skeleton/InputBar.tsx",
       "sourceSha256": "81b1dc23d316e5d1eacb847d539c7676d7699e33ff969f11a09080266bfa85b1",
-      "targetSha256": "0c68c7f183f1520615437001db7a4ab569b7f8274d5be836a5990e3db2c2ce5e",
+      "targetSha256": "4293928a811f49fa95ca5343a396884ebb1e98dc4a7d7ba9269768a6bb9b0222",
       "adapted": true
     },
     {
@@ -1019,13 +1019,6 @@
       "adapted": true
     },
     {
-      "source": "packages/client/ui-model-selection/src/client/catalog.ts",
-      "target": "src/vendor/model/client/catalog.ts",
-      "sourceSha256": "751568938f6918a8e7734b44ab003bdf53e9390d7264dab6501fb582558a955d",
-      "targetSha256": "751568938f6918a8e7734b44ab003bdf53e9390d7264dab6501fb582558a955d",
-      "adapted": false
-    },
-    {
       "source": "packages/client/ui-model-selection/src/client/format-price.ts",
       "target": "src/vendor/model/client/format-price.ts",
       "sourceSha256": "17c5e67c8521df69ce30dd0ac0552acfc48f5fb14774488e4178978df6d32701",
@@ -1043,14 +1036,14 @@
       "source": "packages/client/ui-model-selection/src/client/ModelSelect.module.css",
       "target": "src/vendor/model/client/ModelSelect.module.css",
       "sourceSha256": "0de0065c688b56e0d76f732f483ab0414d02a8352c8a8f39a68331e4b4b641dc",
-      "targetSha256": "0de0065c688b56e0d76f732f483ab0414d02a8352c8a8f39a68331e4b4b641dc",
-      "adapted": false
+      "targetSha256": "906f9da78e96be2ded509aef8f400949a73af515a0ee9c039f376aa06d33fe01",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-model-selection/src/client/ModelSelect.tsx",
       "target": "src/vendor/model/client/ModelSelect.tsx",
       "sourceSha256": "72cdaf8eee5362562440ddd86519b039da7d012b1b980db40d283f148dad7d1e",
-      "targetSha256": "5f6cf54f9391d91b1264fc3c996b2e48f269e44e8c590aeb0daf2bfa41e956ff",
+      "targetSha256": "5e82829469b10b700b37a7e8d0d2f57102e39eb7dc47e1cb7b87d624bc6c53c7",
       "adapted": true
     },
     {
@@ -1127,7 +1120,7 @@
       "source": "packages/client/ui-model-selection/src/client/slots.ts",
       "target": "src/vendor/model/client/slots.ts",
       "sourceSha256": "f45e9e53735dc86d7b4f78e93d283e16bca754a3fdaf9cf6e86d833afe0f1483",
-      "targetSha256": "e5457fad1ba9c7957ba5a56e8928d12bc8cce3ab13998530eb933581da6e6c3d",
+      "targetSha256": "13f0a0a1ed247f6826e6cf9d0588b9a0ee735b2b9613b00d3f7bafdb76ac229b",
       "adapted": true
     },
     {
@@ -1659,7 +1652,7 @@
       "source": "packages/client/ui-primitives/src/markdown/render.tsx",
       "target": "src/vendor/primitives/markdown/render.tsx",
       "sourceSha256": "214e07ee8b0c0932692127b8c4a80e6f7d5c1b5e60d2c7b8853517f5474f4db0",
-      "targetSha256": "aaee8ebd82cf89150b5ed7b11d473340b7058a1057d6595744f3af29059899db",
+      "targetSha256": "6b67c7e72af9c0d59a96b7cc1e056bf1a907883539ddb647d1552eb238711a7a",
       "adapted": true
     },
     {
@@ -2037,7 +2030,7 @@
       "source": "packages/client/ui-settings-general/src/client/SettingsRoot.module.css",
       "target": "src/vendor/settings-shell/settings-shell.css",
       "sourceSha256": "c6a47f4d8f4abd80e1b23148c2d3b135b051cc4f7c8098d40c3c731b3f8ed8fc",
-      "targetSha256": "3146797c1339dfbc70d03a32cebfbb08f3a812dceaba1843e0b854933d691373",
+      "targetSha256": "33caaf91b219f7440c81f0c3186ad73aad7bc1c765f82b7589f3145c7142363b",
       "adapted": true
     },
     {
@@ -2457,7 +2450,7 @@
       "source": "packages/client/ui-tool/src/client/tool/models/todo-history.ts",
       "target": "src/vendor/tool/client/tool/models/todo-history.ts",
       "sourceSha256": "8767a674f2b9059a52f961dc57d9f726e214a0ffa54aa7a65bc09cf856dbe3a3",
-      "targetSha256": "1cef69fd8c83ecd5fb007f9282751bfb9a1e9ffa8b1eec3f456795bc61bcdde3",
+      "targetSha256": "66311d2cd916e7abb656542db8c540bf215785977dfc90b9d2af4c556d5b402b",
       "adapted": true
     },
     {
@@ -2478,21 +2471,21 @@
       "source": "packages/client/ui-tool/src/client/tool/toolviews/ask-question-row.tsx",
       "target": "src/vendor/tool/client/tool/toolviews/ask-question-row.tsx",
       "sourceSha256": "69a6c6a259e1657957da8ac1701dd8d5a9647e3600c26a62aa275c5cfb92f7e0",
-      "targetSha256": "f1c137326a58fc57aef6eb28855f78def1aca62cdeb364f3a860e22932c18f5f",
+      "targetSha256": "e4729da123df7c315494405a0f67b295151cc9512534a3720e8ab83a7e51ebcd",
       "adapted": true
     },
     {
       "source": "packages/client/ui-tool/src/client/tool/toolviews/details-row.tsx",
       "target": "src/vendor/tool/client/tool/toolviews/details-row.tsx",
       "sourceSha256": "4c5cb1cf76ce176c834dbd929b8f076612c21957ee19bd3ad1b3e3c00c55fc12",
-      "targetSha256": "ba4c3e29b77a47f2134e2b510f3ca09b9b8e53ea7e10cde1d3223e344ad15634",
+      "targetSha256": "09adb2fb19766e2cdee2d9f86a183c4640f1492a9c7383565637390989996dab",
       "adapted": true
     },
     {
       "source": "packages/client/ui-tool/src/client/tool/toolviews/file-mutation-row.tsx",
       "target": "src/vendor/tool/client/tool/toolviews/file-mutation-row.tsx",
       "sourceSha256": "1f773f04ff686915dbfe5d8dbbcc090cd55d37ff5821df4454c01b767852d431",
-      "targetSha256": "f69335391783298a98659322bed486a887308532242d737896a4d4cad2ac4353",
+      "targetSha256": "83f2b56e6dfc7304497452fed6ce2cd039640298d19b96c1795a4fe0df8547c1",
       "adapted": true
     },
     {
@@ -2513,42 +2506,42 @@
       "source": "packages/client/ui-tool/src/client/tool/toolviews/read-family-row.tsx",
       "target": "src/vendor/tool/client/tool/toolviews/read-family-row.tsx",
       "sourceSha256": "6cb6f134bcde8ea7a739b4c36f8e3c3f74b3e048a41c8e6b44e402e11e1a7081",
-      "targetSha256": "3a89a54a89812cc844d42a94d3e080d6396d39a5fa0f858766bcbb18fcb0324f",
+      "targetSha256": "2155a8fbacf8a72e778bf42bf6e9dde3b81ec898c2fff656ecd6f0fcb14a7450",
       "adapted": true
     },
     {
       "source": "packages/client/ui-tool/src/client/tool/toolviews/read-image-row.tsx",
       "target": "src/vendor/tool/client/tool/toolviews/read-image-row.tsx",
       "sourceSha256": "6a74cc08fb14816d9f48f76977dc01b00f484672da92f06a21e20e6a0ddcd123",
-      "targetSha256": "b4589e1378916589df78b96c61ffef81c29666b62a7c3d91337062bf051fc8f2",
+      "targetSha256": "9ae0976773a6b4099ef518fade5abb54ae03d74fad8cf658aacad36794df1751",
       "adapted": true
     },
     {
       "source": "packages/client/ui-tool/src/client/tool/toolviews/read-row.tsx",
       "target": "src/vendor/tool/client/tool/toolviews/read-row.tsx",
       "sourceSha256": "1b47fe58db21db86b587801f7c847fc8c7f88665b8d07ae42c368b829adc16f5",
-      "targetSha256": "e9580e1ca8849e9005a4b49deaf205240facf1090a2a52ca4f4da84dfd781105",
+      "targetSha256": "9d87127368a23cb1476a7458605918ea0b7ea7aae6b37a2e3f12d8c8e911022e",
       "adapted": true
     },
     {
       "source": "packages/client/ui-tool/src/client/tool/toolviews/search-row.tsx",
       "target": "src/vendor/tool/client/tool/toolviews/search-row.tsx",
       "sourceSha256": "bb1d28a667673c1000cc290ea2ddc471c0b1feae1e0ab3371f1f5c94099849a0",
-      "targetSha256": "d9ca9e9a1ec9e56c68316554a14719383cd77413eab1244d9d1ab485bb5f23ed",
+      "targetSha256": "09090b52b7a38538f7f204a794069f4c4b967aaf11d55e396fa836fec10da0d5",
       "adapted": true
     },
     {
       "source": "packages/client/ui-tool/src/client/tool/toolviews/todo-row.tsx",
       "target": "src/vendor/tool/client/tool/toolviews/todo-row.tsx",
       "sourceSha256": "3ba75e7ae97ec2b3a6fd96f1e9bd25c617e1caaecfa8133bece51bba04921bcc",
-      "targetSha256": "8d0e8745a149f457de81c931667410063028c3c10d2da41340cad2151657d41f",
+      "targetSha256": "79e605a2bfbe75ba96bfad68207b0627fcd75d81594237b40c8b4d50566bbda4",
       "adapted": true
     },
     {
       "source": "packages/client/ui-tool/src/client/tool/toolviews/web-row.tsx",
       "target": "src/vendor/tool/client/tool/toolviews/web-row.tsx",
       "sourceSha256": "90f7bbfca8523ffcbb227040c054008554cce180026031a9a1e466cf77489fdf",
-      "targetSha256": "5bde542b47f465e46d3f26b7d90777ee599b736e780064d329b2c6ace0febde3",
+      "targetSha256": "07f36c95127e7c970ed5e215a2197845e10f8b5f9db4c026b3b3cc66126b42ab",
       "adapted": true
     },
     {
@@ -2764,14 +2757,14 @@
     {
       "source": "packages/client/ui-chat/src/client/chat/RunningStatus.tsx",
       "target": "src/vendor/chat/client/chat/RunningStatus.tsx",
-      "sourceSha256": "c45f216e0f832c7b6cbb142ebe474fdfec47c4a1967ff343b0bafedc691b210a",
+      "sourceSha256": "e40290b1289a71da6e571e53ea01d088386250a695a50c0a31dd641d5b28cdb2",
       "targetSha256": "4b0784b8e53e017ab2ec8f6ac1903cede3c7d6ed942809a5e2428361cb500a7a",
       "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/chat/LoadingState.module.css",
       "target": "src/vendor/chat/client/chat/RunningStatus.module.css",
-      "sourceSha256": "9fadc7e1c485ebb8cb3acbb0bc12bd6969c54c0a0ce4b4438130aeb15b61668f",
+      "sourceSha256": "0e5cc613c946a06b5e40482a109ee1a97c7cd0ac7c0226632e4a2f4c63b7b6a7",
       "targetSha256": "a71237c926b1bdfc4ecc9363c446bf1d680b7f59c473c15a5fa0db4a2cb9cc3a",
       "adapted": true
     },
@@ -2790,25 +2783,12 @@
       "adapted": false
     },
     {
-      "source": "packages/client/ui-deepseek-model-label-1017/src/client/DeepSeekModelLabel.tsx",
-      "target": "src/vendor/model/client/DeepSeekModelLabel.tsx",
-      "sourceSha256": "cdc321cf37219196a3542f63d3011a914148cc9cc481a00912cdea062b3b20dc",
-      "targetSha256": "957eccbcae44f295ad0e1c63513a36bb7f92ca9bd60ac4df82b2c84f72471df6",
-      "adapted": true
-    },
-    {
-      "source": "packages/client/ui-deepseek-model-label-1017/src/client/DeepSeekModelLabel.module.css",
-      "target": "src/vendor/model/client/DeepSeekModelLabel.module.css",
-      "sourceSha256": "e5de544bb01c82d092e71a75f9fc68d631d0803d0bb01b63118bbfd52b3077e8",
-      "targetSha256": "e5de544bb01c82d092e71a75f9fc68d631d0803d0bb01b63118bbfd52b3077e8",
-      "adapted": false
-    },
-    {
       "source": "packages/client/ui-chat/src/client/apply.ts",
       "target": "src/vendor/chat/client/apply.ts",
       "sourceSha256": "e6d951cc6b73e74febf77e3ca2829dfd43b3c2d1de83c0a41441471f78bd8505",
-      "targetSha256": "41d359e6c9cd490b7bcf9f5ede9bfc446381fa0a1a4d29ff47726ff652469e03",
-      "adapted": true
+      "targetSha256": "2f45d77427c9074315532dda911224178fff0f9f7dceda1e526eccea0cd97c7a",
+      "adapted": true,
+      "adaptation": "Public chat registrations retain session/workspace ownership. Workspace file navigation resolves the final absolute target and passes it through sessionFileAddress(sessionId, absolutePath), preserving Session scope and the intended file when the default better-sidebar consumer resolves relative paths from a parent Git repository root."
     },
     {
       "source": "packages/client/ui-chat/src/client/chat/ApprovalCommand.tsx",
@@ -2820,21 +2800,21 @@
     {
       "source": "packages/client/ui-chat/src/client/chat/ChatFlow.tsx",
       "target": "src/vendor/chat/client/chat/ChatFlow.tsx",
-      "sourceSha256": "0445a4c9b1df041fe81846bd516123f9635c188d9098a2c297c71df6032727d7",
+      "sourceSha256": "5939ce2470e8dbfbac6773387672fdd3f76088ee3b100addacc7870a06477db6",
       "targetSha256": "0445a4c9b1df041fe81846bd516123f9635c188d9098a2c297c71df6032727d7",
-      "adapted": false
+      "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/chat/ChatGroupSeat.module.css",
       "target": "src/vendor/chat/client/chat/ChatGroupSeat.module.css",
-      "sourceSha256": "440d2a412bb962d2cd838b185703cdc0f667029dcd6cac98de52f4525a3dc2b2",
+      "sourceSha256": "7d5bac2f80fe832fe4f1804a6a16857ff8ab75c7a405e576b70dc9111e4415dd",
       "targetSha256": "440d2a412bb962d2cd838b185703cdc0f667029dcd6cac98de52f4525a3dc2b2",
-      "adapted": false
+      "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/chat/ChatGroupSeat.tsx",
       "target": "src/vendor/chat/client/chat/ChatGroupSeat.tsx",
-      "sourceSha256": "c308ea6c90eabbfb2e302a10bf4ccbcfee9fe4178236be902d023e8bed39195b",
+      "sourceSha256": "a4d5d0829710afeba72e8067a5aa8fb17adda5c14e5c737a70c5d0462d46c7fa",
       "targetSha256": "24a7e6d3b0d625f16e0dbd699e9fab54ac28313f1984a244eb6f4667f1c14bda",
       "adapted": true
     },
@@ -2848,15 +2828,15 @@
     {
       "source": "packages/client/ui-chat/src/client/chat/ChatView.module.css",
       "target": "src/vendor/chat/client/chat/ChatView.module.css",
-      "sourceSha256": "583fae08b6b12581b605c5da197122f7d86b2831f0d11628ccd8e56ca38c4111",
+      "sourceSha256": "01a284c505eb6dbe7a23a2dc1397d038aaf1f3189f56850242edab6dd153f8ce",
       "targetSha256": "583fae08b6b12581b605c5da197122f7d86b2831f0d11628ccd8e56ca38c4111",
-      "adapted": false
+      "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/chat/ChatView.tsx",
       "target": "src/vendor/chat/client/chat/ChatView.tsx",
       "sourceSha256": "87d8cfab43277202f623bbe2b54a1f3ea6847786d425596e806d915b4710e936",
-      "targetSha256": "e214fcb067ab5188fabef54089dc97fa24437c5612977581aeb40e0a28a70e87",
+      "targetSha256": "e802f4b0a2dc952ff42ea1178994d8171ce3edaf03e59d366f0e1ca5bc065e33",
       "adapted": true
     },
     {
@@ -2869,9 +2849,9 @@
     {
       "source": "packages/client/ui-chat/src/client/chat/LoadingState.module.css",
       "target": "src/vendor/chat/client/chat/LoadingState.module.css",
-      "sourceSha256": "9fadc7e1c485ebb8cb3acbb0bc12bd6969c54c0a0ce4b4438130aeb15b61668f",
+      "sourceSha256": "0e5cc613c946a06b5e40482a109ee1a97c7cd0ac7c0226632e4a2f4c63b7b6a7",
       "targetSha256": "9fadc7e1c485ebb8cb3acbb0bc12bd6969c54c0a0ce4b4438130aeb15b61668f",
-      "adapted": false
+      "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/chat/QuotaNoticeHost.tsx",
@@ -2904,9 +2884,9 @@
     {
       "source": "packages/client/ui-chat/src/client/chat/TurnNavigator.module.css",
       "target": "src/vendor/chat/client/chat/TurnNavigator.module.css",
-      "sourceSha256": "455ebf4ce573ab6b3beed3e16cbaae86dbb212159438188c7cb3594b116d5975",
+      "sourceSha256": "4cb912c94384efd35a08100e43f068728f57a6699916f2a27c18a5b98c4437c5",
       "targetSha256": "455ebf4ce573ab6b3beed3e16cbaae86dbb212159438188c7cb3594b116d5975",
-      "adapted": false
+      "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/chat/TurnNavigator.tsx",
@@ -2918,9 +2898,9 @@
     {
       "source": "packages/client/ui-chat/src/client/chat/TurnTailNodeView.module.css",
       "target": "src/vendor/chat/client/chat/TurnTailNodeView.module.css",
-      "sourceSha256": "af1fbe68436535d4115acaf43b4fc62d73d172472a58e6a7eb9b5d4ba3baca5e",
+      "sourceSha256": "55976e4fb9efc8b2e312092f5ef9e708aa76e9de55ece24d280a1bf5639969b3",
       "targetSha256": "af1fbe68436535d4115acaf43b4fc62d73d172472a58e6a7eb9b5d4ba3baca5e",
-      "adapted": false
+      "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/chat/TurnTailNodeView.tsx",
@@ -2974,7 +2954,7 @@
     {
       "source": "packages/client/ui-chat/src/client/chat/register-node-renderers.ts",
       "target": "src/vendor/chat/client/chat/register-node-renderers.ts",
-      "sourceSha256": "9df173f815ae081fe1529fedd6503c4e717a81411e5954a25ea07161b9ea3e79",
+      "sourceSha256": "27c7f9bdcd76f39789a37c83fcfeecddf1edbfbc84cef1e939ce7a75f547c081",
       "targetSha256": "2643480ec6caa89aee08c93f653c4ccae89943f9c4ac538410e8a2e0853c6711",
       "adapted": true
     },
@@ -3114,7 +3094,7 @@
     {
       "source": "packages/client/ui-chat/src/client/contract/chat-visibility.ts",
       "target": "src/vendor/chat/client/contract/chat-visibility.ts",
-      "sourceSha256": "3284ad1c6960c6995e71266a3e46e62ecda11fd69767f1a0e03ad8f45de065fa",
+      "sourceSha256": "8e4497053a81f77913683777bbe6f105d455477897f888435559ee04ec4b58e5",
       "targetSha256": "e562d4b8d3a50891e29957763e1fa63cf8a204321257c534acaa89e3d5a486a5",
       "adapted": true
     },
@@ -3380,9 +3360,9 @@
     {
       "source": "packages/client/ui-primitives/src/UserMessageBubble.module.css",
       "target": "src/vendor/primitives/UserMessageBubble.module.css",
-      "sourceSha256": "ab9e70301b492f91a29c0aa4371e798765bf3a264284ff8ec060f611ba5c73b8",
+      "sourceSha256": "15cb543a7d2e302b5c722f2c7fecfe0493cae949c59a9a86f3d4b7de5efd3075",
       "targetSha256": "ab9e70301b492f91a29c0aa4371e798765bf3a264284ff8ec060f611ba5c73b8",
-      "adapted": false
+      "adapted": true
     },
     {
       "source": "packages/client/ui-sidebar-documentpreview/src/client/markdown/MarkdownBody.tsx",
@@ -3394,49 +3374,49 @@
     {
       "source": "packages/client/ui-sidebar-documentpreview/src/client/markdown/MarkdownBody.module.css",
       "target": "src/vendor/documentpreview/client/markdown/MarkdownBody.module.css",
-      "sourceSha256": "623504050e2d73903747c751a525a76923f571275e7ed2743dfafcecdccaa10a",
+      "sourceSha256": "58ce708a0e5f059bb8d071d72fa03766c6e50a55341265727c07120db596cdb2",
       "targetSha256": "58ce708a0e5f059bb8d071d72fa03766c6e50a55341265727c07120db596cdb2",
       "adapted": false
     },
     {
       "source": "packages/client/ui-sidebar-documentpreview/src/client/markdown/frontmatter.ts",
       "target": "src/vendor/documentpreview/client/markdown/frontmatter.ts",
-      "sourceSha256": "e1b67f3d3f3d2cfadd2cfd5df93fb4359a3fbd4a1d964151b66eb13fe57efb2b",
+      "sourceSha256": "44476d3d3d66f8015501e2d02d9a0912cbf790f98c0c529d41c909c2bd6d3967",
       "targetSha256": "44476d3d3d66f8015501e2d02d9a0912cbf790f98c0c529d41c909c2bd6d3967",
       "adapted": false
     },
     {
       "source": "packages/client/ui-sidebar-documentpreview/src/client/markdown/frontmatter-fields.tsx",
       "target": "src/vendor/documentpreview/client/markdown/frontmatter-fields.tsx",
-      "sourceSha256": "c02a58533ebda2057c6f1e01a0af9d7d1973d1abc30292e3870f2e82c886d79e",
+      "sourceSha256": "6a9b79a17596e3c410b25e2713af627d38eacc7475d7ef529f376aa54728e703",
       "targetSha256": "6a9b79a17596e3c410b25e2713af627d38eacc7475d7ef529f376aa54728e703",
       "adapted": false
     },
     {
       "source": "packages/client/ui-sidebar-documentpreview/src/client/markdown/frontmatter-fields.module.css",
       "target": "src/vendor/documentpreview/client/markdown/frontmatter-fields.module.css",
-      "sourceSha256": "fbfab19f1a9d784785096b3ba2492c892d70963daab5c62ad9488024f6034720",
+      "sourceSha256": "399a4186764d0d8cf2d25f2d2f5c0ec624dcde8f1a3adcd67f7a359d69361271",
       "targetSha256": "399a4186764d0d8cf2d25f2d2f5c0ec624dcde8f1a3adcd67f7a359d69361271",
       "adapted": false
     },
     {
       "source": "packages/client/ui-sidebar-documentpreview/src/client/markdown/path-images.ts",
       "target": "src/vendor/documentpreview/client/markdown/path-images.ts",
-      "sourceSha256": "a50608f34436892ceace3548abaa843b811cdd4bb647e3b585a642902616ea89",
+      "sourceSha256": "8244f5a09e97bcb66128da677c90486c501e096361c5e4d82d0eb7f3c034a646",
       "targetSha256": "8244f5a09e97bcb66128da677c90486c501e096361c5e4d82d0eb7f3c034a646",
       "adapted": false
     },
     {
       "source": "packages/client/ui-sidebar-documentpreview/src/client/markdown/index.ts",
       "target": "src/vendor/documentpreview/client/markdown/index.ts",
-      "sourceSha256": "7a48e2509a41135de7344a67d9a46656121bb2f40bbc12a70e11634327953d7c",
+      "sourceSha256": "a9d86181c2ddc6c289062ff1310aa2ab92276d27662776d9ea4e87548f000f61",
       "targetSha256": "b619a992ec81f5cf3a28b61dff1cf6a888abf5f2fbfec39900d0e9faada5c919",
       "adapted": true
     },
     {
       "source": "packages/client/ui-sidebar-documentpreview/src/client/markdown/locales.ts",
       "target": "src/vendor/documentpreview/client/markdown/locales.ts",
-      "sourceSha256": "28aa24bed01bf832a317b7a2b979a322bf69a22c3c3a73fde3946345aa91e2f0",
+      "sourceSha256": "9a96d738c650ffc260fca914a16073a9131e4c1c1f5d95514fb9cbe9e245e208",
       "targetSha256": "e38dbaccbe7b711b34a7911e7fb9d5fb5924d09491afd99ccd6534d7189773df",
       "adapted": true
     },
@@ -3457,29 +3437,232 @@
     {
       "source": "packages/client/ui-plan/src/client/review-preview.ts",
       "target": "src/vendor/plan/client/review-preview.ts",
-      "sourceSha256": "70e23c8d1400c0762284890e7a73f3c8ae899d3a075838c967dc95842fa74186",
+      "sourceSha256": "8c9f2f5d3998041d272ba1f82cac49f50cac96fc8d6b1233bfe993b4f8018c73",
       "targetSha256": "93fabf7d5c74e1a171562f14bfff47198eea03bfa280d62f0f45292139db412a",
       "adapted": true
     },
     {
       "source": "packages/client/ui-plan/src/client/failure-line.ts",
       "target": "src/vendor/plan/client/failure-line.ts",
-      "sourceSha256": "843c54413a71e54ce279dbc2934cf9909448e1daab7b73cf516c2de479c5f18b",
+      "sourceSha256": "82288dcdc386615398ec0dd8105a19ccfb993a7d5e56a16f9cc94a299b17f6d4",
       "targetSha256": "c787437dfe93fe0250932fce8ad7b20fde861e2435e13f89ca28d390b19a64fb",
       "adapted": true
     },
     {
       "source": "packages/client/ui-plan/src/client/index.ts",
       "target": "src/vendor/plan/client/index.ts",
-      "sourceSha256": "136444fa5bbf107d530096aeea809564a271448cc8857f15b81bf9ed141772c5",
+      "sourceSha256": "cc36cca800a2d9f4bf041985c2bb89c33e8f661d029e47dc37ed64c0365633d4",
       "targetSha256": "c2e4bf16a677ec5f92eb8a812ca5c03d97dca82045d934c70cdad999b1e78b88",
       "adapted": true
     },
     {
       "source": "packages/client/ui-plan/src/client/locales.ts",
       "target": "src/vendor/plan/client/locales.ts",
-      "sourceSha256": "ae4bf6e749e30d728e81a20327d27fcf5491a48345f741c8e0804739b7c23751",
+      "sourceSha256": "b09edcad4d13e6d469bc4ed18098d5e4369e22fd51ab66d4571f99befa28911a",
       "targetSha256": "02c4664a74fb20fbc0d33e5b077d240ffe27d7fc84b4b5f0549fd2a119194c3c",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-agent-preset/src/client/AgentPresetSection.module.css",
+      "sourceSha256": "0d1145fbf71be16499a8e779908e4c07ed175bde3d3d6cc6c2d855149fe8c848",
+      "target": "src/vendor/agent-preset/AgentPresetSection.module.css",
+      "targetSha256": "655574073971fa25b79ad3633664b4085c8efd886791bf83374a7ad23afccf40",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-agent-preset/src/client/AgentPresetSection.tsx",
+      "sourceSha256": "034faf7db148e4485842e0dc2f819f877974827398ea1d48d9475b5afd7879b2",
+      "target": "src/vendor/agent-preset/AgentPresetSection.tsx",
+      "targetSha256": "bc38442e732d649412eb40a693e030e734b58a222f48f6da1385bc1a24ffe5b9",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-agent-preset/src/client/PresetGuideDialog.module.css",
+      "sourceSha256": "d1ea993723f44e3d657af171fa25678d421665211110140b0c5e1554805ff48a",
+      "target": "src/vendor/agent-preset/PresetGuideDialog.module.css",
+      "targetSha256": "510cd5726bc89dc61e5683232de120678cac00450f64b5b4293a07a7c7318500",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-agent-preset/src/client/PresetGuideDialog.tsx",
+      "sourceSha256": "27a22c221fad82993c13d8dd4eb587696f343cc3ef977930ec5172226250189c",
+      "target": "src/vendor/agent-preset/PresetGuideDialog.tsx",
+      "targetSha256": "37e7a743f290bf536e1413188f7359a4443209110b4c82c7424fa74cb788c72c",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-chat/src/client/chat/text-interaction.ts",
+      "sourceSha256": "52902fde520b79e6e7d7baeef75356411b0e07bac7f577f80600c0eaa9c2b103",
+      "target": "src/vendor/chat/client/chat/text-interaction.ts",
+      "targetSha256": "265891a7c837a7163df457dc37ef15fd6fa18c56516a42397028e9248c900a0e",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-chat/src/client/chat/text-selection.ts",
+      "sourceSha256": "b739f3f8b4d96929bab81ecc8ea5755ea569c434fa3ca7b32fa4276a7e5266ab",
+      "target": "src/vendor/chat/client/chat/text-selection.ts",
+      "targetSha256": "c9785eecaa1f81b1d18f42b0b2125aa91a246859989eb6097aa4efa2d04359fb",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-file-drag/src/client/feedback.tsx",
+      "sourceSha256": "5c6b5aafe8d7f2adf25a0da9e5b7ded81c7e6b32d640d6c9b48697205081b39e",
+      "target": "src/vendor/file-drag/feedback.tsx",
+      "targetSha256": "3c936c36a36af764d89908d14587a674e6744d609246c447ccf55068e17b5c2c",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-file-drag/src/client/locales.ts",
+      "sourceSha256": "b0a48a82de7b1dbdfb5ef23d7ca41883a3aa063d36c55136ddeb18d0fe4cfc24",
+      "target": "src/vendor/file-drag/locales.ts",
+      "targetSha256": "3b51035923ed1698761580a6b70230f147c04868d2ba5425d02b74ffc78ad609",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-attachment/src/MessageImage.module.css",
+      "sourceSha256": "21278a1b8b8303d8e7817e59b416cb9a11317fdd5ac0f7490bd0e67bbdc99e67",
+      "target": "src/vendor/file-drag/MessageImage.module.css",
+      "targetSha256": "db5fefb8888ec88a03d4a4f46692c9faacf268aca163959353c1eb67c46c02fb",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-attachment/src/MessageImage.tsx",
+      "sourceSha256": "15eda2acb7b391eb340d018cf9600035aca33f50761b3651b49b8a133f70c9e6",
+      "target": "src/vendor/file-drag/MessageImage.tsx",
+      "targetSha256": "8b64d628481e728f03a560062c127327f52991b546264dffaa68790a28984f9d",
+      "adapted": true
+    },
+    {
+      "source": "packages/session/message-quotes/src/client/locales.ts",
+      "sourceSha256": "0100ef32e5e2e0ff08fcb51121e24fe7ece3cf3ff479b1f9a35ab8766350ac3b",
+      "target": "src/vendor/message-quotes/locales.ts",
+      "targetSha256": "a7cceb01d7f549c48e15eaf4ab169fa7695aef86f67ac3facbe88be10e6b51fa",
+      "adapted": true
+    },
+    {
+      "source": "packages/session/message-quotes/src/client/quote-rule.ts",
+      "sourceSha256": "1a3a9c4e04f483378b06bfbc051c101531e76d0fd15eea9b7dc4b2dd8c40b98b",
+      "target": "src/vendor/message-quotes/quote-rule.ts",
+      "targetSha256": "fcb7b6f8902c4f3a82b68fd01013ea8e3fc02a6918696ceea81f5a439d8c6235",
+      "adapted": true
+    },
+    {
+      "source": "packages/session/message-quotes/src/client/quote-text.ts",
+      "sourceSha256": "81dc50d903e5f44eab4f01da8594ec4bcabcb6d49a269268938fd8869e134251",
+      "target": "src/vendor/message-quotes/quote-text.ts",
+      "targetSha256": "3ab1a49291e0a3e90cb63ffb435d847f5e3f8bda43cc86dd392e36da94c8440f",
+      "adapted": true
+    },
+    {
+      "source": "packages/session/message-quotes/src/client/QuotedUserText.tsx",
+      "sourceSha256": "ec6e0748e11d85c9ccd9eac4a8fe247f0cf8d6ddfd4fa2a746ba3c8acfeba08f",
+      "target": "src/vendor/message-quotes/QuotedUserText.tsx",
+      "targetSha256": "32555787518e9d0c292a5a2ea8d591d3cb4522219a9b8428cff9e6926e65e81f",
+      "adapted": true
+    },
+    {
+      "source": "packages/session/message-quotes/src/client/QuoteSelection.module.css",
+      "sourceSha256": "7c9e6e0725c620ee1ccd6dada0d21afcd14a96b6e1cd6f639c14d702cdb83c9a",
+      "target": "src/vendor/message-quotes/QuoteSelection.module.css",
+      "targetSha256": "724116ff8aea21dcd900fbf9c3b91b5a24797f63a316ad3c6ff3966d2bbd98b0",
+      "adapted": true
+    },
+    {
+      "source": "packages/session/message-quotes/src/client/QuoteSelection.tsx",
+      "sourceSha256": "b8ce0819ab472ca04d328d1cb6ae532cc975b6decae0ef155da359eafe356d13",
+      "target": "src/vendor/message-quotes/QuoteSelection.tsx",
+      "targetSha256": "02a62d9bc1b57ada41b7916bc2031e7fa2c7db3416ce89eb1c01afb05f1cd2f3",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-plugin-market/src/client/DiscoverSection.module.css",
+      "sourceSha256": "862a2675f1c5e3e8338b9c7d3a5eafc24b946c5a2dd1ab8514d0e2d431e42069",
+      "target": "src/vendor/plugin-market/DiscoverSection.module.css",
+      "targetSha256": "14fd7522d4c9769acf17a06ef6b5f590475f529ca2d24884e51b5cf7556c8960",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-plugin-market/src/client/DiscoverSection.tsx",
+      "sourceSha256": "6082724fbb6332113c2574c8f7066160cb773cd7c3e4ba6a0d173c1463ada918",
+      "target": "src/vendor/plugin-market/DiscoverSection.tsx",
+      "targetSha256": "264ff6074a1a651df255e549c9f79873a18ccb8acfc0324cd2f181e32ff7c4f2",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-plugin-market/src/client/presentation.ts",
+      "sourceSha256": "8336dbe9166692ecf69b59754242f7d5b1dad0a162752441cf87827e80a256e2",
+      "target": "src/vendor/plugin-market/presentation.ts",
+      "targetSha256": "8336dbe9166692ecf69b59754242f7d5b1dad0a162752441cf87827e80a256e2",
+      "adapted": false
+    },
+    {
+      "source": "packages/client/ui-primitives/src/DetailDocument.module.css",
+      "sourceSha256": "a09857404d7c509f39db2ddeb1d87463b028dc7b4f158b62d2bf86be16a712d2",
+      "target": "src/vendor/primitives/DetailDocument.module.css",
+      "targetSha256": "aeb1d0103a521e1a67acfe3ce28bf62168ee4d71bcfd47dc5daaa4d62a54557e",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-primitives/src/DetailDocument.tsx",
+      "sourceSha256": "e49b7764afd48c5db4e0b91aff4d7acca10cf80e5d89a6518655ec24fd383fd7",
+      "target": "src/vendor/primitives/DetailDocument.tsx",
+      "targetSha256": "ddd10ffd0036ac21495e3cdb8fc551a1301e1b37e12e3540c287c906449a8963",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-user-questions/src/client/draft-store.ts",
+      "sourceSha256": "a8b744b00fca9d661598268eeec3933c5a7d64261f542d2ea32455960d26d87c",
+      "target": "src/vendor/questions/draft-types.ts",
+      "targetSha256": "ce52ebe0ca8f4ce5e3aff304c652ad2cf51e79b29cefde0ac5e8ce53264249fc",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-user-questions/src/client/QuestionComposer.module.css",
+      "sourceSha256": "bb27a8bc81153824ea2dd0b7b9fe0fb66329262b75088554d73b942d9ab185d2",
+      "target": "src/vendor/questions/QuestionComposer.module.css",
+      "targetSha256": "5affa985350a503fc541eab770c3ac514f8f545a65fa9a540a25e81212af73de",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-user-questions/src/client/QuestionComposer.tsx",
+      "sourceSha256": "53a88b7a0034d0a460b44b08e86754710a1d3c9496e761d9b2d41798be884db1",
+      "target": "src/vendor/questions/QuestionFlow.tsx",
+      "targetSha256": "47bd78398530d96051417fd67191ce0679da02fa095ade2f56fb3d46bea7e975",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-settings-models/src/client/ModelReasoningEfforts.tsx",
+      "sourceSha256": "f6ccdf4ef717c57b97c6af61c1cf08b1b245c7bc41e32ef1c67b0c000e409570",
+      "target": "src/vendor/settings-models/client/ModelReasoningEfforts.tsx",
+      "targetSha256": "eb39bbdb4e1f21dedbb1e4153858994cf3235754e8ff4c6747b886eb78d4f2cf",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-tool/src/client/tool/ToolCallTree.module.css",
+      "sourceSha256": "7247f04ee77725aa59ed3621634fd4ac7b4ea63ae35cd5e647fdc8a6ae374dbb",
+      "target": "src/vendor/tool/client/tool/ToolCallTree.module.css",
+      "targetSha256": "1aca541e8e975521e607ab09761908d652beb9d42723afbd5d66b4fbab83900d",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-tool/src/client/tool/ToolCallTree.tsx",
+      "sourceSha256": "083664d476fb3a20b2434f02b71feadc7ab717fae0afa5ec9b30dd4412af5353",
+      "target": "src/vendor/tool/client/tool/ToolCallTree.tsx",
+      "targetSha256": "15c5803dc92cdaab75fa87fb94f3409358e6d73baec27113986221cb742ada08",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-tool/src/client/tool/toolviews/bash-sample.module.css",
+      "sourceSha256": "7865828830a027b20c833ad0c705fbfc99f82a33e152c95c8e891fff58fa08e8",
+      "target": "src/vendor/tool/client/tool/toolviews/bash-sample.module.css",
+      "targetSha256": "6f944b33bb494e6700c048daecf628b1b74428aabf3660ffd15bff213016d3c2",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-tool/src/client/tool/toolviews/bash-sample.tsx",
+      "sourceSha256": "bd96993fca5928b8dd4f471fa61f799aff70bc215da071f156d94ffd90f942e5",
+      "target": "src/vendor/tool/client/tool/toolviews/bash-sample.tsx",
+      "targetSha256": "2b2ddbd59011f54fb630fb448754345475e61592fd549f7db73c934905cf41d7",
       "adapted": true
     }
   ],
@@ -3506,28 +3689,73 @@
     },
     {
       "target": "src/vendor/settings-models/client/controller.ts",
-      "targetSha256": "7fead8d874738de08e59c61616f8fa8480ebcb0f54916a0af939172d3b4516f9",
+      "targetSha256": "dca8b8aaabbc46522325514e098c95bf0e8fb20492e154ea25e328e01d5f07be",
       "description": "State and revision-fenced writes of the reasoning-declaration block on pi-ai provider cards: stored models list from the shared settings form, installed-catalog ids from the adapter, levels from the namespace schema."
     },
     {
       "target": "src/vendor/settings-models/client/ReasoningDeclarationCard.tsx",
-      "targetSha256": "a634fab373eff7a5255787615850c465864906ba2d86fa46e35b6beb8b0037a0",
-      "description": "The reasoning-declaration block rendered in every pi-ai provider card (settings.models.provider-card, key llm-pi-ai): a switch per catalog-undescribed model and one checkbox per schema level."
-    },
-    {
-      "target": "src/vendor/settings-models/client/ReasoningDeclarationCard.module.css",
-      "targetSha256": "ef4efc9ec68756d1d8ae1df0dd5e05f0123fc53c7a67fb996cb8c9771b3994c1",
-      "description": "Styles of the reasoning-declaration block (flat section inside the official provider card, alias tokens only)."
-    },
-    {
-      "target": "src/vendor/settings-models/client/locales.ts",
-      "targetSha256": "8b4c7bc1f43de744263d83a6190fcd70bda2fd20b7b51fb27697ad33e318822d",
-      "description": "Eight-language copy of the reasoning-declaration block (modern-reasoning namespace)."
+      "targetSha256": "de5a4add6e4d2ddc59c86643530980545641e8744581f2867a818b91e7057e5d",
+      "description": "Original per-row local draft editor with Save/Cancel, inherited models, hidden-field preservation, and first-edit revision fencing; uses the separately attributed ModelReasoningEfforts view."
     },
     {
       "target": "src/vendor/settings-models/client/register.ts",
       "targetSha256": "0532ede61d2d1df6f32c7a66908173218eeb7693edcff8837b7cf1dc5778d405",
       "description": "Registration of the reasoning-declaration block: dictionaries, controller, keyed provider-card entry."
+    },
+    {
+      "target": "src/client.tsx",
+      "targetSha256": "4d4162c47c189a969886272d86b4747183740e04f7956e52075f7d900dc73904",
+      "description": "Original plugin composition, public owner selection and presentation/service registration."
+    },
+    {
+      "target": "src/community-markdown.ts",
+      "targetSha256": "55c0bb412641cd89a64b914e9da16f627515343b337cd721649d605e3fe1c6f7",
+      "description": "Original reversible code-disclosure DOM adapter for the observed dsh-better-sidebar 0.28.0 public preview markup. No community controller, viewer, editor or library code is copied."
+    },
+    {
+      "target": "src/index.ts",
+      "targetSha256": "06523f408c6ec71acab2f29036c92ebcd2135a25db72c14994f1d639eae07b04",
+      "description": "Original Host manifest/configuration, migration settings and plugin entry wiring."
+    },
+    {
+      "target": "src/official-controls.ts",
+      "targetSha256": "0e3e908a4ca17c8ed5c5cbd2e143af113253144817ed4f1d6c775c17f0811695",
+      "description": "Original reversible exact-class rc.4 style/DOM adapter. It observes official controlled switch state through the attributed Feel solver without replacing official handlers or services."
+    },
+    {
+      "target": "src/plugin-documents/index.tsx",
+      "targetSha256": "927ef018477af305b983977bffcae6436ba99baa4219f7eb593c7d0190aec813",
+      "description": "Original public plugin detail-section registration and discovery-presentation adapter over the official inventory, installer, locale and controller faces."
+    },
+    {
+      "target": "src/plugin-documents/PluginDocument.tsx",
+      "targetSha256": "464218e59254e1de4656f161b389f41eba52584bf910521ee29656c3e2112c0b",
+      "description": "Original authenticated document/image request, cancellation and retry wrapper over the attributed DetailDocument presenter."
+    },
+    {
+      "target": "src/presentation-parity.ts",
+      "targetSha256": "b7f4069a8104b2aec5dedde9afe468b7f7c660d85c1ac6e648ab9d692f5fb0e1",
+      "description": "Original public presentation adapters for ordinary questions and preset help, sharing the official controller faces and question draft-store handle. Plan-review stays official; added disclosure labels are plugin-owned eight-language copy."
+    },
+    {
+      "target": "src/presentation-shadow.ts",
+      "targetSha256": "09ca3533035f9709aeda4d7303dde85c9ba71384f2d7580e3ddcb84ccc86e96d",
+      "description": "Original public SlotRegistry subscription helper that withdraws and rebinds a presentation when its source entry changes generation."
+    },
+    {
+      "target": "src/tool-cards.tsx",
+      "targetSha256": "dfb0d0c68318a0819cc28010259925b6c5d16f5ee821057c2c9f944bb1257ad7",
+      "description": "Original activation wrapper selecting the attributed complete Tool UI owner."
+    },
+    {
+      "target": "src/vendor/conversation/client/input/original-image-drop.ts",
+      "targetSha256": "a2e647ee2dafea7b995fc3e3de17f9697a836644dcf595c408f4bdbf984cbb6d",
+      "description": "Original bridge from this activation's valid image-transfer token into the existing composer file intake and validation."
+    },
+    {
+      "target": "src/vendor/plugin-market/market-store.ts",
+      "targetSha256": "70c84801451fb5ac347228ecbd20941eb7487b67e76487c5087749eef1ad329a",
+      "description": "Original type-only aliases over the published official DiscoverFace and DiscoverState; no market controller or business store is copied."
     }
   ],
   "adapters": [
@@ -3579,7 +3807,7 @@
     },
     {
       "target": "src/markdown-scope.tsx",
-      "targetSha256": "c3a8cadcb291d2177e182cffb9a975fefcd93a648fcd53111c13c7866686c976",
+      "targetSha256": "f728cc97be868656d9ec65d7f4dd5c50ef4333362e2c5b6ce25f837177bfe3ce",
       "sources": [],
       "description": "Bridge the public chat owner workspace and navigation capabilities into Modern Markdown; resolve local image and file paths with the official workspace-path helper."
     },
@@ -3589,31 +3817,31 @@
       "sources": [
         {
           "source": "packages/client/ui-input-trigger/src/client/MenuView.module.css",
-          "sourceSha256": "fbc1530a02e1ced460df1133dfb4cf2acc2294cfcbc98535a4326b975a5f7565"
+          "sourceSha256": "56bff38e623a8bb7f272f7a66d87e95d1d4091a745787297b2ed73d50ab5df05"
         },
         {
           "source": "packages/client/ui-permission-presets/src/client/PermissionSelect.module.css",
-          "sourceSha256": "23b046253c175e253ff867184859102789066a35b7d4998ac9e73dd0c26dbf75"
+          "sourceSha256": "6cc75a1356c9293e04c976ba05c1bbeeca24e1dcc21d5d655ba2a4acaee7e1d3"
         },
         {
           "source": "packages/client/ui-approval/src/client/ApprovalPanel.module.css",
-          "sourceSha256": "91da3954648edaacbb52713d6afbc7ead84acb35364668d5411a57f9f1a0f213"
+          "sourceSha256": "b965d4f37601550de075fe0b3d91572671b1e3b8a29f447a01e17410eb2be589"
         },
         {
           "source": "packages/client/ui-user-questions/src/client/QuestionComposer.module.css",
-          "sourceSha256": "5affa985350a503fc541eab770c3ac514f8f545a65fa9a540a25e81212af73de"
+          "sourceSha256": "bb27a8bc81153824ea2dd0b7b9fe0fb66329262b75088554d73b942d9ab185d2"
         },
         {
           "source": "packages/client/ui-deliverables/src/client/ChangedFiles.module.css",
-          "sourceSha256": "1df535abee87e7dd0a3f53a54bdec9ae747b71d69691fb59feb19cb181c3695f"
+          "sourceSha256": "cfe0f7167007f8fa58c10bb85f2ae33a718ed81b554c5197b8dba18c360bc11a"
         },
         {
           "source": "packages/client/ui-shortcuts/src/client/Reference.module.css",
-          "sourceSha256": "471721c687269d29148c0b6d79de7a1c531276268168f93ab620301d2e7fee37"
+          "sourceSha256": "051c6c25d36a18b34b62d8cc150987197f44b582e8fb61e73f8d3b144540ec53"
         },
         {
           "source": "packages/client/ui-chat/src/client/chat/MessageIconActions.module.css",
-          "sourceSha256": "ca6eb71aee0a4d0a2db0214dd075320088124971af19adfbd560cf17e12a15ba"
+          "sourceSha256": "587ca94bb9b7de366278f0a7cb8374e5665bd2727ec2556ee9eca3d13c4f87ef"
         }
       ]
     },
@@ -3623,17 +3851,17 @@
       "sources": [
         {
           "source": "packages/client/ui-plan/src/client/plan.ts",
-          "sourceSha256": "94a3678a94f794ef622bc2b9742cc70d6bb2a6210c1e827387eb5037639deb29"
+          "sourceSha256": "42eca3726427b3b9143d89508a3f0826d22d812e48709fba79cff9d74c935629"
         },
         {
           "source": "packages/client/ui-plan/src/client/plan-resource.ts",
-          "sourceSha256": "b24fbbf0f8e265c131744892675db4edbf60c69770e025e816d2494aa504b4cc"
+          "sourceSha256": "1cecf6cef3cf538b0592938c60587c28726238c0d70f2cdeee85025f2aa293c2"
         }
       ]
     },
     {
       "target": "src/vendor/settings-models/client/reasoning-declaration.ts",
-      "targetSha256": "9503dc69e37720bbf51a16b91c54fc8157c17e4048f7f9eb2ba1f3067e9158ea",
+      "targetSha256": "161b1e2b55150b7f66cb5a7232def456a4009e6c1c52a0bb939af890c556a497",
       "sources": [
         {
           "source": "packages/client/ui-settings-models/src/client/ModelListEditor.tsx",
@@ -3649,9 +3877,213 @@
         },
         {
           "source": "packages/client/ui-settings-models/src/client/store.ts",
-          "sourceSha256": "23664ef92f5a4f30dc8a9bbe33ce46313abd8ca1f8b97b6f36db6bb1295a4c9f"
+          "sourceSha256": "9d642c5d74f6a5334af5c600460bd1e23523de8008679f6a239e2585528428ef"
         }
       ]
+    },
+    {
+      "target": "src/file-drag.ts",
+      "targetSha256": "c18c20b62b5c44a9c32872c0173c9e0bec6527f05380cbee2accb0411f2f9cdd",
+      "sources": [
+        {
+          "source": "packages/client/ui-file-drag/src/client/index.ts",
+          "sourceSha256": "30a7ee24ecc81ccc9c48c1a11d2a7277164c1af632095e2342a5136ad1a7f3a5"
+        },
+        {
+          "source": "packages/client/ui-attachment/src/client/MessageImages.tsx",
+          "sourceSha256": "41715f137e227f5941b08d3b07884fb1ce68eabaa443d0a55bfa54fdacf6a40f"
+        }
+      ],
+      "description": "Activation-owned browser image transfer service and public gallery contributions; official attachment upload and conversation.images.content ownership remain unchanged."
+    },
+    {
+      "target": "src/model-owner.ts",
+      "targetSha256": "7a0a5055d8068eb1e8584479ef3946500a3aaa496b685875ee53f52b909a7ea5",
+      "sources": [
+        {
+          "source": "packages/client/ui-model-selection/src/client/index.ts",
+          "sourceSha256": "21621c83dd6ab5d3e3ae4d22a65cbe2832ca262100a4c859ab9b737fcb38e903"
+        },
+        {
+          "source": "npm:@deepseek-ai/dsh-client-ui-model-selection@0.2.1-rc.4/lib/client.js",
+          "sourceSha256": "18f6e74e203d50f66c8e30552d52e070d06941514cb0e72b149683c092a3ba2a"
+        }
+      ],
+      "description": "Adapted model seat and /model registration using the attributed local client catalog/directory/resolver and the standard conversation.input.model.label child slot. Official Host catalog, session, remote and selection execution services remain external."
+    },
+    {
+      "target": "src/official-controls.css",
+      "targetSha256": "80b968a059c80a267a9b5c94301bd723676a9f0296a30e6612d8db7e4b211ef7",
+      "sources": [
+        {
+          "source": "packages/client/ui-primitives/src/Button.module.css",
+          "sourceSha256": "65c7e37f50b79a051bf75f91bb9acb91847d006256470a9caa81440bc781546c"
+        },
+        {
+          "source": "packages/client/ui-primitives/src/Input.module.css",
+          "sourceSha256": "d188d33aa5e3a1999b017754727f4fa13894209b397377c0a5cac4ff336b95f9"
+        },
+        {
+          "source": "packages/client/ui-primitives/src/HoverCard.module.css",
+          "sourceSha256": "ae4aa2190d338b3da76a766b08aff192a26ebcbdd9c8a59e31cb441d1cdcf8b0"
+        },
+        {
+          "source": "packages/client/ui-primitives/src/DisclosureRow.module.css",
+          "sourceSha256": "992b7fbb6b6a0e1ad912330fc73aa4f024f9dc605a8e3c494a4df104c9bae58e"
+        },
+        {
+          "source": "packages/client/ui-primitives/src/ConfigField.module.css",
+          "sourceSha256": "8901c6ac85acf36e51ec6aafbd7b296b5cdbe3d0bee5f446ede0b2026ef6d12d"
+        },
+        {
+          "source": "packages/client/ui-primitives/src/SegmentedTabs.module.css",
+          "sourceSha256": "7582309a90bc660fb70f54898dba6bc93d49fb9302fff5dcd084194c88927be4"
+        },
+        {
+          "source": "packages/client/ui-primitives/src/MenuSurface.module.css",
+          "sourceSha256": "d69c1b361ebf8ce481836b0f5d0ee145e6bd52fe5cab71e14b176452abf18154"
+        },
+        {
+          "source": "packages/client/ui-primitives/src/Modal.module.css",
+          "sourceSha256": "651082405cea026fd7c9a3f3390ecaf9b09f88c0da40248ae1b4c74afca46629"
+        },
+        {
+          "source": "packages/client/ui-primitives/src/Switch.module.css",
+          "sourceSha256": "3277e898938ce69ed6eb2d8a211eebcf071a9e4647b58e3362738c90466f2631"
+        },
+        {
+          "source": "packages/client/ui-settings-account/src/client/AccountMenu.module.css",
+          "sourceSha256": "e7a4b3b1c6db89d0bc172ab92002ce44f9edab406f00b0bd740d23d8e698118e"
+        },
+        {
+          "source": "packages/client/ui-settings-account/src/client/AccountNotice.module.css",
+          "sourceSha256": "55e872a222cbe12b58b9d906ce3b53c68d9bbe52c157db2edddd237d7945acff"
+        },
+        {
+          "source": "packages/client/ui-trajectory/src/client/TrajectoryTable.module.css",
+          "sourceSha256": "eaa37247200bffbc1027976ad884545cc6315105e645c955d62e6f7200944e58"
+        },
+        {
+          "source": "packages/client/ui-sidebar-documentpreview/src/client/office/FontNotice.module.css",
+          "sourceSha256": "971af9e7a97f5c1d583baf28575787dcb30429251ee3beb16a65ae6f6d94d1c8"
+        }
+      ],
+      "description": "Selected patched style deltas mapped to exact published rc.4 Web/client classes. The retired ConfigField delta applies only to the current SettingsValueField gap; no retired component or business owner is restored."
+    },
+    {
+      "target": "src/plugin-documents/locales.ts",
+      "targetSha256": "b6bc3811aa1de1a6923861fc47047d476b11c9d14d37367bdc97133c24ebbafd",
+      "sources": [
+        {
+          "source": "packages/client/ui-plugin-market/src/client/locales.ts",
+          "sourceSha256": "a18b426e65789ab24d4c841ae3cdf03465f5095039b83d210742766a76b733bc"
+        },
+        {
+          "source": "packages/client/ui-chat/src/client/locale.ts",
+          "sourceSha256": "9df06d01dba1aaa060c6f42b1b473d6fbe33a8a9e703ab69121568478e2dd1b0"
+        }
+      ],
+      "description": "Eight-language detail-read failure vocabulary and Markdown disclosure labels with original modern-plugin-documents namespace wiring."
+    },
+    {
+      "target": "src/quotes.ts",
+      "targetSha256": "6082b260712c49beef0730605ed2fe959e3080cbe848f789400b83a3a099a40b",
+      "sources": [
+        {
+          "source": "packages/session/message-quotes/src/client/index.ts",
+          "sourceSha256": "1ab413850720474cf0809f02724620eece430117c0143142de57c360ee0b8476"
+        }
+      ],
+      "description": "Quote admission and sent-text registration over Modern's conversation owner, with a public standard text-interaction contract and the existing input quote action."
+    },
+    {
+      "target": "src/tool-owner.ts",
+      "targetSha256": "68282d2b1b5a3f5f284c530935d5a418b4a6357616b4c12ac4680b7f020be792",
+      "sources": [
+        {
+          "source": "packages/client/ui-tool/src/client/apply.ts",
+          "sourceSha256": "a731448d57b94f5d15d19be1622b9ab6b96d63ea09eb6a214f6e43f2c57d3fa4"
+        }
+      ],
+      "description": "Complete Tool UI owner adapted to rc.4 public payloads, fallback/denial presentation, todo-history and standard tool.call.images. Host execution, approvals, MCP and sessions remain official."
+    },
+    {
+      "target": "src/vendor/file-drag/transfers.ts",
+      "targetSha256": "25ed1aab77bffb405e7cd42075c53af6df7d6f57a11d9056db233c44d9d2c3dd",
+      "sources": [
+        {
+          "source": "packages/client/ui-file-drag/src/client/transfers.ts",
+          "sourceSha256": "405a2e292d507c1ac73b704bbbf24164c5cd29dc3e6fb4aeca6c470255d5e0e2"
+        },
+        {
+          "source": "packages/util/file-drag/src/index.ts",
+          "sourceSha256": "3503a00e43ee6e056af9ed9bf1ad8784241eb153d8b1e49214243fb4efff995f"
+        }
+      ],
+      "description": "Browser-only original-byte transfer and image-only filename adaptation. The official rc.4 Host exposes no Electron native file-drag bridge; no native OS drag capability is claimed."
+    },
+    {
+      "target": "src/vendor/settings-models/client/locales.ts",
+      "targetSha256": "d50a37651e01e9b3772f7762083dc27adcee49d2cbd03a327339d748fd0931aa",
+      "sources": [
+        {
+          "source": "packages/client/ui-settings-models/src/client/locales.ts",
+          "sourceSha256": "aa7a3310ee743c3fc14de941bf87fd34fc3fbf8ff9e59bcb1c95999525b42022"
+        }
+      ],
+      "description": "Eight-language reasoning-level editor vocabulary plus original provider-card save/cancel/refusal copy under modern-reasoning."
+    },
+    {
+      "target": "src/vendor/settings-models/client/ReasoningDeclarationCard.module.css",
+      "targetSha256": "5bcbd09d35e3447440d55b35a9b13c16e0d73cc38a957c9c668b52fbb240917d",
+      "sources": [
+        {
+          "source": "packages/client/ui-settings-models/src/client/ModelsSection.module.css",
+          "sourceSha256": "c00e2f3c612e74b728e26255da8ed86187dc2c863539dea7be1ff023763e7a3f"
+        }
+      ],
+      "description": "Original flat provider-card shell plus adapted per-level selector, API-wire input, help and deletion styles from the patched Models editor."
+    },
+    {
+      "target": "src/vendor/model/client/catalog.ts",
+      "targetSha256": "751568938f6918a8e7734b44ab003bdf53e9390d7264dab6501fb582558a955d",
+      "sources": [
+        {
+          "source": "packages/client/ui-model-selection/src/client/catalog.ts",
+          "sourceSha256": "751568938f6918a8e7734b44ab003bdf53e9390d7264dab6501fb582558a955d"
+        },
+        {
+          "source": "npm:@deepseek-ai/dsh-client-ui-model-selection@0.2.1-rc.4/lib/client.js",
+          "sourceSha256": "18f6e74e203d50f66c8e30552d52e070d06941514cb0e72b149683c092a3ba2a"
+        }
+      ],
+      "description": "Client-only shared catalog state. Existing TypeScript is checked against the published rc.4 browser artifact region lib/types/client/catalog.js (ModelCatalogDirectory, captured lines 710-801). Official Host catalog/Session Remote execution remains external."
+    },
+    {
+      "target": "src/vendor/model/client/directory.ts",
+      "targetSha256": "7227a5dac1fd8c44d5f5df82821888ef5c347c6bf955f5100ef1877f05af070e",
+      "sources": [
+        {
+          "source": "packages/client/ui-model-selection/src/client/directory.ts",
+          "sourceSha256": "0057e35eaad9ae974a32efbc12beb91f620490eb61169e069f4ad5e2a919cfb6"
+        },
+        {
+          "source": "npm:@deepseek-ai/dsh-client-ui-model-selection@0.2.1-rc.4/lib/client.js",
+          "sourceSha256": "18f6e74e203d50f66c8e30552d52e070d06941514cb0e72b149683c092a3ba2a"
+        }
+      ],
+      "description": "Client-only per-session shared model-selection directory, checked against the published rc.4 browser artifact region lib/types/client/directory.js (ModelDirectory, captured lines 802-984). The type-only projection import follows rc.4 api-session-controller/types. No Host or Session implementation is copied."
+    },
+    {
+      "target": "src/vendor/model/client/service.ts",
+      "targetSha256": "38d8a2403ebd02bd831b5ddc91bfbfed7d6b4ce73797edbc1967770222841349",
+      "sources": [
+        {
+          "source": "npm:@deepseek-ai/dsh-client-ui-model-selection@0.2.1-rc.4/lib/client.js",
+          "sourceSha256": "18f6e74e203d50f66c8e30552d52e070d06941514cb0e72b149683c092a3ba2a"
+        }
+      ],
+      "description": "Minimal TypeScript adaptation of the published rc.4 browser artifact region lib/types/client/service.js (ModelDirectoryResolver, captured lines 985-1041): directoryFor and catalog/event lifecycle only. Legacy-only catalogStore/loadCatalog APIs and duplicate public Context declarations are omitted. No runtime import from the disabled official browser entry remains."
     }
   ],
   "translations": [
@@ -3755,13 +4187,18 @@
       "namespace": "fileDrag",
       "source": "packages/client/ui-file-drag/src/client/locales.ts",
       "languages": [
+        "zh",
+        "en",
         "ja",
         "es",
         "fr",
         "de",
         "ru",
         "pt"
-      ]
+      ],
+      "target": "src/vendor/file-drag/locales.ts",
+      "targetSha256": "3b51035923ed1698761580a6b70230f147c04868d2ba5425d02b74ffc78ad609",
+      "sourceSha256": "b0a48a82de7b1dbdfb5ef23d7ca41883a3aa063d36c55136ddeb18d0fe4cfc24"
     },
     {
       "namespace": "goal",
@@ -4362,6 +4799,81 @@
         "ru",
         "pt"
       ]
+    },
+    {
+      "namespace": "messageQuotes",
+      "source": "packages/session/message-quotes/src/client/locales.ts",
+      "languages": [
+        "zh",
+        "en",
+        "ja",
+        "es",
+        "fr",
+        "de",
+        "ru",
+        "pt"
+      ],
+      "target": "src/vendor/message-quotes/locales.ts",
+      "targetSha256": "a7cceb01d7f549c48e15eaf4ab169fa7695aef86f67ac3facbe88be10e6b51fa",
+      "sourceSha256": "0100ef32e5e2e0ff08fcb51121e24fe7ece3cf3ff479b1f9a35ab8766350ac3b"
+    },
+    {
+      "namespace": "modern-reasoning",
+      "source": "packages/client/ui-settings-models/src/client/locales.ts",
+      "languages": [
+        "zh",
+        "en",
+        "ja",
+        "es",
+        "fr",
+        "de",
+        "ru",
+        "pt"
+      ],
+      "target": "src/vendor/settings-models/client/locales.ts",
+      "targetSha256": "d50a37651e01e9b3772f7762083dc27adcee49d2cbd03a327339d748fd0931aa",
+      "sourceSha256": "aa7a3310ee743c3fc14de941bf87fd34fc3fbf8ff9e59bcb1c95999525b42022"
+    },
+    {
+      "namespace": "modern-plugin-documents",
+      "target": "src/plugin-documents/locales.ts",
+      "targetSha256": "b6bc3811aa1de1a6923861fc47047d476b11c9d14d37367bdc97133c24ebbafd",
+      "languages": [
+        "zh",
+        "en",
+        "ja",
+        "es",
+        "fr",
+        "de",
+        "ru",
+        "pt"
+      ],
+      "sources": [
+        {
+          "source": "packages/client/ui-plugin-market/src/client/locales.ts",
+          "sourceSha256": "a18b426e65789ab24d4c841ae3cdf03465f5095039b83d210742766a76b733bc"
+        },
+        {
+          "source": "packages/client/ui-chat/src/client/locale.ts",
+          "sourceSha256": "9df06d01dba1aaa060c6f42b1b473d6fbe33a8a9e703ab69121568478e2dd1b0"
+        }
+      ]
+    },
+    {
+      "namespace": "modern-presentation",
+      "target": "src/presentation-parity.ts",
+      "targetSha256": "b7f4069a8104b2aec5dedde9afe468b7f7c660d85c1ac6e648ab9d692f5fb0e1",
+      "languages": [
+        "zh",
+        "en",
+        "ja",
+        "es",
+        "fr",
+        "de",
+        "ru",
+        "pt"
+      ],
+      "description": "Original code/text disclosure labels, registered separately from the official question and preset dictionaries."
     }
   ],
   "host": {
@@ -4369,63 +4881,178 @@
     "commit": "22ddee3792402c3e70ec5f86a63c3e3e895a2f60",
     "modernUiCommit": "a9f4c370fa480c9a17d5c9a79cb83aeba26bdf0d",
     "patchSha256": "111b5c5a0d817685ab32440df6272f895ce385907b0f16f5e036dd443e240000",
-    "purpose": "Explicit replacement plugins retain the existing blank-translation/cache repair and MCP no-redirect behavior. Official package files are never changed.",
+    "purpose": "Explicit compatibility plugins retain blank-translation/cache repair, MCP no-redirect behavior, the attributed HTTP provider with a plugin-owned Undici transport, authenticated read-only plugin README utilities and boot-page style deltas. Official package files and Host session/command/remote/model services remain unchanged. Normal npm dependencies (including Undici 8.12.2) apply only to these plugin entries; they do not replace or certify the entire official dependency tree, and no Zod floor is claimed.",
     "files": [
       {
         "source": "packages/experimental/translator/src/deepseek.ts",
         "target": "translator/deepseek.ts",
-        "sourceSha256": "516c8d0656af17912307908c311d7bf50350bfa7c85ce85f6030588bcdf44a87"
+        "sourceSha256": "516c8d0656af17912307908c311d7bf50350bfa7c85ce85f6030588bcdf44a87",
+        "targetSha256": "efc5a4c9067b5d9fe1c92938d57ed32eb3841bfe231efba42ca7dd0838b430a3",
+        "adapted": true
       },
       {
         "source": "packages/experimental/translator/src/error.ts",
         "target": "translator/error.ts",
-        "sourceSha256": "8b0d131bd375f9a57a0eb26ea5c22874ab068682809d04a945697e1dba4269b8"
+        "sourceSha256": "8b0d131bd375f9a57a0eb26ea5c22874ab068682809d04a945697e1dba4269b8",
+        "targetSha256": "b003528f528107007273221d53dc8826b75b9c6c5dde2f7dd0924d0f1b77ec3d",
+        "adapted": true
       },
       {
         "source": "packages/experimental/translator/src/index.ts",
         "target": "translator/index.ts",
-        "sourceSha256": "195be853258f1a20f2b6cdfdb8bd9915cf4c8256b725fcda9125fb20b0b1a291"
+        "sourceSha256": "195be853258f1a20f2b6cdfdb8bd9915cf4c8256b725fcda9125fb20b0b1a291",
+        "targetSha256": "9f95ab39606e2c0e5e1f0db750674b66b086b6a04d765f720d7f643e73aa6a71",
+        "adapted": true
       },
       {
         "source": "packages/experimental/translator/src/provider.ts",
         "target": "translator/provider.ts",
-        "sourceSha256": "a8f4ca0dd77443d57ed2864edc42010e3495309ef7de3c53f1d498f26b0d76c9"
+        "sourceSha256": "a8f4ca0dd77443d57ed2864edc42010e3495309ef7de3c53f1d498f26b0d76c9",
+        "targetSha256": "b962607ffa393020cf8bcc580a5d3382d8a81e82f5e754fac3b4f24fbdbb35c2",
+        "adapted": true
       },
       {
         "source": "packages/experimental/translator/src/storage.ts",
         "target": "translator/storage.ts",
-        "sourceSha256": "def693035fa6a6142196ad9baf972d088522c3e22c0604f87da98da60346b173"
+        "sourceSha256": "def693035fa6a6142196ad9baf972d088522c3e22c0604f87da98da60346b173",
+        "targetSha256": "2ccb16454bd8823ca99520779b23ed6c221d610f024c3d5fdb2c6f48790e7c40",
+        "adapted": true
       },
       {
         "source": "packages/experimental/translator/src/types.ts",
         "target": "translator/types.ts",
-        "sourceSha256": "3fb41bf69bb00d443c8821a0f6474423aaf0080280b995659fe167104e940dd5"
+        "sourceSha256": "3fb41bf69bb00d443c8821a0f6474423aaf0080280b995659fe167104e940dd5",
+        "targetSha256": "a4b52d0199b0d61ae86a42d534355d56f3b6daa2220168c85d59a500db40067d",
+        "adapted": true
       },
       {
         "source": "packages/mcp/mcp-client/src/connection.ts",
         "target": "mcp-client/connection.ts",
-        "sourceSha256": "06dc1b3a1297b8b23f6ac5c44f3ba6740716c76db71c28cfb8f14d6c0340030e"
+        "sourceSha256": "06dc1b3a1297b8b23f6ac5c44f3ba6740716c76db71c28cfb8f14d6c0340030e",
+        "targetSha256": "49146cf67c74a20f15cf8aed0c9b43a4ca92d4a610689e9b8875ea4c10730f71",
+        "adapted": true
       },
       {
         "source": "packages/mcp/mcp-client/src/index.ts",
         "target": "mcp-client/index.ts",
-        "sourceSha256": "f279bd88743ca73b0d9834915d1bb31e455e21c87f4990808cfd55b273db4d1c"
+        "sourceSha256": "f279bd88743ca73b0d9834915d1bb31e455e21c87f4990808cfd55b273db4d1c",
+        "targetSha256": "7e2b58077c43251c805b95481b56eaff3ed966e8a9e54abc5c6c2ba9b7917e76",
+        "adapted": true
       },
       {
         "source": "packages/mcp/mcp-client/src/server-context.ts",
         "target": "mcp-client/server-context.ts",
-        "sourceSha256": "02ca9fe759891788572385a00f0cc7b6e92d6e98e103c1d00dd99ccec0d6319a"
+        "sourceSha256": "02ca9fe759891788572385a00f0cc7b6e92d6e98e103c1d00dd99ccec0d6319a",
+        "targetSha256": "d001ee4d490df726099c1cbcd8036f40a60e98c7e71ce6ad3d1ca71618963931",
+        "adapted": true
       },
       {
         "source": "packages/mcp/mcp-client/src/tools.ts",
         "target": "mcp-client/tools.ts",
-        "sourceSha256": "59203150bda479a990afcdaf60483a35a836887926892e1074e02d0294c01af9"
+        "sourceSha256": "59203150bda479a990afcdaf60483a35a836887926892e1074e02d0294c01af9",
+        "targetSha256": "997c199ec350d223053e24037799fcc5e2c783802c5db70b6562f2f949852801",
+        "adapted": true
       },
       {
         "source": "packages/mcp/mcp-client/src/transport.ts",
         "target": "mcp-client/transport.ts",
-        "sourceSha256": "bbb5a81239eb36333b01b9711dc5fb77b5e86f66ac64a89c0f03b8ae1d9ab605"
+        "sourceSha256": "bbb5a81239eb36333b01b9711dc5fb77b5e86f66ac64a89c0f03b8ae1d9ab605",
+        "targetSha256": "4aef89aeba4b3bd583e1b826d41c18988e5adf98074e5313c864770b7ecbb019",
+        "adapted": true
+      },
+      {
+        "source": "packages/boot/plugin-market/src/detail-files.ts",
+        "sourceSha256": "04a39dcc3867551473cc8f54f6fa941d4b34e99b36b331ad469e088910acfa67",
+        "target": "plugin-documents/detail-files.ts",
+        "targetSha256": "5963739db1b1889cf2b75c8ceada1485965495e7737270e5916102fa8c225fde",
+        "adapted": true
+      },
+      {
+        "source": "packages/boot/plugin-market/src/detail.ts",
+        "sourceSha256": "d184e6c6eca2c478083db21cc2dd0ab3d748bbc9881537e38968b66e4536ccaf",
+        "target": "plugin-documents/detail.ts",
+        "targetSha256": "82c645dfcb56e72f503654d790710c24dc42c4a6621215e53933848d5e0a7551",
+        "adapted": true
+      },
+      {
+        "source": "packages/util/plugin-detail/src/document.ts",
+        "sourceSha256": "c0c8af5d31bfbf0075da0355c5d61213cf036d2792c83e4a52e4472b4fdd7430",
+        "target": "plugin-documents/detail/document.ts",
+        "targetSha256": "cd5351f1865bdbb3aecfebbd8c2994d1499b72887ab837e6f949e5192a3f568f",
+        "adapted": true
+      },
+      {
+        "source": "packages/util/plugin-detail/src/files.ts",
+        "sourceSha256": "9e53e21a04f9ce5d2cc8803af701b2db86acb03fa566f90dc82800567749cd13",
+        "target": "plugin-documents/detail/files.ts",
+        "targetSha256": "82c1a2c2d720bf52ac84aeb97c676c7366d11b2e2cddc501b0366e9eea810898",
+        "adapted": true
+      },
+      {
+        "source": "packages/util/plugin-detail/src/index.ts",
+        "sourceSha256": "bf23e2d8eb62680903a872f4a055d1cb20cb5d116e3a3297d36ffc40e40610c9",
+        "target": "plugin-documents/detail/index.ts",
+        "targetSha256": "5aef796708d359a291f373f77177030057d7ca2b77e8c80b7bdb9ca5f3ea8fca",
+        "adapted": true
+      },
+      {
+        "source": "packages/util/plugin-detail/src/response.ts",
+        "sourceSha256": "d5fd41cbf75c3742c8cccdfe239e31a93bc06ce1b5a68b392fcd2ea91d166c0c",
+        "target": "plugin-documents/detail/response.ts",
+        "targetSha256": "7a24453f09e3cf6b55478a38dcb949ec1d6fa7504a04f84cb644707ee8e49307",
+        "adapted": true
+      },
+      {
+        "source": "packages/util/plugin-detail/src/types.ts",
+        "sourceSha256": "59931e217bdcbdb99ef88727835be21d9b08da9e91517d57de83d0d9a764a422",
+        "target": "plugin-documents/detail/types.ts",
+        "targetSha256": "c63c3302f0fa986678e598329d80c951965d9fe6f6dfc3e0a8ac2397ceef9a5d",
+        "adapted": true
+      },
+      {
+        "source": "packages/boot/plugin-market/src/repository-cache.ts",
+        "sourceSha256": "0c7b415368079c7193e1981410df38ad4841ee8585e6cb84bdaf991e658eec73",
+        "target": "plugin-documents/repository-cache.ts",
+        "targetSha256": "b47faba1f8f74261f40336e986248f20591786c1d95d6b1bcefdc89f0150daf6",
+        "adapted": true
+      },
+      {
+        "source": "packages/boot/plugin-market/src/types.ts",
+        "sourceSha256": "147491e425bf69b0330144f6c773d84437eb3fd8bc4c009ca1b9aedbc43d3e46",
+        "target": "plugin-documents/types.ts",
+        "targetSha256": "613264484e1cd137918faf6a54a93af97933148281ad98a5b9930d250b9cce6c",
+        "adapted": true
+      },
+      {
+        "source": "npm:@deepseek-ai/dsh-web-fetch-http@0.2.1-rc.4/lib/index.js",
+        "sourceSha256": "489fef91b0c11c063029ea7aed27b312817570b9c3177aeaa44983b9a25aedcd",
+        "target": "web-fetch-http/index.mjs",
+        "targetSha256": "cb5f3004e39328c0777eeab3c39969d34d982dfec3eedcb1544e1f4b3f6d424c",
+        "adapted": true,
+        "description": "Published HTTP provider with a distinct plugin name and a plugin-owned Undici proxy-dispatcher lifecycle. Public-IP, DNS pinning, NAT64 and redirect checks remain in the attributed source."
       }
-    ]
-  }
+    ],
+    "authored": [
+      {
+        "target": "plugin-documents/index.ts",
+        "targetSha256": "cf537e7f66d0cdc631e6025c5f52cc0c67fabcfcf245d31af5b79b256b24eaeb",
+        "description": "Original authenticated owner-only document/image routes, official-inventory authorization, separate installed-bundle/market read limits and sources, local rereads and request lifecycle around the attributed read-only utility/cache modules."
+      }
+    ],
+    "adapters": [
+      {
+        "target": "official-style/index.ts",
+        "targetSha256": "8b537e779681473b926b65c1c4d09db4c0e1554e6ccdaa2793b86f793c908537",
+        "sources": [
+          {
+            "source": "packages/client/web/src/boot-page.module.css",
+            "sourceSha256": "5c0cfa12147ec0681544a0ca1f1507f6725613c0e614ccf6046681eacc6f4bdb"
+          }
+        ],
+        "description": "Original public webserver/index-inject wrapper contributing only the two patched boot/failure-page font-weight deltas; official HTML, scripts and loader remain unchanged."
+      }
+    ],
+    "hashPolicy": "SHA-256 of captured source and target raw bytes; no newline normalization. Legacy sources are the pinned upstream revision plus the recorded Modern UI patch. Published npm sources identify their exact package version."
+  },
+  "hashPolicy": "SHA-256 of captured source and target raw bytes; no newline normalization. Legacy sources are the pinned upstream revision plus the recorded Modern UI patch. Published npm sources identify their exact package version."
 }

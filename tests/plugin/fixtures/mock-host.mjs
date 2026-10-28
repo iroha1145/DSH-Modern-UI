@@ -36,6 +36,8 @@ ${process.env.MODERN_UI_RUN_MARKER ?? ''}
 
 [Open fixture file](m1-note.txt#L2)
 
+[Open fixture guide](m1-guide.md)
+
 ![M1 relative image](m1-image.png)
 
 [External fixture](${process.env.MODERN_UI_EXTERNAL_FIXTURE_URL ?? 'https://example.com/m1-fixture'})
@@ -65,6 +67,10 @@ class FixtureAdapter extends LlmAdapter {
   async listModels() { return models.map(id => ({ provider, id, name: id })) }
   async resolveModel(_provider, id) { return { provider, id, name: id, reasoning, contextWindow: 64000 } }
   async *stream(options) {
+    if (process.env.MODERN_UI_PROMPT_REPORT) {
+      const user = options.messages.filter(message => message.role === 'user' && (message.source === undefined || message.source.kind === 'user'))
+      appendFileSync(process.env.MODERN_UI_PROMPT_REPORT, JSON.stringify({ sessionId: options.sessionId, purpose: options.purpose, user }) + '\n')
+    }
     if (process.env.MODERN_UI_OWNER_REPORT) {
       const user = options.messages.filter(message => message.role === 'user' && (message.source === undefined || message.source.kind === 'user'))
       appendFileSync(process.env.MODERN_UI_OWNER_REPORT, JSON.stringify({ sessionId: options.sessionId, purpose: options.purpose, user }) + '\n')

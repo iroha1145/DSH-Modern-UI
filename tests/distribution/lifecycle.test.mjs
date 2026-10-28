@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os'
 import { spawnSync } from 'node:child_process'
 import { main, installEntrypoint } from '../../scripts/distribution/manager.mjs'
 import { receiptReference, previousState, readSelection } from '../../scripts/distribution/lifecycle.mjs'
+import { acquireOperationLock } from '../../scripts/distribution/operation-lock.mjs'
 
 async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), 'dsh-lifecycle-'))
@@ -69,4 +70,24 @@ test('uninstall on an empty root succeeds without manufacturing recovery state',
   const root = await fixture(t)
   await main(['uninstall', '--root', root])
   assert.equal(await readSelection(root), undefined)
+})
+
+test('program verification, rollback and uninstall do not require a live or unlocked data home', async t => {
+  const root = await fixture(t)
+  const first = await generation(root, 'before')
+  const current = await generation(root, 'after', await receiptReference(first))
+  await mkdir(current.home)
+  await writeFile(join(current.home, 'session'), 'retained')
+  await writeFile(join(root, 'current.json'), JSON.stringify(current))
+  const homeLease = await acquireOperationLock(current.home)
+  try {
+    assert.equal((await main(['verify', '--root', root])).unchanged, true)
+    assert.equal((await main(['rollback', '--root', root])).rolledBackTo, first.generation)
+    assert.equal(await readFile(join(current.home, 'session'), 'utf8'), 'retained')
+  } finally { await homeLease.release() }
+  await rm(current.home, { recursive: true })
+  assert.equal((await main(['verify', '--root', root])).unchanged, true)
+  await main(['uninstall', '--root', root])
+  assert.equal((await main(['status', '--root', root])).recoverable, true)
+  assert.equal((await readSelection(root)).home, first.home)
 })

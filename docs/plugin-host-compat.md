@@ -4,7 +4,7 @@
 
 ## 明确选择的替代插件
 
-`@iroha1145/dsh-modern-ui/translator` 与 `@iroha1145/dsh-modern-ui/mcp-client` 是本项目的 Host 入口。它们由旧修复后的相应小插件提取，保留 MIT、来源及公开配置接口，未复制整个后端。所有 DSH/Cordis 服务均 external/peer；MCP SDK 是插件自身固定的正常依赖 `2.3.0`。
+`@iroha1145/dsh-modern-ui/translator` 与 `@iroha1145/dsh-modern-ui/mcp-client` 由旧修复后的相应小插件提取，保留 MIT、来源及公开配置接口，未复制整个后端。新增 `web-fetch-http` 从真实 rc.4 发布 artifact 派生，保留其网络防护并使用插件自己的 Undici `8.12.2`；新增 `plugin-documents` 通过官方受鉴权 Connection 路由恢复插件长文档。所有 DSH/Cordis 服务均 external/peer；MCP SDK 是插件自身固定的正常依赖 `2.3.0`。当前实现、文档资源限制和启动时重新绑定见 [补齐记录](migration-parity-20261028.md)与 [分发记录](distribution-parity.md)。
 
 安装器读取实际组合后的配置，在新 profile 的用户 patch 中禁用被替换的原条目，再以新 id 插入替代插件，保留配置和条目 metadata。官方 `name` patch 字段是匹配条件，不能用它直接改模块名；`tests/migration/profile-settings.test.mjs` 用真实 `applyEntryPatches` 核对了禁用和插入。显式禁用的功能不会被打开。嵌套/自定义 preset 中的目标或动态 activation 目前要求单独审阅，自动安装会拒绝这类不确定转换。
 
@@ -33,7 +33,7 @@ Host 严格 TypeScript 检查通过。构建先用 TypeScript emit，再 bundle�
 | --- | --- | --- |
 | Node 24.22.1 | 私有运行时已固定并验证 | 保留 |
 | MCP client 2.3.0、拒绝 HTTP 重定向 | 官方 client 2.2.0、会跟随重定向 | 显式替代入口恢复这项行为；不修改原包 |
-| Undici 8.12.2 地板 | `dsh-http-proxy` 与 `dsh-web-fetch-http` 精确依赖 8.11.2 | 未保留旧依赖修复，需官方合适发行版；不做 overrides/替包 |
+| Undici 8.12.2 地板 | `dsh-http-proxy` 与原 `dsh-web-fetch-http` 精确依赖 8.11.2 | 自有 HTTP 抓取入口恢复固定 8.12.2；启动器的全局 proxy 与其他官方请求仍使用原依赖，不做 overrides/替包 |
 | Zod 4.6.6 地板 | 多个官方包精确依赖 4.4.3 | 未保留，不能把整个宿主依赖替换后声称仍是正常官方发行依赖 |
 | fflate 0.8.3 地板 | 正常 0.8.3 和 libreoffice-kit 自带的 0.8.2 | 未全覆盖；本插件自己的预检 bundle 使用 0.8.3 |
 | http-cache-semantics 4.3.0、fast-uri 3.1.9 | 实际分别为 4.3.0、3.1.9 | 本次已见版本达到旧地板 |

@@ -1,50 +1,38 @@
 # Modern UI 插件映射与验收
 
-目标为未经修改的官方 `@deepseek-ai/dsh@0.2.1-rc.4`。展示来源为 upstream `22ddee3792402c3e70ec5f86a63c3e3e895a2f60` 应用仓库补丁后的精确源码。保留文件原始/适配后 SHA-256、原创协作接口和多来源适配器记录在 `packages/modern-ui/provenance.json`。
+消费宿主是未经修改的官方 `@deepseek-ai/dsh@0.2.1-rc.4`。展示基线是 upstream `22ddee3792402c3e70ec5f86a63c3e3e895a2f60` 加 Modern UI `a9f4c370` 的固定补丁；适配当前 Host 的客户端目录与 HTTP provider 另以实际 rc.4 npm artifact 为依据。逐文件来源、原始字节摘要和适配后摘要见 `packages/modern-ui/provenance.json`。
 
-## 唯一 UI owner
+## UI owner 和共享服务
 
-官方 bundle selection 停用原 `ui-layout`、`ui-sidebar`、`ui-workspace`、`ui-conversation` 和（2026-10-28 起）`ui-chat` 五项，由自有包提供公开服务及原 child declarations（聊天流的做法见 [聊天流整体接管](ui-chat-takeover.md)）。没有伪装官方 module id、全局别名、模块表劫持或修改官方 npm 文件。附件、工具、插件管理及社区贡献仍使用原公开槽，聊天的子槽也沿用官方标准名。主客户端先启动 layout/workspace/sidebar/conversation/settings 样式，再事件注入依赖 modelDirectories/sessions/sidebarRight 的展示贡献；主 async apply 按顺序等待各 owner 当前启动，传播启动异常。
+bundle 明确停用 `ui-layout`、`ui-sidebar`、`ui-workspace`、`ui-conversation`、`ui-chat`、`ui-model-selection`、`ui-tool` 七个展示入口，使用独立包中的对应 owner。各 owner 声明原标准 children；附件、工具、模型标签、插件管理及社区贡献继续使用公开槽位。
 
-Manifest 的 inject 是模块到达与组合边，immediately 只控制预取，不能把任意边当成无害。当前只列真实 rc.4 基础模块，避免让 UI owner 依赖反向消费者。React/React DOM/Cordis/client-store/ui-slots/官方 ui-primitives 保持共享外部实例。Modern primitives 使用自有包名；弹层栈、pointer modality、composition observer 复用官方实例。构建拒绝未声明的 DeepSeek runtime import。
+React、React DOM、Cordis、client-store、ui-slots 和官方 ui-primitives 共享外部实例。Modern primitives 使用独立名称，复用官方弹层栈、pointer modality 和 composition observer。没有覆盖模块表、原型或官方文件。Manifest inject 仅描述实际存在的模块到达边；不能依赖已停用的展示模块。
 
-官方 Host/session/Remote/命令/model directory/locale/theme 服务保留。Conversation 公开 Host schema/apply 被复用，使 busyEnter/collapsedViews 有正式的 modern-ui 设置通路；安装器复制旧设置并备份。原 settings-general Host/client 全部保留，因为其他官方设置依赖其 schema；仅通过语义根应用真实 CSS 差异。
+官方 Host/session/Remote、命令执行、配置、上传、插件管理、模型目录、locale 和 theme 保留。插件只打包模型展示需要的客户端 catalog/directory/resolver，选择仍调用同一官方 API，状态仍来自原 Session projection。Conversation 复用公开 Host schema/apply，偏好写入 `modern-ui`；安装器从实际生效的旧配置迁移并保存回执。
 
 ## 展示映射
 
-1. **外壳/侧栏/工作区：** 精确补丁的 AppFrame、宽度状态、拖动区、主题呈现、侧栏与工作区树/选择/顺序/手机 drawer 已接入。原 Workspace/Session 控制器执行动作。原创 modernLayout 仅暴露同一个布局 store 的 viewport 与关闭手机 drawer，不另建布局状态。
-2. **会话/输入/视图：** 唯一 Conversation owner 提供原服务和 children，保留真实输入、附件、排队、停止与第三方贡献。rc.4 不存在的 ui-file-drag 没有被复制或冒充；使用实际 inline image/file-upload。collapsedViews 已接入 pin store，写入失败恢复已接受值。旧“必须等上游才能恢复”的结论撤回。
-3. **消息/推理/代码/steering：** 用户、assistant、context、重试、错误、压缩、turn-process、代码折叠、引用、图片、推理折叠来自精确补丁。Steering batch 通过真实官方 assembler 发布显示 metadata，保留 prepend、取消、重插与卸载，不建立第二份消息或进程投影。
-4. **模型：** 自有模型列表、供应商图标、卡片、推理等级复用官方 modelDirectories；选择、清单和发送路径仍为官方服务。卡片设置在自有 namespace 保存。模型设置页仍是官方的，插件只在每张 pi-ai 提供商卡片里加「声明推理强度」一块（`settings.models.provider-card`，key `llm-pi-ai`）：安装目录没有描述的模型在这里开启推理、勾选档位，写回该路由的 `models` 列表（关闭写 `reasoningEfforts: false`）。
-5. **工具/Schedule：** Read/write/search/web/TODO/问答/通用卡使用公开 keyed leaves；read_image 复用原 gallery factory，TODO 复用原 target。原 pwsh/terminal provider 保留。Schedule 实际 CSS 差异应用于公开语义根，保留目录、时钟标记和操作。
-6. **可视化/追问：** OpenUI 完整结果、原生嵌套 sandbox、容错展示和 Followups 已迁移；真实 iframe 按钮验证交互。没有引入上游服务端或宿主能力桥。
-7. **主题/语言/设置：** 公开 theme override layer 安装 Modern 调色板，卸载恢复旧层及偏好。支持八种语言；自有 owner 使用自有 namespace，避免与已有语言包重复注册。原设置贡献和配置写入保留。
-8. **Markdown/附件：** 公开 cwd/openFile/fileMediaUrl 支持相对文件、行号和图片；HTTP 遵从官方 linkOpening，浏览器席位缺失时新窗口回退。图片弹层进入共享官方栈。右侧栏的 Markdown 文件预览体（`sidebar.right.tab.document`，key `…/documentpreview/markdown`）与 Plan 预览体（`sidebar.right.pane.tab`，key `@deepseek-ai/dsh-client-ui-plan`）由插件以 priority -100 遮住官方条目，走插件 MarkdownText（frontmatter 字段表、路径图片、代码块折叠）；官方的实现元数据、标签页类型、资源提供者、标题仍是官方的。
-9. **翻译：** optional remote.cotTranslation 复用官方 Controller/Host 设置；自有 reasoning 槽适配展示体、缓存和取消。Remote 撤回恢复原文。直接登记在官方原 reasoning children 的第三方贡献不会自动进入 Modern 独立 children，没有声称存在通用透传接口。
-10. **V2 联网范围：** Modern 会话联网按钮、/web on|off、webSearch projection、专用能力缓存/状态/词条已删除。官方搜索/抓取工具、provider、插件启停/配置、结果卡和引用保留。
+1. 外壳、侧栏、工作区、手机 drawer 和宽度状态使用旧补丁展示，动作由原控制器执行；没有第二份工作区或会话状态。
+2. 唯一 Conversation owner 保留输入、附件、排队、停止和视图显隐；浏览器原图服务负责原始字节和应用内转移，普通 file-upload 保留。
+3. Chat owner 保留消息、推理分组、运行状态行、时间轴、代码折叠、引用、工具过程及 steering；新增选择文字引用进入原输入队列。
+4. 模型选择器渲染标准 `conversation.input.model.label`，官方与第三方标签直接贡献。设置页通过 `settings.models.provider-card` 添加目录模型推理声明，支持 API 值、Off、继承列表和 revision 冲突。
+5. Tool owner 提供 generic/MCP/自动拒绝 fallback 与标准详情、图片等子槽，保留第三方具体工具视图优先级；工具执行器仍为官方。
+6. Intelligent UI、Followups、编队、翻译和多语言保留。OpenUI 在原 sandbox 内展示；翻译继续使用官方 Remote/Controller，不承诺把原私有 reasoning children 的所有第三方贡献自动透传。
+7. 文件 Markdown、Plan、提问和预设指南使用可折叠代码块。提问与预设通过公开 face/store 替换展示，控制器不复制。`dsh-better-sidebar@0.28.0` 的编辑器由限定 DOM 适配增加折叠，并保留社区编辑、复制、导航和自有渲染。
+8. Installed 与 Discover 恢复本地化长文档、README、仓库回退、相对图片和重试，使用独立受鉴权 Host 路由与官方库存；插件启停/安装仍交由官方管理器。
+9. 主题通过公开 override layer，官方控件与菜单通过限定到 rc.4 的样式适配；启动和失败页通过公开 `webserver/index-inject` 注入样式。样式和监听器随 owner 卸载释放。
+10. 会话联网按钮、`/web on|off` 与旧 `web/search` 策略已取消。官方搜索/抓取工具、provider 配置、结果卡与来源引用保留。
 
-## 已执行验证
+## 验证入口
 
-以下 run id 与数量对应 `18c4e38` 的历史本地产物索引，不是仓库链接。当前 PR 修复新增主题、翻译/压缩、凭据事件和 Markdown 导航回归；验证入口与最新结果见 [PR #5 复核](pr5-audit-followup.md)。
+本轮实现、独立审查和剩余边界见 [迁移缺口补齐记录](migration-parity-20261028.md)。`npm run build` 检查 TypeScript、共享 runtime import 边界及实际打包许可证；`npm test` 覆盖真实官方 renderer、SlotCore、HostConnectionService、配置组合、数据和启动生命周期。
 
-- 固定 Node 24.22.1；严格 TypeScript 与构建通过，861 browser inputs；构建检查共享边界并收集实际依赖许可证。消费者不需本地编译。
-- client/translation/steering-batches/tool-cards 四组共25项通过：真实rc.4 registry、ThemeRuntime、官方primitives、Remote生命周期、翻译重试/单飞、代码链、子代理树、assembler与工具席位。
-- layout-owner/shell-owner 共10项通过：nested owner、真实renderer/controller、卸载重启、手机drawer及已有shared namespace语言包共存。conversation-owner 7项通过：真实renderer/uiSession/官方附件和入口贡献、binding/input/queue、pin写入失败恢复、卸载重启、rc.4图片/文件receipt。
-- 最终四owner结构 source-host 浏览器：`.artifacts/plugin-browser/run-8BCYob/result.json`，23项通过，console/page errors为空。官方rc.4成品Web + Windows x64 + headless Edge；发送mock到完成渲染阶段 `/api/remote.mux` 发送1帧、接收68帧。
-- 浏览器实际验证模型/推理等级保存刷新、流式结果/引用/OpenUI/追问、编队、日语刷新、真实文件行号预览、相对图片、共享lightbox Tab/Escape/焦点恢复、Modern popover与官方Settings modal、明暗保存刷新、system跟随OS及刷新保留、theme-color等于body实际色、HTTP新窗口偏好。官方翻译Controller访问本地端点1次。mobile.png已确认是聊天界面，文件预览另存file-navigation.png。
-- 新 owner 专项 source-host 浏览器：`.artifacts/plugin-owners/run-k7EdnC/result.json`，5项通过、errors=[]。真实有效PNG inline与TXT上传到官方事件和模型请求；More隐藏/打开隐藏视图/恢复，`modern-ui.collapsedViews`经过刷新与新Host进程仍保留；共享焦点返回；两条steering进入同turn下一step且首条实际margin-top为44px；Ctrl+Enter队列提交/删除与停止；390px视口下drawer选会话和工作区新会话关闭。窄视口使用鼠标模拟（工作区按钮通过hover显示），不代表真实触屏验收。
-- 浏览器子进程清除常见API key/token并禁telemetry，只用mock及loopback翻译/外链端点，没有调用真实付费模型。
-- 最终 Gwr tgz 在源码目录外的独立消费者安装后复验：`plugin-browser/run-Th2rIC/result.json` 23 项、`plugin-owners/run-Mpn4RB/result.json` 5 项均通过，errors=[]。实际本 turn 用 HTTP POST `/api/session/prompt` 成功提交并收到 86 个 WebSocket 推送帧；不把启动时帧数当作消息发送证明。偏好写入真实 profile，测试没有用 CLI overlay 覆盖其配置写入目标。
-- 三个社区插件共存时，dsh-context 的 `fleet` 可以贡献另一个同名“编队”视图。Modern Hide/Show 只操作自身 `agents` id，社区视图保留；消费者断言按真实 id 和数量差异区分，不误删第三方贡献。
+`tests/plugin/browser.e2e.mjs` 检查官方 Host 上的真实模型选择、消息发送、流式、引用、导航、主题、语言及默认社区组合；实际安装模式额外要求三个固定社区插件保持启用，并验证社区 Markdown 与 Installed README。`owners.e2e.mjs` 单独停用社区文件地址 owner，以验收官方 Markdown 预览替换，并保留附件、显隐持久化、steering、队列和窄屏检查。
 
-最终保留390个上游衍生前端文件，另有原创布局协作接口及多来源适配器。未用复制文件已按实际build/类型闭包删除，provenance和许可同步更新。
+消费 CI 不 checkout，只使用预编译包、薄安装器和官方发布资产；官方文件来源/摘要、实际运行能力和浏览器分别验收。平台结果以匹配提交的 CI 为准。旧 run id、包摘要和测试数量在 [首轮记录](plugin-migration.md) 保留为历史，不能视为当前包验收。
 
 ## 边界
 
-最终 tarball/integrity、fresh/existing 安装及失败恢复、真实工具及私有 PowerShell、社区插件、官方文件哈希前后对比，以 `docs/plugin-migration.md` 消费记录为准。旧候选包大小和 integrity 不代表当前产物。
+切换整个 Modern UI bundle 后需刷新页面；只停用 `modern-ui` 单 entry 不会恢复被 bundle 停用的官方 owner。含显式 Host 兼容绑定时，移除包前还要恢复这些配置，见 [安装文档](plugin-installation.md)。
 
-真实最终包的 bundle off/on 和 remove 已验证恢复四个官方 owner、主题 token 及 90 个 style。root owner 切换需要刷新页面；单 entry off 不是 bundle off。Lexical 的一个模块级 textInput 时间戳监听器保留到页面刷新，刷新/移除后重启为零，不能声称同一页卸载立即释放全部依赖全局监听器。详见安装文档。原 Web Shell 启动页与故障页仍为官方样式。
-
-官方包仍在渲染的几处界面（输入触发菜单、权限选择器、审批卡、提问卡、变更文件卡、快捷键弹窗、左下角账号触发器）由 `src/official-surfaces.css` 和 `settings-shell.css` 以稳定钩子覆盖成旧补丁的样子（聊天流和回合尾部自 2026-10-28 起是插件自己的，不再需要覆盖）；文件预览的 Markdown 体与 Plan 预览体自 2026-10-28 第三轮起是插件自己的（按 key 以 priority -100 遮住官方 keyed 条目，代码块可折叠；装着社区插件 dsh-better-sidebar 时文件地址被它认领、用它自己的查看器，官方文件预览体不会被用到），模型设置页的 pi-ai 提供商卡片里多一块插件的「声明推理强度」（官方 `settings.models.provider-card` 槽，key `llm-pi-ai`），做法与实验见 [声明推理强度与预览折叠](reasoning-and-preview-fold-20261028.md)；其余官方包（模型设置页本体、定时任务私有选择器、调试轨迹、文件树）保持官方样式，取舍依据见 [2026-10-28 审计复核](audit-20261028.md)。
-
-未逐个平台验证Electron拖动、多窗口、全部WebKit/输入法/触屏/屏幕阅读器组合；未对每种工具与Schedule状态做全像素对比。已迁移源码与已执行测试分别陈述，不以服务功能保留代替视觉验收。
+本轮浏览器原图链不包含 rc.4 缺失的原生 Electron 拖出桥。真实触屏、WebKit、Electron 多窗口、全部输入法/辅助技术和第三方私有组件组合没有全面验收。窄视口鼠标模拟不等于真机触屏，功能保留也不等于所有状态逐像素一致。

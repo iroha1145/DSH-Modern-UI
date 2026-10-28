@@ -2,10 +2,11 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { fork } from 'node:child_process'
 import { once } from 'node:events'
-import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { createRequire } from 'node:module'
 import { setTimeout as delay } from 'node:timers/promises'
 import { acquireOperationLock } from '../../scripts/distribution/operation-lock.mjs'
 const fixture = name => fileURLToPath(new URL(`./fixtures/${name}.mjs`, import.meta.url))
@@ -17,9 +18,32 @@ async function waitFile(path, signal) {
   throw new Error(`Timed out waiting for ${path}`)
 }
 async function launch(t, mode, missing = false, forkOptions = {}) {
-  const root = await mkdtemp(join(tmpdir(), 'dsh-launch-'))
-  await writeFile(join(root, 'current.json'), JSON.stringify({ root, home: root, generation: root,
-    node: missing ? join(root, 'missing-node') : process.execPath, cli: fixture('launch-child'), profile: 'test', officialBaseline: {} }))
+  const scratch = await mkdtemp(join(tmpdir(), 'dsh-launch-'))
+  const root = join(scratch, 'program'), home = join(scratch, 'data')
+  const profile = join(home, 'profiles', 'test')
+  await mkdir(root)
+  await mkdir(profile, { recursive: true })
+  await writeFile(join(profile, 'cordis.patch.yml'), '[]\n')
+  const require = createRequire(import.meta.url)
+  const backend = require.resolve('@deepseek-ai/dsh/package.json')
+  const cli = join(root, 'fixture-cli.mjs')
+  // Configuration composition uses the same published YAML schema and patch
+  // implementation as the real CLI; only the long-running child is synthetic.
+  await writeFile(cli, `
+import { createRequire } from 'node:module'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
+const require = createRequire(${JSON.stringify(backend)})
+if (process.argv.includes('--dump-config')) {
+  const yaml = require('js-yaml')
+  const { applyEntryPatches, entryListSchema } = await import(${JSON.stringify(pathToFileURL(require.resolve('@deepseek-ai/cordis-plugin-include')).href)})
+  const patch = yaml.load(await readFile(join(process.env.DSH_HOME, 'profiles', 'test', 'cordis.patch.yml'), 'utf8'), { schema: entryListSchema })
+  const base = [{ id: 'added-translator', name: '@deepseek-ai/dsh-experimental-translator', config: { timeoutMs: 1234 } }]
+  process.stdout.write(yaml.dump(applyEntryPatches(base, patch, message => { throw new Error(message) })))
+} else await import(${JSON.stringify(pathToFileURL(fixture('launch-child')).href)})
+`)
+  await writeFile(join(root, 'current.json'), JSON.stringify({ root, home, generation: root, backend,
+    node: missing ? join(root, 'missing-node') : process.execPath, cli, profile: 'test', officialBaseline: {} }))
   const parent = fork(fixture('launch-runner'), [root, mode], { stdio: ['ignore', 'ignore', 'pipe', 'ipc'], ...forkOptions })
   let stderr = ''
   parent.stderr.on('data', data => { stderr += data })
@@ -48,9 +72,9 @@ async function launch(t, mode, missing = false, forkOptions = {}) {
       }
     }
     await closed
-    await rm(root, { recursive: true, force: true })
+    await rm(scratch, { recursive: true, force: true })
   })
-  return { root, parent, message, exited, closed, stderr: () => stderr }
+  return { root, home, profile, parent, message, exited, closed, stderr: () => stderr }
 }
 async function unlocked(root) { const lease = await acquireOperationLock(root); await lease.release() }
 for (const code of [0, 7]) test(`launch preserves child exit ${code} and releases the real lease`, { timeout: 10000 }, async t => {
@@ -60,6 +84,10 @@ for (const code of [0, 7]) test(`launch preserves child exit ${code} and release
   assert.equal(message.result.exitCode, code)
   assert.equal(message.cleanListeners, true)
   await unlocked(run.root)
+  await unlocked(run.home)
+  const patch = await readFile(join(run.profile, 'cordis.patch.yml'), 'utf8')
+  assert.match(patch, /modern-ui-compat-added-translator/)
+  assert.match(patch, /disabled: true/)
 })
 test('spawn failure cleans listeners and releases the real lease', { timeout: 10000 }, async t => {
   const run = await launch(t, '0', true)
@@ -68,6 +96,7 @@ test('spawn failure cleans listeners and releases the real lease', { timeout: 10
   assert.equal(message.cleanListeners, true)
   assert.deepEqual(await run.closed, [1, null])
   await unlocked(run.root)
+  await unlocked(run.home)
 })
 for (const signal of ['SIGTERM', 'SIGINT']) test(`${signal} reaches child and retains lease until child exits`, {
   timeout: 10000, skip: process.platform === 'win32' ? 'Windows kill() force-terminates processes; POSIX signal delivery is exercised on Linux CI' : false,
@@ -134,8 +163,10 @@ test('normal running child excludes another operation until it exits', { timeout
   const run = await launch(t, 'hold')
   await waitFile(join(run.root, 'child-ready'))
   await assert.rejects(acquireOperationLock(run.root), { code: 'DSH_OPERATION_LOCKED' })
+  await assert.rejects(acquireOperationLock(run.home), { code: 'DSH_OPERATION_LOCKED' })
   await writeFile(join(run.root, 'child-release'), '')
   assert.equal((await run.message).cleanListeners, true)
   assert.deepEqual(await run.closed, [0, null])
   await unlocked(run.root)
+  await unlocked(run.home)
 })

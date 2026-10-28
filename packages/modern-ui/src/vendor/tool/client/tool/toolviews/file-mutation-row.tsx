@@ -63,8 +63,8 @@ export const fileMutationToolview = {
   inject: ['slots'],
   apply(ctx: Context): void {
     ctx.slots.inject('tool.call.toolview', function* () {
-      yield ctx.slots.register({ name: 'tool.call.toolview', priority: -100, key: 'edit', locale: NS }, FileMutationRow)
-      yield ctx.slots.register({ name: 'tool.call.toolview', priority: -100, key: 'write', locale: NS }, FileMutationRow)
+      yield ctx.slots.register({ name: 'tool.call.toolview', key: 'edit', locale: NS }, FileMutationRow)
+      yield ctx.slots.register({ name: 'tool.call.toolview', key: 'write', locale: NS }, FileMutationRow)
     })
   },
 }

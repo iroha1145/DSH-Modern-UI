@@ -120,6 +120,144 @@ export async function preserveLegacySettings(profile, yaml) {
 const HOST_REPLACEMENTS = {
   '@deepseek-ai/dsh-experimental-translator': '@iroha1145/dsh-modern-ui/translator',
   '@deepseek-ai/dsh-mcp-client': '@iroha1145/dsh-modern-ui/mcp-client',
+  '@deepseek-ai/dsh-web-fetch-http': '@iroha1145/dsh-modern-ui/web-fetch-http',
+}
+
+/** Read inherited settings before the new bundle contributes its default configuration. */
+export function transformEffectivePreferences(source, beforeYaml, afterYaml, yaml, { migrateUi = true } = {}) {
+  const schema = schemaFor(yaml)
+  const patch = yaml.load(source, { schema }) ?? []
+  const rows = patchRows(patch)
+  const before = yaml.load(beforeYaml, { schema })
+  const after = yaml.load(afterYaml, { schema })
+  if (!Array.isArray(before) || !Array.isArray(after)) throw new Error('Effective configuration must be an entry list')
+  const unique = (entries, name) => {
+    const matches = entries.filter(row => row.name === name)
+    if (matches.length > 1) throw new Error(`Multiple ${name} entries require explicit precedence review`)
+    const config = matches[0]?.config ?? {}
+    if (!config || Object.getPrototypeOf(config) !== Object.prototype) throw new Error(`Computed ${name} settings require explicit review; not evaluated`)
+    return { entry: matches[0], config }
+  }
+  const modernName = '@iroha1145/dsh-modern-ui'
+  const originalModern = unique(before, modernName)
+  const target = unique(after, modernName)
+  if (target.entry?.id !== 'modern-ui') throw new Error('Effective preferences require the Modern UI owner')
+  const modernRows = rows.filter(row => row.id === 'modern-ui')
+  if (modernRows.length > 1) throw new Error('Layered Modern UI settings require explicit precedence review')
+  const explicit = modernRows[0]?.config ?? {}
+  if (!explicit || Object.getPrototypeOf(explicit) !== Object.prototype) throw new Error('Computed Modern UI settings require explicit review')
+  const protectedFields = { ...originalModern.config, ...explicit }
+  // These two empty maps are contributed by Modern's bundle, even in profiles
+  // whose earlier converter never copied inherited picker settings. An explicit
+  // patch value (including an intentionally empty map) always wins.
+  for (const key of ['models', 'prices']) {
+    const value = protectedFields[key]
+    if (!Object.hasOwn(explicit, key) && value && Object.getPrototypeOf(value) === Object.prototype && Object.keys(value).length === 0) delete protectedFields[key]
+  }
+  const config = { ...target.config, ...explicit }
+  const movedFields = []
+  for (const [name, keys] of [
+    ['@deepseek-ai/dsh-client-ui-model-selection', fields],
+    ['@deepseek-ai/dsh-client-ui-chat', CHAT_PREFERENCE_FIELDS],
+  ]) {
+    if (!migrateUi) break
+    const original = unique(before, name).config
+    for (const key of keys) {
+      if (!Object.hasOwn(original, key) || Object.hasOwn(protectedFields, key)) continue
+      if (!plain(original[key])) throw new Error(`Computed ${key} requires explicit review; not evaluated`)
+      if (CHAT_PREFERENCE_FIELDS.includes(key) && (typeof original[key] !== 'string' || (key === 'foldedReplies' && !['all', 'final'].includes(original[key])))) throw new Error(`Invalid chat preference: ${key}`)
+      config[key] = original[key]
+      movedFields.push(key)
+    }
+  }
+  if (movedFields.length) {
+    if (modernRows[0]) modernRows[0].config = config
+    else patch.push({ id: 'modern-ui', name: modernName, config })
+  }
+  const documentName = '@iroha1145/dsh-modern-ui/plugin-documents'
+  const documentTarget = unique(after, documentName)
+  const proposed = {}
+  const sourceFields = {
+    bundle: ['@deepseek-ai/dsh-plugin-manager', {
+      detailMaxBytes: 'maxDocumentBytes', detailImageMaxBytes: 'maxImageBytes',
+      detailFetchTimeoutMs: 'fetchTimeoutMs', detailNpmFileSources: 'npmFileSources',
+    }],
+    market: ['@deepseek-ai/dsh-plugin-market', {
+      detailMaxBytes: 'maxDocumentBytes', detailImageMaxBytes: 'maxImageBytes', fetchTimeoutMs: 'fetchTimeoutMs',
+      cacheTtlMs: 'cacheTtlMs', detailNpmFileSources: 'npmFileSources', detailGitlabHosts: 'gitlabHosts',
+      detailRepositoryMaxBytes: 'maxRepositoryBytes', detailCacheMaxBytes: 'maxCacheBytes',
+      detailCacheDir: 'cacheDir', detailGitTimeoutMs: 'gitTimeoutMs',
+    }],
+  }
+  for (const [kind, [name, mapping]] of Object.entries(sourceFields)) {
+    const original = unique(before, name).config
+    for (const [from, to] of Object.entries(mapping)) if (Object.hasOwn(original, from)) {
+      const value = original[from]
+      if (!proposed[kind]) proposed[kind] = {}
+      proposed[kind][to] = value
+    }
+  }
+  if (Object.keys(proposed).length) {
+    if (typeof documentTarget.entry?.id !== 'string') throw new Error('Document settings require one addressable Modern document owner')
+    const documentRows = rows.filter(row => row.id === documentTarget.entry.id)
+    if (documentRows.length > 1) throw new Error('Layered Modern document settings require explicit precedence review')
+    const explicitDocument = documentRows[0]?.config ?? {}
+    if (!explicitDocument || Object.getPrototypeOf(explicitDocument) !== Object.prototype) throw new Error('Computed Modern document config requires explicit review')
+    const target = { ...documentTarget.config, ...explicitDocument }
+    const originalModern = unique(before, documentName).config
+    const protectedConfig = { ...originalModern, ...target }
+    const additions = []
+    for (const [kind, values] of Object.entries(proposed)) {
+      const inherited = originalModern[kind] ?? {}
+      const current = target[kind] ?? {}
+      if (!inherited || Object.getPrototypeOf(inherited) !== Object.prototype || !current || Object.getPrototypeOf(current) !== Object.prototype) throw new Error(`Computed document ${kind} config requires explicit review`)
+      const existing = { ...inherited, ...current }
+      const migrated = { ...existing }
+      for (const [key, value] of Object.entries(values)) {
+        // The previous flat Modern limit fields also express a deliberate override.
+        if (Object.hasOwn(existing, key) || Object.hasOwn(protectedConfig, key)) continue
+        if (!plain(value)) throw new Error(`Computed document ${kind}.${key} requires explicit review; not evaluated`)
+        migrated[key] = value
+        additions.push(`documents.${kind}.${key}`)
+      }
+      if (Object.keys(migrated).length) target[kind] = migrated
+    }
+    if (additions.length) {
+      if (documentRows[0]) documentRows[0].config = target
+      else patch.push({ id: documentTarget.entry.id, name: documentName, config: target })
+      movedFields.push(...additions)
+    }
+  }
+  return { source: movedFields.length ? yaml.dump(patch, { schema, lineWidth: -1, noCompatMode: true }) : source,
+    result: { changed: movedFields.length > 0, movedFields, conversionVersion: 2 } }
+}
+
+/** Independent receipt upgrades profiles previously handled by the patch-only converters. */
+export async function preserveEffectivePreferences(profile, beforeYaml, afterYaml, yaml) {
+  const filename = join(profile, 'cordis.patch.yml')
+  const receiptPath = join(profile, 'modern-ui-effective-preferences-v1.json')
+  const backups = { 1: 'modern-ui-effective-preferences-before-v1.yml', 2: 'modern-ui-effective-preferences-before-v2.yml' }
+  const backup = backups[2]
+  let previous
+  try { previous = JSON.parse(await readFile(receiptPath, 'utf8')) } catch (error) { if (error.code !== 'ENOENT') throw error }
+  if (previous) {
+    if (!(previous.conversionVersion in backups) || previous.backup !== backups[previous.conversionVersion] || hash(await readFile(join(profile, previous.backup), 'utf8')) !== previous.originalSha256) throw new Error('Effective preferences migration receipt is invalid')
+    if (previous.conversionVersion === 2) return { changed: false, alreadyMigrated: true, conversionVersion: 2 }
+  }
+  const info = await lstat(filename)
+  if (!info.isFile() || info.isSymbolicLink() || info.size > 1024 * 1024) throw new Error('Effective migration requires a small regular profile patch')
+  const original = await readFile(filename, 'utf8')
+  const transformed = transformEffectivePreferences(original, beforeYaml, afterYaml, yaml, { migrateUi: !previous })
+  await writeFile(join(profile, backup), original, { flag: 'wx', mode: 0o600 })
+  if (transformed.result.changed) {
+    const pending = join(profile, 'modern-ui-effective-preferences.pending.yml')
+    await writeFile(pending, transformed.source, { flag: 'wx', mode: 0o600 })
+    if (await readFile(filename, 'utf8') !== original) throw new Error('Profile changed during effective settings migration')
+    await rename(pending, filename)
+  }
+  const result = { ...transformed.result, backup, originalSha256: hash(original), migratedSha256: hash(transformed.source) }
+  await writeFile(receiptPath, JSON.stringify(result, null, 2) + '\n', { flag: previous ? 'w' : 'wx', mode: 0o600 })
+  return result
 }
 
 /** Preserve the original conversation settings before selecting the new client owner. */

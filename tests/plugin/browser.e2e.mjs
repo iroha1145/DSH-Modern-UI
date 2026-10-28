@@ -14,10 +14,20 @@ const { chromium } = require('playwright-core')
 const artifacts = path.join(process.env.MODERN_UI_E2E_ARTIFACTS ?? path.join(root, '.artifacts'), 'plugin-browser')
 await mkdir(artifacts, { recursive: true })
 const run = await mkdtemp(path.join(artifacts, 'run-'))
+const repository = spawnSync('git', ['-c', 'init.defaultBranch=fixture', 'init', '--quiet', run], { windowsHide: true, encoding: 'utf8' })
+assert.equal(repository.status, 0, `Nested workspace fixture Git repository: ${repository.stderr}`)
+await writeFile(path.join(run, '.gitignore'), '/*\n!/m1-fixture-workspace/\n!/.gitignore\n')
 const workspace = path.join(run, 'm1-fixture-workspace')
 const runMarker = `M1 fixture ${path.basename(run)}`
 await mkdir(workspace)
+const nestedRepository = spawnSync('git', ['-C', workspace, 'rev-parse', '--show-toplevel'], { windowsHide: true, encoding: 'utf8' })
+assert.equal(nestedRepository.status, 0, nestedRepository.stderr)
+assert.equal(path.resolve(nestedRepository.stdout.trim()), run, 'the fixture workspace is below its own Git root')
 await writeFile(path.join(workspace, 'm1-note.txt'), 'First fixture line\nSecond fixture line\n')
+await writeFile(path.join(workspace, 'm1-guide.md'), '# M1 community Markdown guide\n\nThe community editor and navigation remain available.\n\n```typescript\n'
+  + Array.from({ length: 28 }, (_, index) => `const communityLine${index} = ${index};`).join('\n')
+  + '\n```\n\n[Open linked fixture guide](m1-linked.md)\n\nM1 community guide ending.\n')
+await writeFile(path.join(workspace, 'm1-linked.md'), '# M1 linked community guide\n\nCommunity Markdown navigation reached the second file.\n\n[Back to fixture guide](m1-guide.md)\n')
 await writeFile(path.join(workspace, 'm1-image.png'), Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6fV8AAAAASUVORK5CYII=', 'base64'))
 const sourceInstalled = process.env.MODERN_UI_INSTALLED_STATE ? JSON.parse(await readFile(process.env.MODERN_UI_INSTALLED_STATE, 'utf8')) : undefined
 const isolation = sourceInstalled ? await isolatedInstalledFixture(sourceInstalled, run) : undefined
@@ -44,6 +54,7 @@ await new Promise(resolve => translationServer.listen(0, '127.0.0.1', resolve))
 const translationEndpoint = `http://127.0.0.1:${translationServer.address().port}/translate`
 const externalUrl = `http://127.0.0.1:${translationServer.address().port}/external`
 let existingTranslator, existingTranslationController
+const activeCommunities = []
 if (installed) {
   const hostRequire = createRequire(official)
   const yaml = createRequire(hostRequire.resolve('@deepseek-ai/dsh-app-boot'))('js-yaml')
@@ -53,6 +64,11 @@ if (installed) {
   assert.equal(dump.status, 0, 'Installed official profile must compose before browser acceptance')
   const schema = yaml.JSON_SCHEMA.extend([new yaml.Type('tag:yaml.org,2002:js', { kind: 'scalar', construct: value => ({ expression: value }) })])
   const entries = yaml.load(dump.stdout, { schema })
+  for (const name of ['dsh-context', 'dsh-better-sidebar', 'dsh-plugins-store']) {
+    const entry = entries.find(entry => entry.name === name && entry.disabled !== true)
+    assert.ok(entry, `Installed browser acceptance keeps the default community plugin enabled: ${name}`)
+    activeCommunities.push({ name, id: entry.id })
+  }
   const translatorNames = ['@iroha1145/dsh-modern-ui/translator', '@deepseek-ai/dsh-experimental-translator']
   const translators = entries.filter(entry => translatorNames.includes(entry.name) && entry.disabled !== true)
   assert.ok(translators.length <= 1, 'Fixture must not compose duplicate translator services')
@@ -71,12 +87,14 @@ const translatorInsert = existingTranslator ? '' : `    - id: translator\n      
 const controllerInsert = existingTranslationController ? '' : "    - id: cot-translation\n      name: '@deepseek-ai/dsh-experimental-client-ui-cot-translation'\n      config:\n        provider: bing\n        targetLanguage: en\n"
 const translatorOverride = existingTranslator ? `- id: ${JSON.stringify(existingTranslator)}\n  config:\n    bingEndpoint: ${JSON.stringify(translationEndpoint)}\n` : ''
 const controllerOverride = existingTranslationController ? `- id: ${JSON.stringify(existingTranslationController)}\n  config:\n    provider: bing\n    targetLanguage: en\n` : ''
-const ownerSelection = installed ? '' : ['ui-layout', 'ui-sidebar', 'ui-conversation', 'ui-workspace'].map(id => `- id: ${id}\n  disabled: true\n`).join('')
-await writeFile(overlay, `${ownerSelection}- id: workspace-controller\n  config:\n    documentsDirectory: ${quote(path.join(run, 'documents'))}\n- id: agent-default-model\n  config:\n    provider: modern-ui-fixture\n    model: mock-balanced\n${translatorOverride}${controllerOverride}- insert:\n${installed ? '' : `    - id: modern-ui\n      name: ${JSON.stringify(pathToFileURL(plugin).href)}\n      config:\n        enabled: true\n        models: {}\n        prices: {}\n`}    - id: modern-ui-fixture\n      name: ${JSON.stringify(pathToFileURL(path.join(root, 'tests/plugin/fixtures/mock-host.mjs')).href)}\n${translatorInsert}${controllerInsert}`)
+const documentInsert = installed ? '' : `    - id: modern-plugin-documents\n      name: ${JSON.stringify(pathToFileURL(path.join(path.dirname(plugin), 'plugin-documents.js')).href)}\n`
+const ownerSelection = installed ? '' : ['ui-layout', 'ui-sidebar', 'ui-conversation', 'ui-workspace', 'ui-chat', 'ui-model-selection', 'ui-tool'].map(id => `- id: ${id}\n  disabled: true\n`).join('')
+await writeFile(overlay, `${ownerSelection}- id: workspace-controller\n  config:\n    documentsDirectory: ${quote(path.join(run, 'documents'))}\n- id: agent-default-model\n  config:\n    provider: modern-ui-fixture\n    model: mock-balanced\n${translatorOverride}${controllerOverride}- insert:\n${installed ? '' : `    - id: modern-ui\n      name: ${JSON.stringify(pathToFileURL(plugin).href)}\n      config:\n        enabled: true\n        models: {}\n        prices: {}\n`}    - id: modern-ui-fixture\n      name: ${JSON.stringify(pathToFileURL(path.join(root, 'tests/plugin/fixtures/mock-host.mjs')).href)}\n${documentInsert}${translatorInsert}${controllerInsert}`)
 const child = spawn(nodeExecutable, [official, '--profile', profile, ...(installed ? ['--patch', overlay] : []), '--port', '0', '--no-open'], {
   cwd: run, env: { ...fixtureEnvironment, MODERN_UI_OFFICIAL_CLI: official,
     MODERN_UI_RUN_MARKER: runMarker, MODERN_UI_BROWSER_WORKSPACE: workspace,
     MODERN_UI_EXTERNAL_FIXTURE_URL: externalUrl,
+    MODERN_UI_PROMPT_REPORT: path.join(run, 'model-requests.jsonl'),
     MODERN_UI_INSTALLED_PLUGIN: plugin, MODERN_UI_PEER_REPORT: path.join(run, 'peers.json') }, windowsHide: true,
   stdio: ['ignore', 'pipe', 'pipe'],
 })
@@ -98,16 +116,22 @@ const browser = await chromium.launch({
 })
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, locale: 'zh-CN' })
 const errors = []
+const consoleMessages = []
 const sockets = []
 const remoteRequests = []
+const resourceRequests = []
+const failedResponses = []
 const promptResponses = []
 const themeStates = []
+const parityPassed = []
 page.on('request', request => {
   const target = new URL(request.url())
   if (target.pathname.startsWith('/api/remote') || target.pathname === '/api/session/prompt') remoteRequests.push({ path: target.pathname, method: request.method(), type: request.resourceType(), body: request.postData() })
+  if (target.pathname.startsWith('/sidebar/') || target.pathname === '/api/file') resourceRequests.push({ url: request.url(), method: request.method(), body: request.postData() })
 })
-page.on('response', response => {
+page.on('response', async response => {
   if (new URL(response.url()).pathname === '/api/session/prompt') promptResponses.push({ status: response.status(), body: response.request().postData() })
+  if (response.status() >= 400) failedResponses.push({ url: response.url(), status: response.status(), body: await response.text().catch(() => '') })
 })
 page.on('websocket', socket => {
   const path = new URL(socket.url()).pathname
@@ -117,7 +141,10 @@ page.on('websocket', socket => {
   socket.on('framereceived', () => { record.received += 1 })
 })
 page.on('pageerror', error => errors.push(error.message))
-page.on('console', message => { if (message.type() === 'error') errors.push(message.text().split('\n')[0]) })
+page.on('console', message => {
+  consoleMessages.push({ type: message.type(), text: message.text() })
+  if (message.type() === 'error') errors.push(message.text().split('\n')[0])
+})
 try {
   await page.goto(url)
   await page.waitForTimeout(1500)
@@ -183,8 +210,51 @@ try {
   assert.equal(await imageOpener.evaluate(button => document.activeElement === button), true)
   await page.getByRole('button', { name: 'Open fixture file', exact: true }).click()
   await page.getByText('Second fixture line', { exact: false }).first().waitFor()
+  if (installed) {
+    const readRequests = resourceRequests.filter(request => new URL(request.url).pathname === '/sidebar/api/fs.read')
+      .map(request => JSON.parse(request.body))
+    const expected = path.join(workspace, 'm1-note.txt').replaceAll('\\', '/')
+    assert.ok(readRequests.some(request => request.sessionId && typeof request.path === 'string' && request.path.replaceAll('\\', '/') === expected),
+      'the active community viewer reads the selected Session file by its absolute path inside a nested Git workspace')
+    parityPassed.push('relative transcript file link retains absolute target through community Git-root reads')
+  }
   await page.screenshot({ path: path.join(run, 'file-navigation.png'), fullPage: true })
   await page.getByRole('button', { name: '收起右侧边栏', exact: true }).click()
+  if (installed) {
+    await page.getByRole('button', { name: 'Open fixture guide', exact: true }).click()
+    const preview = page.locator(':is([data-dsh-native-tab-host], [data-dsh-better-sidebar]) .nArs4W_editorMd:visible')
+    await preview.waitFor()
+    const communityHost = await preview.evaluate(element => element.closest('[data-dsh-native-tab-host]') === null
+      ? '[data-dsh-better-sidebar]:visible' : '[data-dsh-native-tab-host]:visible')
+    const community = page.locator(communityHost)
+    const markdown = community.locator('.nArs4W_editorMd:visible')
+    await markdown.getByRole('heading', { name: 'M1 community Markdown guide', exact: true }).waitFor()
+    assert.equal(await markdown.getAttribute('data-dsh-md-surface'), '', 'the community Markdown navigation owner remains mounted')
+    const fence = markdown.locator('.md-code-block').first()
+    const fold = fence.locator('[data-modern-community-fold]')
+    await fold.waitFor()
+    const expandedHeight = await fence.evaluate(element => element.getBoundingClientRect().height)
+    await fold.click()
+    assert.equal(await fold.getAttribute('aria-expanded'), 'false')
+    assert.equal(await fence.locator(':scope > [data-code-block-content]').evaluate(element => element.hidden), true)
+    assert.ok(await fence.evaluate(element => element.getBoundingClientRect().height) < expandedHeight / 2)
+    await page.screenshot({ path: path.join(run, 'community-markdown-folded.png'), fullPage: true })
+    await fold.click()
+    assert.equal(await fence.locator(':scope > [data-code-block-content]').evaluate(element => element.hidden), false)
+    await community.getByRole('button', { name: '编辑', exact: true }).click()
+    await community.locator('.cm-editor [contenteditable="true"]').waitFor()
+    assert.match(await community.locator('.cm-editor').innerText(), /M1 community Markdown guide/)
+    await community.getByRole('button', { name: '预览', exact: true }).click()
+    await markdown.getByRole('heading', { name: 'M1 community Markdown guide', exact: true }).waitFor()
+    await markdown.getByRole('button', { name: 'Open linked fixture guide', exact: true }).click()
+    await community.getByRole('heading', { name: 'M1 linked community guide', exact: true }).waitFor()
+    await community.getByRole('button', { name: 'Back to fixture guide', exact: true }).click()
+    await markdown.getByRole('heading', { name: 'M1 community Markdown guide', exact: true }).waitFor()
+    await markdown.locator('[data-modern-community-fold]').waitFor()
+    await page.screenshot({ path: path.join(run, 'community-markdown-navigation.png'), fullPage: true })
+    await page.getByRole('button', { name: '收起右侧边栏', exact: true }).click()
+    parityPassed.push('all three default community plugins active', 'better-sidebar real Markdown preview/editor/navigation with Modern code folding')
+  }
   const modernTrigger = page.getByRole('button', { name: /mock-fast/ })
   await modernTrigger.click()
   assert.equal(await modernTrigger.getAttribute('aria-expanded'), 'true')
@@ -215,6 +285,11 @@ try {
   await page.locator('[data-citation-sources]').waitFor()
   assert.equal(await page.locator('[data-followups] button').count(), 2)
   assert.match(await page.locator('[data-citation-sources]').innerText(), /来源/)
+  const interactiveContainer = page.locator('[data-intelligent-frame][data-ready="true"]')
+  await interactiveContainer.waitFor()
+  await interactiveContainer.evaluate(element => element.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' }))
+  // Give the compositor the explicit scroll before routing input through the nested opaque frames.
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
   const interactive = page.frameLocator('[data-intelligent-frame] > iframe').frameLocator('iframe')
   await interactive.getByRole('button', { name: 'Count: 0', exact: true }).waitFor({ timeout: 10000 })
   await interactive.getByRole('button', { name: 'Count: 0', exact: true }).click()
@@ -310,6 +385,69 @@ try {
   await external.waitForLoadState('domcontentloaded')
   assert.equal(external.url(), externalUrl)
   await external.close()
+  // Quote the rendered transcript through an actual browser Selection and ordinary pointer gesture.
+  const selectedText = runMarker
+  const transcript = page.locator('[data-text-interaction-source]').filter({ has: page.getByText(selectedText, { exact: true }) }).first()
+  const excerpt = transcript.getByText(selectedText, { exact: true }).first()
+  await excerpt.scrollIntoViewIfNeeded()
+  const selectionPoint = await excerpt.boundingBox()
+  assert.ok(selectionPoint)
+  await page.mouse.move(selectionPoint.x + 2, selectionPoint.y + selectionPoint.height / 2)
+  await page.mouse.down()
+  await excerpt.evaluate(element => {
+    const range = document.createRange()
+    range.selectNodeContents(element)
+    const selection = window.getSelection()
+    selection.removeAllRanges()
+    selection.addRange(range)
+    document.dispatchEvent(new Event('selectionchange'))
+  })
+  await page.mouse.up()
+  assert.equal(await page.evaluate(() => window.getSelection()?.toString()), selectedText)
+  await page.getByRole('button', { name: '引用文本', exact: true }).click()
+  const composer = page.locator('[data-composer-input="true"]')
+  await composer.locator('[data-composer-quote] [data-quote-preview-text]').waitFor()
+  assert.equal(await composer.locator('[data-quote-preview-text]').innerText(), selectedText)
+  await composer.press('End')
+  await page.keyboard.type(' Review this quoted fixture.')
+  await composer.press('Enter')
+  const sentQuote = page.locator('[data-message-bubble] [data-quote-preview]:not([data-removable])')
+  await sentQuote.filter({ hasText: selectedText }).waitFor()
+  await page.getByText('Review this quoted fixture.', { exact: false }).first().waitFor()
+  await page.waitForFunction(() => document.querySelectorAll('[data-followups]').length === 2)
+  const modelRequests = (await readFile(path.join(run, 'model-requests.jsonl'), 'utf8')).trim().split('\n').map(line => JSON.parse(line))
+  assert.ok(modelRequests.some(request => JSON.stringify(request.user).includes('> ' + selectedText)
+    && JSON.stringify(request.user).includes('Review this quoted fixture.')), 'the actual mock model receives the literal selected blockquote and follow-up text')
+  await page.reload()
+  await sentQuote.filter({ hasText: selectedText }).waitFor()
+  assert.equal(await sentQuote.filter({ hasText: selectedText }).count(), 1, 'the durable sent quote re-renders once after reload')
+  await page.screenshot({ path: path.join(run, 'sent-quote.png'), fullPage: true })
+  parityPassed.push('real transcript selection quotes into composer and reaches model request + durable sent renderer')
+  if (installed) {
+    const selectedSession = await page.locator('[data-row-key^="session:"][aria-selected="true"]').getAttribute('data-row-key')
+    assert.ok(selectedSession)
+    await page.getByRole('button', { name: '插件', exact: true }).click()
+    const packageCard = page.locator(`[data-plugin-package="${installed.plugin.name}"]`)
+    await packageCard.waitFor()
+    await packageCard.getByRole('button', { name: /查看/ }).click()
+    const readme = page.locator(`[data-plugin-detail="${installed.plugin.name}"] [data-detail-document] [role="region"]`)
+    await readme.waitFor()
+    await readme.getByRole('heading', { name: 'DSH Modern UI', exact: true }).waitFor()
+    assert.match(await readme.innerText(), /Modern UI runs as an independent plugin on the unmodified official/)
+    await readme.getByRole('heading', { name: 'Features', exact: true }).waitFor()
+    await readme.getByRole('heading', { name: 'Installation', exact: true }).waitFor()
+    assert.match(await readme.innerText(), /installation, validation and compatibility boundaries\./, 'the document includes its final paragraph')
+    const readmeCode = readme.locator('[data-code-block-content]')
+    assert.match(await readmeCode.innerText(), /install-existing\.mjs/)
+    await readme.getByRole('button', { name: '收起代码', exact: true }).click()
+    assert.equal(await readmeCode.evaluate(element => element.hidden), true)
+    await readme.getByRole('button', { name: '展开代码', exact: true }).click()
+    assert.equal(await readmeCode.evaluate(element => element.hidden), false)
+    await page.screenshot({ path: path.join(run, 'installed-plugin-readme.png'), fullPage: true })
+    await page.locator(`[data-row-key="${selectedSession}"]`).click()
+    await sentQuote.filter({ hasText: selectedText }).waitFor()
+    parityPassed.push('official Installed plugin details display the shipped Modern README in full')
+  }
   await openSettings(page)
   await settings.getByRole('button', { name: '通用设置', exact: true }).click()
   await settings.getByRole('button', { name: '中文', exact: true }).click()
@@ -323,13 +461,14 @@ try {
   assert.doesNotMatch(serverErrors, /entry did not activate|ValidationError|FAILED/)
   const result = { host: '0.2.1-rc.4', node: spawnSync(nodeExecutable, ['--version'], { encoding: 'utf8', windowsHide: true }).stdout.trim(),
     nodeExecutable, driverNode: process.version, os: process.platform, cpu: process.arch,
-    plugin, official, run, sockets, streamFrames, promptResponses, remoteRequests, themeStates, translationRequests: translations, existingTranslator, installedProfile: installed !== undefined,
+    plugin, official, run, sockets, streamFrames, promptResponses, remoteRequests, themeStates,
+    translationRequests: translations, existingTranslator, installedProfile: installed !== undefined, activeCommunities,
     passed: ['Host startup audit', 'authenticated dynamic client resources', 'shared model selector', 'reasoning selection + reload persistence',
       'streamed mock response', 'citation sources', 'interactive sandbox iframe', 'related questions', 'agents view', 'mobile no document overflow', 'session reload',
       'model card edit + reload persistence', 'language pack selection + reload persistence', 'keyboard model picker opening',
       'official cotTranslation Remote + local provider', 'translation original toggle + durable reopen cache', 'WebSocket frame exchange',
       'Markdown local file navigation', 'relative image + shared lightbox Tab/Escape/focus return', 'Modern model popover + official modal keyboard ownership',
-      'public theme override light/dark save + reload', 'system color-scheme switching + metadata consistency', 'HTTP link official new-tab preference/fallback'],
+      'public theme override light/dark save + reload', 'system color-scheme switching + metadata consistency', 'HTTP link official new-tab preference/fallback', ...parityPassed],
     errors }
   await writeFile(path.join(run, 'result.json'), JSON.stringify(result, null, 2))
   console.log(JSON.stringify(result, null, 2))
@@ -338,7 +477,10 @@ try {
   const frames = await Promise.all(page.frames().map(async frame => ({ url: frame.url(), buttons: await frame.locator('button').allTextContents() })))
   const visuals = await page.locator('[data-intelligent-ui]').evaluateAll(items => items.map(item => ({ html: item.outerHTML.slice(0, 1000), ancestors: Array.from((function* () { for (let parent = item; parent; parent = parent.parentElement) yield parent })()).map(parent => ({ tag: parent.tagName, hidden: parent.getAttribute('aria-hidden'), inert: parent.hasAttribute('inert') })) })))
   const boot = await page.evaluate(() => window.__DSH_BOOT__)
-  const failure = { message: error.message, errors, sockets, remoteRequests, body: await page.locator('body').innerText(), serverErrors, frames, visuals, boot }
+  const resourcePanels = await page.locator('[data-dsh-better-sidebar], [data-dsh-native-tab-host]').evaluateAll(panels => panels.map(panel => ({
+    tag: panel.tagName, html: panel.outerHTML.slice(0, 2000), inputs: [...panel.querySelectorAll('input')].map(input => ({ value: input.value, title: input.title, placeholder: input.placeholder })),
+  })))
+  const failure = { message: error.message, errors, consoleMessages, resourceRequests, failedResponses, resourcePanels, sockets, remoteRequests, body: await page.locator('body').innerText(), serverErrors, frames, visuals, boot }
   await writeFile(path.join(run, 'failure.json'), JSON.stringify(failure, null, 2))
   console.error(JSON.stringify({ run, message: failure.message, errors, body: failure.body.slice(0, 2000), diagnostics: path.join(run, 'failure.json') }, null, 2))
   throw error

@@ -4,7 +4,7 @@ import { IconChecklistOutlineRegular } from '@iroha1145/dsh-modern-ui/primitives
 import type { Context } from '@deepseek-ai/cordis'
 import type { HostObservable, InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ToolCallViewProps } from '@deepseek-ai/dsh-client-ui-tool/client'
-import { type TodoHistory } from '../models/todo-history.ts'
+import { registerTodoHistory, type TodoHistory } from '../models/todo-history.ts'
 import { todoDiffModel } from '../models/todo-diff-model.ts'
 import { toolRowModel } from '../models/tool-call-model.ts'
 import { ToolRow } from '../components/ToolRow.tsx'
@@ -83,9 +83,10 @@ export const todoToolview = {
   name: 'todo-toolview',
   inject: ['slots', 'uiConversation'],
   apply(ctx: Context): void {
+    registerTodoHistory(ctx)
     ctx.slots.inject('tool.call.toolview', () =>
       ctx.slots.register({
-        name: 'tool.call.toolview', priority: -100, key: 'todo_write', locale: NS,
+        name: 'tool.call.toolview', key: 'todo_write', locale: NS,
         inject: (sessionId): TodoHistoryInjected => ({
           hooks: { todoHistory: ctx.uiConversation.binding(sessionId).target('tool-todo-history') },
         }),

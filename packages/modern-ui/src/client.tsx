@@ -1,6 +1,5 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from './contracts.ts'
-import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { installThemeStyles } from './vendor/theme/client/styles.ts'
 import { installIconSprite } from './vendor/theme/client/icon-sprite.ts'
 import * as chatLocale from './vendor/chat/client/locale.ts'
@@ -8,8 +7,6 @@ import { IntelligentUI, type ThemeInjected } from './vendor/intelligent/client/I
 import { Followups } from './vendor/intelligent/client/Followups.tsx'
 import * as intelligentLocale from './vendor/intelligent/client/locales.ts'
 import * as modelLocale from './vendor/model/client/locales.ts'
-import { ModelSelect } from './vendor/model/client/ModelSelect.tsx'
-import { DeepSeekModelLabel } from './vendor/model/client/DeepSeekModelLabel.tsx'
 import { MODEL_PICKER_NAMESPACE } from './vendor/model/model-settings.ts'
 import type { ModelPickerSettings } from './vendor/model/model-settings.ts'
 import { registerModelPickerSettings } from './vendor/model/client/settings/register.ts'
@@ -35,6 +32,13 @@ import { layoutOwner } from './layout-owner.ts'
 import { workspaceOwner } from './workspace-owner.ts'
 import { sidebarOwner } from './sidebar-owner.ts'
 import { settingsOwner } from './settings-owner.ts'
+import { modelOwner } from './model-owner.ts'
+import { installFileDrag } from './file-drag.ts'
+import { installQuotes } from './quotes.ts'
+import { installPresentationParity } from './presentation-parity.ts'
+import { installPluginDocuments } from './plugin-documents/index.tsx'
+import { installOfficialControls } from './official-controls.ts'
+import { installCommunityMarkdown } from './community-markdown.ts'
 import * as conversationOwner from './conversation-owner.ts'
 
 export const inject = ['slots', 'theme', 'locale', 'configForms', 'remote', 'remote.session']
@@ -51,23 +55,30 @@ export async function apply(ctx: Context): Promise<void> {
   installPluginStyles(ctx)
   installThemeStyles(ctx)
   installIconSprite(ctx)
+  installOfficialControls(ctx)
   ctx.effect(() => ctx.locale.register('modern-intelligent', dictionaries(intelligentLocale)))
   ctx.effect(() => ctx.locale.register('modern-model', dictionaries(modelLocale)))
   ctx.effect(() => ctx.locale.register('modern-subagent', dictionaries(subagentLocale)))
   ctx.effect(() => ctx.locale.register('modern-chat', dictionaries(chatLocale)))
+  installCommunityMarkdown(ctx)
   installLanguages(ctx)
+  installFileDrag(ctx)
   const owners = [
     ctx.plugin(layoutOwner),
     ctx.plugin(workspaceOwner),
     ctx.plugin(sidebarOwner),
     ctx.plugin(conversationOwner),
     ctx.plugin(settingsOwner),
+    ctx.plugin(modelOwner),
   ]
   ctx.inject(['modelDirectories', 'sessions', 'sidebarRight'], installPresentation)
   for (const owner of owners) await owner.await()
 }
 
 function installPresentation(ctx: Context): void {
+  installQuotes(ctx)
+  installPresentationParity(ctx)
+  installPluginDocuments(ctx)
   installReasoningTranslation(ctx)
   installSteeringBatches(ctx)
   installToolCards(ctx)
@@ -77,10 +88,7 @@ function installPresentation(ctx: Context): void {
   // it): data layer, view, flow, node views, factories, quota notice, stats pills and settings rows.
   ctx.inject(['uiWorkspace', 'uiSession', 'uiConversation', 'connection', 'sidebarRight'], applyChat)
   const form = ctx.configForms.get<ModelPickerSettings>(MODEL_PICKER_NAMESPACE)
-  const picker = createSnapshotStore(form.getSnapshot().value)
-  ctx.effect(() => form.subscribe(() => picker.set(form.getSnapshot().value)))
   const t = ctx.locale.bind('modern-model')
-  const models = ctx.modelDirectories
   const catalog = new ModelCatalogDirectory(ctx)
   ctx.on('connection/reset', () => catalog.resetGeneration())
   ctx.remote.$on('llm/adapters-updated', () => catalog.refresh())
@@ -111,25 +119,6 @@ function installPresentation(ctx: Context): void {
       return answer.ok ? answer.value.map(model => model.id) : undefined
     },
   }))
-  ctx.slots.inject('conversation.input.model', () => ctx.slots.register({
-    name: 'conversation.input.model', priority: -100, locale: 'modern-model',
-    children: { 'modern.conversation.input.model.label': { kind: 'single', scope: 'session', inline: true } },
-    inject: sessionId => {
-      const directory = models.directoryFor(sessionId)
-      const available = ctx.sessions.subagentAddress(sessionId) === undefined
-      return {
-        available,
-        hooks: { modelDirectory: directory.store, modelPicker: picker },
-        load: () => { if (available) void directory.load().catch(() => {}) },
-        select: selection => available ? directory.select(selection) : Promise.resolve(undefined),
-      }
-    },
-  }, ModelSelect))
-  // The official 1017 release label registers into the slot the official selector declares,
-  // which Modern's selector cannot render; Modern's own label slot carries the same badge.
-  ctx.slots.inject('modern.conversation.input.model.label', () => ctx.slots.register({
-    name: 'modern.conversation.input.model.label', locale: 'modern-model',
-  }, DeepSeekModelLabel))
   // Code-fence presenters beside the standard CodeBlock (priority 100, registered by the chat entry).
   ctx.slots.inject('conversation.chat.message.code', function* () {
     yield ctx.slots.register({

@@ -25,7 +25,7 @@ const PROBE_ROUTE = '\0probe'
 export type EffortWire = string | null
 
 /** Declared levels in their stored order, each with the value sent for it. */
-export type EffortEntries = ReadonlyArray<readonly [string, EffortWire]>
+export type EffortEntries = ReadonlyArray<readonly [string, unknown]>
 
 /** One stored model row as drafted (hidden fields included). */
 export type ModelRowDraft = Readonly<Record<string, unknown>>
@@ -78,7 +78,7 @@ export function readEfforts(model: ModelRowDraft): EffortEntries | undefined {
   const value = model['reasoningEfforts']
   if (value === null) return []
   if (typeof value !== 'object' || Array.isArray(value)) return undefined
-  return Object.entries(value as Record<string, unknown>).map(([level, wire]) => [level, typeof wire === 'string' ? wire : null] as const)
+  return Object.entries(value as Record<string, unknown>)
 }
 
 /**
@@ -107,6 +107,28 @@ export function withEfforts(model: ModelRowDraft, entries: EffortEntries | undef
   return { ...model, reasoningEfforts: entries === undefined ? false : Object.fromEntries(entries) }
 }
 
+/** The user owns the whole array once present; otherwise the composition supplies it. */
+export function inheritedModelDrafts(user: unknown, base: unknown, path: readonly string[]): readonly ModelRowDraft[] {
+  const owned = valueAt(user, path)
+  return modelDrafts(owned === undefined ? valueAt(base, path) : owned)
+}
+
+/** pi-ai accepts nonempty wire strings, or null for the Off entry. */
+export function acceptedValue(level: string, wire: unknown): boolean {
+  return typeof wire === 'string' ? wire.length > 0 : wire === null && level === 'off'
+}
+
+/** Validate before persisting the complete row, including declarations outside the schema choices. */
+export function validateReasoningEfforts(value: unknown): { index: number; key: 'modelReasoningValueRequired' | 'modelReasoningNeedsLevel' } | undefined {
+  for (const [index, model] of modelDrafts(value).entries()) {
+    const entries = readEfforts(model)
+    if (entries === undefined) continue
+    if (entries.some(([level, wire]) => !acceptedValue(level, wire))) return { index, key: 'modelReasoningValueRequired' }
+    if (!entries.some(([level]) => level !== 'off')) return { index, key: 'modelReasoningNeedsLevel' }
+  }
+  return undefined
+}
+
 /**
  * The entries a model offers when its switch turns on.
  * @param levels - the levels the schema offers, in escalation order.
@@ -114,26 +136,6 @@ export function withEfforts(model: ModelRowDraft, entries: EffortEntries | undef
  */
 export function initialEntries(levels: readonly string[]): EffortEntries {
   return INITIAL_LEVELS.filter(level => levels.includes(level)).map(level => [level, defaultValue(level)] as const)
-}
-
-/**
- * Keep or drop one level in a declaration. Levels the schema lists keep its
- * escalation order; a stored level the schema does not list keeps its place at
- * the end, so an edit never drops it. Existing wire spellings survive.
- * @param entries - the declaration as stored.
- * @param level - the level the user ticked or unticked.
- * @param levels - the levels the schema offers, in escalation order.
- * @param checked - whether the level is offered after the edit.
- * @returns the replacement declaration.
- */
-export function toggledLevel(entries: EffortEntries, level: string, levels: readonly string[], checked: boolean): EffortEntries {
-  const wires = new Map(entries)
-  if (checked) { if (!wires.has(level)) wires.set(level, defaultValue(level)) }
-  else wires.delete(level)
-  const ordered: Array<readonly [string, EffortWire]> = []
-  for (const candidate of levels) if (wires.has(candidate)) ordered.push([candidate, wires.get(candidate) ?? null])
-  for (const [stored, wire] of wires) if (!levels.includes(stored)) ordered.push([stored, wire])
-  return ordered
 }
 
 /**
@@ -161,6 +163,8 @@ export interface DeclarableModel {
   readonly name: string | undefined
   /** The declared levels; `undefined` while reasoning is off (absent or `false`). */
   readonly efforts: EffortEntries | undefined
+  /** Original complete row, including fields outside this editor. */
+  readonly model: ModelRowDraft
 }
 
 /**
@@ -179,7 +183,7 @@ export function declarableModels(models: unknown, catalogIds: ReadonlySet<string
     if (typeof id !== 'string' || id.trim().length === 0) return
     if (!declaresEfforts(model) && (catalogIds === undefined || catalogIds.has(id))) return
     const name = model['name']
-    rows.push({ index, id, name: typeof name === 'string' && name.length > 0 ? name : undefined, efforts: readEfforts(model) })
+    rows.push({ index, id, name: typeof name === 'string' && name.length > 0 ? name : undefined, efforts: readEfforts(model), model })
   })
   return rows
 }

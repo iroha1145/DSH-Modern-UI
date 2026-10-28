@@ -12,7 +12,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-sidebar-browser/client'
 import type {} from '@deepseek-ai/dsh-client-ui-input-trigger/client'
 // The `file` entry of `SidebarRightResourceParamsMap`, which types `{ params: { line } }` below.
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/client'
-import { fileAddressFor, resolveWorkspacePath } from '@deepseek-ai/dsh-util-workspace-path'
+import { sessionFileAddress, resolveWorkspacePath } from '@deepseek-ai/dsh-util-workspace-path'
 // Type-only service and declaration merges used by the apply world.
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
@@ -23,10 +23,11 @@ import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
 import type {
-  ChatFlowDataInjected, ChatFlowInjected, ChatNodeInjected, ChatScrollPosition, ChatViewInjected, FileDragActions,
+  ChatFlowDataInjected, ChatFlowInjected, ChatNodeInjected, ChatScrollPosition, ChatViewInjected,
   QuotaNoticeInjected, QuotaNoticeState, TurnTailOwnerProps,
 } from './contract/slots.ts'
 import { compat } from './compat.ts'
+import type {} from '../../../quotes.ts'
 import type { ChatSnapshot } from './contract/snapshot.ts'
 import { EMPTY_CHAT_SNAPSHOT } from './contract/snapshot.ts'
 import { ApprovalCommand } from './chat/ApprovalCommand.tsx'
@@ -247,6 +248,7 @@ export function apply(ctx: Context): void {
       locale: NS,
       children: {
         'conversation.chat.flow': { kind: 'single', scope: 'session', inject: CHAT_FLOW_INJECT },
+        'conversation.chat.text-interaction': { kind: 'keyed', scope: 'session' },
       },
       store: chatStore,
       inject: (sessionId: SessionId): ChatViewInjected => {
@@ -256,20 +258,19 @@ export function apply(ctx: Context): void {
         const chat = chatSource(binding)
         return {
           ...nodeSources(binding),
-          // rc.3 injected the file-drag service; rc.4 ships no such package, so the image drag actions are optional.
-          fileDrag: ((ctx as unknown as { get(name: string): unknown }).get('fileDrag') as { actions: FileDragActions } | undefined)?.actions,
-          hooks: { presentation },
+          fileDrag: ctx.get('fileDrag')?.actions,
+          hooks: { presentation, interactionIds: ctx.uiConversation.interactions },
+          dispatchInteraction: gesture => ctx.uiConversation.interactions.dispatch(sessionId, gesture),
           fileMentions: (owner: TurnTailOwnerProps) => ctx.get('chatFileMentions')?.forClosing(owner, sessionId),
           // Files open in the right Sidebar, not in a desktop application: the
           // content stays in the product, beside the conversation that produced
           // it. A relative path resolves from the Session's working directory
           // at click time, which a directory change can move away from the
           // workspace root; links from earlier Turns follow later changes. A
-          // path inside the workspace is addressed under this
-          // session's scope, `dsh-resource://file/session/<id>/<path>`; an
-          // absolute path elsewhere keeps its absolute spelling in the same
-          // Session's address. Which tab type claims the address is the
-          // Sidebar's decision, not this call site's.
+          // resolved path keeps its absolute spelling under this Session's
+          // address. Some extension viewers interpret relative addresses from
+          // the Git repository root, which may differ from the Session cwd.
+          // Which tab type claims the address remains the Sidebar's decision.
           // A line travels as a navigation parameter, not as part of the
           // address: the file is one piece of content whether it is opened at
           // its top or at line 400, so the same tab is revealed and told where
@@ -277,7 +278,7 @@ export function apply(ctx: Context): void {
           openFile: async (path, options) => {
             const cwd = ctx.sessions.list.getSnapshot().byId[sessionId]?.cwd
             const current = session.projections.faceOf('workingDirectory').getSnapshot() as string | null | undefined
-            const url = fileAddressFor(sessionId, cwd, resolveWorkspacePath(current ?? undefined, path))
+            const url = sessionFileAddress(sessionId, resolveWorkspacePath(current ?? cwd, path))
             if (options?.line === undefined) ctx.sidebarRight.openResource(url)
             else ctx.sidebarRight.openResource(url, { params: { line: options.line } })
             await Promise.resolve()
