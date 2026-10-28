@@ -2,6 +2,7 @@ import { readFile, writeFile, mkdir, readdir } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { buildQuotesTypes } from './build-quotes-types.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const pkg = path.join(root, 'packages/modern-ui')
@@ -29,6 +30,7 @@ const pure = new Set([
   '@deepseek-ai/dsh-file-reference/grammar', '@deepseek-ai/dsh-session/surface',
   '@deepseek-ai/dsh-util-values', '@deepseek-ai/dsh-util-crypto',
   '@deepseek-ai/dsh-brand',
+  '@deepseek-ai/dsh-agent-preset-registry/display',
   '@deepseek-ai/dsh-api-workspace-controller/default-workspace',
   '@deepseek-ai/dsh-spill-policy/notice', '@deepseek-ai/dsh-output-retention',
   // Pure Turn token-usage derivation the vendored chat data layer (turn-tail) folds into its snapshot,
@@ -92,6 +94,7 @@ await build({
   external: ['@deepseek-ai/*'],
 })
 await import('./build-host.mjs')
+buildQuotesTypes()
 const licensed = new Map()
 for (const input of Object.keys(client.metafile.inputs)) {
   const physical = input.replace(/^(?:owned-css|inline-css):/, '')

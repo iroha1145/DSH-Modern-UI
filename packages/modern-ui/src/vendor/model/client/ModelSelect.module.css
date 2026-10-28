@@ -70,6 +70,24 @@
   white-space: nowrap;
 }
 
+/* Preserve the patched release badge palette while the original label plugin
+   owns its content and lifetime. The selector is scoped to its official routes. */
+:is(.triggerLabel, .name) > :is([data-provider-id='deepseek-account'], [data-provider-id='deepseek-official'])[data-model-id='deepseek-flash'] :global([data-tone='info']) {
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  flex-shrink: 0;
+}
+
+:is(.triggerLabel, .name) > :is([data-provider-id='deepseek-account'], [data-provider-id='deepseek-official'])[data-model-id='deepseek-flash'] > span {
+  max-width: 100%;
+}
+
+:is(.triggerLabel, .name) > :is([data-provider-id='deepseek-account'], [data-provider-id='deepseek-official'])[data-model-id='deepseek-flash'] > span > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Model release labels remain plain text within the exposed composer control
    and the option rows. */
 .triggerLabel :global([data-tone='quiet']),

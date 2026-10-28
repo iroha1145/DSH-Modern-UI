@@ -95,6 +95,8 @@ community-lock.json 随程序保留三个精确包的真实 URL/SRI：dsh-contex
 
 更新仍使用 install-existing / bootstrap。新 generation 下载、校验并自检后才原子切 current.json；先停止使用同一数据目录的进程。程序管理使用 OS 生命周期 TCP 租约，强杀后内核释放；不读取或删除历史 operation.lock 文件。官方会话锁未绕过。
 
+对非空数据目录，更新或采用前先在程序目录的 `data-backups/home-<uuid>` 保存并校验整树快照；复制、空间或一致性校验失败时不会进入 staging。托管安装和启动同时持有程序根与 data home 租约。旧启动器和直接官方 CLI 不遵守新租约，仍需先停机。`verify`、`rollback`、`uninstall` 不写会话数据，不要求 data home 存在或空闲。快照内容、外部链接及恢复方法见 [分发记录](distribution-parity.md)。
+
 POSIX 启动器把官方 DSH 放进自己的进程组启动，并将发给启动器的 SIGTERM、SIGINT 和 SIGHUP 各转发一次，持续持有操作锁直到子进程退出、stdio 关闭。这样终端里按 Ctrl+C 或关闭窗口时，官方进程只收到转发来的那一次信号，按官方逻辑有序退出（官方把连续第二次信号当作「立即强制退出」）。退出后清理信号监听器，保留子进程数值退出码；官方 DSH 自己处理 SIGTERM 和 SIGINT 并以 0 或 130 退出，只有子进程不处理的信号（例如 SIGHUP）才得到 `128 + signal number`（129）。SIGKILL 等无法捕获的强制终止不属于此转发保证，内核会释放已被杀死的启动器所持租约。按 cgroup 整体发信号的管理器（systemd 默认的 `KillMode=control-group`）会让启动器和官方进程各收到一次，再加上转发就是两次；这类环境请只向启动器进程发信号（systemd 用 `KillMode=mixed`）。
 
 启动器以**调用它的目录**为官方进程的工作目录，与直接运行官方 `dsh` 一致；不带工作区的会话创建和沙箱的回退根目录都从这里算。传给官方进程的环境只比调用环境多三样：`DSH_HOME`、PATH 最前面的 `<代际>/bin`（只含固定版本 pnpm 的包装脚本，官方插件管理器按 PATH 找 `pnpm`）和 PATH 末尾的私有 Node 目录；Windows 另加私有 PowerShell 目录。安装器自己用的 `npm_config_ignore_scripts`、`npm_config_store_dir`、`NODE_OPTIONS`/`NODE_PATH` 清空等开关不进入启动环境，因此不会传给代理在用户项目里运行的 shell。代理的 shell 里 `pnpm` 会解析到这个固定版本的包装脚本。
@@ -119,13 +121,13 @@ bootstrap 将同一次已校验下载的 Node 归档交给 manager，在持久�
 
 ## 切换官方界面与移除插件包
 
-在官方插件管理页面停用**整个 `@iroha1145/dsh-modern-ui` bundle**，随后刷新浏览器。这样恢复原 layout/sidebar/workspace/conversation 四个 owner；仅关闭 bundle 内 `modern-ui` 单 entry 会留下四个原 owner 被停用，不能作为切换方式。如果此前手动关过该 entry，重新启用 bundle 后还需重新启用该 entry，再刷新。
+在官方插件管理页面停用**整个 `@iroha1145/dsh-modern-ui` bundle**，随后刷新浏览器。这样恢复原 layout/sidebar/workspace/conversation/chat/model-selection/tool 七个展示 owner；仅关闭 bundle 内 `modern-ui` 单 entry 会留下这些原 owner 被停用，不能作为切换方式。如果此前手动关过该 entry，重新启用 bundle 后还需重新启用该 entry，再刷新。
 
 真实 `setBundleEnabled` 返回 `application: applied`，但 root owner 交替时当前页面可能报 `renderSlot('root') before any 'root' registration`；刷新是本预览切换步骤的一部分，不承诺无缝热切换。卸载时 90 个 Modern style 全部清除、主题 token 恢复；Lexical 0.49.0 的一个模块级 textInput 时间戳监听器留到页面刷新，刷新后为零。
 
 在没有自定义 Host 兼容绑定的独立测试 profile，官方插件管理的 `removeBundle` 已真实调用 pnpm remove，包依赖和 node_modules 入口均消失；重启后官方 UI、dsh-context 与两个空会话存储文件保持正常。此结果不代表所有第三方组合都已验证。
 
-如果该 Modern profile 已使用 `modern-ui-compat-*` translator/MCP 绑定，不要直接删除仍被其配置引用的包。优先用 manager uninstall 撤销启动选择，再使用保留且未修改的原官方 profile。若必须在同一 profile 继续使用官方 UI，需先按保存的 Host 备份和原条目配置恢复这些绑定；自动反向转换未实现。该边界不影响官方安装或其他 profile。
+如果该 Modern profile 已使用 `modern-ui-compat-*` translator/MCP/HTTP 绑定，不要直接删除仍被其配置引用的包。优先用 manager uninstall 撤销启动选择，再使用保留且未修改的原官方 profile。若必须在同一 profile 继续使用官方 UI，需先按保存的 Host 备份和原条目配置恢复这些绑定；自动反向转换未实现。该边界不影响官方安装或其他 profile。
 
 ## 旧数据和测量
 

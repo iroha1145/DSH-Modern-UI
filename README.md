@@ -10,6 +10,8 @@ Modern UI 自定义会话联网开关已取消。联网工具和提供商按官�
 
 已迁移模型卡片与官方推理等级、聊天与思考折叠、Intelligent UI、相关问题、编队、语言、主题、布局、文件和终端；`collapsedViews` 已接入视图显隐并验证刷新和新 Host 恢复。逐项执行范围与边界见 [UI 地图](docs/plugin-ui-map.md)和 [Host 兼容记录](docs/plugin-host-compat.md)。
 
+本轮补齐继承偏好、完整推理声明、标准模型标签、选中文字引用、插件 README、提问与预设代码折叠、默认社区 Markdown 折叠、浏览器原图转移、通用工具与官方控件表现，以及已有数据目录的整树备份。实现与验收边界见 [迁移缺口补齐记录](docs/migration-parity-20261028.md)。
+
 ## 安装预编译插件
 
 包尚未发布到 npm 或 Release。现在使用实际本地预览包；不存在可复制的远端一键下载地址。
@@ -41,6 +43,8 @@ POSIX 入口是 `sh ./install.sh PROGRAM_ROOT DATA_HOME [EXISTING_OFFICIAL_PACKA
 ## 更新、回退与旧数据
 
 再次执行安装命令可准备新的插件代际，自检成功后切换。后端版本独立锁定，不接受未经验证的 `latest`。管理器提供 `status`、`verify`、`community`、`rollback` 与 `uninstall`，完整可执行示例见 [安装文档](docs/plugin-installation.md)。
+
+采用或更新非空数据目录前，安装器会在程序目录的 `data-backups` 下保存并校验整树快照。先停止所有使用该数据目录的 DSH；备份失败不会进入 staging。备份不会被程序 rollback 自动恢复，详见 [分发与配置](docs/distribution-parity.md)。
 
 回退仅改变程序/profile 选择，不能当作数据倒带。管理器卸载撤销当前启动选择，保留官方安装、所有 profile 与用户数据。切回官方界面使用官方插件管理中的整个 Modern UI **bundle** 开关，并刷新页面；不要仅停用其中的 `modern-ui` entry。实际包移除和包含 Host 兼容项的边界见安装文档。
 

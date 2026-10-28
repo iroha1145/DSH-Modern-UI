@@ -101,6 +101,7 @@ function remoteImageUrl(url: string): string | undefined {
 /** Authenticated Host media routes as the Desktop application addresses them. */
 const DESKTOP_MEDIA_ROUTES = [
   'dsh-app://app/api/file?', 'dsh-app://app/api/plugin-market/detail-file?', 'dsh-app://app/api/plugin-manager/detail-file?',
+  'dsh-app://app/api/modern-ui/plugin-document-image?',
 ]
 
 /** Rewritten images may use Web media protocols or the Desktop application's media routes. */

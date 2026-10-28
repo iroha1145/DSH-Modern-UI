@@ -47,8 +47,8 @@ export const webToolview = {
   inject: ['slots'],
   apply(ctx: Context): void {
     ctx.slots.inject('tool.call.toolview', function* () {
-      yield ctx.slots.register({ name: 'tool.call.toolview', priority: -100, key: 'web_search', locale: NS }, WebRow)
-      yield ctx.slots.register({ name: 'tool.call.toolview', priority: -100, key: 'web_fetch', locale: NS }, WebRow)
+      yield ctx.slots.register({ name: 'tool.call.toolview', key: 'web_search', locale: NS }, WebRow)
+      yield ctx.slots.register({ name: 'tool.call.toolview', key: 'web_fetch', locale: NS }, WebRow)
     })
   },
 }

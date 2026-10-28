@@ -37,6 +37,8 @@ import type {
 } from './snapshot.ts'
 import type { TurnProcessSpec } from './turn-process.ts'
 import type { PerformanceUsageMode } from '../../chat-settings.ts'
+import type { TextInteractionGesture } from '../../../conversation/client/contract/text-interaction.ts'
+import type {} from '../../../../quotes.ts'
 
 /** Selector hook over the current Conversation binding's Chat target. */
 export type UseChat = SnapshotSelectorHook<ChatSnapshot>
@@ -318,12 +320,13 @@ export interface PerformanceUsageInjected {
 
 /** Business callbacks injected into the Chat view. */
 export interface ChatViewInjected {
-  /** File preparation and failure callbacks owned by the file-drag plugin. */
-  /** Image drag actions; absent on rc.4, which ships no file-drag service. */
+  /** Image preparation and failure callbacks owned by Modern's browser transfer service. */
   readonly fileDrag?: FileDragActions
   /** Dispatch one gesture to the Conversation plugin registry. */
+  dispatchInteraction: (gesture: TextInteractionGesture) => string | null
   hooks: {
     /** Live plugin IDs; removed plugins dismiss their active surface. */
+    interactionIds: ObservableSnapshot<readonly string[]>
     /** Live presentation policy derived from the accepted work-details mode. */
     presentation: ObservableSnapshot<ChatPresentationPolicy>
   }
@@ -381,7 +384,7 @@ export type ChatFlowSlotProps =
 /** Full Chat view props. */
 export type ChatViewSlotProps =
   ModernRuntime<'conversation.view'>
-  & PropsRenderSlots<'conversation.chat.flow'>
+  & PropsRenderSlots<'conversation.chat.flow' | 'conversation.chat.text-interaction'>
   & PropsStore<ChatStore>
   & InjectFace<ChatViewInjected>
   & PropsLocale<'modern-chat'>

@@ -76,7 +76,7 @@ export type ModelSelectProps =
   InjectFace<ModelSelectInjected>
   & Pick<PropsRuntime<'conversation.input.model'>, 'locked' | 'useProjection'>
   & PropsLocale<'modern-model'>
-  & Omit<PropsRenderSlots<'modern.conversation.input.model.label'>, 'SessionProvider'>
+  & Omit<PropsRenderSlots<'conversation.input.model.label'>, 'SessionProvider'>
 
 function Meter({ value, column }: { value: number | undefined; column: number }) {
   return (
@@ -431,7 +431,7 @@ export function ModelSelect({
         : t('trigger.ariaEffort', { model: modelLabel, effort: effortLabel })
   const renderModelLabel = (row: Row, placement: ModelLabelOwner['placement'], selected: boolean) => (
     <span data-provider-id={row.provider.id} data-model-id={row.model.id}>
-      {renderSlot('modern.conversation.input.model.label', {
+      {renderSlot('conversation.input.model.label', {
         provider: row.provider, model: row.model, placement, selected,
       }, { fallback: row.model.name })}
     </span>

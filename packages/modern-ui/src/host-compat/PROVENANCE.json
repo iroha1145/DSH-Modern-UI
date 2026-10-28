@@ -3,62 +3,176 @@
   "commit": "22ddee3792402c3e70ec5f86a63c3e3e895a2f60",
   "modernUiCommit": "a9f4c370fa480c9a17d5c9a79cb83aeba26bdf0d",
   "patchSha256": "111b5c5a0d817685ab32440df6272f895ce385907b0f16f5e036dd443e240000",
-  "purpose": "Explicit replacement plugins retain the existing blank-translation/cache repair and MCP no-redirect behavior. Official package files are never changed.",
+  "purpose": "Explicit compatibility plugins retain blank-translation/cache repair, MCP no-redirect behavior, the attributed HTTP provider with a plugin-owned Undici transport, authenticated read-only plugin README utilities and boot-page style deltas. Official package files and Host session/command/remote/model services remain unchanged. Normal npm dependencies (including Undici 8.12.2) apply only to these plugin entries; they do not replace or certify the entire official dependency tree, and no Zod floor is claimed.",
   "files": [
     {
       "source": "packages/experimental/translator/src/deepseek.ts",
       "target": "translator/deepseek.ts",
-      "sourceSha256": "516c8d0656af17912307908c311d7bf50350bfa7c85ce85f6030588bcdf44a87"
+      "sourceSha256": "516c8d0656af17912307908c311d7bf50350bfa7c85ce85f6030588bcdf44a87",
+      "targetSha256": "efc5a4c9067b5d9fe1c92938d57ed32eb3841bfe231efba42ca7dd0838b430a3",
+      "adapted": true
     },
     {
       "source": "packages/experimental/translator/src/error.ts",
       "target": "translator/error.ts",
-      "sourceSha256": "8b0d131bd375f9a57a0eb26ea5c22874ab068682809d04a945697e1dba4269b8"
+      "sourceSha256": "8b0d131bd375f9a57a0eb26ea5c22874ab068682809d04a945697e1dba4269b8",
+      "targetSha256": "b003528f528107007273221d53dc8826b75b9c6c5dde2f7dd0924d0f1b77ec3d",
+      "adapted": true
     },
     {
       "source": "packages/experimental/translator/src/index.ts",
       "target": "translator/index.ts",
-      "sourceSha256": "195be853258f1a20f2b6cdfdb8bd9915cf4c8256b725fcda9125fb20b0b1a291"
+      "sourceSha256": "195be853258f1a20f2b6cdfdb8bd9915cf4c8256b725fcda9125fb20b0b1a291",
+      "targetSha256": "9f95ab39606e2c0e5e1f0db750674b66b086b6a04d765f720d7f643e73aa6a71",
+      "adapted": true
     },
     {
       "source": "packages/experimental/translator/src/provider.ts",
       "target": "translator/provider.ts",
-      "sourceSha256": "a8f4ca0dd77443d57ed2864edc42010e3495309ef7de3c53f1d498f26b0d76c9"
+      "sourceSha256": "a8f4ca0dd77443d57ed2864edc42010e3495309ef7de3c53f1d498f26b0d76c9",
+      "targetSha256": "b962607ffa393020cf8bcc580a5d3382d8a81e82f5e754fac3b4f24fbdbb35c2",
+      "adapted": true
     },
     {
       "source": "packages/experimental/translator/src/storage.ts",
       "target": "translator/storage.ts",
-      "sourceSha256": "def693035fa6a6142196ad9baf972d088522c3e22c0604f87da98da60346b173"
+      "sourceSha256": "def693035fa6a6142196ad9baf972d088522c3e22c0604f87da98da60346b173",
+      "targetSha256": "2ccb16454bd8823ca99520779b23ed6c221d610f024c3d5fdb2c6f48790e7c40",
+      "adapted": true
     },
     {
       "source": "packages/experimental/translator/src/types.ts",
       "target": "translator/types.ts",
-      "sourceSha256": "3fb41bf69bb00d443c8821a0f6474423aaf0080280b995659fe167104e940dd5"
+      "sourceSha256": "3fb41bf69bb00d443c8821a0f6474423aaf0080280b995659fe167104e940dd5",
+      "targetSha256": "a4b52d0199b0d61ae86a42d534355d56f3b6daa2220168c85d59a500db40067d",
+      "adapted": true
     },
     {
       "source": "packages/mcp/mcp-client/src/connection.ts",
       "target": "mcp-client/connection.ts",
-      "sourceSha256": "06dc1b3a1297b8b23f6ac5c44f3ba6740716c76db71c28cfb8f14d6c0340030e"
+      "sourceSha256": "06dc1b3a1297b8b23f6ac5c44f3ba6740716c76db71c28cfb8f14d6c0340030e",
+      "targetSha256": "49146cf67c74a20f15cf8aed0c9b43a4ca92d4a610689e9b8875ea4c10730f71",
+      "adapted": true
     },
     {
       "source": "packages/mcp/mcp-client/src/index.ts",
       "target": "mcp-client/index.ts",
-      "sourceSha256": "f279bd88743ca73b0d9834915d1bb31e455e21c87f4990808cfd55b273db4d1c"
+      "sourceSha256": "f279bd88743ca73b0d9834915d1bb31e455e21c87f4990808cfd55b273db4d1c",
+      "targetSha256": "7e2b58077c43251c805b95481b56eaff3ed966e8a9e54abc5c6c2ba9b7917e76",
+      "adapted": true
     },
     {
       "source": "packages/mcp/mcp-client/src/server-context.ts",
       "target": "mcp-client/server-context.ts",
-      "sourceSha256": "02ca9fe759891788572385a00f0cc7b6e92d6e98e103c1d00dd99ccec0d6319a"
+      "sourceSha256": "02ca9fe759891788572385a00f0cc7b6e92d6e98e103c1d00dd99ccec0d6319a",
+      "targetSha256": "d001ee4d490df726099c1cbcd8036f40a60e98c7e71ce6ad3d1ca71618963931",
+      "adapted": true
     },
     {
       "source": "packages/mcp/mcp-client/src/tools.ts",
       "target": "mcp-client/tools.ts",
-      "sourceSha256": "59203150bda479a990afcdaf60483a35a836887926892e1074e02d0294c01af9"
+      "sourceSha256": "59203150bda479a990afcdaf60483a35a836887926892e1074e02d0294c01af9",
+      "targetSha256": "997c199ec350d223053e24037799fcc5e2c783802c5db70b6562f2f949852801",
+      "adapted": true
     },
     {
       "source": "packages/mcp/mcp-client/src/transport.ts",
       "target": "mcp-client/transport.ts",
-      "sourceSha256": "bbb5a81239eb36333b01b9711dc5fb77b5e86f66ac64a89c0f03b8ae1d9ab605"
+      "sourceSha256": "bbb5a81239eb36333b01b9711dc5fb77b5e86f66ac64a89c0f03b8ae1d9ab605",
+      "targetSha256": "4aef89aeba4b3bd583e1b826d41c18988e5adf98074e5313c864770b7ecbb019",
+      "adapted": true
+    },
+    {
+      "source": "packages/boot/plugin-market/src/detail-files.ts",
+      "sourceSha256": "04a39dcc3867551473cc8f54f6fa941d4b34e99b36b331ad469e088910acfa67",
+      "target": "plugin-documents/detail-files.ts",
+      "targetSha256": "5963739db1b1889cf2b75c8ceada1485965495e7737270e5916102fa8c225fde",
+      "adapted": true
+    },
+    {
+      "source": "packages/boot/plugin-market/src/detail.ts",
+      "sourceSha256": "d184e6c6eca2c478083db21cc2dd0ab3d748bbc9881537e38968b66e4536ccaf",
+      "target": "plugin-documents/detail.ts",
+      "targetSha256": "ce407e1198f0595e84b822a6e9773e1d7295a9eefcb89d4c52d95c0bae24b9f8",
+      "adapted": true
+    },
+    {
+      "source": "packages/util/plugin-detail/src/document.ts",
+      "sourceSha256": "c0c8af5d31bfbf0075da0355c5d61213cf036d2792c83e4a52e4472b4fdd7430",
+      "target": "plugin-documents/detail/document.ts",
+      "targetSha256": "cd5351f1865bdbb3aecfebbd8c2994d1499b72887ab837e6f949e5192a3f568f",
+      "adapted": true
+    },
+    {
+      "source": "packages/util/plugin-detail/src/files.ts",
+      "sourceSha256": "9e53e21a04f9ce5d2cc8803af701b2db86acb03fa566f90dc82800567749cd13",
+      "target": "plugin-documents/detail/files.ts",
+      "targetSha256": "82c1a2c2d720bf52ac84aeb97c676c7366d11b2e2cddc501b0366e9eea810898",
+      "adapted": true
+    },
+    {
+      "source": "packages/util/plugin-detail/src/index.ts",
+      "sourceSha256": "bf23e2d8eb62680903a872f4a055d1cb20cb5d116e3a3297d36ffc40e40610c9",
+      "target": "plugin-documents/detail/index.ts",
+      "targetSha256": "5aef796708d359a291f373f77177030057d7ca2b77e8c80b7bdb9ca5f3ea8fca",
+      "adapted": true
+    },
+    {
+      "source": "packages/util/plugin-detail/src/response.ts",
+      "sourceSha256": "d5fd41cbf75c3742c8cccdfe239e31a93bc06ce1b5a68b392fcd2ea91d166c0c",
+      "target": "plugin-documents/detail/response.ts",
+      "targetSha256": "7a24453f09e3cf6b55478a38dcb949ec1d6fa7504a04f84cb644707ee8e49307",
+      "adapted": true
+    },
+    {
+      "source": "packages/util/plugin-detail/src/types.ts",
+      "sourceSha256": "59931e217bdcbdb99ef88727835be21d9b08da9e91517d57de83d0d9a764a422",
+      "target": "plugin-documents/detail/types.ts",
+      "targetSha256": "c63c3302f0fa986678e598329d80c951965d9fe6f6dfc3e0a8ac2397ceef9a5d",
+      "adapted": true
+    },
+    {
+      "source": "packages/boot/plugin-market/src/repository-cache.ts",
+      "sourceSha256": "0c7b415368079c7193e1981410df38ad4841ee8585e6cb84bdaf991e658eec73",
+      "target": "plugin-documents/repository-cache.ts",
+      "targetSha256": "1986cebcddb0b8903e0a35fbacad8babd728e108cedbabce674b94913a73c854",
+      "adapted": true
+    },
+    {
+      "source": "packages/boot/plugin-market/src/types.ts",
+      "sourceSha256": "147491e425bf69b0330144f6c773d84437eb3fd8bc4c009ca1b9aedbc43d3e46",
+      "target": "plugin-documents/types.ts",
+      "targetSha256": "613264484e1cd137918faf6a54a93af97933148281ad98a5b9930d250b9cce6c",
+      "adapted": true
+    },
+    {
+      "source": "npm:@deepseek-ai/dsh-web-fetch-http@0.2.1-rc.4/lib/index.js",
+      "sourceSha256": "489fef91b0c11c063029ea7aed27b312817570b9c3177aeaa44983b9a25aedcd",
+      "target": "web-fetch-http/index.mjs",
+      "targetSha256": "cb5f3004e39328c0777eeab3c39969d34d982dfec3eedcb1544e1f4b3f6d424c",
+      "adapted": true,
+      "description": "Published HTTP provider with a distinct plugin name and a plugin-owned Undici proxy-dispatcher lifecycle. Public-IP, DNS pinning, NAT64 and redirect checks remain in the attributed source."
     }
-  ]
+  ],
+  "authored": [
+    {
+      "target": "plugin-documents/index.ts",
+      "targetSha256": "cf537e7f66d0cdc631e6025c5f52cc0c67fabcfcf245d31af5b79b256b24eaeb",
+      "description": "Original authenticated owner-only document/image routes, official-inventory authorization, separate installed-bundle/market read limits and sources, local rereads and request lifecycle around the attributed read-only utility/cache modules."
+    }
+  ],
+  "adapters": [
+    {
+      "target": "official-style/index.ts",
+      "targetSha256": "8b537e779681473b926b65c1c4d09db4c0e1554e6ccdaa2793b86f793c908537",
+      "sources": [
+        {
+          "source": "packages/client/web/src/boot-page.module.css",
+          "sourceSha256": "5c0cfa12147ec0681544a0ca1f1507f6725613c0e614ccf6046681eacc6f4bdb"
+        }
+      ],
+      "description": "Original public webserver/index-inject wrapper contributing only the two patched boot/failure-page font-weight deltas; official HTML, scripts and loader remain unchanged."
+    }
+  ],
+  "hashPolicy": "SHA-256 of captured source and target raw bytes; no newline normalization. Legacy sources are the pinned upstream revision plus the recorded Modern UI patch. Published npm sources identify their exact package version."
 }

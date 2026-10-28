@@ -21,16 +21,16 @@ const staticPrimitivesSource = require('esbuild').buildSync({
   loader: { '.module.css': 'text', '.css': 'empty', '.svg': 'dataurl' }, define: { 'process.env.NODE_ENV': '"production"' },
 }).outputFiles[0].text
 
-function load(file, document, primitives) {
+function load(file, document, primitives, modules = new Map()) {
   let descriptor
   const window = document.defaultView
   window.__ModuleLoader__ = { load: value => { descriptor = value } }
   // Frame and clock globals the Modern Switch motion reads; jsdom supplies the clock, frames run on the timer.
   const requestAnimationFrame = callback => setTimeout(() => callback(window.performance.now()), 16)
   vm.runInNewContext(readFileSync(file, 'utf8'), { window, document, navigator: window.navigator, console, setTimeout, clearTimeout, setInterval, clearInterval, URL, URLSearchParams, TextEncoder, TextDecoder, AbortController, fetch,
-    performance: window.performance, requestAnimationFrame, cancelAnimationFrame: clearTimeout, structuredClone })
+    performance: window.performance, requestAnimationFrame, cancelAnimationFrame: clearTimeout, structuredClone, crypto, AbortSignal, queueMicrotask })
   assert.ok(descriptor?.factory, `${file} must register a module factory`)
-  return descriptor.factory(name => name === '@deepseek-ai/dsh-client-ui-primitives' ? primitives : require(name))
+  return descriptor.factory(name => modules.has(name) ? modules.get(name) : name === '@deepseek-ai/dsh-client-ui-primitives' ? primitives : require(name))
 }
 
 // A pi-ai settings schema shaped like the adapter's own (`reasoningEfforts` is `false` or a dict keyed by the
@@ -80,7 +80,8 @@ function fixture({ realTheme = false } = {}) {
     window: dom.window, document: dom.window.document, navigator: dom.window.navigator, console, setTimeout, clearTimeout,
     URL, URLSearchParams, TextEncoder, TextDecoder, AbortController, fetch })
   const renderer = load(require.resolve('@deepseek-ai/dsh-client-ui-renderer/client'), dom.window.document)
-  const client = load(path.join(root, 'packages/modern-ui/lib/client.js'), dom.window.document, staticModule.exports)
+  const modules = new Map()
+  const client = load(path.join(root, 'packages/modern-ui/lib/client.js'), dom.window.document, staticModule.exports, modules)
   const themeClient = realTheme ? load(require.resolve('@deepseek-ai/dsh-client-ui-theme/client'), dom.window.document, staticModule.exports) : undefined
   const ctx = new Context()
   const dictionaries = new Map()
@@ -88,6 +89,7 @@ function fixture({ realTheme = false } = {}) {
   const values = new Map()
   const remoteEvents = new Map()
   const catalogRequests = []
+  const commands = new Map()
   if (realTheme) values.set('ui-theme', createSnapshotStore({ value: {
     preference: 'system', fontSize: 14, codeFontSize: 13, terminalFontSize: 13,
     textFontFamily: '', codeFontFamily: '', terminalFontFamily: '',
@@ -103,6 +105,7 @@ function fixture({ realTheme = false } = {}) {
       mutate: async (ops, expectedRevision) => {
         mutations.push({ namespace: name, ops: structuredClone(ops), expectedRevision })
         const current = store.getSnapshot()
+        if (expectedRevision !== undefined && expectedRevision !== current.revision) return false
         const user = structuredClone(current.user ?? {})
         for (const op of ops) {
           let parent = user
@@ -139,7 +142,6 @@ function fixture({ realTheme = false } = {}) {
     refreshProjections: async () => {}, fork: async () => sessionId,
   }
   const developerTools = createSnapshotStore(true)
-  const dir = { store: createSnapshotStore({ current: null, groups: [], failures: [], status: 'ready', pending: null, error: null, routable: null }), load: async () => {}, select: async () => ({ ok: true }) }
   const providers = ctx.plugin({ apply(scope) {
     scope.provide('locale', {
       register: (name, language, dict) => {
@@ -159,7 +161,6 @@ function fixture({ realTheme = false } = {}) {
     const theme = realTheme ? new themeClient.ThemeRuntime(scope, form('ui-theme')) : { getTheme: () => ({ active: { colorScheme: 'light' } }), overrideTokens: () => () => {} }
     if (realTheme) theme.overrideTokens('earlier-theme', { '--page': { light: 'prior-light', dark: 'prior-dark' } })
     scope.provide('theme', theme)
-    scope.provide('modelDirectories', { directoryFor: () => dir })
     scope.provide('sessions', sessions)
     scope.provide('uiWorkspace', { openSession: () => {}, openWorkspace: () => {}, startSession: () => {} })
     scope.provide('sidebarRight', { openResource: () => {}, openTab: () => {} })
@@ -167,18 +168,18 @@ function fixture({ realTheme = false } = {}) {
     scope.provide('settingsSchema', settingsSchema)
     scope.provide('remote.llm', llmRemote)
     scope.provide('connection', { state: connection })
-    scope.provide('fileDrag', { actions: {} })
     scope.provide('fileUpload', { upload: async () => { throw Error('No file upload requested by this fixture') } })
     scope.provide('remoteAccess', { source: () => createSnapshotStore(true) })
     scope.provide('pluginNavigation', { openList() {} })
-    scope.provide('commandUi', { catalogFor: () => createSnapshotStore([]) })
-    scope.provide('remote', { commands: { execute: async () => ({ ok: false, error: { code: 'missing', message: 'unavailable' } }) }, session: { modelCatalog: async () => { catalogRequests.push(true); return { ok: true, value: { groups: [], failures: [] } } } }, llm: llmRemote, $on: (event, listener) => {
+    scope.provide('commandUi', { register: command => { commands.set(command.name, command); return () => commands.delete(command.name) } })
+    const sessionRemote = { modelCatalog: async () => { catalogRequests.push(true); return { ok: true, value: { groups: [], failures: [] } } } }
+    scope.provide('remote', { $host: { home: '/fixture-home', isLoopback: true }, commands: { execute: async () => ({ ok: false, error: { code: 'missing', message: 'unavailable' } }) }, session: sessionRemote, llm: llmRemote, $on: (event, listener) => {
       if (!remoteEvents.has(event)) remoteEvents.set(event, new Set())
       remoteEvents.get(event).add(listener)
       return () => remoteEvents.get(event).delete(listener)
     } })
     scope.provide('remote.commands', { execute: async () => ({ ok: false, error: { code: 'missing', message: 'unavailable' } }) })
-    scope.provide('remote.session', { modelCatalog: async () => ({ ok: true, value: { groups: [], failures: [] } }) })
+    scope.provide('remote.session', sessionRemote)
   } })
   ctx.plugin(renderer.SlotRegistry)
   // The official session UI client supplies uiSession, which Modern's conversation owner and chat entry inject.
@@ -196,18 +197,17 @@ function fixture({ realTheme = false } = {}) {
       'conversation.approval.detail': { kind: 'single', scope: 'session' },
       'settings.models.provider-card': { kind: 'keyed', scope: 'root' },
       'sidebar.right.pane.tab': { kind: 'keyed', scope: 'session' },
+      'plugins.detail.section': { kind: 'list', scope: 'root' },
+      'plugins.tab': { kind: 'list', scope: 'root' },
     } }, () => null)
     // The official document owner declares the keyed document-body seat from its own pane.tab entry; the official
     // Markdown body and plan preview sit under their keys at the default priority, for Modern to shade.
     scope.slots.register({ name: 'sidebar.right.pane.tab', key: 'official-text-preview', children: { 'sidebar.right.tab.document': { kind: 'keyed', scope: 'session' } } }, () => null)
     scope.slots.register({ name: 'sidebar.right.tab.document', key: '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/markdown' }, () => null)
     scope.slots.register({ name: 'sidebar.right.pane.tab', key: '@deepseek-ai/dsh-client-ui-plan' }, () => null)
-    // The shipped model selector keeps its own entry; Modern shades it. The chat node seat, its
-    // children and the chat flow are declared by Modern itself now that the official ui-chat is disabled.
-    scope.slots.register({ name: 'conversation.input.model' }, () => null)
   } })
   const fiber = ctx.plugin(client)
-  return { dom, ctx, fiber, client, dictionaries, providers, remoteEvents, catalogRequests, connection, sessionId, session, binding, feed, mutations, piAiForm: () => values.get('llm-pi-ai') }
+  return { dom, ctx, fiber, client, modules, dictionaries, providers, remoteEvents, catalogRequests, commands, connection, sessionId, session, binding, feed, mutations, piAiForm: () => values.get('llm-pi-ai'), primitives: staticModule.exports }
 }
 
 test('Modern uses the real theme override layer and restores earlier owners without changing preference', async () => {
@@ -305,21 +305,33 @@ test('the Modern chat flow renders the patched running status, keeps the matrix 
   await f.fiber.dispose()
 })
 
-test('the 1017 release badge decorates the official Flash entry inside the Modern label slot', async () => {
+test('the official 1017 plugin owns its standard label contribution across enable and disable', async () => {
   const f = fixture()
   await f.providers.await()
   await f.fiber.await()
-  const entry = f.ctx.slots.entriesOfSlot('modern.conversation.input.model.label')[0]
-  assert.ok(entry, 'the official label plugin cannot reach the Modern selector, so Modern carries the badge itself')
-  const flash = { provider: { id: 'deepseek-official', name: 'DeepSeek' }, model: { id: 'deepseek-flash', name: 'DeepSeek-V4.1-Flash' }, placement: 'trigger', selected: true, t: key => key }
+  assert.equal(f.ctx.slots.spec('modern.conversation.input.model.label'), undefined)
+  assert.equal(f.ctx.slots.entriesOfSlot('conversation.input.model.label').length, 0, 'Modern must not manufacture a badge while the official contribution is disabled')
+  const badgeModule = load(require.resolve('@deepseek-ai/dsh-client-ui-deepseek-model-label-1017/client'), f.dom.window.document, f.primitives)
+  let badge = f.ctx.plugin(badgeModule)
+  await badge.await()
+  const entry = f.ctx.slots.entriesOfSlot('conversation.input.model.label')[0]
+  assert.ok(entry, 'the official contribution reaches the selector-owned standard child')
+  const flash = { provider: { id: 'deepseek-official', name: 'DeepSeek' }, model: { id: 'deepseek-flash', name: 'DeepSeek-V4.1-Flash' }, placement: 'trigger', selected: true, t: f.ctx.locale.bind('deepseek-model-label-1017') }
   const markup = renderToStaticMarkup(React.createElement(entry.component, flash))
-  assert.match(markup, /data-model-release="1017"/)
-  assert.match(markup, /data-tone="quiet"[^>]*>1017</, 'the patched quiet tone, not the official info tint')
+  assert.match(markup, />1017</)
+  assert.match(markup, /data-tone="info"/, 'the original plugin still owns its markup; Modern styles its official route locally')
+  const styles = [...f.dom.window.document.querySelectorAll('style[data-plugin="@iroha1145/dsh-modern-ui"]')].map(style => style.textContent).join('\n')
+  assert.match(styles, /data-tone(?:=|\[?[^}]*=)["']?info["']?[^}]*\{[^}]*background:(?:transparent|0 0)/, 'the adapter keeps the patched quiet badge background')
   assert.match(markup, /DeepSeek-V4\.1-Flash/)
   const other = renderToStaticMarkup(React.createElement(entry.component, { ...flash, model: { id: 'deepseek-pro', name: 'DeepSeek-V4.1-Pro' } }))
   assert.equal(other, 'DeepSeek-V4.1-Pro', 'every other entry keeps its catalog name')
   const account = renderToStaticMarkup(React.createElement(entry.component, { ...flash, provider: { id: 'other-vendor', name: 'Other' } }))
   assert.equal(account, 'DeepSeek-V4.1-Flash')
+  await badge.dispose()
+  assert.equal(f.ctx.slots.entriesOfSlot('conversation.input.model.label').length, 0)
+  badge = f.ctx.plugin(badgeModule); await badge.await()
+  assert.equal(f.ctx.slots.entriesOfSlot('conversation.input.model.label').length, 1)
+  await badge.dispose()
   await f.fiber.dispose()
 })
 
@@ -533,7 +545,10 @@ test('Modern owns the chat slots under their standard names once the official ui
   assert.equal(f.ctx.slots.spec('conversation.chat.message.code').kind, 'chain')
   const chain = f.ctx.slots.entriesOfSlot('conversation.chat.message.code')
   assert.equal(chain.length, 3)
-  assert.equal(f.ctx.slots.snapshot('conversation.input.model')[0].occupants.length, 2)
+  assert.equal(f.ctx.slots.snapshot('conversation.input.model')[0].occupants.length, 1, 'the bundle selects one explicit model owner')
+  assert.equal(f.ctx.modelDirectories.directoryFor(f.sessionId), f.ctx.modelDirectories.directoryFor(f.sessionId), 'one directory per official Session binding without the disabled browser descriptor')
+  assert.ok(f.commands.has('model'), 'the original /model entry is retained by the new owner')
+  assert.equal(typeof f.ctx.fileDrag.read, 'function', 'Modern supplies its real original-image transfer service')
   assert.equal(f.dictionaries.get('modern-intelligent').ja.loading !== undefined, true)
   assert.equal(f.dictionaries.get('common:ja').copy, 'コピー')
   const styles = f.dom.window.document.querySelectorAll('style[data-plugin="@iroha1145/dsh-modern-ui"]')
@@ -561,14 +576,66 @@ test('precompiled code chain keeps openui, followups, and ordinary code presenta
   await f.fiber.dispose()
 })
 
+test('real Session tool events reach the complete Tool owner with Host facts and result details intact', async () => {
+  const f = fixture()
+  await f.fiber.await(); await settle()
+  const target = f.ctx.uiConversation.binding(f.binding).target('chat')
+  const unsubscribe = target.subscribe(() => {})
+  const entries = [
+    { type: 'event', event: { seq: 1, time: 1000, type: 'tool/call', data: {
+      turn: 1, step: 1, callId: 'read-call', name: 'read', arguments: JSON.stringify({ file_path: '~/notes.txt' }),
+    } } },
+    { type: 'event', event: { seq: 2, time: 1010, type: 'tool/result', surfaceOp: 'append', data: {
+      turn: 1, step: 1, message: { role: 'tool', source: { kind: 'tool', callId: 'read-call' },
+        content: [{ type: 'text', text: 'retained file body' }] }, meta: {},
+    } } },
+  ]
+  f.feed.set({ revision: 1, entries, hasMore: false, change: { kind: 'append', entries } })
+  await settle(); await settle()
+  const node = target.getSnapshot().nodes.values().find(value => value.kind === 'tool-call')
+  assert.ok(node, 'the registered Chat event definitions assemble the real call/result pair')
+  assert.equal(node.data.root.call.name, 'read')
+  assert.equal(node.data.root.content[0].text, 'retained file body')
+  const tree = f.ctx.slots.entriesOfSlot('conversation.chat.node').find(entry => entry.options.key === 'tool-call')
+  assert.ok(tree)
+  assert.equal(tree.children['tool.call.toolview'].kind, 'keyed')
+  const face = tree.inject()
+  assert.deepEqual(face.hooks.hostInfo.getSnapshot(), { home: '/fixture-home', isLoopback: true })
+  const rows = f.ctx.slots.entriesOfSlot('tool.call.toolview')
+  for (const key of ['read', 'read_image', 'bash', 'web_search', 'todo_write', 'ask_user_question']) {
+    assert.ok(rows.some(entry => entry.options.key === key), key)
+  }
+  const markup = renderToStaticMarkup(React.createElement(tree.component, {
+    node, cwd: '/workspace', sessionId: f.sessionId, t: key => key,
+    useHostInfo: selector => selector(face.hooks.hostInfo.getSnapshot()),
+    useDisclosure: () => ({ expanded: true, toggle() {} }), openFile() {},
+    renderSlot(key, owner, options) {
+      assert.equal(key, 'tool.call.toolview')
+      const entry = rows.find(value => value.options.key === options.entryKey)
+      assert.ok(entry)
+      return React.createElement(entry.component, { ...owner, sessionId: f.sessionId, t: key => key,
+        useSessions: selector => selector(f.ctx.sessions.list.getSnapshot()),
+      })
+    },
+  }))
+  assert.match(markup, /data-tool="read"/)
+  assert.match(markup, /retained file body/)
+  assert.match(markup, /notes\.txt/)
+  unsubscribe()
+  await f.fiber.dispose()
+  assert.equal(f.ctx.slots.entries('tool.call.toolview').length, 0)
+})
+
 test('artifact does not embed React, Cordis, session services, or host source', () => {
   const metadata = JSON.parse(readFileSync(path.join(root, 'packages/modern-ui/lib/build-inputs.json'), 'utf8'))
   assert.equal(metadata.host, '0.2.1-rc.4')
   assert.ok(!metadata.inputs.some(file => /node_modules\/(react|react-dom|@deepseek-ai\/cordis)\//.test(file)))
-  // The model directory service stays official; the chat entry and stores are Modern's since the ui-chat takeover.
-  assert.ok(!metadata.inputs.some(file => /vendor\/model\/client\/(service|directory)\.ts$/.test(file)))
+  // Client adapters are packaged with their owner; Host/Remote implementations remain external.
+  for (const part of ['service', 'directory']) assert.ok(metadata.inputs.some(file => file.endsWith(`/vendor/model/client/${part}.ts`)))
+  assert.ok(!metadata.inputs.some(file => /node_modules\/@deepseek-ai\/dsh-api-(session-controller|remotes)\//.test(file)))
   assert.ok(metadata.inputs.some(file => /vendor\/chat\/client\/apply\.ts$/.test(file)))
   const packageJson = JSON.parse(readFileSync(path.join(root, 'packages/modern-ui/package.json'), 'utf8'))
+  assert.ok(!packageJson.dsh.client.inject.includes('@deepseek-ai/dsh-client-ui-model-selection'), 'the disabled official owner is not a boot-graph dependency')
   assert.equal(packageJson.scripts?.prepare, undefined)
   assert.equal(packageJson.scripts?.postinstall, undefined)
 })
@@ -610,10 +677,10 @@ test('model catalog refreshes after either credential event', async () => {
   await f.fiber.await(); await settle()
   for (const event of ['credentials/record-updated', 'credentials/reference-updated']) {
     const before = f.catalogRequests.length
-    assert.equal(f.remoteEvents.get(event)?.size, 1)
+    assert.equal(f.remoteEvents.get(event)?.size, 2, 'the official selection directory and the settings catalog both observe credentials')
     for (const listener of f.remoteEvents.get(event)) listener()
     await settle()
-    assert.equal(f.catalogRequests.length, before + 1)
+    assert.equal(f.catalogRequests.length, before + 2, 'both public consumers reload their catalog after the credential changes')
   }
   await f.fiber.dispose()
 })
@@ -847,7 +914,7 @@ test('Modern shades the official Markdown file preview and plan preview bodies u
   assert.equal(f.ctx.slots.entries('sidebar.right.tab.document').filter(entry => entry.options.key === markdownKey).length, 1, 'the official body is back alone once Modern leaves')
 })
 
-test('pi-ai provider cards carry the reasoning declaration: rows newer than the installed catalog, false on off, schema levels', async () => {
+test('pi-ai provider cards draft complete reasoning declarations and save with schema levels and a revision fence', async () => {
   const f = fixture(); await f.fiber.await(); await settle(); await settle()
   const entry = f.ctx.slots.entriesOfSlot('settings.models.provider-card').find(candidate => candidate.options.key === 'llm-pi-ai')
   assert.ok(entry, 'the block registers under the pi-ai settings namespace')
@@ -855,13 +922,13 @@ test('pi-ai provider cards carry the reasoning declaration: rows newer than the 
   assert.ok(f.dictionaries.get('modern-reasoning').ja.title)
   const face = entry.inject()
   const bind = source => selector => React.useSyncExternalStore(source.subscribe, () => selector(source.getSnapshot()))
-  const t = (key, params) => params === undefined ? key : `${key}:${params.model}`
+  const t = key => key
   const provider = (extra = {}) => ({ provider: 'openai', displayName: 'OpenAI', settingsNs: 'llm-pi-ai', settingsPath: ['providers', 'openai'], ...extra })
   function Harness({ owner }) {
     return React.createElement(entry.component, {
       provider: owner, configured: true, keyConfigured: false, t,
       useForm: bind(face.hooks.form), useMirror: bind(face.hooks.mirror), useDeclaration: bind(face.hooks.declaration),
-      levels: face.levels, loadCatalog: face.loadCatalog, setReasoning: face.setReasoning, toggleLevel: face.toggleLevel,
+      levels: face.levels, loadCatalog: face.loadCatalog, saveModel: face.saveModel,
     })
   }
   assert.deepEqual([...face.levels(serializedPiAi)], PI_AI_LEVELS, 'levels come out of the namespace schema in escalation order')
@@ -869,44 +936,72 @@ test('pi-ai provider cards carry the reasoning declaration: rows newer than the 
   await mounted(f, React.createElement(Harness, { owner: provider() }), async host => {
     await settle(); await settle()
     const rows = () => [...host.querySelectorAll('[data-model-id]')].map(row => [row.dataset.modelId, row.dataset.reasoning])
-    assert.deepEqual(rows(), [['gpt-5.5-new', 'off'], ['o9', 'off']], 'catalog-described gpt-4.1 stays with the official editor; the newer id and the explicit false row are offered')
-    assert.match(host.querySelector('[data-model-id="gpt-5.5-new"]').textContent, /GPT 5\.5/)
-    const switchFor = id => host.querySelector(`[data-model-id="${id}"] button[role="switch"]`)
-    assert.equal(switchFor('gpt-5.5-new').getAttribute('aria-label'), 'switch:gpt-5.5-new')
-    switchFor('gpt-5.5-new').click(); await settle(); await settle()
+    assert.deepEqual(rows(), [['gpt-5.5-new', 'off'], ['o9', 'off']], 'catalog-described gpt-4.1 stays with the official editor; the newer id and explicit false row are offered')
+    const row = () => host.querySelector('[data-model-id="gpt-5.5-new"]')
+    assert.match(row().textContent, /GPT 5\.5/)
+    const switchFor = () => row().querySelector('button[role="switch"]')
+    const button = text => [...row().querySelectorAll('button')].find(value => value.textContent === text)
+    const press = async element => { assert.ok(element); element.click(); await settle(); await settle() }
+    const save = () => press(button('apply'))
+    const remove = level => press(row().querySelector('button[aria-label="modelReasoningRemove ' + level + '"]'))
+    const change = async (element, value) => {
+      assert.ok(element)
+      require('react-dom/test-utils').Simulate.change(element, { target: { value } })
+      await settle(); await settle()
+    }
+    const written = () => f.mutations.at(-1).ops[0].value
+    assert.equal(switchFor().getAttribute('aria-label'), 'modelReasoning 2')
+    await press(switchFor())
+    assert.equal(f.mutations.length, 0, 'switching and typing edit a local draft until Apply')
+    assert.equal(switchFor().getAttribute('aria-checked'), 'true')
+    await save()
     assert.equal(f.mutations.length, 1)
     assert.deepEqual(f.mutations[0].ops[0].path, ['providers', 'openai', 'models'])
-    assert.equal(f.mutations[0].expectedRevision, 3, 'the write is fenced by the revision the row was read at')
-    const written = () => f.mutations.at(-1).ops[0].value
-    assert.deepEqual(written().map(model => model.id), ['gpt-4.1', 'gpt-5.5-new', 'o9'], 'the whole list is written back with every other row intact')
-    assert.deepEqual(written()[1].reasoningEfforts, { off: null, low: 'low', medium: 'medium', high: 'high' }, 'turning on declares Off plus the common trio')
+    assert.equal(f.mutations[0].expectedRevision, 3)
+    assert.deepEqual(written().map(model => model.id), ['gpt-4.1', 'gpt-5.5-new', 'o9'])
+    assert.deepEqual(written()[1].reasoningEfforts, { off: null, low: 'low', medium: 'medium', high: 'high' })
     assert.deepEqual(written()[2], { id: 'o9', reasoningEfforts: false })
-    assert.equal(switchFor('gpt-5.5-new').getAttribute('aria-checked'), 'true')
-    const boxes = () => Object.fromEntries([...host.querySelectorAll('[data-model-id="gpt-5.5-new"] input[type="checkbox"]')].map(input => [input.parentElement.textContent.trim(), { checked: input.checked, disabled: input.disabled }]))
-    assert.deepEqual(Object.keys(boxes()), ['minimal', 'low', 'medium', 'high', 'xhigh', 'max'], 'every schema level but off is offered')
-    assert.deepEqual(boxes().low, { checked: true, disabled: false })
-    assert.deepEqual(boxes().xhigh, { checked: false, disabled: false })
-    const box = name => [...host.querySelectorAll('[data-model-id="gpt-5.5-new"] input[type="checkbox"]')].find(input => input.parentElement.textContent.trim() === name)
-    box('xhigh').click(); await settle(); await settle()
-    assert.deepEqual(written()[1].reasoningEfforts, { off: null, low: 'low', medium: 'medium', high: 'high', xhigh: 'xhigh' }, 'a ticked level joins in schema order with its own name as the wire value')
-    box('low').click(); await settle(); await settle()
-    box('medium').click(); await settle(); await settle()
-    box('xhigh').click(); await settle(); await settle()
-    assert.deepEqual(written()[1].reasoningEfforts, { off: null, high: 'high' })
-    assert.deepEqual(boxes().high, { checked: true, disabled: true }, 'the last offered level cannot be unticked: pi-ai refuses a declaration with no level beyond off')
-    switchFor('gpt-5.5-new').click(); await settle(); await settle()
-    assert.deepEqual(written()[1], { id: 'gpt-5.5-new', name: 'GPT 5.5', reasoningEfforts: false }, 'turning off stores false on a catalog route instead of deleting the field')
-    assert.deepEqual(rows(), [['gpt-5.5-new', 'off'], ['o9', 'off']], 'an explicit false keeps the row offered for repair')
+    await press(button('modelReasoningAdd'))
+    const lastLevel = row().querySelector('select[aria-label="modelReasoningLevel 5"]')
+    assert.equal(lastLevel.value, 'xhigh')
+    assert.deepEqual([...lastLevel.options].map(option => option.value), ['minimal', 'xhigh', 'max'], 'the schema supplies every unused level')
+    await change(lastLevel, 'max')
+    await change(row().querySelector('input[aria-label="max modelReasoningValue"]'), 'ultra')
+    assert.equal(f.mutations.length, 1, 'API wire-value changes stay local until accepted')
+    await save()
+    assert.deepEqual(written()[1].reasoningEfforts, { off: null, low: 'low', medium: 'medium', high: 'high', max: 'ultra' })
+    await remove('off')
+    await save()
+    assert.deepEqual(written()[1].reasoningEfforts, { low: 'low', medium: 'medium', high: 'high', max: 'ultra' }, 'Off can be removed without losing the custom max wire value')
+    await press(button('modelReasoningAdd'))
+    assert.ok(row().querySelector('input[aria-label="off modelReasoningValue"]'), 'Off can be restored')
+    await press(button('cancel'))
+    assert.equal(row().querySelector('input[aria-label="off modelReasoningValue"]'), null)
+    await press(switchFor()); await save()
+    assert.deepEqual(written()[1], { id: 'gpt-5.5-new', name: 'GPT 5.5', reasoningEfforts: false })
+    await press(switchFor())
+    await remove('low'); await remove('medium'); await remove('high')
+    assert.equal(button('apply').disabled, true, 'the complete draft cannot save a declaration containing only Off')
+    assert.match(row().textContent, /modelReasoningNeedsLevel/)
+    await press(button('cancel'))
+    const writesBeforeConflict = f.mutations.length
+    await press(switchFor())
+    const current = f.piAiForm().getSnapshot()
+    f.piAiForm().set({ ...current, revision: current.revision + 1 })
+    await settle()
+    await save()
+    assert.equal(f.mutations.length, writesBeforeConflict, 'a pushed settings revision refuses the stale draft before writing')
+    assert.match(host.querySelector('[role="alert"]').textContent, /writeRefused/)
+    await press(button('cancel'))
     assert.equal(host.querySelector('[data-model-id="gpt-4.1"]'), null)
-    assert.equal(host.querySelector('[role="alert"]'), null)
   })
   await mounted(f, React.createElement(Harness, { owner: provider({ declared: true }) }), async host => {
     await settle()
-    assert.equal(host.querySelector('[data-modern-reasoning-declaration]'), null, 'a hand-declared route keeps the official per-row control alone')
+    assert.equal(host.querySelector('[data-modern-reasoning-declaration]'), null, 'hand-declared routes retain the official per-row control')
   })
   await mounted(f, React.createElement(Harness, { owner: provider({ provider: 'anthropic', settingsPath: ['providers', 'anthropic'] }) }), async host => {
     await settle(); await settle()
-    assert.equal(host.querySelector('[data-modern-reasoning-declaration]'), null, 'a route with no stored models renders nothing')
+    assert.equal(host.querySelector('[data-modern-reasoning-declaration]'), null)
   })
   await f.fiber.dispose()
   assert.equal(f.ctx.slots.entries('settings.models.provider-card').length, 0)

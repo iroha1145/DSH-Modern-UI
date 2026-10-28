@@ -47,8 +47,8 @@ export const searchToolview = {
   inject: ['slots'],
   apply(ctx: Context): void {
     ctx.slots.inject('tool.call.toolview', function* () {
-      yield ctx.slots.register({ name: 'tool.call.toolview', priority: -100, key: 'grep', locale: NS }, SearchRow)
-      yield ctx.slots.register({ name: 'tool.call.toolview', priority: -100, key: 'glob', locale: NS }, SearchRow)
+      yield ctx.slots.register({ name: 'tool.call.toolview', key: 'grep', locale: NS }, SearchRow)
+      yield ctx.slots.register({ name: 'tool.call.toolview', key: 'glob', locale: NS }, SearchRow)
     })
   },
 }

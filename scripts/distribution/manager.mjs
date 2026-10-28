@@ -10,9 +10,10 @@ import { checkIntegrity, snapshot, verifySnapshot } from './integrity.mjs'
 import { webSelfTest } from './web-self-test.mjs'
 import { dependencyInventory } from './dependency-inventory.mjs'
 import { verifyReleaseSources } from './verify-release-source.mjs'
-import { bindHostCompatibility, preserveLegacySettings, preserveConversationPreferences, preserveChatPreferences } from './profile-settings.mjs'
+import { bindHostCompatibility, preserveEffectivePreferences, preserveConversationPreferences } from './profile-settings.mjs'
 import { acquireOperationLock } from './operation-lock.mjs'
-import { launchChild } from './launch-child.mjs'
+import { backupDataHome } from './data-backup.mjs'
+import { createLaunchLifecycle } from './launch-child.mjs'
 import { download, unpack } from './artifacts.mjs'
 import { preparePowerShell, bindPowerShell } from './shell-runtime.mjs'
 import { readSelection, previousState, receiptReference, retainSelection } from './lifecycle.mjs'
@@ -33,6 +34,7 @@ function summary(state) {
     plugin: state.plugin, officialSource: state.officialSource, nativeProbe: state.nativeProbe,
     selfTest: state.selfTest, webSelfTest: state.webSelfTest, previousGeneration: state.previous?.generation,
     sourceLedger: state.sourceLedger, sourceProof: state.sourceProof, powershell: state.powershell ? { path: state.powershell.path, version: state.powershell.version, source: state.powershell.source } : undefined,
+    dataBackup: state.dataBackup, effectivePreferences: state.effectivePreferences,
     settingsMigration: state.settingsMigration, conversationMigration: state.conversationMigration, chatMigration: state.chatMigration, shellBinding: state.shellBinding, hostCompatibility: state.hostCompatibility, profileStore: state.profileStore, sourceProfile: state.sourceProfile ? { name: state.sourceProfile.name, path: state.sourceProfile.path } : undefined,
     evidence: join(state.generation, 'installation.json') }
 }
@@ -204,15 +206,19 @@ async function install(options) {
   const id = randomUUID()
   const generation = join(root, 'versions', id)
   const state = { root, generation, home, profile: `modern-ui-${id}`, previous, created: new Date().toISOString() }
-  await mkdir(generation, { recursive: true })
-  try { return await stage(state, options, bytes, previousReference) }
-  catch (error) {
-    // Only this run's freshly named directories go; caches, earlier generations, the source
-    // profile and the old selection stay, so a retry neither re-verifies nor recovers stale state.
-    await rm(generation, { recursive: true, force: true })
-    await rm(join(home, 'profiles', state.profile), { recursive: true, force: true })
-    throw error
-  }
+  const homeLease = await acquireOperationLock(home)
+  try {
+    state.dataBackup = await backupDataHome(home, root)
+    await mkdir(generation, { recursive: true })
+    try { return await stage(state, options, bytes, previousReference) }
+    catch (error) {
+      // Only this run's freshly named directories go; caches, earlier generations, the source
+      // profile and the old selection stay, so a retry neither re-verifies nor recovers stale state.
+      await rm(generation, { recursive: true, force: true })
+      await rm(join(home, 'profiles', state.profile), { recursive: true, force: true })
+      throw error
+    }
+  } finally { await homeLease.release() }
 }
 async function stage(state, options, bytes, previousReference) {
   const { root, generation, home, previous } = state
@@ -282,13 +288,13 @@ async function stage(state, options, bytes, previousReference) {
     dsh(state, [state.profile, '--from-default-profile', 'web', '--dump-config'])
     state.profileStore = await ensureProfileStore(profile, root)
   }
+  const originalEffective = dsh(state, [state.profile, '--dump-config'])
   dsh(state, ['plugin', '--profile', state.profile, 'add', '--save-exact', '--ignore-scripts', artifact])
   const installed = await json(join(profile, 'node_modules', plugin.name, 'package.json'))
   if (installed.version !== plugin.version) throw new Error('Installed plugin version mismatch')
   const backendRequire = createRequire(state.backend)
-  state.settingsMigration = await preserveLegacySettings(profile, backendRequire('js-yaml'))
+  state.effectivePreferences = await preserveEffectivePreferences(profile, originalEffective, dsh(state, [state.profile, '--dump-config']), backendRequire('js-yaml'))
   state.conversationMigration = await preserveConversationPreferences(profile, dsh(state, [state.profile, '--dump-config']), backendRequire('js-yaml'))
-  state.chatMigration = await preserveChatPreferences(profile, backendRequire('js-yaml'))
   state.plugin = { name: plugin.name, version: plugin.version, integrity: options['plugin-integrity'], path: join(profile, 'node_modules', plugin.name) }
   const beforeBindings = dsh(state, [state.profile, '--dump-config'])
   state.hostCompatibility = await bindHostCompatibility(profile, beforeBindings, backendRequire('js-yaml'))
@@ -326,6 +332,8 @@ export async function main(argv = process.argv.slice(2)) {
     }
     const state = await readSelection(options.root, { recovery: false })
     if (!state) throw new Error('Modern UI is not installed. Reinstall to recover retained data and profiles.')
+    // Program-only operations must remain usable when retained data was moved,
+    // is offline, or is currently held by another managed program root.
     if (command === 'verify') return await verifyOfficial(state)
     if (command === 'rollback') {
       if (!state.previous) throw new Error('No previous program/profile generation')
@@ -334,52 +342,68 @@ export async function main(argv = process.argv.slice(2)) {
       await atomicState(options.root, previous)
       return { rolledBackTo: previous.generation, dataRollback: false, note: 'Shared sessions are not rewritten. Check data-version compatibility before resuming.' }
     }
-    if (command === 'community') {
-      const manifest = await json(resolve(options.manifest ?? join(here, 'community-lock.json')))
-      const profile = join(state.home, 'profiles', state.profile)
-      const declared = (await json(join(profile, 'package.json'))).dependencies ?? {}
-      const results = []
-      for (const plugin of manifest.plugins ?? []) {
-        const path = join(profile, 'node_modules', plugin.name, 'package.json')
-        const installed = existsSync(path) ? await json(path) : undefined
-        if (installed || declared[plugin.name]) {
-          const bundles = (await json(join(profile, 'package.json'))).dsh?.profile?.bundles ?? []
-          results.push({ ...plugin, state: installed?.version === plugin.version ? 'same-skip' : 'preserved', installed: installed?.version,
-            selected: !installed?.dsh?.bundle || bundles.includes(plugin.name) })
-          continue
+    if (!['community', 'launch'].includes(command)) throw new Error(`Unknown command ${command}`)
+    const homeLease = await acquireOperationLock(state.home)
+    try {
+      if (command === 'community') {
+        const manifest = await json(resolve(options.manifest ?? join(here, 'community-lock.json')))
+        const profile = join(state.home, 'profiles', state.profile)
+        const declared = (await json(join(profile, 'package.json'))).dependencies ?? {}
+        const results = []
+        for (const plugin of manifest.plugins ?? []) {
+          const path = join(profile, 'node_modules', plugin.name, 'package.json')
+          const installed = existsSync(path) ? await json(path) : undefined
+          if (installed || declared[plugin.name]) {
+            const bundles = (await json(join(profile, 'package.json'))).dsh?.profile?.bundles ?? []
+            results.push({ ...plugin, state: installed?.version === plugin.version ? 'same-skip' : 'preserved', installed: installed?.version,
+              selected: !installed?.dsh?.bundle || bundles.includes(plugin.name) })
+            continue
+          }
+          if (options.check === 'true') { results.push({ ...plugin, state: 'missing' }); continue }
+          try {
+            const artifacts = join(state.generation, 'community-artifacts')
+            await mkdir(artifacts, { recursive: true })
+            const artifact = join(artifacts, `${plugin.name}-${plugin.version}.tgz`)
+            await download(plugin.url, plugin.integrity, artifact)
+            dsh(state, ['plugin', '--profile', state.profile, 'add', '--save-exact', '--ignore-scripts', artifact])
+            const added = await json(path)
+            if (added.version !== plugin.version) throw new Error('Installed community version mismatch')
+            const bundles = (await json(join(profile, 'package.json'))).dsh?.profile?.bundles ?? []
+            if (added.dsh?.bundle && !bundles.includes(plugin.name)) throw new Error('Installed community bundle was not selected by the official profile manager')
+            results.push({ ...plugin, state: 'installed' })
+          }
+          catch (error) { results.push({ ...plugin, state: 'failed', error: error.message }) }
         }
-        if (options.check === 'true') { results.push({ ...plugin, state: 'missing' }); continue }
-        try {
-          const artifacts = join(state.generation, 'community-artifacts')
-          await mkdir(artifacts, { recursive: true })
-          const artifact = join(artifacts, `${plugin.name}-${plugin.version}.tgz`)
-          await download(plugin.url, plugin.integrity, artifact)
-          dsh(state, ['plugin', '--profile', state.profile, 'add', '--save-exact', '--ignore-scripts', artifact])
-          const added = await json(path)
-          if (added.version !== plugin.version) throw new Error('Installed community version mismatch')
-          const bundles = (await json(join(profile, 'package.json'))).dsh?.profile?.bundles ?? []
-          if (added.dsh?.bundle && !bundles.includes(plugin.name)) throw new Error('Installed community bundle was not selected by the official profile manager')
-          results.push({ ...plugin, state: 'installed' })
-        }
-        catch (error) { results.push({ ...plugin, state: 'failed', error: error.message }) }
+        await verifyOfficial(state)
+        return results
       }
-      await verifyOfficial(state)
-      return results
-    }
-    if (command === 'launch') {
-      await verifyOfficial(state)
-      console.log(JSON.stringify({ node: state.node, pnpm: state.pnpm, backend: state.backend, version: versions.backend, plugin: state.plugin, profile: state.profile, home: state.home, cwd: process.cwd() }))
-      // A terminal delivers Ctrl+C and hangups to its whole foreground process group; a child in
-      // the same group would receive the signal once from the terminal and once more forwarded
-      // here, and the official exit controller treats a second signal as "force quit now".
-      // Its own process group (POSIX) leaves exactly one delivery: the forwarded one.
-      // The invoking directory stays the working directory, as with the official CLI.
-      const result = await launchChild(state.node, [state.cli, '--profile', state.profile, ...(options.args ?? [])],
-        { cwd: process.cwd(), env: launchEnvironment(state), stdio: 'inherit', detached: process.platform !== 'win32' })
-      process.exitCode = result.exitCode
-      return result
-    }
-    throw new Error(`Unknown command ${command}`)
+      if (command === 'launch') {
+        const lifecycle = createLaunchLifecycle()
+        try {
+          await verifyOfficial(state)
+          // Both phases use their own POSIX process group, so terminal signals are forwarded once.
+          const preflight = await lifecycle.run(state.node, [state.cli, state.profile, '--dump-config'],
+            { cwd: state.generation, env: runtimeEnvironment(state), detached: process.platform !== 'win32' },
+            { captureOutput: true, timeout: 180000 })
+          if (lifecycle.interrupted) {
+            const result = { exitCode: preflight.exitCode, ...(preflight.signal ? { signal: preflight.signal } : {}) }
+            process.exitCode = result.exitCode
+            return result
+          }
+          if (preflight.exitCode !== 0) throw new Error(`DSH launch preflight failed (${preflight.exitCode}): ${preflight.stderr.trim()}`)
+          // Newly added Host instances follow the same reviewed profile binding path as installation.
+          const profile = join(state.home, 'profiles', state.profile)
+          const hostCompatibilityRefresh = await bindHostCompatibility(profile, preflight.stdout.trim(), createRequire(state.backend)('js-yaml'))
+          if (hostCompatibilityRefresh.changed) console.log(JSON.stringify({ hostCompatibilityRefresh }))
+          console.log(JSON.stringify({ node: state.node, pnpm: state.pnpm, backend: state.backend, version: versions.backend, plugin: state.plugin, profile: state.profile, home: state.home, cwd: process.cwd() }))
+          const result = await lifecycle.run(state.node, [state.cli, '--profile', state.profile, ...(options.args ?? [])],
+            { cwd: process.cwd(), env: launchEnvironment(state), stdio: 'inherit', detached: process.platform !== 'win32' })
+          process.exitCode = result.exitCode
+          return result
+        } finally { lifecycle.dispose() }
+      }
+      throw new Error(`Unknown command ${command}`)
+    } finally { await homeLease.release() }
   } finally { await lease.release() }
 }
 if (isMainModule(import.meta.url)) {

@@ -374,7 +374,7 @@ export const askQuestionToolview = {
   inject: ['slots'],
   apply(ctx: Context): void {
     ctx.slots.inject('tool.call.toolview', () => ctx.slots.register({
-      name: 'tool.call.toolview', priority: -100, key: 'ask_user_question', locale: NS,
+      name: 'tool.call.toolview', key: 'ask_user_question', locale: NS,
       // Read per click, not per render: a composition with no question UI
       // provides no panels, and the row then falls back to its own record.
       inject: (sessionId): AskQuestionPanelInjected => ({

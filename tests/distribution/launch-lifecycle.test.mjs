@@ -2,10 +2,11 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { fork } from 'node:child_process'
 import { once } from 'node:events'
-import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { createRequire } from 'node:module'
 import { setTimeout as delay } from 'node:timers/promises'
 import { acquireOperationLock } from '../../scripts/distribution/operation-lock.mjs'
 const fixture = name => fileURLToPath(new URL(`./fixtures/${name}.mjs`, import.meta.url))
@@ -16,10 +17,39 @@ async function waitFile(path, signal) {
   }
   throw new Error(`Timed out waiting for ${path}`)
 }
-async function launch(t, mode, missing = false, forkOptions = {}) {
-  const root = await mkdtemp(join(tmpdir(), 'dsh-launch-'))
-  await writeFile(join(root, 'current.json'), JSON.stringify({ root, home: root, generation: root,
-    node: missing ? join(root, 'missing-node') : process.execPath, cli: fixture('launch-child'), profile: 'test', officialBaseline: {} }))
+async function launch(t, mode, missing = false, forkOptions = {}, preflight = false) {
+  const scratch = await mkdtemp(join(tmpdir(), 'dsh-launch-'))
+  const root = join(scratch, 'program'), home = join(scratch, 'data')
+  const profile = join(home, 'profiles', 'test')
+  await mkdir(root)
+  await mkdir(profile, { recursive: true })
+  await writeFile(join(profile, 'cordis.patch.yml'), '[]\n')
+  if (preflight) await writeFile(join(root, 'preflight-mode'), preflight === true ? 'hold' : preflight)
+  const require = createRequire(import.meta.url)
+  const backend = require.resolve('@deepseek-ai/dsh/package.json')
+  const cli = join(root, 'fixture-cli.mjs')
+  // Configuration composition uses the same published YAML schema and patch
+  // implementation as the real CLI; only the long-running child is synthetic.
+  await writeFile(cli, `
+import { createRequire } from 'node:module'
+import { readFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
+const require = createRequire(${JSON.stringify(backend)})
+if (process.argv.includes('--dump-config')) {
+  if (existsSync(${JSON.stringify(join(root, 'preflight-mode'))})) {
+    const { holdPreflight } = await import(${JSON.stringify(pathToFileURL(fixture('launch-preflight')).href)})
+    await holdPreflight(${JSON.stringify(root)})
+  }
+  const yaml = require('js-yaml')
+  const { applyEntryPatches, entryListSchema } = await import(${JSON.stringify(pathToFileURL(require.resolve('@deepseek-ai/cordis-plugin-include')).href)})
+  const patch = yaml.load(await readFile(join(process.env.DSH_HOME, 'profiles', 'test', 'cordis.patch.yml'), 'utf8'), { schema: entryListSchema })
+  const base = [{ id: 'added-translator', name: '@deepseek-ai/dsh-experimental-translator', config: { timeoutMs: 1234 } }]
+  process.stdout.write(yaml.dump(applyEntryPatches(base, patch, message => { throw new Error(message) })))
+} else await import(${JSON.stringify(pathToFileURL(fixture('launch-child')).href)})
+`)
+  await writeFile(join(root, 'current.json'), JSON.stringify({ root, home, generation: root, backend,
+    node: missing ? join(root, 'missing-node') : process.execPath, cli, profile: 'test', officialBaseline: {} }))
   const parent = fork(fixture('launch-runner'), [root, mode], { stdio: ['ignore', 'ignore', 'pipe', 'ipc'], ...forkOptions })
   let stderr = ''
   parent.stderr.on('data', data => { stderr += data })
@@ -38,19 +68,19 @@ async function launch(t, mode, missing = false, forkOptions = {}) {
   const closed = once(parent, 'close')
   t.after(async () => {
     if (parent.exitCode === null && parent.signalCode === null) parent.kill('SIGKILL')
-    if (!managerSettled) {
+    if (!managerSettled) for (const phase of ['child', 'preflight']) {
       try {
-        await readFile(join(root, 'child-exited'))
+        await readFile(join(root, `${phase}-exited`))
       } catch (error) {
         if (error.code !== 'ENOENT') throw error
-        try { process.kill(Number(await readFile(join(root, 'child-ready'), 'utf8')), 'SIGKILL') }
+        try { process.kill(Number(await readFile(join(root, `${phase}-ready`), 'utf8')), 'SIGKILL') }
         catch (error) { if (!['ENOENT', 'ESRCH'].includes(error.code)) throw error }
       }
     }
     await closed
-    await rm(root, { recursive: true, force: true })
+    await rm(scratch, { recursive: true, force: true })
   })
-  return { root, parent, message, exited, closed, stderr: () => stderr }
+  return { root, home, profile, parent, message, exited, closed, stderr: () => stderr }
 }
 async function unlocked(root) { const lease = await acquireOperationLock(root); await lease.release() }
 for (const code of [0, 7]) test(`launch preserves child exit ${code} and releases the real lease`, { timeout: 10000 }, async t => {
@@ -60,6 +90,10 @@ for (const code of [0, 7]) test(`launch preserves child exit ${code} and release
   assert.equal(message.result.exitCode, code)
   assert.equal(message.cleanListeners, true)
   await unlocked(run.root)
+  await unlocked(run.home)
+  const patch = await readFile(join(run.profile, 'cordis.patch.yml'), 'utf8')
+  assert.match(patch, /modern-ui-compat-added-translator/)
+  assert.match(patch, /disabled: true/)
 })
 test('spawn failure cleans listeners and releases the real lease', { timeout: 10000 }, async t => {
   const run = await launch(t, '0', true)
@@ -68,6 +102,7 @@ test('spawn failure cleans listeners and releases the real lease', { timeout: 10
   assert.equal(message.cleanListeners, true)
   assert.deepEqual(await run.closed, [1, null])
   await unlocked(run.root)
+  await unlocked(run.home)
 })
 for (const signal of ['SIGTERM', 'SIGINT']) test(`${signal} reaches child and retains lease until child exits`, {
   timeout: 10000, skip: process.platform === 'win32' ? 'Windows kill() force-terminates processes; POSIX signal delivery is exercised on Linux CI' : false,
@@ -75,6 +110,7 @@ for (const signal of ['SIGTERM', 'SIGINT']) test(`${signal} reaches child and re
   const run = await launch(t, 'hold')
   await waitFile(join(run.root, 'child-ready'))
   await assert.rejects(acquireOperationLock(run.root), { code: 'DSH_OPERATION_LOCKED' })
+  await assert.rejects(acquireOperationLock(run.home), { code: 'DSH_OPERATION_LOCKED' })
   run.parent.kill(signal)
   const controller = new AbortController()
   let observed
@@ -93,13 +129,85 @@ for (const signal of ['SIGTERM', 'SIGINT']) test(`${signal} reaches child and re
   }
   assert.equal(observed.signal, signal)
   await assert.rejects(acquireOperationLock(run.root), { code: 'DSH_OPERATION_LOCKED' })
+  await assert.rejects(acquireOperationLock(run.home), { code: 'DSH_OPERATION_LOCKED' })
   assert.equal(run.parent.exitCode, null)
   await writeFile(join(run.root, 'child-release'), '')
   const message = await run.message
   assert.equal(message.cleanListeners, true)
   assert.deepEqual(await run.closed, [0, null])
   await unlocked(run.root)
+  await unlocked(run.home)
 })
+for (const signal of ['SIGTERM', 'SIGINT', 'SIGHUP']) test(`preflight ${signal} retains both manager leases until the child closes and cancels launch`, {
+  timeout: 10000, skip: process.platform === 'win32' ? 'Windows kill() force-terminates; real preflight signals run on POSIX CI' : false,
+}, async t => {
+  const run = await launch(t, 'hold', false, {}, true)
+  const pid = Number(await waitFile(join(run.root, 'preflight-ready')))
+  await assert.rejects(acquireOperationLock(run.root), { code: 'DSH_OPERATION_LOCKED' })
+  await assert.rejects(acquireOperationLock(run.home), { code: 'DSH_OPERATION_LOCKED' })
+  run.parent.kill(signal)
+  const controller = new AbortController()
+  let observed
+  try {
+    observed = await Promise.race([
+      waitFile(join(run.root, 'preflight-signal'), controller.signal).then(signal => ({ signal })),
+      run.exited.then(([code, signal]) => ({ parentExit: { code, signal } })),
+    ])
+  } finally { controller.abort() }
+  if (observed.parentExit) {
+    process.kill(pid, 0)
+    await unlocked(run.root)
+    await unlocked(run.home)
+    t.diagnostic(JSON.stringify({ parentExit: observed.parentExit, preflightPid: pid, childAlive: true, rootLockReacquired: true, homeLockReacquired: true }))
+    assert.fail(`${signal}: manager exited during --dump-config with its child alive and both leases released`)
+  }
+  assert.equal(observed.signal, signal)
+  await assert.rejects(acquireOperationLock(run.root), { code: 'DSH_OPERATION_LOCKED' })
+  await assert.rejects(acquireOperationLock(run.home), { code: 'DSH_OPERATION_LOCKED' })
+  assert.equal(run.parent.exitCode, null)
+  await assert.rejects(readFile(join(run.root, 'child-ready')), { code: 'ENOENT' })
+  await writeFile(join(run.root, 'preflight-release'), '')
+  const message = await run.message
+  assert.equal(message.cleanListeners, true)
+  assert.equal(message.result.exitCode, 0)
+  assert.deepEqual(await run.closed, [0, null], run.stderr())
+  await readFile(join(run.root, 'preflight-exited'))
+  await assert.rejects(readFile(join(run.root, 'child-ready')), { code: 'ENOENT' })
+  await unlocked(run.root)
+  await unlocked(run.home)
+})
+for (const signal of ['SIGINT', 'SIGHUP']) test(`terminal-style preflight ${signal} is forwarded exactly once while both leases remain held`, {
+  timeout: 10000, skip: process.platform === 'win32' ? 'POSIX process groups only' : false,
+}, async t => {
+  const run = await launch(t, 'hold', false, { detached: true }, true)
+  await waitFile(join(run.root, 'preflight-ready'))
+  process.kill(-run.parent.pid, signal)
+  await waitFile(join(run.root, 'preflight-signals'))
+  await delay(400)
+  assert.deepEqual((await readFile(join(run.root, 'preflight-signals'), 'utf8')).trim().split('\n'), [signal])
+  await assert.rejects(acquireOperationLock(run.root), { code: 'DSH_OPERATION_LOCKED' })
+  await assert.rejects(acquireOperationLock(run.home), { code: 'DSH_OPERATION_LOCKED' })
+  await writeFile(join(run.root, 'preflight-release'), '')
+  assert.equal((await run.message).cleanListeners, true)
+  assert.deepEqual(await run.closed, [0, null])
+  await assert.rejects(readFile(join(run.root, 'child-ready')), { code: 'ENOENT' })
+  await unlocked(run.root)
+  await unlocked(run.home)
+})
+for (const [mode, message] of [['fail', /preflight failed \(9\): fixture preflight failed/], ['overflow', /stdout exceeded 1048576 bytes/]]) {
+  test(`preflight ${mode} aborts launch, waits for the child, and releases both leases`, { timeout: 10000 }, async t => {
+    const run = await launch(t, 'hold', false, {}, mode)
+    const result = await run.message
+    assert.match(result.error, message)
+    assert.equal(result.cleanListeners, true)
+    assert.deepEqual(await run.closed, [1, null])
+    const pid = Number(await readFile(join(run.root, 'preflight-ready'), 'utf8'))
+    assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' })
+    await assert.rejects(readFile(join(run.root, 'child-ready')), { code: 'ENOENT' })
+    await unlocked(run.root)
+    await unlocked(run.home)
+  })
+}
 for (const [signal, code] of [['SIGTERM', 143], ['SIGINT', 130], ['SIGHUP', 129]]) test(`${signal} child termination preserves signal exit status`, {
   timeout: 10000, skip: process.platform === 'win32' ? 'Windows kill() force-terminates processes; POSIX signal delivery is exercised on Linux CI' : false,
 }, async t => {
@@ -134,8 +242,10 @@ test('normal running child excludes another operation until it exits', { timeout
   const run = await launch(t, 'hold')
   await waitFile(join(run.root, 'child-ready'))
   await assert.rejects(acquireOperationLock(run.root), { code: 'DSH_OPERATION_LOCKED' })
+  await assert.rejects(acquireOperationLock(run.home), { code: 'DSH_OPERATION_LOCKED' })
   await writeFile(join(run.root, 'child-release'), '')
   assert.equal((await run.message).cleanListeners, true)
   assert.deepEqual(await run.closed, [0, null])
   await unlocked(run.root)
+  await unlocked(run.home)
 })
