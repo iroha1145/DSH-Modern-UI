@@ -17,13 +17,14 @@ async function waitFile(path, signal) {
   }
   throw new Error(`Timed out waiting for ${path}`)
 }
-async function launch(t, mode, missing = false, forkOptions = {}) {
+async function launch(t, mode, missing = false, forkOptions = {}, preflight = false) {
   const scratch = await mkdtemp(join(tmpdir(), 'dsh-launch-'))
   const root = join(scratch, 'program'), home = join(scratch, 'data')
   const profile = join(home, 'profiles', 'test')
   await mkdir(root)
   await mkdir(profile, { recursive: true })
   await writeFile(join(profile, 'cordis.patch.yml'), '[]\n')
+  if (preflight) await writeFile(join(root, 'preflight-mode'), 'hold')
   const require = createRequire(import.meta.url)
   const backend = require.resolve('@deepseek-ai/dsh/package.json')
   const cli = join(root, 'fixture-cli.mjs')
@@ -32,9 +33,14 @@ async function launch(t, mode, missing = false, forkOptions = {}) {
   await writeFile(cli, `
 import { createRequire } from 'node:module'
 import { readFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 const require = createRequire(${JSON.stringify(backend)})
 if (process.argv.includes('--dump-config')) {
+  if (existsSync(${JSON.stringify(join(root, 'preflight-mode'))})) {
+    const { holdPreflight } = await import(${JSON.stringify(pathToFileURL(fixture('launch-preflight')).href)})
+    await holdPreflight(${JSON.stringify(root)})
+  }
   const yaml = require('js-yaml')
   const { applyEntryPatches, entryListSchema } = await import(${JSON.stringify(pathToFileURL(require.resolve('@deepseek-ai/cordis-plugin-include')).href)})
   const patch = yaml.load(await readFile(join(process.env.DSH_HOME, 'profiles', 'test', 'cordis.patch.yml'), 'utf8'), { schema: entryListSchema })
@@ -62,12 +68,12 @@ if (process.argv.includes('--dump-config')) {
   const closed = once(parent, 'close')
   t.after(async () => {
     if (parent.exitCode === null && parent.signalCode === null) parent.kill('SIGKILL')
-    if (!managerSettled) {
+    if (!managerSettled) for (const phase of ['child', 'preflight']) {
       try {
-        await readFile(join(root, 'child-exited'))
+        await readFile(join(root, `${phase}-exited`))
       } catch (error) {
         if (error.code !== 'ENOENT') throw error
-        try { process.kill(Number(await readFile(join(root, 'child-ready'), 'utf8')), 'SIGKILL') }
+        try { process.kill(Number(await readFile(join(root, `${phase}-ready`), 'utf8')), 'SIGKILL') }
         catch (error) { if (!['ENOENT', 'ESRCH'].includes(error.code)) throw error }
       }
     }
@@ -104,6 +110,7 @@ for (const signal of ['SIGTERM', 'SIGINT']) test(`${signal} reaches child and re
   const run = await launch(t, 'hold')
   await waitFile(join(run.root, 'child-ready'))
   await assert.rejects(acquireOperationLock(run.root), { code: 'DSH_OPERATION_LOCKED' })
+  await assert.rejects(acquireOperationLock(run.home), { code: 'DSH_OPERATION_LOCKED' })
   run.parent.kill(signal)
   const controller = new AbortController()
   let observed
@@ -122,12 +129,52 @@ for (const signal of ['SIGTERM', 'SIGINT']) test(`${signal} reaches child and re
   }
   assert.equal(observed.signal, signal)
   await assert.rejects(acquireOperationLock(run.root), { code: 'DSH_OPERATION_LOCKED' })
+  await assert.rejects(acquireOperationLock(run.home), { code: 'DSH_OPERATION_LOCKED' })
   assert.equal(run.parent.exitCode, null)
   await writeFile(join(run.root, 'child-release'), '')
   const message = await run.message
   assert.equal(message.cleanListeners, true)
   assert.deepEqual(await run.closed, [0, null])
   await unlocked(run.root)
+  await unlocked(run.home)
+})
+for (const signal of ['SIGTERM', 'SIGINT', 'SIGHUP']) test(`preflight ${signal} retains both manager leases until the child closes and cancels launch`, {
+  timeout: 10000, skip: process.platform === 'win32' ? 'Windows kill() force-terminates; real preflight signals run on POSIX CI' : false,
+}, async t => {
+  const run = await launch(t, 'hold', false, {}, true)
+  const pid = Number(await waitFile(join(run.root, 'preflight-ready')))
+  await assert.rejects(acquireOperationLock(run.root), { code: 'DSH_OPERATION_LOCKED' })
+  await assert.rejects(acquireOperationLock(run.home), { code: 'DSH_OPERATION_LOCKED' })
+  run.parent.kill(signal)
+  const controller = new AbortController()
+  let observed
+  try {
+    observed = await Promise.race([
+      waitFile(join(run.root, 'preflight-signal'), controller.signal).then(signal => ({ signal })),
+      run.exited.then(([code, signal]) => ({ parentExit: { code, signal } })),
+    ])
+  } finally { controller.abort() }
+  if (observed.parentExit) {
+    process.kill(pid, 0)
+    await unlocked(run.root)
+    await unlocked(run.home)
+    t.diagnostic(JSON.stringify({ parentExit: observed.parentExit, preflightPid: pid, childAlive: true, rootLockReacquired: true, homeLockReacquired: true }))
+    assert.fail(`${signal}: manager exited during --dump-config with its child alive and both leases released`)
+  }
+  assert.equal(observed.signal, signal)
+  await assert.rejects(acquireOperationLock(run.root), { code: 'DSH_OPERATION_LOCKED' })
+  await assert.rejects(acquireOperationLock(run.home), { code: 'DSH_OPERATION_LOCKED' })
+  assert.equal(run.parent.exitCode, null)
+  await assert.rejects(readFile(join(run.root, 'child-ready')), { code: 'ENOENT' })
+  await writeFile(join(run.root, 'preflight-release'), '')
+  const message = await run.message
+  assert.equal(message.cleanListeners, true)
+  assert.equal(message.result.exitCode, 0)
+  assert.deepEqual(await run.closed, [0, null], run.stderr())
+  await readFile(join(run.root, 'preflight-exited'))
+  await assert.rejects(readFile(join(run.root, 'child-ready')), { code: 'ENOENT' })
+  await unlocked(run.root)
+  await unlocked(run.home)
 })
 for (const [signal, code] of [['SIGTERM', 143], ['SIGINT', 130], ['SIGHUP', 129]]) test(`${signal} child termination preserves signal exit status`, {
   timeout: 10000, skip: process.platform === 'win32' ? 'Windows kill() force-terminates processes; POSIX signal delivery is exercised on Linux CI' : false,
