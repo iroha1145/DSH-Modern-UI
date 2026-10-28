@@ -32,8 +32,8 @@ function answerText(turn: TurnLocation, closing: Readonly<FinalAssistantChatData
   const replies = spec === undefined ? [] : turn.steps
     .map(step => step.data.get('assistant-step'))
     .filter(data => data?.finalNode !== undefined && isAnswerStep(spec, data))
-    .map(data => assistantText(data?.blocks ?? []).trim())
-    .filter(text => text !== '')
+    .map(data => assistantText(data?.blocks ?? []))
+    .filter(text => text.trim() !== '')
   return replies.length === 0 ? assistantText(closing.blocks) : replies.join('\n\n')
 }
 

@@ -267,7 +267,8 @@ async function legacyBindingEvidence(profile, snapshots, records, yaml, schema) 
     const replacement = insert.insert[0]
     return object(replacement) && replacement.id === `modern-ui-compat-${disable.id}`
       && replacement.name === HOST_REPLACEMENTS[disable.name]
-      && Object.keys(replacement).every(key => ['id', 'name', 'config', 'disabled', 'inject', 'intercept', 'isolate'].includes(key))
+      && Object.keys(replacement).every(key => ['id', 'name', 'config', 'group', 'disabled', 'inject', 'intercept', 'isolate'].includes(key))
+      && (replacement.group === undefined || replacement.group === false || replacement.group === null)
       && (replacement.disabled === undefined || replacement.disabled === false)
       && (replacement.config === undefined || config(replacement.config))
   }

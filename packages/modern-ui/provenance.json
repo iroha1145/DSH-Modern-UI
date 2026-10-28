@@ -2906,8 +2906,8 @@
       "source": "packages/client/ui-chat/src/client/chat/TurnTailNodeView.tsx",
       "target": "src/vendor/chat/client/chat/TurnTailNodeView.tsx",
       "sourceSha256": "835118e15bb4518d8865de9421425456e377bd623cd8bad2d88ac95ae038b94f",
-      "targetSha256": "10079ef797c40c52c8116dfd7483737ff03ed80ad110bf4f64ab0b7b001cf802",
-      "adapted": false
+      "targetSha256": "19b8b8c0d42923b2481d14d9aed70d6e420f542fc17e5638c2b849d193b21173",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/chat/TurnTriggerNodeView.module.css",
