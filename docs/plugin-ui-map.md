@@ -15,11 +15,11 @@ Manifest 的 inject 是模块到达与组合边，immediately 只控制预取，
 1. **外壳/侧栏/工作区：** 精确补丁的 AppFrame、宽度状态、拖动区、主题呈现、侧栏与工作区树/选择/顺序/手机 drawer 已接入。原 Workspace/Session 控制器执行动作。原创 modernLayout 仅暴露同一个布局 store 的 viewport 与关闭手机 drawer，不另建布局状态。
 2. **会话/输入/视图：** 唯一 Conversation owner 提供原服务和 children，保留真实输入、附件、排队、停止与第三方贡献。rc.4 不存在的 ui-file-drag 没有被复制或冒充；使用实际 inline image/file-upload。collapsedViews 已接入 pin store，写入失败恢复已接受值。旧“必须等上游才能恢复”的结论撤回。
 3. **消息/推理/代码/steering：** 用户、assistant、context、重试、错误、压缩、turn-process、代码折叠、引用、图片、推理折叠来自精确补丁。Steering batch 通过真实官方 assembler 发布显示 metadata，保留 prepend、取消、重插与卸载，不建立第二份消息或进程投影。
-4. **模型：** 自有模型列表、供应商图标、卡片、推理等级复用官方 modelDirectories；选择、清单和发送路径仍为官方服务。卡片设置在自有 namespace 保存。
+4. **模型：** 自有模型列表、供应商图标、卡片、推理等级复用官方 modelDirectories；选择、清单和发送路径仍为官方服务。卡片设置在自有 namespace 保存。模型设置页仍是官方的，插件只在每张 pi-ai 提供商卡片里加「声明推理强度」一块（`settings.models.provider-card`，key `llm-pi-ai`）：安装目录没有描述的模型在这里开启推理、勾选档位，写回该路由的 `models` 列表（关闭写 `reasoningEfforts: false`）。
 5. **工具/Schedule：** Read/write/search/web/TODO/问答/通用卡使用公开 keyed leaves；read_image 复用原 gallery factory，TODO 复用原 target。原 pwsh/terminal provider 保留。Schedule 实际 CSS 差异应用于公开语义根，保留目录、时钟标记和操作。
 6. **可视化/追问：** OpenUI 完整结果、原生嵌套 sandbox、容错展示和 Followups 已迁移；真实 iframe 按钮验证交互。没有引入上游服务端或宿主能力桥。
 7. **主题/语言/设置：** 公开 theme override layer 安装 Modern 调色板，卸载恢复旧层及偏好。支持八种语言；自有 owner 使用自有 namespace，避免与已有语言包重复注册。原设置贡献和配置写入保留。
-8. **Markdown/附件：** 公开 cwd/openFile/fileMediaUrl 支持相对文件、行号和图片；HTTP 遵从官方 linkOpening，浏览器席位缺失时新窗口回退。图片弹层进入共享官方栈。
+8. **Markdown/附件：** 公开 cwd/openFile/fileMediaUrl 支持相对文件、行号和图片；HTTP 遵从官方 linkOpening，浏览器席位缺失时新窗口回退。图片弹层进入共享官方栈。右侧栏的 Markdown 文件预览体（`sidebar.right.tab.document`，key `…/documentpreview/markdown`）与 Plan 预览体（`sidebar.right.pane.tab`，key `@deepseek-ai/dsh-client-ui-plan`）由插件以 priority -100 遮住官方条目，走插件 MarkdownText（frontmatter 字段表、路径图片、代码块折叠）；官方的实现元数据、标签页类型、资源提供者、标题仍是官方的。
 9. **翻译：** optional remote.cotTranslation 复用官方 Controller/Host 设置；自有 reasoning 槽适配展示体、缓存和取消。Remote 撤回恢复原文。直接登记在官方原 reasoning children 的第三方贡献不会自动进入 Modern 独立 children，没有声称存在通用透传接口。
 10. **V2 联网范围：** Modern 会话联网按钮、/web on|off、webSearch projection、专用能力缓存/状态/词条已删除。官方搜索/抓取工具、provider、插件启停/配置、结果卡和引用保留。
 
@@ -45,6 +45,6 @@ Manifest 的 inject 是模块到达与组合边，immediately 只控制预取，
 
 真实最终包的 bundle off/on 和 remove 已验证恢复四个官方 owner、主题 token 及 90 个 style。root owner 切换需要刷新页面；单 entry off 不是 bundle off。Lexical 的一个模块级 textInput 时间戳监听器保留到页面刷新，刷新/移除后重启为零，不能声称同一页卸载立即释放全部依赖全局监听器。详见安装文档。原 Web Shell 启动页与故障页仍为官方样式。
 
-官方包仍在渲染的几处界面（输入触发菜单、权限选择器、审批卡、提问卡、变更文件卡、快捷键弹窗、左下角账号触发器）由 `src/official-surfaces.css` 和 `settings-shell.css` 以稳定钩子覆盖成旧补丁的样子（聊天流和回合尾部自 2026-10-28 起是插件自己的，不再需要覆盖）；其余官方包（模型设置页、Plan/文件预览的代码块折叠、定时任务私有选择器、调试轨迹、文件树）保持官方样式，取舍依据见 [2026-10-28 审计复核](audit-20261028.md)。
+官方包仍在渲染的几处界面（输入触发菜单、权限选择器、审批卡、提问卡、变更文件卡、快捷键弹窗、左下角账号触发器）由 `src/official-surfaces.css` 和 `settings-shell.css` 以稳定钩子覆盖成旧补丁的样子（聊天流和回合尾部自 2026-10-28 起是插件自己的，不再需要覆盖）；文件预览的 Markdown 体与 Plan 预览体自 2026-10-28 第三轮起是插件自己的（按 key 以 priority -100 遮住官方 keyed 条目，代码块可折叠；装着社区插件 dsh-better-sidebar 时文件地址被它认领、用它自己的查看器，官方文件预览体不会被用到），模型设置页的 pi-ai 提供商卡片里多一块插件的「声明推理强度」（官方 `settings.models.provider-card` 槽，key `llm-pi-ai`），做法与实验见 [声明推理强度与预览折叠](reasoning-and-preview-fold-20261028.md)；其余官方包（模型设置页本体、定时任务私有选择器、调试轨迹、文件树）保持官方样式，取舍依据见 [2026-10-28 审计复核](audit-20261028.md)。
 
 未逐个平台验证Electron拖动、多窗口、全部WebKit/输入法/触屏/屏幕阅读器组合；未对每种工具与Schedule状态做全像素对比。已迁移源码与已执行测试分别陈述，不以服务功能保留代替视觉验收。

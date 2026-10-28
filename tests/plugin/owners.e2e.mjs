@@ -19,6 +19,7 @@ const workspace = path.join(run, 'm1-fixture-workspace')
 const runMarker = `M1 fixture ${path.basename(run)}`
 await mkdir(workspace)
 await writeFile(path.join(workspace, 'm1-note.txt'), 'First fixture line\nSecond fixture line\n')
+await writeFile(path.join(workspace, 'm1-guide.md'), `---\ntitle: M1 fixture guide\n---\n\n# Fixture guide\n\n\`\`\`typescript\n${Array.from({ length: 48 }, (_line, index) => `export const guideLine${index} = ${index}`).join('\n')}\n\`\`\`\n\nAfter the fence.\n`)
 await writeFile(path.join(workspace, 'm1-image.png'), Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6fV8AAAAASUVORK5CYII=', 'base64'))
 const sourceInstalled = process.env.MODERN_UI_INSTALLED_STATE ? JSON.parse(await readFile(process.env.MODERN_UI_INSTALLED_STATE, 'utf8')) : undefined
 const isolation = sourceInstalled ? await isolatedInstalledFixture(sourceInstalled, run) : undefined
@@ -44,7 +45,7 @@ const translationServer = createServer(async (request, response) => {
 await new Promise(resolve => translationServer.listen(0, '127.0.0.1', resolve))
 const translationEndpoint = `http://127.0.0.1:${translationServer.address().port}/translate`
 const externalUrl = `http://127.0.0.1:${translationServer.address().port}/external`
-let existingTranslator, existingTranslationController
+let existingTranslator, existingTranslationController, communitySidebar
 if (installed) {
   const hostRequire = createRequire(official)
   const yaml = createRequire(hostRequire.resolve('@deepseek-ai/dsh-app-boot'))('js-yaml')
@@ -59,6 +60,11 @@ if (installed) {
   assert.ok(translators.length <= 1, 'Fixture must not compose duplicate translator services')
   existingTranslator = translators[0]?.id
   existingTranslationController = entries.find(entry => entry.name === '@deepseek-ai/dsh-experimental-client-ui-cot-translation' && entry.disabled !== true)?.id
+  // The community dsh-better-sidebar claims every `dsh-resource://file/**` address at the extension band and
+  // draws Markdown through the official primitive, so the official document preview (whose Markdown body
+  // Modern shades) is only reachable without it. The owner acceptance covers Modern's surfaces, so the
+  // community sidebar sits out of this run; the install itself keeps every community bundle.
+  communitySidebar = entries.find(entry => entry.name === 'dsh-better-sidebar' && entry.disabled !== true)?.id
 }
 if (!installed) {
 const setup = spawnSync(process.execPath, [official, profile, '--from-default-profile', 'web', '--dump-config'], {
@@ -73,7 +79,8 @@ const controllerInsert = existingTranslationController ? '' : "    - id: cot-tra
 const translatorOverride = existingTranslator ? `- id: ${JSON.stringify(existingTranslator)}\n  config:\n    bingEndpoint: ${JSON.stringify(translationEndpoint)}\n` : ''
 const controllerOverride = existingTranslationController ? `- id: ${JSON.stringify(existingTranslationController)}\n  config:\n    provider: bing\n    targetLanguage: en\n` : ''
 const ownerSelection = installed ? '' : ['ui-layout', 'ui-sidebar', 'ui-conversation', 'ui-workspace'].map(id => `- id: ${id}\n  disabled: true\n`).join('')
-await writeFile(overlay, `${ownerSelection}- id: workspace-controller\n  config:\n    documentsDirectory: ${quote(path.join(run, 'documents'))}\n- id: agent-default-model\n  config:\n    provider: modern-ui-fixture\n    model: mock-balanced\n${translatorOverride}${controllerOverride}- insert:\n${installed ? '' : `    - id: modern-ui\n      name: ${JSON.stringify(pathToFileURL(plugin).href)}\n      config:\n        enabled: true\n        models: {}\n        prices: {}\n`}    - id: modern-ui-fixture\n      name: ${JSON.stringify(pathToFileURL(path.join(root, 'tests/plugin/fixtures/mock-host.mjs')).href)}\n${translatorInsert}${controllerInsert}`)
+const communitySidebarOverride = communitySidebar ? `- id: ${JSON.stringify(communitySidebar)}\n  disabled: true\n` : ''
+await writeFile(overlay, `${ownerSelection}${communitySidebarOverride}- id: workspace-controller\n  config:\n    documentsDirectory: ${quote(path.join(run, 'documents'))}\n- id: agent-default-model\n  config:\n    provider: modern-ui-fixture\n    model: mock-balanced\n${translatorOverride}${controllerOverride}- insert:\n${installed ? '' : `    - id: modern-ui\n      name: ${JSON.stringify(pathToFileURL(plugin).href)}\n      config:\n        enabled: true\n        models: {}\n        prices: {}\n`}    - id: modern-ui-fixture\n      name: ${JSON.stringify(pathToFileURL(path.join(root, 'tests/plugin/fixtures/mock-host.mjs')).href)}\n${translatorInsert}${controllerInsert}`)
 
 const ownerReport = path.join(run, 'model-requests.jsonl')
 const ownerGate = path.join(run, 'release-stream')
@@ -244,6 +251,38 @@ try {
     && request.event.data.content?.some(block => block.type === 'image')
     && request.event.data.content?.some(block => block.type === 'file')), 'durable user message contains both image and uploaded file reference')
   passed.push('real image inline + ordinary file upload receipt reaches actual model request')
+
+  // The Markdown file preview is the plugin's own body (shading the official keyed entry): a long
+  // fence opens expanded with the collapse control, folds, and unfolds again.
+  await editor().fill('OWNER_OPEN_MARKDOWN')
+  await editor().press('Enter')
+  await page.getByText('OWNER_MARKDOWN_READY', { exact: false }).last().waitFor()
+  await page.getByRole('button', { name: 'Open fixture guide', exact: true }).last().click()
+  const markdownBody = page.locator('[data-document-markdown]')
+  await markdownBody.waitFor({ timeout: 10000 })
+  await markdownBody.locator('[data-document-frontmatter]').getByText('M1 fixture guide', { exact: false }).waitFor()
+  const guideFence = markdownBody.locator('.md-code-block').first()
+  await guideFence.waitFor()
+  const foldButton = () => guideFence.getByRole('button', { name: '收起代码', exact: true })
+  const unfoldButton = () => guideFence.getByRole('button', { name: '展开代码', exact: true })
+  await foldButton().waitFor()
+  const expandedHeight = await guideFence.evaluate(element => element.getBoundingClientRect().height)
+  await page.screenshot({ path: path.join(run, 'markdown-preview-expanded.png'), fullPage: true })
+  await foldButton().click()
+  await unfoldButton().waitFor()
+  assert.equal(await guideFence.getAttribute('data-code-collapsed'), 'true')
+  assert.equal(await guideFence.locator('[data-code-block-content]').evaluate(element => element.hidden), true)
+  const collapsedHeight = await guideFence.evaluate(element => element.getBoundingClientRect().height)
+  assert.ok(collapsedHeight < expandedHeight / 2, `folded fence is shorter: ${collapsedHeight} vs ${expandedHeight}`)
+  await page.screenshot({ path: path.join(run, 'markdown-preview-collapsed.png'), fullPage: true })
+  await unfoldButton().click()
+  await foldButton().waitFor()
+  assert.equal(await guideFence.getAttribute('data-code-collapsed'), null)
+  await page.getByRole('button', { name: '收起右侧边栏', exact: true }).click()
+  // Let the sidebar finish leaving before the views-menu step measures the tab strip.
+  await markdownBody.waitFor({ state: 'hidden' })
+  await page.waitForTimeout(500)
+  passed.push('Markdown file preview renders through the Modern body: frontmatter box, fence collapse/expand')
 
   const viewsMenu = () => page.locator('[data-conversation-views-menu]')
   if (readModernSettings().collapsedViews?.includes('agents')) {

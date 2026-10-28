@@ -8,7 +8,7 @@
   "modernUiSource": "https://github.com/iroha1145/DSH-Modern-UI",
   "modernUiCommit": "a9f4c370fa480c9a17d5c9a79cb83aeba26bdf0d",
   "patchSha256": "111b5c5a0d817685ab32440df6272f895ce385907b0f16f5e036dd443e240000",
-  "adaptation": "Presentation components/styles, selected layout/conversation/sidebar/workspace UI owners, public contract adapters, model-card configuration, language data, and explicitly selected compatibility modules are packaged. Bundle selection disables exactly the replaced official UI owners. Original Host session, command, remote, model directory, locale and theme providers remain official. Since the ui-chat takeover the patched Chat target (data layer, view, flow, node views, factories, quota notice, stats pills and settings rows) is packaged and the official ui-chat entry is disabled; its SlotMap declarations stay the type source, bridged by compat.ts. Since the ui-chat takeover the patched Chat target (data layer, view, flow, node views, factories, quota notice, stats pills and settings rows) is packaged and the official ui-chat entry is disabled; its SlotMap declarations stay the type source, bridged by compat.ts.",
+  "adaptation": "Presentation components/styles, selected layout/conversation/sidebar/workspace UI owners, public contract adapters, model-card configuration, language data, and explicitly selected compatibility modules are packaged. Bundle selection disables exactly the replaced official UI owners. Original Host session, command, remote, model directory, locale and theme providers remain official. Since the ui-chat takeover the patched Chat target (data layer, view, flow, node views, factories, quota notice, stats pills and settings rows) is packaged and the official ui-chat entry is disabled; its SlotMap declarations stay the type source, bridged by compat.ts. Since the ui-chat takeover the patched Chat target (data layer, view, flow, node views, factories, quota notice, stats pills and settings rows) is packaged and the official ui-chat entry is disabled; its SlotMap declarations stay the type source, bridged by compat.ts. Since the 2026-10-28 preview-fold and reasoning-declaration change the Markdown file preview body and the plan preview body are packaged as keyed entries shadowing the official ones (priority -100), and a reasoning-declaration block joins every pi-ai provider card through the official settings.models.provider-card seat; the official documentpreview, plan and settings-models packages stay enabled.",
   "files": [
     {
       "source": "packages/client/ui-attachment/src/client/MessageImages.tsx",
@@ -3383,6 +3383,104 @@
       "sourceSha256": "ab9e70301b492f91a29c0aa4371e798765bf3a264284ff8ec060f611ba5c73b8",
       "targetSha256": "ab9e70301b492f91a29c0aa4371e798765bf3a264284ff8ec060f611ba5c73b8",
       "adapted": false
+    },
+    {
+      "source": "packages/client/ui-sidebar-documentpreview/src/client/markdown/MarkdownBody.tsx",
+      "target": "src/vendor/documentpreview/client/markdown/MarkdownBody.tsx",
+      "sourceSha256": "ffc7c1975f5308a236aa1ae5f3d66cff2d56134c5fe00c34d790a1b2864cc75d",
+      "targetSha256": "62c95962527c8c75067d1b5f310958034496c3a341e5c62aec45226d0c5a493a",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-sidebar-documentpreview/src/client/markdown/MarkdownBody.module.css",
+      "target": "src/vendor/documentpreview/client/markdown/MarkdownBody.module.css",
+      "sourceSha256": "623504050e2d73903747c751a525a76923f571275e7ed2743dfafcecdccaa10a",
+      "targetSha256": "58ce708a0e5f059bb8d071d72fa03766c6e50a55341265727c07120db596cdb2",
+      "adapted": false
+    },
+    {
+      "source": "packages/client/ui-sidebar-documentpreview/src/client/markdown/frontmatter.ts",
+      "target": "src/vendor/documentpreview/client/markdown/frontmatter.ts",
+      "sourceSha256": "e1b67f3d3f3d2cfadd2cfd5df93fb4359a3fbd4a1d964151b66eb13fe57efb2b",
+      "targetSha256": "44476d3d3d66f8015501e2d02d9a0912cbf790f98c0c529d41c909c2bd6d3967",
+      "adapted": false
+    },
+    {
+      "source": "packages/client/ui-sidebar-documentpreview/src/client/markdown/frontmatter-fields.tsx",
+      "target": "src/vendor/documentpreview/client/markdown/frontmatter-fields.tsx",
+      "sourceSha256": "c02a58533ebda2057c6f1e01a0af9d7d1973d1abc30292e3870f2e82c886d79e",
+      "targetSha256": "6a9b79a17596e3c410b25e2713af627d38eacc7475d7ef529f376aa54728e703",
+      "adapted": false
+    },
+    {
+      "source": "packages/client/ui-sidebar-documentpreview/src/client/markdown/frontmatter-fields.module.css",
+      "target": "src/vendor/documentpreview/client/markdown/frontmatter-fields.module.css",
+      "sourceSha256": "fbfab19f1a9d784785096b3ba2492c892d70963daab5c62ad9488024f6034720",
+      "targetSha256": "399a4186764d0d8cf2d25f2d2f5c0ec624dcde8f1a3adcd67f7a359d69361271",
+      "adapted": false
+    },
+    {
+      "source": "packages/client/ui-sidebar-documentpreview/src/client/markdown/path-images.ts",
+      "target": "src/vendor/documentpreview/client/markdown/path-images.ts",
+      "sourceSha256": "a50608f34436892ceace3548abaa843b811cdd4bb647e3b585a642902616ea89",
+      "targetSha256": "8244f5a09e97bcb66128da677c90486c501e096361c5e4d82d0eb7f3c034a646",
+      "adapted": false
+    },
+    {
+      "source": "packages/client/ui-sidebar-documentpreview/src/client/markdown/index.ts",
+      "target": "src/vendor/documentpreview/client/markdown/index.ts",
+      "sourceSha256": "7a48e2509a41135de7344a67d9a46656121bb2f40bbc12a70e11634327953d7c",
+      "targetSha256": "b619a992ec81f5cf3a28b61dff1cf6a888abf5f2fbfec39900d0e9faada5c919",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-sidebar-documentpreview/src/client/markdown/locales.ts",
+      "target": "src/vendor/documentpreview/client/markdown/locales.ts",
+      "sourceSha256": "28aa24bed01bf832a317b7a2b979a322bf69a22c3c3a73fde3946345aa91e2f0",
+      "targetSha256": "e38dbaccbe7b711b34a7911e7fb9d5fb5924d09491afd99ccd6534d7189773df",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-plan/src/client/PlanPreview.tsx",
+      "target": "src/vendor/plan/client/PlanPreview.tsx",
+      "sourceSha256": "1d83f19a2aea8f3d72a48f3a8fce2efb6324427163fbcff31f52a85560c9c55f",
+      "targetSha256": "916ac265fc376cd2dab53d1ef333d6d9637705a0a42a83ea5d5e17705dd25150",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-plan/src/client/PlanPreview.module.css",
+      "target": "src/vendor/plan/client/PlanPreview.module.css",
+      "sourceSha256": "b48892787ef9429ab50b407a64d8b44e5ff48e9f6244a8ca7a02b7b1ff844b32",
+      "targetSha256": "1420d5c2983887c228f2886dada6be5bb242c200ae76786ad3eadfa713001bb3",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-plan/src/client/review-preview.ts",
+      "target": "src/vendor/plan/client/review-preview.ts",
+      "sourceSha256": "70e23c8d1400c0762284890e7a73f3c8ae899d3a075838c967dc95842fa74186",
+      "targetSha256": "93fabf7d5c74e1a171562f14bfff47198eea03bfa280d62f0f45292139db412a",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-plan/src/client/failure-line.ts",
+      "target": "src/vendor/plan/client/failure-line.ts",
+      "sourceSha256": "843c54413a71e54ce279dbc2934cf9909448e1daab7b73cf516c2de479c5f18b",
+      "targetSha256": "c787437dfe93fe0250932fce8ad7b20fde861e2435e13f89ca28d390b19a64fb",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-plan/src/client/index.ts",
+      "target": "src/vendor/plan/client/index.ts",
+      "sourceSha256": "136444fa5bbf107d530096aeea809564a271448cc8857f15b81bf9ed141772c5",
+      "targetSha256": "c2e4bf16a677ec5f92eb8a812ca5c03d97dca82045d934c70cdad999b1e78b88",
+      "adapted": true
+    },
+    {
+      "source": "packages/client/ui-plan/src/client/locales.ts",
+      "target": "src/vendor/plan/client/locales.ts",
+      "sourceSha256": "ae4bf6e749e30d728e81a20327d27fcf5491a48345f741c8e0804739b7c23751",
+      "targetSha256": "02c4664a74fb20fbc0d33e5b077d240ffe27d7fc84b4b5f0549fd2a119194c3c",
+      "adapted": true
     }
   ],
   "authored": [
@@ -3400,6 +3498,36 @@
       "target": "src/vendor/chat/client/compat.ts",
       "targetSha256": "ff91e0e49ee8fe24b0ff9bab771a97053a3411611a0cc3e43594293f0dd1a59c",
       "description": "Registration-boundary cast between the vendored rc.3 chat contract and the official rc.4 slot declarations."
+    },
+    {
+      "target": "src/previews.ts",
+      "targetSha256": "a5acb1356841f068892ac430e87b8aad59d35fed22b3d02edd8ad4d5dc07b07f",
+      "description": "Registers the Modern Markdown file preview body and plan preview body that shadow the official keyed entries (priority -100) so both previews fold code fences."
+    },
+    {
+      "target": "src/vendor/settings-models/client/controller.ts",
+      "targetSha256": "7fead8d874738de08e59c61616f8fa8480ebcb0f54916a0af939172d3b4516f9",
+      "description": "State and revision-fenced writes of the reasoning-declaration block on pi-ai provider cards: stored models list from the shared settings form, installed-catalog ids from the adapter, levels from the namespace schema."
+    },
+    {
+      "target": "src/vendor/settings-models/client/ReasoningDeclarationCard.tsx",
+      "targetSha256": "a634fab373eff7a5255787615850c465864906ba2d86fa46e35b6beb8b0037a0",
+      "description": "The reasoning-declaration block rendered in every pi-ai provider card (settings.models.provider-card, key llm-pi-ai): a switch per catalog-undescribed model and one checkbox per schema level."
+    },
+    {
+      "target": "src/vendor/settings-models/client/ReasoningDeclarationCard.module.css",
+      "targetSha256": "ef4efc9ec68756d1d8ae1df0dd5e05f0123fc53c7a67fb996cb8c9771b3994c1",
+      "description": "Styles of the reasoning-declaration block (flat section inside the official provider card, alias tokens only)."
+    },
+    {
+      "target": "src/vendor/settings-models/client/locales.ts",
+      "targetSha256": "8b4c7bc1f43de744263d83a6190fcd70bda2fd20b7b51fb27697ad33e318822d",
+      "description": "Eight-language copy of the reasoning-declaration block (modern-reasoning namespace)."
+    },
+    {
+      "target": "src/vendor/settings-models/client/register.ts",
+      "targetSha256": "0532ede61d2d1df6f32c7a66908173218eeb7693edcff8837b7cf1dc5778d405",
+      "description": "Registration of the reasoning-declaration block: dictionaries, controller, keyed provider-card entry."
     }
   ],
   "adapters": [
@@ -3486,6 +3614,42 @@
         {
           "source": "packages/client/ui-chat/src/client/chat/MessageIconActions.module.css",
           "sourceSha256": "ca6eb71aee0a4d0a2db0214dd075320088124971af19adfbd560cf17e12a15ba"
+        }
+      ]
+    },
+    {
+      "target": "src/vendor/plan/client/plan.ts",
+      "targetSha256": "e3ffc2efbe3025626d1b08afb8e2bc2da27223273fac3a563ea32eff7798bfd8",
+      "sources": [
+        {
+          "source": "packages/client/ui-plan/src/client/plan.ts",
+          "sourceSha256": "94a3678a94f794ef622bc2b9742cc70d6bb2a6210c1e827387eb5037639deb29"
+        },
+        {
+          "source": "packages/client/ui-plan/src/client/plan-resource.ts",
+          "sourceSha256": "b24fbbf0f8e265c131744892675db4edbf60c69770e025e816d2494aa504b4cc"
+        }
+      ]
+    },
+    {
+      "target": "src/vendor/settings-models/client/reasoning-declaration.ts",
+      "targetSha256": "9503dc69e37720bbf51a16b91c54fc8157c17e4048f7f9eb2ba1f3067e9158ea",
+      "sources": [
+        {
+          "source": "packages/client/ui-settings-models/src/client/ModelListEditor.tsx",
+          "sourceSha256": "d271c77d8a952d34ca023b44b2bb0c9ce87ed6ac94a6dc16a8f6e26228e7cd59"
+        },
+        {
+          "source": "packages/client/ui-settings-models/src/client/ModelReasoningEfforts.tsx",
+          "sourceSha256": "f6ccdf4ef717c57b97c6af61c1cf08b1b245c7bc41e32ef1c67b0c000e409570"
+        },
+        {
+          "source": "packages/client/ui-settings-models/src/client/ProviderEditor.tsx",
+          "sourceSha256": "7aa5326d9331fad8382ee722e53d4dd81e53bd88e4a28780deeb1e069b75950f"
+        },
+        {
+          "source": "packages/client/ui-settings-models/src/client/store.ts",
+          "sourceSha256": "23664ef92f5a4f30dc8a9bbe33ce46313abd8ca1f8b97b6f36db6bb1295a4c9f"
         }
       ]
     }
@@ -4166,6 +4330,30 @@
     {
       "namespace": "settings.locale",
       "source": "packages/client/locale/src/locales/settings.ts",
+      "languages": [
+        "ja",
+        "es",
+        "fr",
+        "de",
+        "ru",
+        "pt"
+      ]
+    },
+    {
+      "namespace": "modern-document-markdown",
+      "source": "packages/client/ui-sidebar-documentpreview/src/client/markdown/locales.ts",
+      "languages": [
+        "ja",
+        "es",
+        "fr",
+        "de",
+        "ru",
+        "pt"
+      ]
+    },
+    {
+      "namespace": "modern-plan",
+      "source": "packages/client/ui-plan/src/client/locales.ts",
       "languages": [
         "ja",
         "es",

@@ -77,7 +77,11 @@ class FixtureAdapter extends LlmAdapter {
       const delayed = JSON.stringify(user).includes('OWNER_DELAY_START')
       const step = (this.ownerSteps.get(options.sessionId) ?? 0) + 1
       this.ownerSteps.set(options.sessionId, step)
-      const text = delayed ? `OWNER_STEP_${step}` : 'OWNER_ATTACHMENTS_ACCEPTED'
+      // OWNER_OPEN_MARKDOWN asks for a reply that links the workspace's Markdown guide by its absolute path
+      // (the session's own working-directory projection decides relative links, which the owner acceptance
+      // does not exercise), so the acceptance can open the document preview the plugin's Markdown body renders.
+      const guide = `${(process.env.MODERN_UI_BROWSER_WORKSPACE ?? '').replaceAll('\\', '/')}/m1-guide.md`
+      const text = delayed ? `OWNER_STEP_${step}` : JSON.stringify(user).includes('OWNER_OPEN_MARKDOWN') ? `OWNER_MARKDOWN_READY [Open fixture guide](${guide})` : 'OWNER_ATTACHMENTS_ACCEPTED'
       yield { type: 'block-start', index: 0, blockType: 'text' }
       yield { type: 'text-delta', index: 0, text }
       if (delayed && step === 1) {
