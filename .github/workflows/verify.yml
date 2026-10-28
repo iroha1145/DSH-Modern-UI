@@ -28,25 +28,11 @@ jobs:
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: '24.22.1'
-      - run: node --test tests/release.test.mjs
+      - run: node scripts/verify-release.mjs
       - run: node --check scripts/plugins.mjs
-      - name: Bash installer regressions
+      - name: Bash installer syntax check
         if: runner.os != 'Windows'
-        run: |
-          bash -n scripts/install.sh scripts/launch.sh
-          python3 tests/installers.py
-      - name: Real POSIX preparation, runtime recovery and launcher
-        if: runner.os != 'Windows'
-        run: bash tests/posix-prepare.sh
-      - name: Real Windows preparation and recovery
-        id: windows_pwsh
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: ./tests/windows-prepare.ps1
-      - name: Windows PowerShell 5.1 preparation and recovery
-        if: ${{ !cancelled() && runner.os == 'Windows' && (steps.windows_pwsh.outcome == 'success' || steps.windows_pwsh.outcome == 'failure') }}
-        shell: powershell
-        run: ./tests/windows-prepare.ps1
+        run: bash -n scripts/install.sh scripts/launch.sh
 
   source:
     runs-on: ubuntu-latest

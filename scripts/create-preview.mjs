@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
-import { cp, mkdir, readFile, readdir, rename, writeFile } from 'node:fs/promises'
+import { cp, mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { officialSource, versions } from './distribution/manager.mjs'
@@ -20,16 +20,9 @@ const integrity = 'sha512-' + createHash('sha512').update(bytes).digest('base64'
 assert.equal(integrity, packed.integrity)
 await rename(path.join(output, packed.filename), path.join(output, 'modern-ui.tgz'))
 await cp(path.join(root, 'scripts/distribution'), path.join(output, 'installer'), { recursive: true })
-await mkdir(path.join(output, 'tests/plugin'), { recursive: true })
-for (const name of (await readdir(path.join(root, 'tests/plugin'))).filter(name => name.endsWith('.e2e.mjs') || name === 'fixtures')) {
-  await cp(path.join(root, 'tests/plugin', name), path.join(output, 'tests/plugin', name), { recursive: true })
-}
 await cp(path.join(root, 'docs'), path.join(output, 'docs'), { recursive: true })
 await cp(path.join(root, 'LICENSE'), path.join(output, 'LICENSE'))
 await cp(path.join(root, 'scripts/preview-consumer-check.mjs'), path.join(output, 'consumer-check.mjs'))
-await cp(path.join(root, 'tests/official-web'), path.join(output, 'tests/official-web'), { recursive: true })
-await mkdir(path.join(output, 'tests/distribution'), { recursive: true })
-await cp(path.join(root, 'tests/distribution/bootstrap-lifecycle.ps1'), path.join(output, 'tests/distribution/bootstrap-lifecycle.ps1'))
 const runtimes = JSON.parse(await readFile(path.join(output, 'installer/runtime-lock.json'), 'utf8'))
 const communities = JSON.parse(await readFile(path.join(output, 'installer/community-lock.json'), 'utf8'))
 const manifest = {
@@ -44,9 +37,6 @@ const manifest = {
   limitations: ['Only targets with passing consumer jobs for the source revision are verified', 'Real touchscreen, WebKit and Electron multi-window execution unverified', 'Legacy web/search snapshots require the retained legacy environment or read-only export', 'Root owner bundle changes require a browser refresh', 'Profiles with explicit Host compatibility bindings retain the package until those bindings are restored'],
 }
 await writeFile(path.join(output, 'preview.json'), JSON.stringify(manifest, null, 2) + '\n')
-await writeFile(path.join(output, 'package.json'), JSON.stringify({ private: true, type: 'module',
-  description: 'Optional test driver only; not needed for installation or application runtime',
-  devDependencies: { 'playwright-core': '1.64.1' } }, null, 2) + '\n')
 await writeFile(path.join(output, 'install.ps1'), `param(
   [Parameter(Mandatory=$true)][string]$Root,
   [Parameter(Mandatory=$true)][string]$DataHome,
@@ -118,8 +108,7 @@ DSH_MODERN_SKIP_COMMUNITY=1 (POSIX) to run only the core path.
 The two directories must be separate. User data and other profiles are retained.
 Launch the generated program/dsh-ui.cmd (Windows) or program/dsh-ui (POSIX).
 
-preview.json records exact versions and integrity. package.json/tests are optional CI driver files;
-normal consumers do not run npm install in this preview directory.
-Executed checks, compatibility scope and remaining differences are documented in docs/plugin-migration.md.
+preview.json records exact versions and integrity.
+Compatibility scope and remaining differences are documented in docs/plugin-migration.md.
 `)
 console.log(JSON.stringify({ output, ...manifest }, null, 2))
