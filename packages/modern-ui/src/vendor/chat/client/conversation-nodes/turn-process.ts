@@ -153,17 +153,37 @@ function isFinalAssistant(
   return data?.finalNode !== undefined
 }
 
-function latestAnswer(turn: TurnLocation): Readonly<FinalAssistantChatData> | null {
-  const latestStep = turn.steps.at(-1)
-  const data: Readonly<AssistantChatData> | undefined = latestStep?.data.get('assistant-step')
-  if (!isFinalAssistant(data) || !hasAssistantReplyContent(data.blocks)) return null
-  return data.blocks.some(block => block.kind === 'tool-call') ? null : data
+interface TurnAnswer {
+  readonly data: Readonly<FinalAssistantChatData>
+  /** Whether the answer Step or a later tool-free Step carries reasoning the folded Turn hides. */
+  readonly inlineReasoning: boolean
+}
+
+/**
+ * The first reply among a Turn's trailing settled, tool-free Steps. Input admitted after a reply, such as a
+ * finished background subagent or a teammate message, starts one more tool-free Step; the reply before it is
+ * still the answer, so only Steps before it fold as process.
+ */
+function latestAnswer(turn: TurnLocation): TurnAnswer | null {
+  const trailing: Readonly<FinalAssistantChatData>[] = []
+  for (let index = turn.steps.length - 1; index >= 0; index--) {
+    const data: Readonly<AssistantChatData> | undefined = turn.steps[index]?.data.get('assistant-step')
+    if (!isFinalAssistant(data) || data.blocks.some(block => block.kind === 'tool-call')) break
+    trailing.unshift(data)
+  }
+  const first = trailing.findIndex(data => hasAssistantReplyContent(data.blocks))
+  const answer = trailing[first]
+  if (answer === undefined) return null
+  const inlineReasoning = trailing.slice(first)
+    .some(data => data.blocks.some(block => block.kind === 'reasoning' && block.text.trim() !== ''))
+  return { data: answer, inlineReasoning }
 }
 
 function processSpec(state: TurnProcessState, turn: TurnLocation): TurnProcessSpec | null {
   const controlAnchorSeq = state.controlAnchorSeq ?? turn.start?.seq
   if (controlAnchorSeq === undefined) return null
-  const answer = latestAnswer(turn)
+  const trailingAnswer = latestAnswer(turn)
+  const answer = trailingAnswer?.data ?? null
   const counts = {
     messageCount: answer === null
       ? state.messageCount
@@ -184,7 +204,7 @@ function processSpec(state: TurnProcessState, turn: TurnLocation): TurnProcessSp
       ...counts,
     }
   }
-  const inlineReasoning = answer.blocks.some(block => block.kind === 'reasoning' && block.text.trim() !== '')
+  const inlineReasoning = trailingAnswer?.inlineReasoning === true
   const earlierAssistantSeq = Math.min(
     ...[...state.assistantStartByStep]
       .filter(([step]) => step < answer.step)
