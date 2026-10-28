@@ -135,7 +135,7 @@
       "source": "packages/boot/plugin-market/src/repository-cache.ts",
       "sourceSha256": "0c7b415368079c7193e1981410df38ad4841ee8585e6cb84bdaf991e658eec73",
       "target": "plugin-documents/repository-cache.ts",
-      "targetSha256": "b47faba1f8f74261f40336e986248f20591786c1d95d6b1bcefdc89f0150daf6",
+      "targetSha256": "5bce270f83c0c6b9145a2d60176e1a8a96830581f1ada7b96f34f39615525ffa",
       "adapted": true
     },
     {

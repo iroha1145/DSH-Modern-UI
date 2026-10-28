@@ -8,6 +8,127 @@ import yaml from 'js-yaml'
 import { preserveEffectivePreferences, transformEffectivePreferences, preserveLegacySettings, transformProfileSettings, transformHostBindings,
   preserveConversationPreferences, transformConversationPreferences, preserveChatPreferences, transformChatPreferences } from '../../scripts/distribution/profile-settings.mjs'
 import { applyEntryPatches, entryListSchema } from '@deepseek-ai/cordis-plugin-include'
+import * as baseline from './fixtures/profile-settings-bb606b3.mjs'
+
+const PICKER_VALUES = { models: { 'inherited/model': { label: 'Inherited model', quality: 4 } },
+  prices: { 'inherited/model': { input: 1, output: 2 } } }
+async function generatedPickerProfile(t, { effectiveReceipt = false, initialPatch } = {}) {
+  const profile = await mkdtemp(join(tmpdir(), 'modern-generated-picker-'))
+  t.after(() => rm(profile, { recursive: true, force: true }))
+  const bundle = yaml.load(await readFile(new URL('../../packages/modern-ui/cordis.patch.yml', import.meta.url), 'utf8'), { schema: entryListSchema })
+  const official = bundle.filter(row => row.id && row.name).map(row => ({ id: row.id, name: row.name, config:
+    row.name === '@deepseek-ai/dsh-client-ui-model-selection' ? PICKER_VALUES
+      : row.name === '@deepseek-ai/dsh-client-ui-conversation' ? { busyEnter: 'steer', collapsedViews: ['agents'] } : {} }))
+  const base = applyEntryPatches(official, bundle, message => assert.fail(message))
+  const filename = join(profile, 'cordis.patch.yml')
+  await writeFile(filename, initialPatch ?? '[]\n')
+  const compose = async () => yaml.dump(applyEntryPatches(base,
+    yaml.load(await readFile(filename, 'utf8'), { schema: entryListSchema }), message => assert.fail(message)), { schema: entryListSchema })
+  // Execute the real baseline writer; the empty maps come from the actual
+  // shipped bundle and are copied by its unmodified conversation converter.
+  const conversation = await baseline.preserveConversationPreferences(profile, await compose(), yaml)
+  assert.equal(conversation.changed, true)
+  const emitted = yaml.load(await readFile(filename, 'utf8')).find(row => row.id === 'modern-ui').config
+  assert.deepEqual(emitted.models, {})
+  assert.deepEqual(emitted.prices, {})
+  if (effectiveReceipt) {
+    const effective = await baseline.preserveEffectivePreferences(profile, await compose(), await compose(), yaml)
+    assert.equal(effective.conversionVersion, 2)
+    assert.deepEqual(effective.movedFields, [], 'baseline mistakes the conversation-written defaults for user overrides')
+    assert.equal((await baseline.preserveEffectivePreferences(profile, await compose(), await compose(), yaml)).alreadyMigrated, true)
+  }
+  return { profile, filename, compose, conversation }
+}
+
+test('baseline conversation writer remains byte-equivalent to the frozen reproduction', async () => {
+  const frozen = await readFile(new URL('./fixtures/profile-settings-bb606b3.mjs', import.meta.url), 'utf8')
+  assert.equal(createHash('sha256').update(frozen.slice(frozen.indexOf('\n') + 1)).digest('hex'), '645cb341f599a6dadd1c68fbf444b368717b641c83a4d4069545b433aae2873f')
+  const normalize = value => value.toString().replaceAll('\r\n', '\n')
+  assert.equal(normalize(preserveConversationPreferences), normalize(baseline.preserveConversationPreferences))
+  assert.equal(normalize(transformConversationPreferences), normalize(baseline.transformConversationPreferences))
+})
+
+for (const effectiveReceipt of [false, true]) test(`recover generated picker defaults from the real conversation writer${effectiveReceipt ? ' after a real v2 effective receipt' : ''}`, async t => {
+  const f = await generatedPickerProfile(t, { effectiveReceipt })
+  const before = await f.compose()
+  const original = await readFile(f.filename, 'utf8')
+  const receipts = ['modern-ui-conversation-migration.json', ...(effectiveReceipt ? ['modern-ui-effective-preferences-v1.json'] : [])]
+  const retained = new Map(await Promise.all(receipts.map(async name => [name, await readFile(join(f.profile, name), 'utf8')])))
+  const result = await preserveEffectivePreferences(f.profile, before, before, yaml)
+  assert.deepEqual(result.pickerDefaultsRecovery.recoveredFields, ['models', 'prices'])
+  assert.equal(await readFile(join(f.profile, result.pickerDefaultsRecovery.backup), 'utf8'), original)
+  for (const [name, bytes] of retained) assert.equal(await readFile(join(f.profile, name), 'utf8'), bytes)
+  const modern = yaml.load(await readFile(f.filename, 'utf8')).find(row => row.id === 'modern-ui').config
+  assert.deepEqual(modern.models, PICKER_VALUES.models)
+  assert.deepEqual(modern.prices, PICKER_VALUES.prices)
+  assert.equal(modern.busyEnter, 'steer')
+  assert.deepEqual(modern.collapsedViews, ['agents'])
+})
+
+test('generated picker defaults follow real chat and effective receipt transitions without replaying preferences', async t => {
+  const initialPatch = yaml.dump([{ id: 'ui-chat', config: { foldedReplies: 'final' } }])
+  const f = await generatedPickerProfile(t, { initialPatch })
+  assert.equal((await baseline.preserveChatPreferences(f.profile, yaml)).changed, true)
+  await baseline.preserveEffectivePreferences(f.profile, await f.compose(), await f.compose(), yaml)
+  const result = await preserveEffectivePreferences(f.profile, await f.compose(), await f.compose(), yaml)
+  assert.deepEqual(result.pickerDefaultsRecovery.recoveredFields, ['models', 'prices'])
+  assert.ok(Object.hasOwn(result.pickerDefaultsRecovery.receipts, 'modern-ui-chat-migration.json'))
+  const modern = yaml.load(await readFile(f.filename, 'utf8')).find(row => row.id === 'modern-ui').config
+  assert.deepEqual(modern.models, PICKER_VALUES.models)
+  assert.equal(modern.foldedReplies, 'final')
+  assert.equal(modern.busyEnter, 'steer')
+})
+
+test('generated picker defaults recovery preserves preexisting explicit empty maps', async t => {
+  // This is an actual user override before the baseline writer, not an
+  // imitation of its generated output used to set up a positive test.
+  const initialPatch = yaml.dump([{ id: 'modern-ui', config: { models: {}, prices: {} } }])
+  const f = await generatedPickerProfile(t, { initialPatch, effectiveReceipt: true })
+  const original = await readFile(f.filename, 'utf8')
+  const result = await preserveEffectivePreferences(f.profile, await f.compose(), await f.compose(), yaml)
+  assert.equal(result.changed, false)
+  assert.equal(await readFile(f.filename, 'utf8'), original)
+  await assert.rejects(readFile(join(f.profile, 'modern-ui-picker-defaults-recovery-v1.json')), { code: 'ENOENT' })
+})
+
+for (const edit of ['clear-after-recovery', 'change-after-recovery']) test(`generated picker defaults recovery never replays a user's ${edit}`, async t => {
+  const f = await generatedPickerProfile(t, { effectiveReceipt: true })
+  await preserveEffectivePreferences(f.profile, await f.compose(), await f.compose(), yaml)
+  const patch = yaml.load(await readFile(f.filename, 'utf8'))
+  const modern = patch.find(row => row.id === 'modern-ui')
+  modern.config.models = edit === 'clear-after-recovery' ? {} : { user: { label: 'User edited' } }
+  modern.config.prices = {}
+  const edited = yaml.dump(patch, { lineWidth: -1, noCompatMode: true })
+  await writeFile(f.filename, edited)
+  const result = await preserveEffectivePreferences(f.profile, await f.compose(), await f.compose(), yaml)
+  assert.equal(result.changed, false)
+  assert.equal(result.pickerDefaultsRecovery.alreadyRecovered, true)
+  assert.equal(await readFile(f.filename, 'utf8'), edited)
+})
+
+for (const damage of ['edited-profile', 'missing-receipt', 'altered-backup', 'altered-output-digest']) test(`generated picker defaults recovery declines ${damage}`, async t => {
+  const f = await generatedPickerProfile(t, { effectiveReceipt: true })
+  if (damage === 'edited-profile') {
+    const patch = yaml.load(await readFile(f.filename, 'utf8'))
+    const modern = patch.find(row => row.id === 'modern-ui')
+    modern.config.models = { temporarilyChosen: {} }
+    await writeFile(f.filename, yaml.dump(patch))
+    modern.config.models = {}
+    modern.config.busyEnter = 'queue'
+    await writeFile(f.filename, yaml.dump(patch))
+  } else if (damage === 'missing-receipt') await rm(join(f.profile, 'modern-ui-conversation-migration.json'))
+  else if (damage === 'altered-backup') await writeFile(join(f.profile, 'modern-ui-conversation-before-migration.yml'), '# altered evidence\n[]\n')
+  else {
+    const path = join(f.profile, 'modern-ui-conversation-migration.json')
+    const receipt = JSON.parse(await readFile(path, 'utf8'))
+    receipt.migratedSha256 = '0'.repeat(64)
+    await writeFile(path, JSON.stringify(receipt))
+  }
+  const original = await readFile(f.filename, 'utf8')
+  assert.equal((await preserveEffectivePreferences(f.profile, await f.compose(), await f.compose(), yaml)).changed, false)
+  assert.equal(await readFile(f.filename, 'utf8'), original)
+  await assert.rejects(readFile(join(f.profile, 'modern-ui-picker-defaults-recovery-v1.json')), { code: 'ENOENT' })
+})
 
 test('effective preferences preserve inherited values by module name and explicit Modern overrides', () => {
   const inherited = [

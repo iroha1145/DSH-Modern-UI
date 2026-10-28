@@ -356,9 +356,9 @@ export class RepositoryCache {
   ): Promise<Uint8Array> {
     // The buffer stops Git once the contents pass `maxBytes`, so an oversized file never enters memory whole.
     const result = await this.watched(repository, url, ['cat-file', 'blob', blob], signal, `git cat-file ${path}`, maxBytes)
-    if (result.overflowed) throw new FileTooLarge(path, maxBytes)
-    // Reading a blob can download it, so the cache total is enforced after every read as after every fetch.
+    // Git can fetch the whole blob before its output exceeds the read limit; those bytes still count in the cache.
     await this.evict(repository)
+    if (result.overflowed) throw new FileTooLarge(path, maxBytes)
     return result.stdout
   }
 

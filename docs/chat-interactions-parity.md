@@ -8,7 +8,22 @@ Modern 的 ChatView 恢复 `conversation.chat.text-interaction` 标准 keyed 子
 
 `quotes.ts` 注册旧 message-quotes 的选区 admission、quote 文本规则与 sent-text renderer。点击引用按钮调用现有 `InputActions.insertQuote`，保留草稿其他内容，并继续使用现有 Lexical QuoteNode、草稿持久化和提交序列化。已发送消息中的显式 Markdown blockquote 恢复 QuotePreview 的紧凑展示和截断全文预览。
 
-公开的 TypeScript 入口 `quotes.ts` 导出 `TextInteractionDefinition`、`TextInteractionGesture`、`TextInteractionRequest`、`TextInteractionSurface`、`TextInteractionTrigger` 和 `ConversationInteractionRegistry`。它通过声明合并补回 `ctx.uiConversation.interactions` 和 `InputActions.insertQuote` 的类型；对应运行时能力均由已选择的 Modern Conversation owner 提供。该文件同时补充标准 SlotMap，供消费者使用 `PropsRuntime<'conversation.chat.text-interaction'>`。
+预编译 tgz 包提供仅类型入口 `@iroha1145/dsh-modern-ui/quotes`，导出 `TextInteractionDefinition`、`TextInteractionGesture`、`TextInteractionRequest`、`TextInteractionSurface`、`TextInteractionTrigger` 和 `ConversationInteractionRegistry`。消费者通过 `import type` 使用，不需要访问插件源码：
+
+```ts
+import type { TextInteractionDefinition } from '@iroha1145/dsh-modern-ui/quotes'
+import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+
+const interaction: TextInteractionDefinition = {
+  id: 'example',
+  onInteraction(request) {
+    if (request.trigger === 'selection' && request.readText() !== null) request.open()
+  },
+}
+type InteractionProps = PropsRuntime<'conversation.chat.text-interaction'>
+```
+
+此入口随 tgz 提供生成的 `.d.ts`，通过声明合并补回 `ctx.uiConversation.interactions`、`InputActions.insertQuote` 和标准 SlotMap；`@deepseek-ai/dsh-client-ui-slots@0.2.1-rc.4` 列为公开 peer。它没有 JavaScript 导出分支，也不导出 `installQuotes`；对应运行时能力由已选择的 Modern Conversation owner 提供。注册引用展示仍由插件的常规客户端入口完成，类型消费者不会再次安装引用功能。
 
 ## 社区文档与本地文件导航
 
@@ -51,6 +66,8 @@ Modern 的 ChatView 恢复 `conversation.chat.text-interaction` 标准 keyed 子
 - Edge/Chromium `156.0.4314.42` 的真实 HTML5 鼠标拖拽将 68 字节 PNG 送到 composer callback，收到的文件和 dragstart DownloadURL Blob 均与源图逐字节相同，页面无错误。
 
 浏览器项在 Windows 默认使用本机 Edge，其他环境可设置 `MODERN_UI_BROWSER`；没有可用浏览器时明确跳过该项。单元部分采用真实 Cordis SlotRegistry、React DOM 和 Lexical 输入实现，仅将 CSS 排版留给整体验收。另做所选新增入口、Chat owner、Conversation owner 的 TypeScript 无输出检查，结果 0 错误。本文件不将这些局部验证描述为完整应用或 native OS 拖拽验收。
+
+`tests/plugin/quotes-package.test.mjs` 从真实 `npm pack` 生成的 tgz 取出类型入口，在仓库外的独立消费目录使用复制的官方公开依赖类型，以 NodeNext 和 Bundler 两种解析模式编译。测试覆盖全部六个类型、原有官方方法、`ctx.uiConversation.interactions`、标准 session 槽的 `inputActions.insertQuote`、错误参数拒绝，以及运行时 import 明确不可用；不使用仓库 `paths` 别名或插件源码导入。
 
 ## 来源与整合
 

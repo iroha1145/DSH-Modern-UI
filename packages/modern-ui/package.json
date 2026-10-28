@@ -7,6 +7,9 @@
   "exports": {
     ".": "./lib/index.js",
     "./client": "./lib/client.js",
+    "./quotes": {
+      "types": "./lib/types/quotes-contract.d.ts"
+    },
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./package.json": "./package.json",
     "./translator": "./lib/translator.js",
@@ -75,6 +78,7 @@
     "@deepseek-ai/dsh-system-prompt": "0.2.1-rc.4",
     "@deepseek-ai/dsh-experimental-translator": "0.2.1-rc.4",
     "@deepseek-ai/dsh-client-ui-conversation": "0.2.1-rc.4",
+    "@deepseek-ai/dsh-client-ui-slots": "0.2.1-rc.4",
     "@deepseek-ai/dsh-web": "0.2.1-rc.4",
     "@deepseek-ai/dsh-brand": "0.2.1-rc.4",
     "@deepseek-ai/dsh-http-proxy": "0.2.1-rc.4",

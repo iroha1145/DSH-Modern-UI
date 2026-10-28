@@ -3627,7 +3627,7 @@
       "source": "packages/client/ui-user-questions/src/client/QuestionComposer.tsx",
       "sourceSha256": "53a88b7a0034d0a460b44b08e86754710a1d3c9496e761d9b2d41798be884db1",
       "target": "src/vendor/questions/QuestionFlow.tsx",
-      "targetSha256": "47bd78398530d96051417fd67191ce0679da02fa095ade2f56fb3d46bea7e975",
+      "targetSha256": "48eab58cfca90b66347641ca24b3a525b14b3e25a15af633077e13bb60ee03d9",
       "adapted": true
     },
     {
@@ -3756,6 +3756,11 @@
       "target": "src/vendor/plugin-market/market-store.ts",
       "targetSha256": "70c84801451fb5ac347228ecbd20941eb7487b67e76487c5087749eef1ad329a",
       "description": "Original type-only aliases over the published official DiscoverFace and DiscoverState; no market controller or business store is copied."
+    },
+    {
+      "target": "src/quotes-contract.ts",
+      "targetSha256": "bf77270704fe55b85fe4ef1af775ed3a872f7450b7a138b78c15be628b6cc005",
+      "description": "Type-only package contract and official module augmentations for third-party text interaction consumers; emitted as the ./quotes declaration export."
     }
   ],
   "adapters": [
@@ -3987,7 +3992,7 @@
     },
     {
       "target": "src/quotes.ts",
-      "targetSha256": "6082b260712c49beef0730605ed2fe959e3080cbe848f789400b83a3a099a40b",
+      "targetSha256": "a0b6adb675e0f927bd3c81cc2dc253c29e5f71f7dc46e453b6aa13ca472f60e5",
       "sources": [
         {
           "source": "packages/session/message-quotes/src/client/index.ts",
@@ -5013,7 +5018,7 @@
         "source": "packages/boot/plugin-market/src/repository-cache.ts",
         "sourceSha256": "0c7b415368079c7193e1981410df38ad4841ee8585e6cb84bdaf991e658eec73",
         "target": "plugin-documents/repository-cache.ts",
-        "targetSha256": "b47faba1f8f74261f40336e986248f20591786c1d95d6b1bcefdc89f0150daf6",
+        "targetSha256": "5bce270f83c0c6b9145a2d60176e1a8a96830581f1ada7b96f34f39615525ffa",
         "adapted": true
       },
       {

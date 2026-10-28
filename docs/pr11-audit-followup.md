@@ -1,0 +1,13 @@
+# PR #11 限定审计修复
+
+复现基线为 `bb606b3058e7e4556d0bd259d82f1e1f4321e517`。本轮只处理下列五项，继续使用未修改的官方 rc.4 后端、独立预编译插件和官方联网配置／插件启停机制。
+
+1. **QuestionFlow 键盘激活。** 原选项 Enter handler 阻止原生 click，并把闭包中的旧 drafts 交给提交函数。删除该拦截后，Enter 和鼠标点击都经过原 `choose` 路径，再由原提交入口发送。真实浏览器先复现推荐项、无预选、多选和跨问题的四项失败；修复后五项回归精确核对最终 Remote answer，包括多选添加和取消。
+2. **自动写入的旧模型空表。** 回归固定基线代码，调用真实 Conversation writer，并在第二条路径继续调用旧 effective writer 生成 v2 回执；两条路径都先复现漏项。恢复只接受完整的原备份与回执摘要链，区分自动默认值和用户空值。对应迁移文件覆盖新旧回执、证据缺失／损坏、人工修改、显式清空及修复后不重放。
+3. **超限 blob 的累计缓存。** Git 按需下载完整对象后，文件大小拒绝仍需执行总量淘汰。将既有 `evict` 提前到 `FileTooLarge` 抛出前，不改变锁或错误语义。真实 loopback Git daemon 与 `blob:none` partial clone 先证明六个大对象缺失，再连续读取超限对象；基线在 163,840 字节预算下增长至 403,772 字节。修复后等待全部任务和清理结束，各次实际缓存均在预算内，并验证正常读取、并发串行和取消清理。
+4. **启动预检信号。** 测试先行提交 `3f65043` 保留基线生产实现，[Linux 复现运行](https://github.com/iroha1145/DSH-Modern-UI/actions/runs/40671455702) 的 SIGTERM、SIGINT、SIGHUP 三项全部失败：父进程已退出，预检仍活着，root/home 租约均可重新取得。异步预检现在与运行阶段共用信号生命周期，捕获 stdout、转发信号并等待 `close`；阶段间中断也不能启动下一子进程。回归经过真实 `manager main launch`，核对两把锁、正常与非零退出、输出溢出、预检和运行阶段的信号及进程组转发。Windows 的真实 POSIX 信号项明确跳过，由 Linux CI 执行。
+5. **可消费的引用类型入口。** 旧真实 tgz 在仓库外消费时出现 TS2307。新增纯类型 `@iroha1145/dsh-modern-ui/quotes` export，生成四个声明文件，保留 TextInteraction 类型、注册表类型和官方 Context/InputActions/SlotMap 合并。新真实 tgz 在独立消费目录用 NodeNext 与 Bundler 编译；不使用仓库别名或源码路径。入口没有 JavaScript 导出，不能执行 `installQuotes` 或重复注册运行时能力。
+
+CI 构建 job 显式准备 Chromium，键盘测试在配置了浏览器却找不到可执行文件时失败，不静默跳过。消费 job 仍仅下载预编译产物，不 checkout 源码。当前提交的最终结果以 PR 检查页为准；上面的失败运行仅记录修复前的复现证据。
+
+本地整合构建通过；Windows 上 229 项测试中 213 通过、16 项按平台跳过、0 失败。类型消费随后进一步改为直接打包实际构建目录，禁止测试临时补出声明，再次运行 1/1 通过。真实 POSIX 信号与进程组结论只取后续 Linux CI，不把 Windows 跳过项标为通过。

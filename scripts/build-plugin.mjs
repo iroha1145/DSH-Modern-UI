@@ -2,6 +2,7 @@ import { readFile, writeFile, mkdir, readdir } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { buildQuotesTypes } from './build-quotes-types.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const pkg = path.join(root, 'packages/modern-ui')
@@ -93,6 +94,7 @@ await build({
   external: ['@deepseek-ai/*'],
 })
 await import('./build-host.mjs')
+buildQuotesTypes()
 const licensed = new Map()
 for (const input of Object.keys(client.metafile.inputs)) {
   const physical = input.replace(/^(?:owned-css|inline-css):/, '')

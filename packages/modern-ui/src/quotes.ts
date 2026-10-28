@@ -3,8 +3,6 @@ import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
-import type { ConversationInteractionRegistry } from './vendor/conversation/client/conversation/interaction-registry.ts'
-import type { TextInteractionSurface } from './vendor/conversation/client/contract/text-interaction.ts'
 import { QuoteSelectionAction } from './vendor/message-quotes/QuoteSelection.tsx'
 import { QuotedUserText } from './vendor/message-quotes/QuotedUserText.tsx'
 import { quoteRule } from './vendor/message-quotes/quote-rule.ts'
@@ -13,21 +11,11 @@ import { en, zh, ja, es, fr, de, ru, pt, NS, type MessageQuotesKey } from './ven
 export type {
   TextInteractionDefinition, TextInteractionGesture, TextInteractionRequest,
   TextInteractionSurface, TextInteractionTrigger,
-} from './vendor/conversation/client/contract/text-interaction.ts'
-export type { ConversationInteractionRegistry } from './vendor/conversation/client/conversation/interaction-registry.ts'
-
-declare module '@deepseek-ai/dsh-client-ui-conversation/client' {
-  /** Available while Modern's Conversation owner is selected. */
-  interface UiConversation { readonly interactions: ConversationInteractionRegistry }
-  /** Modern's input owner retains the legacy atomic quote action. */
-  interface InputActions { insertQuote(text: string): boolean }
-}
+} from './quotes-contract.ts'
+export type { ConversationInteractionRegistry } from './quotes-contract.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap { messageQuotes: MessageQuotesKey }
-  interface SlotMap {
-    'conversation.chat.text-interaction': { kind: 'keyed'; scope: 'session'; owner: TextInteractionSurface }
-  }
 }
 
 /** Register quote admission and sent-text presentation without creating another message projection. */

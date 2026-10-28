@@ -37,6 +37,10 @@ jobs:
           node-version: '24.22.1'
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run build
+      - name: Install the browser for native keyboard regressions
+        run: |
+          node node_modules/playwright-core/cli.js install chromium
+          node -e "require('node:fs').appendFileSync(process.env.GITHUB_ENV, 'MODERN_UI_BROWSER=' + require('playwright-core').chromium.executablePath() + '\n')"
       - run: npm test
       - run: node scripts/create-preview.mjs
       - name: Verify generated preview root selection

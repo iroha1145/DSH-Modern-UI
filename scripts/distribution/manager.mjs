@@ -13,7 +13,7 @@ import { verifyReleaseSources } from './verify-release-source.mjs'
 import { bindHostCompatibility, preserveEffectivePreferences, preserveConversationPreferences } from './profile-settings.mjs'
 import { acquireOperationLock } from './operation-lock.mjs'
 import { backupDataHome } from './data-backup.mjs'
-import { launchChild } from './launch-child.mjs'
+import { createLaunchLifecycle } from './launch-child.mjs'
 import { download, unpack } from './artifacts.mjs'
 import { preparePowerShell, bindPowerShell } from './shell-runtime.mjs'
 import { readSelection, previousState, receiptReference, retainSelection } from './lifecycle.mjs'
@@ -378,22 +378,29 @@ export async function main(argv = process.argv.slice(2)) {
         return results
       }
       if (command === 'launch') {
-        await verifyOfficial(state)
-        // A user may have added official Host instances since installation. Select
-        // their public replacements before boot, using the same reviewed YAML path.
-        const profile = join(state.home, 'profiles', state.profile)
-        const hostCompatibilityRefresh = await bindHostCompatibility(profile, dsh(state, [state.profile, '--dump-config']), createRequire(state.backend)('js-yaml'))
-        if (hostCompatibilityRefresh.changed) console.log(JSON.stringify({ hostCompatibilityRefresh }))
-        console.log(JSON.stringify({ node: state.node, pnpm: state.pnpm, backend: state.backend, version: versions.backend, plugin: state.plugin, profile: state.profile, home: state.home, cwd: process.cwd() }))
-        // A terminal delivers Ctrl+C and hangups to its whole foreground process group; a child in
-        // the same group would receive the signal once from the terminal and once more forwarded
-        // here, and the official exit controller treats a second signal as "force quit now".
-        // Its own process group (POSIX) leaves exactly one delivery: the forwarded one.
-        // The invoking directory stays the working directory, as with the official CLI.
-        const result = await launchChild(state.node, [state.cli, '--profile', state.profile, ...(options.args ?? [])],
-          { cwd: process.cwd(), env: launchEnvironment(state), stdio: 'inherit', detached: process.platform !== 'win32' })
-        process.exitCode = result.exitCode
-        return result
+        const lifecycle = createLaunchLifecycle()
+        try {
+          await verifyOfficial(state)
+          // Both phases use their own POSIX process group, so terminal signals are forwarded once.
+          const preflight = await lifecycle.run(state.node, [state.cli, state.profile, '--dump-config'],
+            { cwd: state.generation, env: runtimeEnvironment(state), detached: process.platform !== 'win32' },
+            { captureOutput: true, timeout: 180000 })
+          if (lifecycle.interrupted) {
+            const result = { exitCode: preflight.exitCode, ...(preflight.signal ? { signal: preflight.signal } : {}) }
+            process.exitCode = result.exitCode
+            return result
+          }
+          if (preflight.exitCode !== 0) throw new Error(`DSH launch preflight failed (${preflight.exitCode}): ${preflight.stderr.trim()}`)
+          // Newly added Host instances follow the same reviewed profile binding path as installation.
+          const profile = join(state.home, 'profiles', state.profile)
+          const hostCompatibilityRefresh = await bindHostCompatibility(profile, preflight.stdout.trim(), createRequire(state.backend)('js-yaml'))
+          if (hostCompatibilityRefresh.changed) console.log(JSON.stringify({ hostCompatibilityRefresh }))
+          console.log(JSON.stringify({ node: state.node, pnpm: state.pnpm, backend: state.backend, version: versions.backend, plugin: state.plugin, profile: state.profile, home: state.home, cwd: process.cwd() }))
+          const result = await lifecycle.run(state.node, [state.cli, '--profile', state.profile, ...(options.args ?? [])],
+            { cwd: process.cwd(), env: launchEnvironment(state), stdio: 'inherit', detached: process.platform !== 'win32' })
+          process.exitCode = result.exitCode
+          return result
+        } finally { lifecycle.dispose() }
       }
       throw new Error(`Unknown command ${command}`)
     } finally { await homeLease.release() }

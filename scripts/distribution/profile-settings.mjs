@@ -232,6 +232,112 @@ export function transformEffectivePreferences(source, beforeYaml, afterYaml, yam
     result: { changed: movedFields.length > 0, movedFields, conversionVersion: 2 } }
 }
 
+async function migrationEvidence(profile, filename, backups) {
+  const read = async name => {
+    let info
+    try { info = await lstat(join(profile, name)) } catch (error) { if (error.code !== 'ENOENT') throw error; return }
+    if (!info.isFile() || info.isSymbolicLink() || info.size > 1024 * 1024) return
+    return readFile(join(profile, name), 'utf8')
+  }
+  const bytes = await read(filename)
+  if (bytes === undefined) return
+  let receipt
+  try { receipt = JSON.parse(bytes) } catch (error) { if (!(error instanceof SyntaxError)) throw error; return }
+  if (!receipt || !Object.hasOwn(backups, receipt.conversionVersion) || !backups[receipt.conversionVersion].includes(receipt.backup)
+    || ![receipt.originalSha256, receipt.migratedSha256].every(value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value))) return
+  const source = await read(receipt.backup)
+  if (source === undefined || hash(source) !== receipt.originalSha256) return
+  return { filename, receipt, source, receiptSha256: hash(bytes) }
+}
+
+/** Recover only empty picker maps introduced by the conversation writer, with an intact recorded path to today's file. */
+async function recoverConversationPickerDefaults(profile, beforeYaml, afterYaml, yaml) {
+  const receiptName = 'modern-ui-picker-defaults-recovery-v1.json'
+  const backup = 'modern-ui-picker-defaults-before-recovery-v1.yml'
+  const recovered = await migrationEvidence(profile, receiptName, { 1: [backup] })
+  if (recovered) return { changed: false, alreadyRecovered: true }
+  // A partial or altered recovery is not permission to run it again.
+  try { await lstat(join(profile, receiptName)); throw new Error('Picker defaults recovery receipt is invalid') }
+  catch (error) { if (error.code !== 'ENOENT') throw error }
+  const conversation = await migrationEvidence(profile, 'modern-ui-conversation-migration.json', {
+    1: ['modern-ui-conversation-before-migration.yml'],
+  })
+  if (!conversation || conversation.receipt.changed !== true || conversation.receipt.namespace !== 'modern-ui') return { changed: false }
+  const filename = join(profile, 'cordis.patch.yml')
+  const info = await lstat(filename)
+  if (!info.isFile() || info.isSymbolicLink() || info.size > 1024 * 1024) return { changed: false }
+  const original = await readFile(filename, 'utf8')
+  const currentHash = hash(original)
+  const records = [conversation]
+  for (const [name, backups] of [
+    ['modern-ui-settings-migration.json', { 1: ['modern-ui-settings-before-migration.yml'] }],
+    ['modern-ui-chat-migration.json', { 1: ['modern-ui-chat-before-migration.yml'], 2: ['modern-ui-chat-before-migration.yml', 'modern-ui-chat-before-migration-v2.yml'] }],
+    ['modern-ui-effective-preferences-v1.json', { 1: ['modern-ui-effective-preferences-before-v1.yml'], 2: ['modern-ui-effective-preferences-before-v2.yml'] }],
+  ]) {
+    const record = await migrationEvidence(profile, name, backups)
+    if (record) records.push(record)
+  }
+  const snapshots = new Map([[currentHash, original], ...records.map(record => [record.receipt.originalSha256, record.source])])
+  const schema = schemaFor(yaml)
+  const configOf = source => {
+    if (source === undefined) return
+    try {
+      const rows = patchRows(yaml.load(source, { schema }) ?? []).filter(row => row.id === 'modern-ui')
+      const config = rows[0]?.config ?? {}
+      return rows.length <= 1 && config && Object.getPrototypeOf(config) === Object.prototype ? config : undefined
+    } catch { return undefined } // Unsupported historical YAML is not evidence for an automatic overwrite.
+  }
+  const empty = value => value && Object.getPrototypeOf(value) === Object.prototype && Object.keys(value).length === 0
+  const originalConfig = configOf(conversation.source)
+  const generatedHash = conversation.receipt.migratedSha256
+  const generatedConfig = configOf(snapshots.get(generatedHash))
+  if (!originalConfig || !generatedConfig) return { changed: false }
+  const effectiveConfig = (text, name) => {
+    const entries = yaml.load(text, { schema })
+    if (!Array.isArray(entries)) return
+    const matches = entries.filter(entry => entry.name === name)
+    return matches.length === 1 ? matches[0].config : undefined
+  }
+  const before = effectiveConfig(beforeYaml, '@iroha1145/dsh-modern-ui')
+  const after = effectiveConfig(afterYaml, '@iroha1145/dsh-modern-ui')
+  const inherited = effectiveConfig(beforeYaml, '@deepseek-ai/dsh-client-ui-model-selection')
+  const currentConfig = configOf(original)
+  const additions = {}
+  const evidence = new Map([[conversation.filename, conversation.receiptSha256]])
+  for (const key of ['models', 'prices']) {
+    if (Object.hasOwn(originalConfig, key) || !empty(generatedConfig[key]) || !empty(currentConfig?.[key])
+      || !empty(before?.[key]) || !empty(after?.[key]) || !inherited?.[key]
+      || Object.getPrototypeOf(inherited[key]) !== Object.prototype || !Object.keys(inherited[key]).length || !plain(inherited[key])) continue
+    const paths = new Map([[generatedHash, []]])
+    for (const [digest, chain] of paths) {
+      for (const record of records) {
+        const receipt = record.receipt
+        if (receipt.originalSha256 !== digest || paths.has(receipt.migratedSha256)
+          || !empty(configOf(snapshots.get(receipt.migratedSha256))?.[key])) continue
+        paths.set(receipt.migratedSha256, [...chain, record])
+      }
+    }
+    const chain = paths.get(currentHash)
+    if (!chain) continue
+    additions[key] = inherited[key]
+    for (const record of chain) evidence.set(record.filename, record.receiptSha256)
+  }
+  if (!Object.keys(additions).length) return { changed: false }
+  const patch = yaml.load(original, { schema })
+  const row = patchRows(patch).find(row => row.id === 'modern-ui')
+  row.config = { ...row.config, ...additions }
+  const changed = yaml.dump(patch, { schema, lineWidth: -1, noCompatMode: true })
+  await writeFile(join(profile, backup), original, { flag: 'wx', mode: 0o600 })
+  const pending = join(profile, 'modern-ui-picker-defaults-recovery.pending.yml')
+  await writeFile(pending, changed, { flag: 'wx', mode: 0o600 })
+  if (await readFile(filename, 'utf8') !== original) throw new Error('Profile changed during picker defaults recovery')
+  await rename(pending, filename)
+  const result = { changed: true, conversionVersion: 1, recoveredFields: Object.keys(additions), backup,
+    originalSha256: currentHash, migratedSha256: hash(changed), receipts: Object.fromEntries(evidence) }
+  await writeFile(join(profile, receiptName), JSON.stringify(result, null, 2) + '\n', { flag: 'wx', mode: 0o600 })
+  return result
+}
+
 /** Independent receipt upgrades profiles previously handled by the patch-only converters. */
 export async function preserveEffectivePreferences(profile, beforeYaml, afterYaml, yaml) {
   const filename = join(profile, 'cordis.patch.yml')
@@ -242,8 +348,10 @@ export async function preserveEffectivePreferences(profile, beforeYaml, afterYam
   try { previous = JSON.parse(await readFile(receiptPath, 'utf8')) } catch (error) { if (error.code !== 'ENOENT') throw error }
   if (previous) {
     if (!(previous.conversionVersion in backups) || previous.backup !== backups[previous.conversionVersion] || hash(await readFile(join(profile, previous.backup), 'utf8')) !== previous.originalSha256) throw new Error('Effective preferences migration receipt is invalid')
-    if (previous.conversionVersion === 2) return { changed: false, alreadyMigrated: true, conversionVersion: 2 }
   }
+  const pickerDefaultsRecovery = await recoverConversationPickerDefaults(profile, beforeYaml, afterYaml, yaml)
+  if (previous?.conversionVersion === 2) return { changed: pickerDefaultsRecovery.changed, alreadyMigrated: true,
+    conversionVersion: 2, pickerDefaultsRecovery }
   const info = await lstat(filename)
   if (!info.isFile() || info.isSymbolicLink() || info.size > 1024 * 1024) throw new Error('Effective migration requires a small regular profile patch')
   const original = await readFile(filename, 'utf8')
@@ -257,7 +365,7 @@ export async function preserveEffectivePreferences(profile, beforeYaml, afterYam
   }
   const result = { ...transformed.result, backup, originalSha256: hash(original), migratedSha256: hash(transformed.source) }
   await writeFile(receiptPath, JSON.stringify(result, null, 2) + '\n', { flag: previous ? 'w' : 'wx', mode: 0o600 })
-  return result
+  return pickerDefaultsRecovery.changed ? { ...result, changed: true, pickerDefaultsRecovery } : result
 }
 
 /** Preserve the original conversation settings before selecting the new client owner. */

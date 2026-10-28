@@ -8,6 +8,8 @@
 
 独立的 `modern-ui-effective-preferences-v1.json` 回执使旧 patch-only 迁移过的 profile 仍得到一次补齐。该兼容文件名保持不变，当前 `conversionVersion` 为 2，原 YAML 保存在 `modern-ui-effective-preferences-before-v2.yml` 并记录摘要；已有 v1 回执先验证旧备份，再只补文档设置，不重放模型/聊天迁移。完成后不会再次用旧 namespace 覆盖用户编辑。Conversation 继续复用独立的现有迁移路径。
 
+早期 Conversation writer 会把 bundle 默认的 `models: {}` / `prices: {}` 自动写入用户 patch。针对这类旧安装，安装器先验证 Conversation 原始备份中没有对应字段，再沿已知迁移回执的输入／输出摘要连接到当前文件；只有这条证据链完整且空表始终未变时，才补入有效的继承值。独立 `modern-ui-picker-defaults-recovery-v1.json` 回执使已有 effective v2 的安装也能恢复一次；原回执和备份不改。原先明确保存的空表、之后人工改写的文件、缺失或损坏的证据不触发覆盖；恢复后用户主动清空也不会再次补回。
+
 ## 文档来源和旧限制配置
 
 `modern-plugin-documents` 的 `bundle` 和 `market` 分别保存原 plugin-manager 与 plugin-market 的文档策略，旧来源的不同值不会互相覆盖。两个 scope 都支持 `maxDocumentBytes`、`maxImageBytes`、`fetchTimeoutMs` 和有序 `npmFileSources`（仅 `jsdelivr`、`unpkg`、`npmmirror`）。`market` 另支持 `cacheTtlMs`、`gitlabHosts`、`maxRepositoryBytes`、`maxCacheBytes`、`cacheDir` 和 `gitTimeoutMs`；相对缓存目录仍相对当前 profile 解析。
@@ -29,6 +31,8 @@
 ## 安装后新增 Host 实例
 
 每次通过托管入口启动前重新读取组合配置，使用原有公开 profile patch 路径选择 translator/MCP/HTTP fetch 替代入口。安装后添加的顶层官方实例在下一次托管启动时得到相同修复；配置、metadata 和禁用状态保留，重复启动幂等。运行中即时添加的实例不被拦截，下一次启动前应完成替换；直接官方入口不执行该管理步骤。嵌套/计算 activation 仍明确拒绝自动转换，不静默声称已保护。
+
+启动预检使用异步子进程捕获 `--dump-config` 输出。一个信号生命周期覆盖预检、配置绑定和正常运行：中断后不会启动下一阶段，预检即使处理信号后返回 0 也会取消启动，子进程及其 stdio 关闭前两把租约仍有效。POSIX 两阶段都用独立进程组，避免终端信号重复转发。输出缓冲上限为每流 1 MiB；180 秒沿用软终止阈值，发送 SIGTERM 后仍等待子进程退出。不可捕获的强制终止不属于此保证。
 
 ## 依赖边界
 
