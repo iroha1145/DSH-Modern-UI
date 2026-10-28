@@ -8,7 +8,11 @@
 
 独立的 `modern-ui-effective-preferences-v1.json` 回执使旧 patch-only 迁移过的 profile 仍得到一次补齐。该兼容文件名保持不变，当前 `conversionVersion` 为 2，原 YAML 保存在 `modern-ui-effective-preferences-before-v2.yml` 并记录摘要；已有 v1 回执先验证旧备份，再只补文档设置，不重放模型/聊天迁移。完成后不会再次用旧 namespace 覆盖用户编辑。Conversation 继续复用独立的现有迁移路径。
 
-早期 Conversation writer 会把 bundle 默认的 `models: {}` / `prices: {}` 自动写入用户 patch。针对这类旧安装，安装器先验证 Conversation 原始备份中没有对应字段，再沿已知迁移回执的输入／输出摘要连接到当前文件；只有这条证据链完整且空表始终未变时，才补入有效的继承值。独立 `modern-ui-picker-defaults-recovery-v1.json` 回执使已有 effective v2 的安装也能恢复一次；原回执和备份不改。原先明确保存的空表、之后人工改写的文件、缺失或损坏的证据不触发覆盖；恢复后用户主动清空也不会再次补回。
+早期 Conversation writer 会把 bundle 默认的 `models: {}` / `prices: {}` 自动写入用户 patch。针对这类旧安装，安装器先验证 Conversation 原始备份中没有对应字段，再沿已知迁移回执的输入／输出摘要连接到当前文件；只有这条证据链完整且空表始终未变时，才补入有效的继承值。独立 `modern-ui-picker-defaults-recovery-v1.json` 回执使已有 effective v2 的安装也能恢复一次；原回执和备份不改。原先明确保存的空表、之后修改的模型或价格、无法解释的配置改动、缺失或损坏的证据不触发覆盖；恢复后用户主动清空也不会再次补回。
+
+旧安装流程还会在 Conversation／Chat 迁移后追加 Host 和 PowerShell 绑定，前者只保存前镜像备份，后者没有独立回执。恢复逻辑严格识别文件尾部的已知 Host 禁用／插入配对及 PowerShell executor 配置追加，用旧 YAML 参数重建完整前缀；Host 的前缀还必须逐字节匹配以摘要命名的旧备份。重建出的摘要边只有连接到已验证的迁移回执链时才有效，不忽略其他配置字段。恢复回执的 `automaticBindings` 记录采用的绑定类型、前后摘要及 Host 备份名，未补造旧回执。无法识别的绑定或非标准序列化会保守跳过。
+
+这些证据证明的是文件内容与已知写入形状相符，不能证明写入者身份；用户若在首次恢复前把文件逐字节改回旧状态，或完全模仿旧安装器追加操作，离线配置无法区分。恢复回执产生后，主动清空则有独立幂等保护。
 
 ## 文档来源和旧限制配置
 

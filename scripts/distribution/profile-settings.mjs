@@ -232,22 +232,85 @@ export function transformEffectivePreferences(source, beforeYaml, afterYaml, yam
     result: { changed: movedFields.length > 0, movedFields, conversionVersion: 2 } }
 }
 
+async function readMigrationEvidence(profile, name) {
+  let info
+  try { info = await lstat(join(profile, name)) } catch (error) { if (error.code !== 'ENOENT') throw error; return }
+  if (!info.isFile() || info.isSymbolicLink() || info.size > 1024 * 1024) return
+  return readFile(join(profile, name), 'utf8')
+}
+
 async function migrationEvidence(profile, filename, backups) {
-  const read = async name => {
-    let info
-    try { info = await lstat(join(profile, name)) } catch (error) { if (error.code !== 'ENOENT') throw error; return }
-    if (!info.isFile() || info.isSymbolicLink() || info.size > 1024 * 1024) return
-    return readFile(join(profile, name), 'utf8')
-  }
-  const bytes = await read(filename)
+  const bytes = await readMigrationEvidence(profile, filename)
   if (bytes === undefined) return
   let receipt
   try { receipt = JSON.parse(bytes) } catch (error) { if (!(error instanceof SyntaxError)) throw error; return }
   if (!receipt || !Object.hasOwn(backups, receipt.conversionVersion) || !backups[receipt.conversionVersion].includes(receipt.backup)
     || ![receipt.originalSha256, receipt.migratedSha256].every(value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value))) return
-  const source = await read(receipt.backup)
+  const source = await readMigrationEvidence(profile, receipt.backup)
   if (source === undefined || hash(source) !== receipt.originalSha256) return
   return { filename, receipt, source, receiptSha256: hash(bytes) }
+}
+
+/** Reconstruct only the two append-only writes omitted from the old receipt chain. */
+async function legacyBindingEvidence(profile, snapshots, records, yaml, schema) {
+  const object = value => value && Object.getPrototypeOf(value) === Object.prototype
+  const keys = (value, names) => object(value) && Object.keys(value).length === names.length && names.every(name => Object.hasOwn(value, name))
+  const id = value => typeof value === 'string' && value.length > 0 && value !== 'modern-ui'
+  const config = value => object(value) && !Object.hasOwn(value, 'plugins')
+  const shellNames = new Set(['@deepseek-ai/dsh-pwsh-local', '@deepseek-ai/dsh-pwsh-sandbox'])
+  const shell = row => keys(row, ['id', 'name', 'config']) && id(row.id) && shellNames.has(row.name)
+    && config(row.config) && typeof row.config.pwshPath === 'string' && row.config.pwshPath.length > 0
+  const host = (disable, insert) => {
+    if (!keys(disable, ['id', 'name', 'disabled']) || !id(disable.id) || disable.disabled !== true
+      || !Object.hasOwn(HOST_REPLACEMENTS, disable.name) || !keys(insert, ['insert'])
+      || !Array.isArray(insert.insert) || insert.insert.length !== 1) return false
+    const replacement = insert.insert[0]
+    return object(replacement) && replacement.id === `modern-ui-compat-${disable.id}`
+      && replacement.name === HOST_REPLACEMENTS[disable.name]
+      && Object.keys(replacement).every(key => ['id', 'name', 'config', 'disabled', 'inject', 'intercept', 'isolate'].includes(key))
+      && (replacement.disabled === undefined || replacement.disabled === false)
+      && (replacement.config === undefined || config(replacement.config))
+  }
+  const dump = rows => yaml.dump(rows, { schema, lineWidth: -1, noCompatMode: true })
+  const anchors = new Set(records.flatMap(({ receipt }) => [receipt.originalSha256, receipt.migratedSha256]))
+  const edges = []
+  // Newly reconstructed prefixes may end in the preceding Host write. Every
+  // accepted path still has to reach a checksum from a validated old receipt.
+  for (const [migratedSha256, source] of snapshots) {
+    let rows
+    try { rows = yaml.load(source, { schema }) } catch (error) { if (!(error instanceof yaml.YAMLException)) throw error; continue }
+    if (!Array.isArray(rows) || dump(rows) !== source) continue
+    const connectPrefix = async (end, kind) => {
+      const prefix = dump(rows.slice(0, end))
+      const originalSha256 = hash(prefix)
+      // A PowerShell predecessor must be recorded, or end in the Host stage
+      // that can lead to a recorded predecessor. Do not retain arbitrary cuts.
+      if (kind === 'powershell' && !anchors.has(originalSha256)
+        && !(end >= 2 && host(rows[end - 2], rows[end - 1]))) return
+      const edge = { kind, originalSha256, migratedSha256 }
+      if (kind === 'host') {
+        edge.backup = `modern-ui-host-before-${originalSha256.slice(0, 16)}.yml`
+        if (await readMigrationEvidence(profile, edge.backup) !== prefix) return
+      }
+      snapshots.set(originalSha256, prefix)
+      edges.push(edge)
+    }
+    let end = rows.length
+    const ids = new Set()
+    while (end && shell(rows[end - 1])) {
+      if (ids.has(rows[end - 1].id)) break
+      ids.add(rows[--end].id)
+      await connectPrefix(end, 'powershell')
+    }
+    if (end < rows.length) continue
+    while (end >= 2 && host(rows[end - 2], rows[end - 1])) {
+      if (ids.has(rows[end - 2].id)) break
+      ids.add(rows[end - 2].id)
+      end -= 2
+      await connectPrefix(end, 'host')
+    }
+  }
+  return edges
 }
 
 /** Recover only empty picker maps introduced by the conversation writer, with an intact recorded path to today's file. */
@@ -279,6 +342,7 @@ async function recoverConversationPickerDefaults(profile, beforeYaml, afterYaml,
   }
   const snapshots = new Map([[currentHash, original], ...records.map(record => [record.receipt.originalSha256, record.source])])
   const schema = schemaFor(yaml)
+  const bindings = await legacyBindingEvidence(profile, snapshots, records, yaml, schema)
   const configOf = source => {
     if (source === undefined) return
     try {
@@ -304,14 +368,15 @@ async function recoverConversationPickerDefaults(profile, beforeYaml, afterYaml,
   const currentConfig = configOf(original)
   const additions = {}
   const evidence = new Map([[conversation.filename, conversation.receiptSha256]])
+  const automaticBindings = new Set()
   for (const key of ['models', 'prices']) {
     if (Object.hasOwn(originalConfig, key) || !empty(generatedConfig[key]) || !empty(currentConfig?.[key])
       || !empty(before?.[key]) || !empty(after?.[key]) || !inherited?.[key]
       || Object.getPrototypeOf(inherited[key]) !== Object.prototype || !Object.keys(inherited[key]).length || !plain(inherited[key])) continue
     const paths = new Map([[generatedHash, []]])
     for (const [digest, chain] of paths) {
-      for (const record of records) {
-        const receipt = record.receipt
+      for (const record of [...records, ...bindings]) {
+        const receipt = record.receipt ?? record
         if (receipt.originalSha256 !== digest || paths.has(receipt.migratedSha256)
           || !empty(configOf(snapshots.get(receipt.migratedSha256))?.[key])) continue
         paths.set(receipt.migratedSha256, [...chain, record])
@@ -320,7 +385,10 @@ async function recoverConversationPickerDefaults(profile, beforeYaml, afterYaml,
     const chain = paths.get(currentHash)
     if (!chain) continue
     additions[key] = inherited[key]
-    for (const record of chain) evidence.set(record.filename, record.receiptSha256)
+    for (const record of chain) {
+      if (record.receipt) evidence.set(record.filename, record.receiptSha256)
+      else automaticBindings.add(record)
+    }
   }
   if (!Object.keys(additions).length) return { changed: false }
   const patch = yaml.load(original, { schema })
@@ -333,7 +401,8 @@ async function recoverConversationPickerDefaults(profile, beforeYaml, afterYaml,
   if (await readFile(filename, 'utf8') !== original) throw new Error('Profile changed during picker defaults recovery')
   await rename(pending, filename)
   const result = { changed: true, conversionVersion: 1, recoveredFields: Object.keys(additions), backup,
-    originalSha256: currentHash, migratedSha256: hash(changed), receipts: Object.fromEntries(evidence) }
+    originalSha256: currentHash, migratedSha256: hash(changed), receipts: Object.fromEntries(evidence),
+    automaticBindings: [...automaticBindings] }
   await writeFile(join(profile, receiptName), JSON.stringify(result, null, 2) + '\n', { flag: 'wx', mode: 0o600 })
   return result
 }

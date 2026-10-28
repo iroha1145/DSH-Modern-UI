@@ -11,3 +11,15 @@
 CI 构建 job 显式准备 Chromium，键盘测试在配置了浏览器却找不到可执行文件时失败，不静默跳过。消费 job 仍仅下载预编译产物，不 checkout 源码。当前提交的最终结果以 PR 检查页为准；上面的失败运行仅记录修复前的复现证据。
 
 本地整合构建通过；Windows 上 229 项测试中 213 通过、16 项按平台跳过、0 失败。类型消费随后进一步改为直接打包实际构建目录，禁止测试临时补出声明，再次运行 1/1 通过。真实 POSIX 信号与进程组结论只取后续 Linux CI，不把 Windows 跳过项标为通过。
+
+## 完整旧安装流水线的模型／价格恢复
+
+后续复核基线为 `a3da03fc9871208ec444e87d7117a5869324122f`，范围仅为 `recoverConversationPickerDefaults`。旧安装器的真实顺序为 `preserveLegacySettings → preserveConversationPreferences → preserveChatPreferences → bindHostCompatibility → bindPowerShell`。Conversation 自动写入默认空表后，后两步继续改变整个 patch 的摘要，却没有修改模型或价格。旧恢复器只接受 settings／conversation／chat／effective 回执，所以不能跨过这段正常自动写入；effective v2 已存在时也会遇到同一问题。
+
+`tests/migration/picker-pipeline.test.mjs` 使用冻结旧版本的真实函数生成 profile、备份和回执，再由官方 `applyEntryPatches` 合成配置。测试先在基线执行：Host、PowerShell、两者组合 × 有／没有旧 effective v2 的六项全部失败；无额外绑定的控制组成功。正例没有手工拼接摘要。
+
+修复在内存中重建严格已知的尾部追加写入，验证完整前缀摘要，并对 Host 核对其旧前镜像备份，再与原回执图连接。每条路径仍检查 Modern 空表未变，只恢复已证明由 Conversation 自动引入的字段。原证据文件保持原样，独立恢复回执记录本次采用的追加写入证据。
+
+回归检查最终有效模型与价格，同时核对相邻 Host／PowerShell 条目、聊天偏好、原回执和备份不变；覆盖原显式空表、后续用户编辑、重复升级、修复后主动清空及证据损坏。PowerShell 测试运行真实旧绑定函数并验证其 YAML 效果，不启动 PowerShell 进程；这部分在各平台都可执行。POSIX 信号的实际结论仍来自 Linux CI，Windows 不将这些跳过项记为通过。
+
+本轮新增 36 项流水线回归，包含可信前缀末尾已有 Host／PowerShell 绑定、没有 Chat 实际写入，以及 15 项绑定或前镜像异常检查。Windows 本地迁移测试合计 76/76 通过；已有键盘、真实 Git 缓存、启动生命周期与 quotes 类型／运行时回归复验 30 项：18 通过、12 项 POSIX 条件跳过、0 失败。完整 Linux 与五个平台消费结果以本轮提交的 PR 检查为准，不沿用上一提交的绿色结果。
