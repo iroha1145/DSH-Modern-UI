@@ -1,4 +1,6 @@
 import type { ChatNode } from '@deepseek-ai/dsh-client-ui-chat/client'
+import type { AssistantBlock } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import { hasAssistantReplyContent } from './assistant-content.ts'
 
 /** Current process range and finalized answer boundary derived from one Turn. */
 export interface TurnProcessSpec {
@@ -9,7 +11,7 @@ export interface TurnProcessSpec {
   readonly answerAnchorSeq: number | null
   readonly answerStep: number | null
   readonly inlineReasoning: boolean
-  /** Reply-bearing durable Assistant messages before the final answer. */
+  /** Reply-bearing durable Assistant messages outside the answer Steps. */
   readonly messageCount: number
   /** Durable non-subagent Tool calls recorded by this Turn. */
   readonly toolCallCount: number
@@ -33,6 +35,32 @@ export function sameTurnProcessSpec(left: TurnProcessSpec, right: TurnProcessSpe
     && left.messageCount === right.messageCount
     && left.toolCallCount === right.toolCallCount
     && left.subagentCount === right.subagentCount
+}
+
+/**
+ * Whether a settled Step's reply ended a model response: reply content and no Tool call. A normal Turn has one, in
+ * its last Step; input admitted afterwards, such as a finished subagent or a teammate message, opens further Steps.
+ * @param blocks - the Step's settled Assistant blocks.
+ * @returns whether the Step is a closing reply.
+ */
+export function isClosingReply(blocks: readonly AssistantBlock[]): boolean {
+  return hasAssistantReplyContent(blocks) && !blocks.some(block => block.kind === 'tool-call')
+}
+
+/**
+ * Whether an Assistant Step's reply belongs to the Turn's answer and stays outside the folded process: the answer
+ * Step, or a later closing reply. Rows are classified by Step, not anchor, because a streamed reply anchors at its
+ * first visible chunk, before its final message.
+ * @param spec - the Turn's process specification.
+ * @param data - the Step's Assistant data.
+ * @returns whether the Step's reply row is part of the answer.
+ */
+export function isAnswerStep(
+  spec: Pick<TurnProcessSpec, 'answerStep'>,
+  data: { readonly step: number; readonly blocks: readonly AssistantBlock[] },
+): boolean {
+  return spec.answerStep !== null
+    && (data.step === spec.answerStep || (data.step > spec.answerStep && isClosingReply(data.blocks)))
 }
 
 /**

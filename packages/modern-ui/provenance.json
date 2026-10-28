@@ -49,7 +49,7 @@
       "source": "packages/client/ui-chat/src/client/chat/AssistantNodeView.tsx",
       "target": "src/vendor/chat/client/chat/AssistantNodeView.tsx",
       "sourceSha256": "9254fd36ee078431e577da45227f727c14587ebc3c70cc190130d3820771f72b",
-      "targetSha256": "f56a16f49cfbf2592fb02e72f86b8eb7a873e568ac278bf35d373b91e1510d74",
+      "targetSha256": "b2f2194a5f3d42c8d830911f654c1c5b4823ef942cb90774f8dbbc815dfa4c73",
       "adapted": true
     },
     {
@@ -210,7 +210,7 @@
       "source": "packages/client/ui-chat/src/client/contract/turn-process.ts",
       "target": "src/vendor/chat/client/contract/turn-process.ts",
       "sourceSha256": "dce44841b376607f143df8c990b4f9e54579655a2d6adc8fead2fe7112efe7ef",
-      "targetSha256": "77a7a71e5bb70eee211ad6065e7c413e3fc3d33a7ba1755bab49fc34e87485f9",
+      "targetSha256": "b10fc3428ac45fdd30c9fc2237cf0ec3ea50dc9f7f0e64dbe59380a671ed8a43",
       "adapted": true
     },
     {
@@ -2822,7 +2822,7 @@
       "source": "packages/client/ui-chat/src/client/chat/ChatNodeSeat.tsx",
       "target": "src/vendor/chat/client/chat/ChatNodeSeat.tsx",
       "sourceSha256": "6f7b48de4044ada72211b5b2f5c7f20a37e00781f4f3109e8d70f6377b854756",
-      "targetSha256": "9cfc8f0c5317f8d6ae7db31357c6b3cc39dce4cb015917638cc77c5ac6932d0c",
+      "targetSha256": "01274bc5019afdc67c85b58ae40ebc1b2863a43d65622c633785da420f2cca7f",
       "adapted": true
     },
     {
@@ -2906,7 +2906,7 @@
       "source": "packages/client/ui-chat/src/client/chat/TurnTailNodeView.tsx",
       "target": "src/vendor/chat/client/chat/TurnTailNodeView.tsx",
       "sourceSha256": "835118e15bb4518d8865de9421425456e377bd623cd8bad2d88ac95ae038b94f",
-      "targetSha256": "835118e15bb4518d8865de9421425456e377bd623cd8bad2d88ac95ae038b94f",
+      "targetSha256": "10079ef797c40c52c8116dfd7483737ff03ed80ad110bf4f64ab0b7b001cf802",
       "adapted": false
     },
     {
@@ -3263,21 +3263,21 @@
       "source": "packages/client/ui-chat/src/client/conversation-nodes/turn-navigation.ts",
       "target": "src/vendor/chat/client/conversation-nodes/turn-navigation.ts",
       "sourceSha256": "89ff69fda6f8b048c83119978a26a62a49033c9f8ea7727f4656e328423c7008",
-      "targetSha256": "89ff69fda6f8b048c83119978a26a62a49033c9f8ea7727f4656e328423c7008",
+      "targetSha256": "23cf039e80f312dd87427d06fcdf603646cb596d638018b0eb68ca497387719b",
       "adapted": false
     },
     {
       "source": "packages/client/ui-chat/src/client/conversation-nodes/turn-process-presentation.ts",
       "target": "src/vendor/chat/client/conversation-nodes/turn-process-presentation.ts",
       "sourceSha256": "9f635b0741ba1ac72f860c1b9b303fd313638ffb9f19d108224f17070a379bae",
-      "targetSha256": "9f635b0741ba1ac72f860c1b9b303fd313638ffb9f19d108224f17070a379bae",
+      "targetSha256": "009acc90486da5aded3685bfc432cb8ebac90b86da7729138c341e6b188f610d",
       "adapted": false
     },
     {
       "source": "packages/client/ui-chat/src/client/conversation-nodes/turn-process.ts",
       "target": "src/vendor/chat/client/conversation-nodes/turn-process.ts",
       "sourceSha256": "c332215c684270d660cb365032c5cbcb5ca03984422c0c133eba5283dc35736e",
-      "targetSha256": "d1b0bc2c9ebaa8a98311071414551485400d634db6294db75efc29ca10e9925e",
+      "targetSha256": "bbf401eccf31c573a010df2ed24b240060f3f552285073178f56267de6bcce33",
       "adapted": true
     },
     {

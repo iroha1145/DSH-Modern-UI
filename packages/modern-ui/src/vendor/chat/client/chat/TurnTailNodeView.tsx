@@ -4,8 +4,10 @@ import type { ChatNodeViewProps, PerformanceUsageInjected, TurnTailOwnerProps } 
 import { MessageIconActions } from './MessageIconActions.tsx'
 import { TurnUsagePanel } from './TurnUsagePanel.tsx'
 import { assistantText } from './turn-assistant.ts'
+import type { TurnLocation } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { hasAssistantReplyContent } from '../contract/assistant-content.ts'
-import type { ChatNode } from '../contract/chat-nodes.ts'
+import type { ChatNode, FinalAssistantChatData } from '../contract/chat-nodes.ts'
+import { isAnswerStep } from '../contract/turn-process.ts'
 import type { ChatSnapshot } from '../contract/snapshot.ts'
 import css from './TurnTailNodeView.module.css'
 
@@ -22,6 +24,17 @@ function lastContent(snapshot: ChatSnapshot, turn: number, skipWarning: boolean)
     return node
   }
   return undefined
+}
+
+/** The copied reply: every answer Step's prose when the Turn's answer spans several Steps, else the closing reply. */
+function answerText(turn: TurnLocation, closing: Readonly<FinalAssistantChatData>): string {
+  const spec = turn.data.get('turn-process')
+  const replies = spec === undefined ? [] : turn.steps
+    .map(step => step.data.get('assistant-step'))
+    .filter(data => data?.finalNode !== undefined && isAnswerStep(spec, data))
+    .map(data => assistantText(data?.blocks ?? []).trim())
+    .filter(text => text !== '')
+  return replies.length === 0 ? assistantText(closing.blocks) : replies.join('\n\n')
 }
 
 /** Turn-local actions and feature tail over the Location index, independent of Assistant placement. */
@@ -62,7 +75,7 @@ export const TurnTailNodeView = memo(function TurnTailNodeView({
     >
       {tail}
       <MessageIconActions
-        text={assistantText(closing.blocks)}
+        text={answerText(turn, closing)}
         time={closing.time}
         clock="end"
         // The branch action owns boundary resolution: it sends the real

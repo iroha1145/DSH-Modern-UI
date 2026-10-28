@@ -1,6 +1,7 @@
 import { memo, useCallback, useMemo } from 'react'
 import type { InjectFace, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ChatNodeViewProps, PresentationInjected, TurnTailOwnerProps } from '../contract/slots.ts'
+import { isAnswerStep } from '../contract/turn-process.ts'
 import { AssistantMarkdown } from './AssistantMarkdown.tsx'
 import { MarkdownScope, type MarkdownNavigationInjected } from '../../../../markdown-scope.tsx'
 
@@ -18,23 +19,25 @@ export const AssistantNodeView = memo(function AssistantNodeView({
     ? node.location.turn
     : undefined
   const tail = useTurnData('turn-tail')
+  const spec = turnProcess?.spec
   const owner = useMemo<TurnTailOwnerProps | undefined>(() => {
-    if (turn?.status !== 'closed' || data.finalNode === undefined) return undefined
-    if (tail?.closing?.finalNode.seq !== data.finalNode.seq) return undefined
-    return { turn, seq: data.finalNode.seq, openFile }
-  }, [data.finalNode, openFile, tail, turn])
+    const closing = tail?.closing?.finalNode.seq
+    if (turn?.status !== 'closed' || data.finalNode === undefined || closing === undefined) return undefined
+    // Every reply of the answer resolves produced-file mentions at the closing reply, as the closing reply does.
+    if (closing !== data.finalNode.seq && (spec === undefined || !isAnswerStep(spec, data))) return undefined
+    return { turn, seq: closing, openFile }
+  }, [data, openFile, spec, tail, turn])
   const mentions = useMemo(
     () => owner === undefined ? undefined : fileMentions(owner),
     [fileMentions, owner],
   )
   const keepReplies = usePresentation(policy => policy.foldedReplies === 'all')
   // A kept reply row stays visible while the folded Turn hides its inline reasoning; so does every answer Step.
-  const answerStep = turnProcess?.spec.answerStep ?? null
+  // A reasoning row already folds through its seat and group.
   const reasoningHidden = turnProcess !== undefined
     && turnProcess.foldable
-    && (keepReplies
-      ? groupPart !== 'reasoning'
-      : answerStep !== null && data.step >= answerStep && turnProcess.spec.inlineReasoning)
+    && groupPart !== 'reasoning'
+    && (keepReplies || (isAnswerStep(turnProcess.spec, data) && turnProcess.spec.inlineReasoning))
     && !turnProcess.open
   const revealProcess = useCallback(() => { turnProcess?.setOpen(true) }, [turnProcess])
   return (
