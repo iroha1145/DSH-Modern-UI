@@ -2478,7 +2478,7 @@
       "source": "packages/client/ui-tool/src/client/tool/toolviews/details-row.tsx",
       "target": "src/vendor/tool/client/tool/toolviews/details-row.tsx",
       "sourceSha256": "4c5cb1cf76ce176c834dbd929b8f076612c21957ee19bd3ad1b3e3c00c55fc12",
-      "targetSha256": "09adb2fb19766e2cdee2d9f86a183c4640f1492a9c7383565637390989996dab",
+      "targetSha256": "0d23de476762f12ea9dca2e6d781dbd35dcbd159a79c1d68da37d66af3bd0f4c",
       "adapted": true
     },
     {

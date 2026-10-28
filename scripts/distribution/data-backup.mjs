@@ -35,7 +35,7 @@ export async function dataTree(root) {
   return { entries, stamps, bytes }
 }
 
-/** Caller holds the home operation lease. Older/direct DSH processes must be stopped first. */
+/** Caller holds the program root and home operation leases. Older/direct DSH processes must be stopped first. */
 export async function backupDataHome(home, root, { copy = cp, space = statfs } = {}) {
   home = await realpath(home)
   root = await realpath(root)
@@ -45,6 +45,10 @@ export async function backupDataHome(home, root, { copy = cp, space = statfs } =
   const parent = join(root, 'data-backups')
   await mkdir(parent, { recursive: true })
   if (await realpath(parent) !== parent) throw new Error('Backup directory must not be a symlink or junction')
+  // An interrupted or killed run leaves its unpublished copy; under the root lease no other backup is writing one.
+  for (const name of await readdir(parent)) {
+    if (/^home-[0-9a-f-]{36}\.pending$/u.test(name)) await rm(join(parent, name), { recursive: true, force: true })
+  }
   const available = await space(parent, { bigint: true })
   // A directory copy expands hardlinks and sparse files; reserve logical size plus metadata/headroom.
   const required = BigInt(before.bytes) + BigInt(Object.keys(before.entries).length) * 4096n + 16n * 1024n * 1024n

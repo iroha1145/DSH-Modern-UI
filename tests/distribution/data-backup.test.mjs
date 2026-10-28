@@ -37,3 +37,15 @@ test('changing source, copy failure and insufficient space do not publish incomp
   await assert.rejects(backupDataHome(home, program, { space: async () => ({ bavail: 0n, bsize: 4096n }) }), /Insufficient/)
   await assert.rejects(backupDataHome(home, home), /separate/)
 })
+test('a copy left by an interrupted run is removed before the next backup, published backups stay', async t => {
+  const { home, program } = await fixture(t)
+  await writeFile(join(home, 'session'), 'original')
+  const published = await backupDataHome(home, program)
+  const stale = join(program, 'data-backups', 'home-00000000-0000-4000-8000-000000000000.pending')
+  await mkdir(join(stale, 'data'), { recursive: true })
+  await writeFile(join(stale, 'data', 'session'), 'partial')
+  await writeFile(join(program, 'data-backups', 'notes.pending'), 'not a backup copy')
+  const next = await backupDataHome(home, program)
+  assert.deepEqual((await readdir(join(program, 'data-backups'))).sort(),
+    [published.path, next.path].map(path => path.slice(path.lastIndexOf('home-'))).concat('notes.pending').sort())
+})

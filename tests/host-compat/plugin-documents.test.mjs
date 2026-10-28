@@ -168,6 +168,21 @@ test('an explicitly configured GitLab host uses its file API with the listed pin
   agent.assertNoPendingInterceptors()
 })
 
+test('listed repositories on local or non-public literal addresses are refused without contacting them', async t => {
+  const agent = await remoteFixture(t)
+  const commit = 'b'.repeat(40)
+  const hosts = ['127.0.0.1:3080', 'localhost', '169.254.169.254', '10.0.0.5', '100.116.189.26', '[::1]', '[::ffff:192.168.1.1]']
+  const f = await fixture(t, {}, {
+    marketEntry: name => ({ name, versions: [{ version: '1.0.0', source: { type: 'git', url: `https://${hosts[Number(name)]}/group/project.git`, commit } }] }),
+  })
+  for (const [index] of hosts.entries()) {
+    const result = await f.request({ kind: 'market', url: 'https://fixture.invalid/index.json', name: String(index), language: 'en', version: '1.0.0' })
+    assert.equal(result.status, 400, hosts[index])
+    assert.equal((await result.json()).reason, 'invalid')
+  }
+  agent.assertNoPendingInterceptors()
+})
+
 test('remote version failures stay cached and explicit retry uses only the selected CDN', async t => {
   const agent = await remoteFixture(t)
   const f = await fixture(t, { market: { npmFileSources: ['unpkg'], maxDocumentBytes: 16 } }, {

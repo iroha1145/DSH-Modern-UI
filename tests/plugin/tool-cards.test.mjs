@@ -62,7 +62,7 @@ async function fixture() {
   await ctx.plugin({ inject: ['slots'], apply(scope) {
     scope.slots.register({ name: 'root', children: { 'conversation.chat.node': { kind: 'keyed', scope: 'session' } } }, () => null)
     scope.slots.inject('tool.call.toolview', function* () {
-      for (const key of ['schedule_create', 'pwsh']) yield scope.slots.register({ name: 'tool.call.toolview', key }, () => null)
+      yield scope.slots.register({ name: 'tool.call.toolview', key: 'pwsh' }, () => null)
     })
   } }).await()
   const officialOwner = ctx.plugin(official)
@@ -88,6 +88,8 @@ test('complete Tool owner supplies atomic rows and one TODO target, retaining th
   assert.ok(entries.some(e => e.options.key === 'web_search'))
   assert.equal(entries.find(e => e.options.key === 'read').options.priority ?? 0, 0)
   for (const key of ['schedule_create', 'pwsh']) assert.equal(entries.filter(e => e.options.key === key).length, 1)
+  // Official ui-tool is disabled, so every wire name it owned needs a Modern view; schedule_create's card stays at Turn level.
+  for (const key of f.officialKeys) assert.ok(entries.some(e => e.options.key === key), `no Modern tool view for ${key}`)
   const todo = entries.find(e => e.options.key === 'todo_write')
   const injected = todo.inject('session-1')
   assert.ok(injected.hooks.todoHistory); assert.equal(f.bindings(), 1)

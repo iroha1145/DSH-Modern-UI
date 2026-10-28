@@ -382,6 +382,8 @@ export class RepositoryCache {
     const safety = [
       // An empty `core.askPass` ends Git's askpass lookup where Windows drops the empty `GIT_ASKPASS`, so no dialog opens.
       'core.askPass=', 'core.hooksPath=/dev/null', 'core.fsmonitor=false', 'submodule.recurse=false', 'gc.auto=0', 'maintenance.auto=false',
+      // A public repository host must not redirect Git into the Host's own network.
+      'http.followRedirects=false',
       'protocol.allow=never', ...this.options.transports.map(transport => `protocol.${transport}.allow=always`),
     ].flatMap(setting => ['-c', setting])
     const result = await execa('git', [...safety, ...args], {

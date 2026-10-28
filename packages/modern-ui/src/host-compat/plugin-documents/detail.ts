@@ -9,6 +9,7 @@ import { posix } from 'node:path'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import { DetailFailure, detailImage, joinPath, markdownOf, readPackageDocument, type DetailFiles } from './detail/index.ts'
 import hostedGitInfo from 'hosted-git-info'
+import ipaddr from 'ipaddr.js'
 import { repositoryFiles, type RepositoryFileOptions, type RepositoryRef } from './detail-files.ts'
 import type { PluginDetail, PluginDetailDocumentId, PluginDetailOrigin } from './types.ts'
 
@@ -46,7 +47,8 @@ const LASTING_FAILURES = new Set<DetailFailure['reason']>(['too-large', 'denied'
  * The repository a URL or shorthand names: hosts npm knows by their owner and project, so a GitHub page such as
  * `/o/r/tree/main/pkg` names `o/r`; other http(s) URLs by their path, without a GitLab `/-/` page suffix.
  * @param url - a manifest `repository` URL or shorthand, or a market index's `repository.url`.
- * @returns the repository, or undefined for a gist, another protocol, or fewer than two path segments.
+ * @returns the repository, or undefined for a gist, another protocol, a local or non-public literal address, or fewer
+ *   than two path segments.
  */
 export function repositoryOf(url: string): RepositoryRef | undefined {
   // A committish such as `#semver:^1` names a revision, not the repository.
@@ -61,10 +63,24 @@ export function repositoryOf(url: string): RepositoryRef | undefined {
   if (!URL.canParse(address)) return undefined
   const parsed = new URL(address)
   const project = parsed.pathname.replace(/\/-\/.*$/u, '').replace(/^\/+|\/+$/gu, '').replace(/\.git$/u, '')
-  if ((parsed.protocol !== 'https:' && parsed.protocol !== 'http:') || parsed.username !== '' || parsed.password !== '' || project.split('/').length < 2) {
+  if ((parsed.protocol !== 'https:' && parsed.protocol !== 'http:') || parsed.username !== '' || parsed.password !== '' || project.split('/').length < 2
+    || isLocalHost(parsed.hostname)) {
     return undefined
   }
   return { host: parsed.hostname.toLowerCase(), project, url: `${parsed.protocol}//${parsed.host}/${project}.git` }
+}
+
+/**
+ * Whether a parsed URL host names this machine or a non-public literal address, as the web fetch tool refuses them.
+ * A catalog or manifest `repository` must not make the Host contact its own network; names resolving there are not checked.
+ */
+function isLocalHost(hostname: string): boolean {
+  const host = hostname.replace(/^\[|\]$/gu, '').toLowerCase()
+  if (host === 'localhost' || host.endsWith('.localhost')) return true
+  if (!ipaddr.isValid(host)) return false
+  const parsed = ipaddr.parse(host)
+  const address = parsed instanceof ipaddr.IPv6 && parsed.isIPv4MappedAddress() ? parsed.toIPv4Address() : parsed
+  return address.range() !== 'unicast'
 }
 
 /**

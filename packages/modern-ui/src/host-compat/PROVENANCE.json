@@ -93,7 +93,7 @@
       "source": "packages/boot/plugin-market/src/detail.ts",
       "sourceSha256": "d184e6c6eca2c478083db21cc2dd0ab3d748bbc9881537e38968b66e4536ccaf",
       "target": "plugin-documents/detail.ts",
-      "targetSha256": "82c645dfcb56e72f503654d790710c24dc42c4a6621215e53933848d5e0a7551",
+      "targetSha256": "ce407e1198f0595e84b822a6e9773e1d7295a9eefcb89d4c52d95c0bae24b9f8",
       "adapted": true
     },
     {
@@ -135,7 +135,7 @@
       "source": "packages/boot/plugin-market/src/repository-cache.ts",
       "sourceSha256": "0c7b415368079c7193e1981410df38ad4841ee8585e6cb84bdaf991e658eec73",
       "target": "plugin-documents/repository-cache.ts",
-      "targetSha256": "5bce270f83c0c6b9145a2d60176e1a8a96830581f1ada7b96f34f39615525ffa",
+      "targetSha256": "1986cebcddb0b8903e0a35fbacad8babd728e108cedbabce674b94913a73c854",
       "adapted": true
     },
     {
