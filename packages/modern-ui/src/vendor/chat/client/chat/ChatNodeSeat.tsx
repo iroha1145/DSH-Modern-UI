@@ -88,13 +88,16 @@ export const ChatNodeSeat = memo(function ChatNodeSeat({
     && !isAtOrOutside(routedNode, 'turn')
     && routedNode.anchorSeq >= processSpec.processStartSeq
     && (liveProcess || processSpec.answerAnchorSeq === null || routedNode.anchorSeq < processSpec.answerAnchorSeq
-      || (groupPart === 'reasoning' && routedNode.kind === 'assistant-step' && routedNode.data.step === processSpec.answerStep))
+      || (groupPart === 'reasoning' && routedNode.kind === 'assistant-step'
+        && processSpec.answerStep !== null && routedNode.data.step >= processSpec.answerStep))
+  // The answer Step and the tool-free Steps after it stay visible but fold their reasoning with the Turn.
   const processAnswer = routedNode !== undefined
     && processWindowReady
     && !liveProcess
     && groupPart !== 'reasoning'
     && routedNode.kind === 'assistant-step'
-    && routedNode.data.step === processSpec.answerStep
+    && processSpec.answerStep !== null
+    && routedNode.data.step >= processSpec.answerStep
   const ownsDisclosure = routedNode?.kind === 'turn-process' || processAnswer || replyRow
   const foldable = processWindowReady
     && (liveProcess || processMember || ownsDisclosure)

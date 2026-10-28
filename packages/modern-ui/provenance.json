@@ -49,7 +49,7 @@
       "source": "packages/client/ui-chat/src/client/chat/AssistantNodeView.tsx",
       "target": "src/vendor/chat/client/chat/AssistantNodeView.tsx",
       "sourceSha256": "9254fd36ee078431e577da45227f727c14587ebc3c70cc190130d3820771f72b",
-      "targetSha256": "d95a5fee26c2761393edff5362d807c1af74a8b4a8f5868aaae7000b5dc8ad3b",
+      "targetSha256": "f56a16f49cfbf2592fb02e72f86b8eb7a873e568ac278bf35d373b91e1510d74",
       "adapted": true
     },
     {
@@ -2822,7 +2822,7 @@
       "source": "packages/client/ui-chat/src/client/chat/ChatNodeSeat.tsx",
       "target": "src/vendor/chat/client/chat/ChatNodeSeat.tsx",
       "sourceSha256": "6f7b48de4044ada72211b5b2f5c7f20a37e00781f4f3109e8d70f6377b854756",
-      "targetSha256": "be3b515ef4a24a0799cd1a1a937bd39306693ee00a09a3d961fb35e5e1bf9f79",
+      "targetSha256": "9cfc8f0c5317f8d6ae7db31357c6b3cc39dce4cb015917638cc77c5ac6932d0c",
       "adapted": true
     },
     {
@@ -3277,7 +3277,7 @@
       "source": "packages/client/ui-chat/src/client/conversation-nodes/turn-process.ts",
       "target": "src/vendor/chat/client/conversation-nodes/turn-process.ts",
       "sourceSha256": "c332215c684270d660cb365032c5cbcb5ca03984422c0c133eba5283dc35736e",
-      "targetSha256": "51baaa67edb3b4d8761bc5993e7849399647c2a5321ed44feff3e30894e8366f",
+      "targetSha256": "d1b0bc2c9ebaa8a98311071414551485400d634db6294db75efc29ca10e9925e",
       "adapted": true
     },
     {
