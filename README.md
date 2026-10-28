@@ -30,7 +30,6 @@ DSH-Modern-UI/
 │   ├── build-plugin.mjs     # 插件前端与服务端构建脚本 (esbuild + lightningcss)
 │   ├── create-preview.mjs   # 预编译分发包 (.artifacts/plugin-preview) 生成脚本
 │   └── distribution/        # 跨平台安装器、私有运行时拉取与代际管理器 (manager.mjs)
-├── tests/                   # 单元测试、分发测试与 Playwright E2E 验收测试
 └── docs/                    # 详细架构映射、安装边界与数据迁移文档
 ```
 
@@ -128,19 +127,16 @@ DSH-Modern-UI/
 
 ---
 
-## 开发者指南
+## 本地构建
 
-开发环境要求 Node.js `24.22.1` 与 pnpm `11.28.5`：
+如需从源码编译并生成预编译分发包（需 Node.js `24.22.1` 与 pnpm `11.28.5`）：
 
 ```bash
-# 安装开发依赖
+# 安装依赖
 npm ci --ignore-scripts
 
 # 编译插件产物
 npm run build
-
-# 运行单元与集成测试
-npm test
 
 # 生成 .artifacts/plugin-preview 预编译分发包
 npm run preview
