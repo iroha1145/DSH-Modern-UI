@@ -1,72 +1,153 @@
 # DSH Modern UI
 
-本分支将 Modern UI 迁移为 **固定版本的官方 DSH 成品后端 + 独立预编译插件/bundle + 薄安装入口**。官方后端为 `@deepseek-ai/dsh@0.2.1-rc.4`，插件为尚未发布的 `@iroha1145/dsh-modern-ui@0.1.0-migration.1`。
+**DSH Modern UI**（`@iroha1145/dsh-modern-ui`）是为官方 **DeepSeek Harness**（固定适配 `@deepseek-ai/dsh@0.2.1-rc.4`）打造的现代化 Web 界面插件。
 
-这是尚未发布的本地预览。实现、实际消费证据、平台范围和剩余差异见 [迁移记录](docs/plugin-migration.md)，不承诺未验证的平台或所有第三方组合完全兼容。
+本项目采用 **原版官方后端 + 独立预编译插件 + 隔离安装器** 架构：不修改任何官方后端文件，无需在用户端克隆源码或编译原生模块，创建独立 Profile 运行，随时可回退或切回官方原生界面。
 
-## 已确定的功能范围
+---
 
-Modern UI 自定义会话联网开关已取消。联网工具和提供商按官方插件管理/配置的原有范围启停；保留搜索结果、来源引用、网页卡片和工具过程。不会添加第二套命令、preset 或会话策略。
+## 核心特性
 
-已迁移模型卡片与官方推理等级、聊天与思考折叠、Intelligent UI、相关问题、编队、语言、主题、布局、文件和终端；`collapsedViews` 已接入视图显隐并验证刷新和新 Host 恢复。逐项执行范围与边界见 [UI 地图](docs/plugin-ui-map.md)和 [Host 兼容记录](docs/plugin-host-compat.md)。
+- **现代化对话体验**：全新设计的对话流、思考过程（Reasoning）分组折叠、消息时间轴导航、代码块与 Markdown 预览一键折叠。
+- **高效输入与交互**：支持选中文字快捷引用、浏览器原图拖拽/粘贴无损直传、命令与文件引用胶囊（Lexical 编辑器）。
+- **增强视图与卡片**：内置 Intelligent UI（`openui` 交互式沙箱与 `followups` 追问建议）、Subagent 编队树与调用链视图、精细化工具调用卡片。
+- **模型与推理控制**：现代化模型选择卡片，支持自定义模型标签扩展与推理强度（Reasoning Effort，含 `Off`）配置。
+- **多语言与主题**：内置中、英、日、西、法、德、俄、葡 8 种界面语言与多套明暗主题。
+- **安全隔离与自动备份**：程序与数据目录分离，使用独立 Profile（保留原有配置与聊天数据），安装或更新非空数据目录前自动生成整树快照备份。
 
-本轮补齐继承偏好、完整推理声明、标准模型标签、选中文字引用、插件 README、提问与预设代码折叠、默认社区 Markdown 折叠、浏览器原图转移、通用工具与官方控件表现，以及已有数据目录的整树备份。实现与验收边界见 [迁移缺口补齐记录](docs/migration-parity-20261028.md)。
+> **说明**：旧版自定义的会话级联网开关（`/web on|off`）已移除，联网搜索与网页抓取工具统一遵循官方插件管理与配置。
 
-## 安装预编译插件
+---
 
-包尚未发布到 npm 或 Release。现在使用实际本地预览包；不存在可复制的远端一键下载地址。
+## 项目结构
 
-取得并解压开发流程生成的 `.artifacts/plugin-preview` 后，在该目录执行一条命令。以下目标路径和已有官方包路径需要替换为本机实际值。
-
-已有兼容官方 DSH 和 Node 24.22.1，在 PowerShell 中执行：
-
-```powershell
-node ./install-existing.mjs --backend 'D:/official/node_modules/@deepseek-ai/dsh/package.json' --root 'D:/DSH Modern/program' --home 'D:/DSH Modern/data'
+```text
+DSH-Modern-UI/
+├── packages/modern-ui/      # Modern UI 核心插件源码 (@iroha1145/dsh-modern-ui)
+│   ├── cordis.patch.yml     # UI 模块接管声明（替换官方默认展示层 owner）
+│   └── src/                 # 浏览器端 UI 组件、状态管理与宿主兼容层
+├── scripts/
+│   ├── build-plugin.mjs     # 插件前端与服务端构建脚本 (esbuild + lightningcss)
+│   ├── create-preview.mjs   # 预编译分发包 (.artifacts/plugin-preview) 生成脚本
+│   └── distribution/        # 跨平台安装器、私有运行时拉取与代际管理器 (manager.mjs)
+├── tests/                   # 单元测试、分发测试与 Playwright E2E 验收测试
+└── docs/                    # 详细架构映射、安装边界与数据迁移文档
 ```
 
-安装器通过官方插件管理器安装真实 tgz，创建独立 Modern UI profile，并保留其他 profile。所给官方包必须与固定版本匹配、来源核验通过。优先使用新的独立数据目录；旧数据不自动导入。
+---
 
-新用户在 Windows 执行以下命令；它会自动准备私有 Node：
+## 安装指南
 
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./install.ps1 -Root 'D:/DSH Modern/program' -DataHome 'D:/DSH Modern/data'
-```
+插件目前通过预编译预览包（`plugin-preview`）方式分发。安装器会自动配置所需环境，并默认附带安装 3 个常用社区插件（`dsh-context@0.75.1`、`dsh-better-sidebar@0.28.0`、`dsh-plugins-store@0.1.4`）。
 
-`ExecutionPolicy` 参数只作用于当前 PowerShell 进程，不修改系统策略。已有 DSH 但没有精确 Node 时，也可用 `install-existing.ps1 -Backend ...` 的同样 PowerShell 入口自动准备运行时。
+### 第一步：获取预编译安装包
 
-安装器准备精确私有 Node/pnpm、Windows PowerShell 7 和官方发布成品。用户端不克隆上游，不构建 DSH 或 Modern UI；Windows 实际消费验证发布 prebuild 与辅助程序，不调用原生编译器。不能只把跳过安装脚本当作完整功能证明。
+您可以通过以下任一方式获取 `.artifacts/plugin-preview` 目录：
 
-POSIX 入口是 `sh ./install.sh PROGRAM_ROOT DATA_HOME [EXISTING_OFFICIAL_PACKAGE_JSON]`。本地验收覆盖 Windows x64，Linux/macOS 以匹配源码提交的消费 CI 为准，不能从一套 JS/CSS 产物推导全部平台通过。详细版本、边界、社区插件与失败重试见 [安装文档](docs/plugin-installation.md)。
+1. **下载 CI 构建产物**：在 GitHub Actions 的 `Official runtime plugin preview` 工作流中下载 `modern-ui-precompiled-preview` 压缩包并解压。
+2. **从源码本地构建**（需 Node.js `24.22.1`）：
+   ```bash
+   npm ci --ignore-scripts
+   npm run build
+   npm run preview
+   cd .artifacts/plugin-preview
+   ```
 
-启动安装器生成的 `program/dsh-ui.cmd`（Windows）或 `program/dsh-ui`（POSIX）。程序和数据目录必须分开。社区插件固定为 `dsh-context@0.75.1`、`dsh-better-sidebar@0.28.0`、`dsh-plugins-store@0.1.4`；同版本跳过，已有不同版本不擅自覆盖。核心和社区安装结果分别报告。
+---
 
-## 更新、回退与旧数据
+### 第二步：执行安装命令
 
-再次执行安装命令可准备新的插件代际，自检成功后切换。后端版本独立锁定，不接受未经验证的 `latest`。管理器提供 `status`、`verify`、`community`、`rollback` 与 `uninstall`，完整可执行示例见 [安装文档](docs/plugin-installation.md)。
+进入解压（或生成）后的 `plugin-preview` 目录，根据本机环境选择对应安装方式。
+> ⚠️ **注意**：**程序目录（Program Root）** 与 **数据目录（Data Home）** 必须为两个互相独立的目录路径。
 
-采用或更新非空数据目录前，安装器会在程序目录的 `data-backups` 下保存并校验整树快照。先停止所有使用该数据目录的 DSH；备份失败不会进入 staging。备份不会被程序 rollback 自动恢复，详见 [分发与配置](docs/distribution-parity.md)。
+#### 方式 A：全新安装（推荐）
+安装器会自动下载并校验独立的私有运行时（Node `24.22.1`、pnpm `11.28.5`，Windows 下含私有 PowerShell `7.6.5`）及官方 `@deepseek-ai/dsh@0.2.1-rc.4` 后端，不影响系统全局环境。
 
-回退仅改变程序/profile 选择，不能当作数据倒带。管理器卸载撤销当前启动选择，保留官方安装、所有 profile 与用户数据。切回官方界面使用官方插件管理中的整个 Modern UI **bundle** 开关，并刷新页面；不要仅停用其中的 `modern-ui` entry。实际包移除和包含 Host 兼容项的边界见安装文档。
+- **Windows (PowerShell)**：
+  ```powershell
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./install.ps1 -Root 'D:/DSH-Modern/program' -DataHome 'D:/DSH-Modern/data'
+  ```
+- **macOS / Linux**：
+  ```bash
+  sh ./install.sh '/path/to/dsh-modern/program' '/path/to/dsh-modern/data'
+  ```
 
-旧数据先用随插件交付的 `modern-ui-data` 预检。普通快照通过官方读取器后可走已验证的导入路径；含旧 `web/search` 的快照保留原件，留给旧环境或只读导出。第一版不做可选转换，不恢复已取消的会话开关。见 [旧数据策略](docs/plugin-data-migration.md)。
+*(可选：若不想安装附带的 3 个社区插件，Windows 可追加 `-SkipCommunity` 参数，macOS / Linux 可在命令前加上 `DSH_MODERN_SKIP_COMMUNITY=1`。)*
 
-## 开发与验证
+#### 方式 B：基于本机已有的官方 DSH 安装
+如果您本机已安装官方 `@deepseek-ai/dsh@0.2.1-rc.4`，可直接指定其 `package.json` 路径：
 
-开发使用 Node `24.22.1`、pnpm `11.28.5`；以下命令只由开发者执行：
+- **Windows (PowerShell)**：
+  ```powershell
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./install-existing.ps1 -Backend 'D:/official/node_modules/@deepseek-ai/dsh/package.json' -Root 'D:/DSH-Modern/program' -DataHome 'D:/DSH-Modern/data'
+  ```
+  *(若本机已安装精确的 Node `24.22.1`，也可直接执行：`node ./install-existing.mjs --backend '<官方package.json路径>' --root '<程序目录>' --home '<数据目录>'`)*
+- **macOS / Linux**：
+  ```bash
+  sh ./install-existing.sh '/path/to/official/@deepseek-ai/dsh/package.json' '/path/to/dsh-modern/program' '/path/to/dsh-modern/data'
+  ```
 
-```sh
+---
+
+### 第三步：启动服务
+
+安装完成后，直接运行程序目录下生成的启动脚本即可：
+
+- **Windows**：
+  ```powershell
+  D:/DSH-Modern/program/dsh-ui.cmd
+  ```
+- **macOS / Linux**：
+  ```bash
+  /path/to/dsh-modern/program/dsh-ui
+  ```
+
+---
+
+## 更新、切换与卸载
+
+- **更新插件**：获取新版安装包后，对同一程序目录和数据目录再次执行上述安装命令即可（切换前会自动备份非空数据目录至 `<程序目录>/data-backups`）。
+- **网页端临时切回官方 UI**：在 DSH 的「插件管理」页面中，停用整个 **`@iroha1145/dsh-modern-ui` bundle** 并刷新浏览器即可恢复官方原生界面（请勿仅停用内部的单个 `modern-ui` 条目）。
+- **命令行管理（状态 / 校验 / 回滚 / 卸载）**：
+  可通过程序目录内记录的内置管理器执行维护操作（以 PowerShell 为例）：
+  ```powershell
+  $state = Get-Content -Raw -Encoding UTF8 'D:/DSH-Modern/program/current.json' | ConvertFrom-Json
+
+  # 查看当前安装状态
+  & $state.node $state.manager status --root 'D:/DSH-Modern/program'
+
+  # 校验官方后端与依赖完整性
+  & $state.node $state.manager verify --root 'D:/DSH-Modern/program'
+
+  # 回滚到上一个程序代际（不回滚会话数据）
+  & $state.node $state.manager rollback --root 'D:/DSH-Modern/program'
+
+  # 卸载 Modern UI 启动入口（保留所有用户数据与官方环境）
+  & $state.node $state.manager uninstall --root 'D:/DSH-Modern/program'
+  ```
+
+---
+
+## 开发者指南
+
+开发环境要求 Node.js `24.22.1` 与 pnpm `11.28.5`：
+
+```bash
+# 安装开发依赖
 npm ci --ignore-scripts
+
+# 编译插件产物
 npm run build
+
+# 运行单元与集成测试
 npm test
+
+# 生成 .artifacts/plugin-preview 预编译分发包
 npm run preview
 ```
 
-预览目录包含真实 tgz、来源/完整性清单、薄安装器和可选消费测试驱动。消费者不在预览目录执行 `npm install` 或构建。
+更多细节请参阅 [`docs/`](docs/) 目录下的[安装详情](docs/plugin-installation.md)、[UI 映射说明](docs/plugin-ui-map.md)与[旧数据迁移说明](docs/plugin-data-migration.md)。
 
-[插件预览 CI](.github/workflows/plugin-preview.yml) 将构建与消费分开：消费 job 没有 checkout，仅取预编译产物，检查官方来源、原生能力、官方联网配置和浏览器交互。PR #5 的远端执行与审计修复见 [复核记录](docs/pr5-audit-followup.md)、[启动生命周期修复](docs/pr5-lifecycle-followup.md)、[macOS / Linux 复核](docs/pr5-posix-followup.md)及 [PR 检查页](https://github.com/iroha1145/DSH-Modern-UI/pull/5/checks)；未通过匹配提交的目标不标为已验证。
+## License
 
-旧补丁构建已移出默认 README 和自动 CI 路径。原脚本和固定 patch 保留用于旧数据回看；[历史说明](docs/legacy-patch-installation.md)与手动工作流 `Legacy patched build` 不属于新安装的验收证据。
-
-## English
-
-This branch migrates Modern UI to an unmodified official DSH release plus a separately precompiled plugin. This local preview is not published. The custom per-session web switch is retired; official web tools, providers, configuration and result rendering remain. See the migration record for executed checks, platform limits and remaining differences. The source-patched legacy build is retained only for maintenance and historical data access.
+[MIT](LICENSE)
