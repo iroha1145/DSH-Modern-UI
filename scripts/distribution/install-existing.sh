@@ -1,5 +1,9 @@
 #!/bin/sh
 set -eu
+# The host version is read from the given official package. A version variable meant for the
+# standalone installer must not become a refusal on the bootstrap branch only (the direct branch
+# and install-existing.ps1 never pass it).
+unset DSH_MODERN_BACKEND_VERSION
 if [ "$#" -lt 3 ] || [ "$#" -gt 5 ]; then
   echo 'usage: install-existing.sh OFFICIAL_PACKAGE_JSON PLUGIN_TGZ PLUGIN_INTEGRITY [PROGRAM_ROOT] [DATA_HOME]' >&2
   exit 2

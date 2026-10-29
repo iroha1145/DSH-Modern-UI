@@ -65,6 +65,14 @@ async function verifyOfficial(state) {
   for (const [path, baseline] of Object.entries(state.officialBaseline)) await verifySnapshot(path, baseline, { excludeNodeModules: state.inventoryFormat === 2 })
   return { unchanged: true, packages: Object.keys(state.officialBaseline).length }
 }
+/** Name the usual cause of a launch-time integrity refusal: the official package was upgraded in place. */
+async function hostChangeHint(state, error) {
+  const recorded = state.officialSource?.version
+  let found
+  try { found = (await json(state.backend)).version } catch { return error }
+  if (recorded === undefined || found === recorded) return error
+  return new Error(`${error.message}. The official DSH at ${state.backend} is now ${found}, but this program root was installed for ${recorded}: reinstall exactly ${recorded} there, or install into a new program root with an isolated copy of the data home`, { cause: error })
+}
 async function futureRealpath(path) {
   let parent = resolve(path)
   const tail = []
@@ -197,7 +205,7 @@ export async function selectInstallHost(options, previous) {
   if (previous) {
     const prior = await json(previous.backend)
     if (prior.name !== '@deepseek-ai/dsh' || (previous.officialSource && prior.version !== previous.officialSource.version)) {
-      throw new Error('Previously selected backend identity changed; existing selection and data were retained')
+      throw new Error(`Previously selected backend identity changed (recorded ${previous.officialSource?.version ?? 'unknown'}, found ${prior.name}@${prior.version} at ${previous.backend}); existing selection and data were retained. Reinstall exactly the recorded version there, or use a new program root with an isolated copy of the data home`)
     }
     if (version !== prior.version) {
       throw new Error('Changing the host version of a managed data home is not supported; use a new program root and isolated data copy, verified by the target official reader')
@@ -224,6 +232,12 @@ async function install(options) {
   const bytes = await readFile(resolve(options.plugin))
   checkIntegrity(bytes, options['plugin-integrity'])
   const previous = await readSelection(root)
+  // A source profile is chosen once, at first adoption. An upgrade that inherited a leftover
+  // DSH_MODERN_FROM_PROFILE / -FromProfile would otherwise re-copy that profile and silently leave
+  // the managed Modern profile (its settings, plugins and migration receipts) behind.
+  if (previous && options['from-profile'] !== undefined && options['from-profile'] !== previous.profile) {
+    throw new Error(`--from-profile is only for first adoption; this program root already manages profile ${previous.profile}. Unset DSH_MODERN_FROM_PROFILE / -FromProfile to upgrade, or use a new program root`)
+  }
   const selectedHost = await selectInstallHost(options, previous)
   if (!selectedHost.compatibility.platforms.includes(`${process.platform}-${process.arch}`)) throw new Error(`Official DSH ${selectedHost.compatibility.officialSource.version} has not been verified on ${process.platform}-${process.arch}; no source-build fallback`)
   const previousReference = previous ? await receiptReference(previous) : undefined
@@ -412,7 +426,8 @@ export async function main(argv = process.argv.slice(2)) {
       if (command === 'launch') {
         const lifecycle = createLaunchLifecycle()
         try {
-          await verifyOfficial(state)
+          try { await verifyOfficial(state) }
+          catch (error) { throw await hostChangeHint(state, error) }
           // Both phases use their own POSIX process group, so terminal signals are forwarded once.
           const preflight = await lifecycle.run(state.node, [state.cli, state.profile, '--dump-config'],
             { cwd: state.generation, env: runtimeEnvironment(state), detached: process.platform !== 'win32' },

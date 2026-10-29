@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, mkdir, readFile, readdir, writeFile, rm, access } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, readdir, writeFile, rm, access, realpath } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -8,7 +8,8 @@ import { selectInstallHost, verifyPluginCompatibility, main } from '../../script
 import { defaultHostVersion, supportedHostVersions, getHostCompatibility } from '../../scripts/distribution/compatibility.mjs'
 
 async function fixture(t, version, name = '@deepseek-ai/dsh') {
-  const directory = await mkdtemp(join(tmpdir(), 'compat-selection-'))
+  // selectInstallHost resolves real paths; macOS temp directories sit behind the /var symlink.
+  const directory = await realpath(await mkdtemp(join(tmpdir(), 'compat-selection-')))
   t.after(() => rm(directory, { recursive: true, force: true }))
   const backend = join(directory, 'package.json')
   await writeFile(backend, JSON.stringify({ name, version }))

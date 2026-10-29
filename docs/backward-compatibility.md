@@ -45,9 +45,9 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./install-existing.ps1 -
 sh ./install-existing.sh '/path/to/official/node_modules/@deepseek-ai/dsh/package.json' '/path/to/program' '/path/to/data'
 ```
 
-已有 managed 安装默认保留原后端版本。显式版本与实际后端不一致、未知版本或未验收平台会在 staging 前拒绝。同一 program root 的已选安装不能切换宿主版本；新 program root 不会自动识别其他安装曾写入该 data home 的版本，因此必须使用隔离数据副本，由目标版本的官方读取器核验。下载来源、SRI、依赖真实解析、安装回执和启动诊断均记录实际宿主。
+已有 managed 安装默认保留原后端版本（不设 `DSH_MODERN_BACKEND_VERSION` 时独立安装入口沿用原宿主，不会顺带升级）。显式版本与实际后端不一致、未知版本或未验收平台会在 staging 前拒绝；`install-existing` 入口只读取所给官方包的实际版本，忽略这个变量。同一 program root 的已选安装不能切换宿主版本：复用已有官方 DSH 时不要原地升级那份官方包，否则启动器的官方文件核对和重装都会拒绝（报错会写出记录版本与实际版本）；`uninstall` 也不清除这层绑定，它把选择存进 `recovery.json`，再次安装会读回。新 program root 不会自动识别其他安装曾写入该 data home 的版本，因此必须使用隔离数据副本，由目标版本的官方读取器核验。下载来源、SRI、依赖真实解析、安装回执和启动诊断均记录实际宿主。
 
-初次采用非 web profile 时显式传 `-FromProfile`、`--from-profile`（JS existing 入口）或 `DSH_MODERN_FROM_PROFILE`；不猜测哪个 profile 正在运行。安装前根据候选包实际 owner patch 检查原有效配置。自定义 owner ID、重复或嵌套 owner、计算型 activation 会在停用官方 owner 前拒绝，需要人工适配；不会追加永久 disabled 覆盖来掩盖冲突。
+初次采用非 web profile 时显式传 `-FromProfile`、`--from-profile`（JS existing 入口）或 `DSH_MODERN_FROM_PROFILE`；不猜测哪个 profile 正在运行。它只用于初次采用：已托管的 program root 再传一个不同的 profile 会在备份前拒绝，升级时不要保留这个变量。安装前根据候选包实际 owner patch 检查原有效配置。自定义 owner ID、重复或嵌套 owner、计算型 activation 会在停用官方 owner 前拒绝，需要人工适配；不会追加永久 disabled 覆盖来掩盖冲突。
 
 ## 社区插件
 
