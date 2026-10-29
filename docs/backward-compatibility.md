@@ -11,7 +11,7 @@
 - Node 固定 `24.22.1`、pnpm 固定 `11.28.5`。支持旧 DSH 不等于支持旧 Node、旧浏览器或数据格式降级。
 - 真实浏览器核心验收使用 Chromium/Edge。WebKit、触屏、Electron、多窗口、真实外部收费 provider、旧定制 web/search 会话继续写入均为 **unverified**。
 
-版本清单与当前源提交的 CI 报告共同界定验收。`compatibility-<host>-linux-x64` 产物包含分层 JSON、日志和截图；五个平台的 `consumer-*` 产物只证明实际安装、加载自检和官方文件完整性，不能替代浏览器检查。失败或 unverified 层不能计为通过。
+版本清单与当前源提交的 CI 报告共同界定验收。`compatibility-<host>-<platform>` 在 Linux x64 与 Windows x64 分别生成分层 JSON、日志和截图；五个平台的 `consumer-*` 产物只证明实际安装、加载自检和官方文件完整性，不能替代浏览器检查。失败或 unverified 层不能计为通过。
 
 ## 已核对的接口边界
 
@@ -73,6 +73,8 @@ npm run test:compat -- --preview /path/to/precompiled-preview --host 0.2.1-rc.3 
 消费者实际只安装官方发行物和预编译包。`--state` 仅供复用带专用标记的隔离测试安装，不能指向日常使用的数据目录。浏览器驱动可通过 `COMPAT_TEST_DRIVER` 指向只安装 Playwright 的独立工具目录；该目录不用于解析任何 Host API。
 
 报告区分 installation、Host MCP、生命周期、官方联网配置、browser、失败恢复、官方完整性与非目标数据保护。模型和外部服务为本地确定性夹具；Cordis、loader、pluginManager、tools、Session、slots、renderer、React 等都来自对应实际宿主。浏览器同时检查插件真实 active、共享模块身份、消息/工具/答案/附件/模型、标准扩展槽、社区操作、设置保存及真实 Host 重启。
+
+每个消费者保留带摘要校验的 `official-source-ledger.json`，记录官方依赖版本、真实路径、来源和 SRI。浏览器另记录共享模块身份及来源；React/React DOM 的版本取实际运行时导出，未公开版本的内置模块记录所属官方 frontend release。答案验收明确使用 `foldedReplies: final`，要求最早及后续答案可见、工具结果和旁白均随过程折叠；默认保留全部回复的模式不因此改变。
 
 Host 重启会释放官方内存 changes summary。仅在真实重启后，精确 `/api/changes.summary` 返回 404 且正文为 `Change summary unavailable.` 时记录为预期的 missing 状态；其他失败请求不能借此豁免。测试主动停止的旧 origin 断连单独记录。
 

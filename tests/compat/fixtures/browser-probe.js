@@ -2,7 +2,7 @@
 window.__ModuleLoader__.load({ id: 'modern-compat-browser-fixture', factory: require => {
   const React = require('react')
   const store = require('@deepseek-ai/dsh-client-store')
-  const shared = Object.fromEntries(['react', 'react/jsx-runtime', 'react-dom', '@deepseek-ai/cordis', '@deepseek-ai/dsh-client-store', '@deepseek-ai/dsh-client-ui-slots'].map(name => [name, require(name)]))
+  const shared = Object.fromEntries(['react', 'react/jsx-runtime', 'react-dom', '@deepseek-ai/cordis', '@deepseek-ai/dsh-client-store', '@deepseek-ai/dsh-client-ui-slots', '@deepseek-ai/dsh-client-ui-renderer'].map(name => [name, require(name)]))
   return { inject: ['slots', 'locale', 'modules'], async apply(ctx) {
     const report = store.createSnapshotStore({ pending: true })
     let removeLabel
@@ -22,7 +22,13 @@ window.__ModuleLoader__.load({ id: 'modern-compat-browser-fixture', factory: req
       props => React.createElement('div', { 'data-compat-specific-tool': props.phase }, props.phase === 'result'
         ? props.block.content.filter(block => block.type === 'text').map(block => block.text).join('\n') : 'Compatibility tool running')))
     const identities = {}
-    for (const [name, value] of Object.entries(shared)) identities[name] = { sameExports: value === await ctx.modules.import(name, '', {}) }
+    for (const [name, value] of Object.entries(shared)) {
+      const module = ctx.modules.manifest.modules.find(row => row.id === name)
+      identities[name] = { sameExports: value === await ctx.modules.import(name, '', {}),
+        runtimeVersion: typeof value.version === 'string' ? value.version : null,
+        source: module ? { kind: 'official-client-module', url: module.url, revision: module.rev }
+          : { kind: 'official-frontend-bootstrap', release: ctx.modules.manifest.release } }
+    }
     const snapshot = () => ({ pending: false, shared: identities,
       modules: [...ctx.modules.loadCache.values()].map(row => ({ id: row.id, edges: [...row.edges] })),
       manifest: ctx.modules.manifest, entries: ctx.modules.entries.state.getSnapshot(),

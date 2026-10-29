@@ -84,7 +84,11 @@ for (const version of versions) {
     assert.equal('sha512-' + createHash('sha512').update(artifact).digest('base64'), state.plugin.integrity)
     result.artifact = { integrity: state.plugin.integrity, version: state.plugin.version }
     result.cli = state.cli; result.profile = state.profile
-    result.layers.installation = { state: 'passed', reusedInstalledState: Boolean(existing), proof: state.sourceProof, selfTest: state.webSelfTest }
+    const ledger = await readFile(state.sourceLedger)
+    assert.equal(createHash('sha256').update(ledger).digest('hex'), state.sourceProof.ledgerSha256)
+    await writeFile(path.join(evidence, 'official-source-ledger.json'), ledger)
+    result.layers.installation = { state: 'passed', reusedInstalledState: Boolean(existing), proof: state.sourceProof, selfTest: state.webSelfTest,
+      sourceLedger: 'official-source-ledger.json', runtime: { node: state.node, nodeVersion: state.compatibility.node, pnpm: state.pnpm, pnpmVersion: state.compatibility.pnpm } }
     result.layers.officialBefore = { state: 'passed', result: await main(['verify', '--root', state.root]) }
     const cleanupFixtures = async names => {
       const errors = []

@@ -87,7 +87,8 @@ export async function runBrowserChecks({ state, output, executablePath, checkHos
   }
   const overlay = path.join(output, 'fixture.patch.yml')
   await writeFile(overlay, JSON.stringify([{ id: 'agent-default-model', config: { provider: providerId, model: 'compat-balanced' } },
-    { id: 'workspace-controller', config: { documentsDirectory: path.join(output, 'documents') } }]))
+    { id: 'workspace-controller', config: { documentsDirectory: path.join(output, 'documents') } },
+    { id: 'modern-ui', config: { foldedReplies: 'final' } }]))
   let child, browser, page, origin, childOutput = '', hostRestarted = false, restartInProgress = false
   const retiredOrigins = new Set()
   const responseReads = []
@@ -216,12 +217,14 @@ export async function runBrowserChecks({ state, output, executablePath, checkHos
       await page.waitForTimeout(300)
       for (const item of await page.locator('[data-process-activity][aria-expanded="false"]:visible').all()) await item.click()
       await page.locator('[data-compat-specific-tool="result"]').waitFor()
+      await page.getByText('COMPAT_TOOL_PROGRESS', { exact: true }).waitFor({ state: 'visible' })
       assert.equal(await page.locator('[data-compat-specific-tool="result"]').innerText(), 'Actual tool result')
       assert.match(await page.locator('body').innerText(), /COMPAT_DETERMINISTIC_TOOL_ERROR/)
       if (await process.getAttribute('aria-expanded') === 'true') await process.click()
       await page.getByText('COMPAT_FIRST_ANSWER', { exact: true }).waitFor({ state: 'visible' })
       await page.getByText('COMPAT_LATER_ANSWER', { exact: true }).waitFor({ state: 'visible' })
       assert.equal(await page.locator('[data-compat-specific-tool="result"]').isVisible(), false)
+      assert.equal(await page.getByText('COMPAT_TOOL_PROGRESS', { exact: true }).isVisible(), false)
       const host = await evidence()
       assert.deepEqual(host.events.filter(row => row.kind === 'tool-executed').map(row => row.name).sort(), ['compat_echo', 'compat_failure'])
       assert.ok(host.events.some(row => row.kind === 'request' && row.model === 'compat-fast' && row.reasoningEffort === 'high'))
