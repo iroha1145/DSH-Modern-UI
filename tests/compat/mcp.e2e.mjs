@@ -7,6 +7,7 @@ import { promisify } from 'node:util'
 import { setTimeout as delay } from 'node:timers/promises'
 import { runtimeEnvironment, launchEnvironment } from '../../scripts/distribution/manager.mjs'
 import { isMainModule } from '../../scripts/distribution/entrypoint.mjs'
+import { packFixture } from './pack-fixture.mjs'
 
 const execute = promisify(execFile)
 const here = dirname(fileURLToPath(import.meta.url))
@@ -24,7 +25,7 @@ export async function prepareMcpFixture(output) {
     main: './mcp-probe.mjs', dsh: { bundle: { patch: './cordis.patch.yml' } } }, null, 2))
   await writeFile(join(directory, 'cordis.patch.yml'), JSON.stringify([{ insert: [{ id: mcpFixtureName, name: mcpFixtureName, config: { events } }] }]))
   const tarball = join(output, 'mcp-probe.tgz')
-  await execute('tar', ['-czf', tarball, '-C', output, 'package'], { windowsHide: true })
+  await packFixture(directory, tarball)
   return { tarball, events, name: mcpFixtureName }
 }
 

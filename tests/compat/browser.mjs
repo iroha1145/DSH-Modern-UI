@@ -9,6 +9,7 @@ import { promisify } from 'node:util'
 import { setTimeout as delay } from 'node:timers/promises'
 import { crc32, deflateSync } from 'node:zlib'
 import { providerId, firstAnswer, laterAnswer } from './fixtures/scenario.mjs'
+import { packFixture } from './pack-fixture.mjs'
 
 const execute = promisify(execFile)
 const here = path.dirname(fileURLToPath(import.meta.url))
@@ -55,7 +56,7 @@ export async function runBrowserChecks({ state, output, executablePath, checkHos
     dsh: { manifestVersion: 1, bundle: { patch: './cordis.patch.yml' }, client: { platform: 'web', inject: ['@deepseek-ai/dsh-client-ui-renderer', '@deepseek-ai/dsh-client-locale', '@deepseek-ai/dsh-api-session-controller'] } } }, null, 2))
   await writeFile(path.join(fixtures, 'cordis.patch.yml'), JSON.stringify([{ insert: [{ id: browserFixtureName, name: browserFixtureName }] }]))
   const tarball = path.join(output, 'fixture.tgz')
-  await execute('tar', ['-czf', tarball, '-C', path.dirname(fixtures), 'package'], { windowsHide: true })
+  await packFixture(fixtures, tarball)
   const environment = { ...process.env, DSH_HOME: state.home, DSH_TELEMETRY_DISABLED: '1', COMPAT_OFFICIAL_CLI: state.cli,
     COMPAT_BROWSER_WORKSPACE: workspace, COMPAT_BROWSER_REPORT: events,
     PATH: [bin, path.dirname(state.node), process.env.PATH ?? ''].join(path.delimiter), npm_config_update_notifier: 'false' }

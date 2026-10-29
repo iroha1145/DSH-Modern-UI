@@ -1,13 +1,11 @@
 import assert from 'node:assert/strict'
-import { execFile } from 'node:child_process'
 import { cp, mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { promisify } from 'node:util'
 import { setTimeout as delay } from 'node:timers/promises'
 import { API, PROBE, TARGET, MODERN, NULLABLE, DISABLED, LABELS, OWNERS } from './fixtures/lifecycle/protocol.mjs'
+import { packFixture } from './pack-fixture.mjs'
 
-const exec = promisify(execFile)
 const source = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures/lifecycle')
 
 /** Build a private precompiled-JavaScript probe bundle, with its local target tgz inside. */
@@ -22,7 +20,7 @@ export async function prepareLifecycleFixture(output) {
   await save(target, 'cordis.patch.yml', [{ insert: [{ id: TARGET, name: TARGET, config: { label: 'target', nullable: null, unknown: { retained: true } } }] }])
   await cp(path.join(source, 'target.mjs'), path.join(target, 'index.mjs'))
   const targetTarball = path.join(probe, 'fixtures/target.tgz')
-  await exec('tar', ['-czf', targetTarball, '-C', path.dirname(target), 'package'], { windowsHide: true })
+  await packFixture(target, targetTarball)
   await save(probe, 'package.json', { name: PROBE, version: '1.0.0', type: 'module', main: './index.mjs',
     exports: { '.': './index.mjs', './sentinel': './sentinel.mjs', './contribution': './contribution.mjs', './package.json': './package.json' },
     dsh: { bundle: { patch: './cordis.patch.yml' } } })
@@ -34,7 +32,7 @@ export async function prepareLifecycleFixture(output) {
   for (const name of ['protocol.mjs', 'contribution.mjs', 'sentinel.mjs']) await cp(path.join(source, name), path.join(probe, name))
   await cp(path.join(source, 'probe.mjs'), path.join(probe, 'index.mjs'))
   const tarball = path.join(directory, `${PROBE}-1.0.0.tgz`)
-  await exec('tar', ['-czf', tarball, '-C', path.dirname(probe), 'package'], { windowsHide: true })
+  await packFixture(probe, tarball)
   return tarball
 }
 

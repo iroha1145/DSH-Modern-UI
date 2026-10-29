@@ -9,6 +9,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { setTimeout as delay } from 'node:timers/promises'
+import { packFixture } from './pack-fixture.mjs'
 
 const run = promisify(execFile)
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
@@ -96,7 +97,7 @@ async function pack(name, code = 'export function apply() {}\n', config) {
   await writeFile(path.join(directory, 'index.js'), code)
   await writeFile(path.join(directory, 'cordis.patch.yml'), JSON.stringify([{ insert: [{ id: name, name, ...(config ? { config } : {}) }] }]))
   const tarball = path.join(fixtures, `${name}-1.0.0.tgz`)
-  await run('tar', ['-czf', tarball, '-C', path.dirname(directory), 'package'], { windowsHide: true })
+  await packFixture(directory, tarball)
   return tarball
 }
 

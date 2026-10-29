@@ -1,13 +1,11 @@
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
-import { execFile } from 'node:child_process'
 import { mkdir, readFile, writeFile, copyFile } from 'node:fs/promises'
-import { join, dirname, resolve } from 'node:path'
-import { promisify } from 'node:util'
+import { join, resolve } from 'node:path'
 import { officialCommand, startHost } from './host.mjs'
 import { isMainModule } from '../../scripts/distribution/entrypoint.mjs'
+import { packFixture } from './pack-fixture.mjs'
 
-const execute = promisify(execFile)
 const fixtureName = 'modern-compat-web-config-probe'
 export async function runWebConfigChecks({ state, output }) {
   output = resolve(output)
@@ -35,7 +33,7 @@ export async function runWebConfigChecks({ state, output }) {
   await writeFile(join(directory, 'package.json'), JSON.stringify({ name: fixtureName, version: '1.0.0', type: 'module', main: './index.mjs', dsh: { bundle: { patch: './cordis.patch.yml' } } }))
   await writeFile(join(directory, 'cordis.patch.yml'), JSON.stringify([{ insert: [{ id: fixtureName, name: fixtureName, config: { endpoint: `http://127.0.0.1:${endpoint.address().port}`, workspace: join(output, 'workspace') } }] }]))
   const tarball = join(output, 'fixture.tgz')
-  await execute('tar', ['-czf', tarball, '-C', dirname(directory), 'package'], { windowsHide: true })
+  await packFixture(directory, tarball)
   const result = { version: state.officialSource.version, cli: state.cli, profile: state.profile, phases: [], passed: false }
   let host
   let installed = false

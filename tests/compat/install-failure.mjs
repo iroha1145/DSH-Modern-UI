@@ -1,12 +1,9 @@
 import assert from 'node:assert/strict'
 import { createHash, randomUUID } from 'node:crypto'
-import { execFile } from 'node:child_process'
 import { cp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { promisify } from 'node:util'
-
-const execute = promisify(execFile)
+import { packFixture } from './pack-fixture.mjs'
 
 /** A real failed staged Host activation must leave the selected generation and source profile intact. */
 export async function checkFailedUpgrade(state, output) {
@@ -19,7 +16,7 @@ export async function checkFailedUpgrade(state, output) {
   const marker = path.join(output, `activation-attempted-${randomUUID()}.txt`)
   await writeFile(path.join(directory, 'lib/index.js'), `import { writeFileSync } from 'node:fs'\nexport function apply() { writeFileSync(${JSON.stringify(marker)}, 'actual staged activation'); throw new Error('compatibility staged activation failure fixture') }\n`)
   const archive = path.join(output, 'failed-activation.tgz')
-  await execute('tar', ['-czf', archive, '-C', output, 'package'], { windowsHide: true })
+  await packFixture(directory, archive)
   const integrity = 'sha512-' + createHash('sha512').update(await readFile(archive)).digest('base64')
   const { main } = await import(pathToFileURL(state.manager).href)
   const { snapshot } = await import(pathToFileURL(path.join(path.dirname(state.manager), 'integrity.mjs')).href)
