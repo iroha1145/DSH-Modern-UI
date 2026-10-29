@@ -2,11 +2,9 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { OwnerOf } from '@deepseek-ai/dsh-client-ui-slots'
 import type { PendingQuestion } from '@deepseek-ai/dsh-client-ui-user-questions/client'
-import type { AgentPresetSectionInjected } from '@deepseek-ai/dsh-client-ui-agent-preset/client'
 import { watchPresentation } from './presentation-shadow.ts'
 import { QuestionPresentation } from './vendor/questions/QuestionFlow.tsx'
 import type { QuestionDraftStore } from './vendor/questions/draft-types.ts'
-import { AgentPresetSection } from './vendor/agent-preset/AgentPresetSection.tsx'
 
 export type FoldLabels = () => { collapseLabel: string; expandLabel: string }
 export type TextDisclosureLabels = () => { collapse: string; expand: string }
@@ -30,7 +28,7 @@ type QuestionFace = {
   keyedHooks: { questionCard: (key: string) => PendingQuestion | undefined }
 }
 
-/** Add code disclosure to ordinary questions and the shipped preset guide. */
+/** Add code disclosure to ordinary questions. */
 export function installPresentationParity(ctx: Context): void {
   ctx.effect(() => ctx.locale.register('modern-presentation', dictionaries))
   const t = ctx.locale.bind('modern-presentation')
@@ -60,18 +58,7 @@ export function installPresentationParity(ctx: Context): void {
     },
   })
 
-  watchPresentation(ctx, 'settings.section', {
-    source: entry => entry.options.id === 'agent-presets'
-      && entry.locale === 'settings.agentPreset'
-      && (entry.options.priority ?? 0) === 0,
-    register: source => {
-      if (source.inject === undefined) throw new Error('The official preset section no longer supplies its declared settings face')
-      const inject = source.inject as unknown as () => AgentPresetSectionInjected
-      return ctx.slots.register({
-        name: 'settings.section', id: 'agent-presets', priority: -100,
-        order: source.options.order, label: source.options.label, locale: 'settings.agentPreset',
-        inject: () => ({ ...inject(), foldLabels }),
-      }, AgentPresetSection)
-    },
-  })
+  // The Agent presets settings section stays official: `settings.section` is a list slot and the
+  // official settings navigation lists raw entries, so a priority -100 shadow there showed a second
+  // "Agent presets" row. Its patched typography lives in official-controls.css instead.
 }
