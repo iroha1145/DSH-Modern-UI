@@ -1,6 +1,7 @@
 /* Exact classes from the pinned rc.4 Web shell and official client bundles.
- * Verified against published CSS and real official React markup by
- * tests/plugin/official-controls.test.mjs. This is a delta over official CSS;
+ * Each rule was checked against the published CSS and real official React
+ * markup when it was added (the former tests/plugin/official-controls.test.mjs
+ * left with the repository tests). This is a delta over official CSS;
  * colors/radius tokens already come from Modern's theme. No substring selectors.
  * The body attribute is owned and withdrawn by installOfficialControls. */
 body[data-modern-official-controls] ._button_1rv3m_2 {

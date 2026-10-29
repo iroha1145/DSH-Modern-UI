@@ -45,7 +45,10 @@ export function parseGfmWithMath(text: string): Root {
     // `mathCompatibility()` MUST stay last: micromark dispatches the extension
     // registered last first, so its dollar flow takes precedence over `math()`
     // and keeps the opening line's text as math instead of upstream's fence meta.
-    extensions: [gfm(gfmOptions), cjkFriendlyStrong(), math(), mathCompatibility()],
+    // Upstream single-dollar text math has no delimiter rules, so a price such as
+    // `$115.36亿` paired with the next `$` and swallowed bold markers; the guarded
+    // single-dollar construct in `mathCompatibility()` replaces it.
+    extensions: [gfm(gfmOptions), cjkFriendlyStrong(), math({ singleDollarTextMath: false }), mathCompatibility()],
     mdastExtensions: [gfmFromMarkdown(), mathFromMarkdown()],
   }), text)
 }

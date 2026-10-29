@@ -19,7 +19,7 @@
 
 这两处会把 priority `-100` 的遮挡条目和原条目各列一行，两行 id 相同，点任一行都会同时高亮。所以不要在 list 槽上用遮挡替换官方条目。
 
-还剩一处同类情况没改：`plugin-documents` 在 `plugins.tab` 上遮挡 id `discover`，用来在「发现」标签里显示插件 README。启用 `@deepseek-ai/dsh-experimental-plugin-market-bundle` 时，插件管理页会出现两个「发现」标签；去掉遮挡会丢掉 README 显示，需要另行决定做法。
+同类情况还有一处：`plugin-documents` 在 `plugins.tab` 上遮挡 id `discover`，用来在「发现」标签里显示插件 README。官方插件市场界面不渲染任何子槽，也不显示 README，没有能挂进去的位置，所以这处遮挡保留。启用 `@deepseek-ai/dsh-experimental-plugin-market-bundle` 时标签栏会多出一个「发现」，2026-10-29 起由 `official-surfaces.css` 隐藏：按 SegmentedTabs 的 `role="tab"` 和 `${tabsId}-${id}` 的 id 后缀，藏起后出现的同 id 标签；藏起期间可见标签平分列宽，选中态画在选中的标签上，因为官方的滑块按行数和行号定位。剩下一个小毛病：用方向键移向被藏起的那一格时没有反应，焦点留在原处；向左和 Home 键正常。
 
 ## 公开生命周期 helper
 
