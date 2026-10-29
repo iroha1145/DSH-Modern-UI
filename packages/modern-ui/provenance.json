@@ -1036,7 +1036,7 @@
       "source": "packages/client/ui-model-selection/src/client/ModelSelect.module.css",
       "target": "src/vendor/model/client/ModelSelect.module.css",
       "sourceSha256": "0de0065c688b56e0d76f732f483ab0414d02a8352c8a8f39a68331e4b4b641dc",
-      "targetSha256": "906f9da78e96be2ded509aef8f400949a73af515a0ee9c039f376aa06d33fe01",
+      "targetSha256": "84fa834db4136a6077b291e4071117a6b7b36676f81c66352705539b3dc322dc",
       "adapted": true
     },
     {
@@ -2163,14 +2163,14 @@
       "source": "packages/client/ui-theme/src/client/styles.ts",
       "target": "src/vendor/theme/client/styles.ts",
       "sourceSha256": "36d0fadcf87d9903ed84c0cfb64096598e4a1863c84327337eda8da00d157c3e",
-      "targetSha256": "20c39a2a4fff30f4ff5e2a74585fdec0cae31a0d0a98e44e0155931cc6ee198e",
+      "targetSha256": "af77cdddfd9a3020dd9348406a1e9c594309345e0dee6d20a408a5c1a1f8492b",
       "adapted": true
     },
     {
       "source": "packages/client/ui-theme/src/styles/base.css",
       "target": "src/vendor/theme/styles/base.css",
       "sourceSha256": "eca218aa6a72c1c69dcb991b0cac7f0252248a6db710906bec214a18fcf55940",
-      "targetSha256": "7d772ed7a615f393bc61122f438f4897efc911f780a2807fc358b5d4a2e09a52",
+      "targetSha256": "7a5a4bf8b4cc5421833f01534784126d0bb1d0336d9afdbe8c0352d245dfd86c",
       "adapted": true
     },
     {
@@ -2191,8 +2191,8 @@
       "source": "packages/client/ui-theme/src/styles/design-platform.css",
       "target": "src/vendor/theme/styles/design-platform.css",
       "sourceSha256": "7c268e5c64ab548220c813ac69bd17ed16323b3933aa6afa011d888844e51f22",
-      "targetSha256": "7c268e5c64ab548220c813ac69bd17ed16323b3933aa6afa011d888844e51f22",
-      "adapted": false
+      "targetSha256": "c74b2e13090e5a921811c18b1268d84ff6ebf6da97b08fa5d2e1128d075a6692",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-theme/src/styles/extensions.css",
@@ -2758,14 +2758,7 @@
       "source": "packages/client/ui-chat/src/client/chat/RunningStatus.tsx",
       "target": "src/vendor/chat/client/chat/RunningStatus.tsx",
       "sourceSha256": "e40290b1289a71da6e571e53ea01d088386250a695a50c0a31dd641d5b28cdb2",
-      "targetSha256": "4b0784b8e53e017ab2ec8f6ac1903cede3c7d6ed942809a5e2428361cb500a7a",
-      "adapted": true
-    },
-    {
-      "source": "packages/client/ui-chat/src/client/chat/LoadingState.module.css",
-      "target": "src/vendor/chat/client/chat/RunningStatus.module.css",
-      "sourceSha256": "0e5cc613c946a06b5e40482a109ee1a97c7cd0ac7c0226632e4a2f4c63b7b6a7",
-      "targetSha256": "a71237c926b1bdfc4ecc9363c446bf1d680b7f59c473c15a5fa0db4a2cb9cc3a",
+      "targetSha256": "9aef2246d80e5b05fa73d44cf4ca7abde52e7735bb7d217faf572dba48ddd570",
       "adapted": true
     },
     {
@@ -3144,8 +3137,8 @@
       "source": "packages/client/ui-chat/src/client/conversation-nodes/chat-snapshot-builder.ts",
       "target": "src/vendor/chat/client/conversation-nodes/chat-snapshot-builder.ts",
       "sourceSha256": "e3b6173efc12ce5b147d8fdf9f2cd3309f28ef002d7bac4d29480905b64dbb2d",
-      "targetSha256": "e3b6173efc12ce5b147d8fdf9f2cd3309f28ef002d7bac4d29480905b64dbb2d",
-      "adapted": false
+      "targetSha256": "240eaa5fd470513acaf64836d9cbc3d4143474f5888b96e595d670bda7cbcb6a",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/conversation-nodes/command.ts",
@@ -3277,7 +3270,7 @@
       "source": "packages/client/ui-chat/src/client/conversation-nodes/turn-process.ts",
       "target": "src/vendor/chat/client/conversation-nodes/turn-process.ts",
       "sourceSha256": "c332215c684270d660cb365032c5cbcb5ca03984422c0c133eba5283dc35736e",
-      "targetSha256": "bbf401eccf31c573a010df2ed24b240060f3f552285073178f56267de6bcce33",
+      "targetSha256": "5570396b8f708aea213a819aeea35a790653a703b39b9ebc67c9bf4527b3077c",
       "adapted": true
     },
     {
@@ -3790,7 +3783,7 @@
     },
     {
       "target": "src/schedule-styles.css",
-      "targetSha256": "5c49ca562f29cfd081bc53c78a157441489e73f56aaf5b3e9dbb91bd61ec119b",
+      "targetSha256": "d939011182c1331fc338a70f1b5e3965bc47d41325dfcb25e17b9a55743e072d",
       "sources": [
         {
           "source": "packages/client/ui-schedule/src/client/ScheduleTurnCard.module.css",
@@ -3818,7 +3811,7 @@
     },
     {
       "target": "src/official-surfaces.css",
-      "targetSha256": "b83cbc7b872eff6e350c51f151eea8cf6cad8f9a842d0b0a45da9b01b7032a9c",
+      "targetSha256": "72559da48e23699ca52a349356ba8e8942ff3ed9ab7a1cb9efebfce7d73ba44f",
       "sources": [
         {
           "source": "packages/client/ui-input-trigger/src/client/MenuView.module.css",
@@ -3847,6 +3840,10 @@
         {
           "source": "packages/client/ui-chat/src/client/chat/MessageIconActions.module.css",
           "sourceSha256": "587ca94bb9b7de366278f0a7cb8374e5665bd2727ec2556ee9eca3d13c4f87ef"
+        },
+        {
+          "source": "packages/client/ui-sidebar-files/src/client/FilesBody.module.css",
+          "sourceSha256": "a1c33c0c811ea567e22351ce1907c4c59a1fa125dda2a13584a1b9c0d1c34562"
         }
       ]
     },
@@ -3918,7 +3915,7 @@
     },
     {
       "target": "src/official-controls.css",
-      "targetSha256": "80b968a059c80a267a9b5c94301bd723676a9f0296a30e6612d8db7e4b211ef7",
+      "targetSha256": "50160ea4ab846e21aaf6eea2036254a70b01a2f66d9d24d47a62d6832532f45c",
       "sources": [
         {
           "source": "packages/client/ui-primitives/src/Button.module.css",
@@ -3971,6 +3968,30 @@
         {
           "source": "packages/client/ui-sidebar-documentpreview/src/client/office/FontNotice.module.css",
           "sourceSha256": "971af9e7a97f5c1d583baf28575787dcb30429251ee3beb16a65ae6f6d94d1c8"
+        },
+        {
+          "source": "packages/client/ui-plugin-manager/src/client/PluginManagerPage.module.css",
+          "sourceSha256": "cbd2082baf275dc6a5f083c4430a94cdf56293a05c05acd11ea561b50e8ed558"
+        },
+        {
+          "source": "packages/client/ui-settings-models/src/client/ModelsSection.module.css",
+          "sourceSha256": "c00e2f3c612e74b728e26255da8ed86187dc2c863539dea7be1ff023763e7a3f"
+        },
+        {
+          "source": "packages/client/ui-settings-plugins/src/client/PluginsSettingsSection.module.css",
+          "sourceSha256": "064b39c20b7a59fec3fa5427db5007e131e80162104ab4be4c1d0e8dc03c4199"
+        },
+        {
+          "source": "packages/client/ui-settings-subagent/src/client/SubagentCard.module.css",
+          "sourceSha256": "c50c56242568d9519a739e4f3ef86a9f20967ed806ed1d2446a5492cd44e772f"
+        },
+        {
+          "source": "packages/client/ui-commands/src/client/PopupSelectView.module.css",
+          "sourceSha256": "b77649f0111a6921cd83b1b0eeeb4e0d611fcbf637b202c6a48a46fd162b8b1b"
+        },
+        {
+          "source": "packages/client/ui-sidebar-terminal/src/client/terminal.module.css",
+          "sourceSha256": "6261af329ba405db37dc12eba77c7e733dd94fbbbdd5b5ddb784ad8be04a234e"
         }
       ],
       "description": "Selected patched style deltas mapped to exact published rc.4 Web/client classes. The retired ConfigField delta applies only to the current SettingsValueField gap; no retired component or business owner is restored."
@@ -4976,7 +4997,7 @@
         "source": "packages/boot/plugin-market/src/detail.ts",
         "sourceSha256": "d184e6c6eca2c478083db21cc2dd0ab3d748bbc9881537e38968b66e4536ccaf",
         "target": "plugin-documents/detail.ts",
-        "targetSha256": "82c645dfcb56e72f503654d790710c24dc42c4a6621215e53933848d5e0a7551",
+        "targetSha256": "ce407e1198f0595e84b822a6e9773e1d7295a9eefcb89d4c52d95c0bae24b9f8",
         "adapted": true
       },
       {
@@ -5018,7 +5039,7 @@
         "source": "packages/boot/plugin-market/src/repository-cache.ts",
         "sourceSha256": "0c7b415368079c7193e1981410df38ad4841ee8585e6cb84bdaf991e658eec73",
         "target": "plugin-documents/repository-cache.ts",
-        "targetSha256": "5bce270f83c0c6b9145a2d60176e1a8a96830581f1ada7b96f34f39615525ffa",
+        "targetSha256": "1986cebcddb0b8903e0a35fbacad8babd728e108cedbabce674b94913a73c854",
         "adapted": true
       },
       {
