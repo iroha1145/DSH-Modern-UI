@@ -12,6 +12,8 @@ import type {
   ChatTurnNavigationIndex, ChatTurnProcessPresentation, LegacyConversationSlice, TurnNavigationItem,
 } from '../contract/snapshot.ts'
 import { isAtOrOutside } from '../contract/group-tree.ts'
+import { isClosingReply } from '../contract/turn-process.ts'
+import type { AssistantBlock } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { locationCoordinates } from './common.ts'
 import { sessionRecallLabels, skillInvocationName } from './event-projection.ts'
 import { GroupTreeSegments } from './group-tree-segments.ts'
@@ -430,9 +432,17 @@ function processPresentationInputChanged(
   if (previous.kind === 'turn-process' && next.kind === 'turn-process') {
     return previous.data !== next.data
   }
+  // A keyed Assistant Step never changes its step number; what the Turn presentation reads from it is
+  // whether it is a closing reply (a later answer Step) and whether it holds reasoning (non-reply process).
+  // Comparing those two facts recomputes the Turn only when one of them flips during streaming.
   return previous.kind === 'assistant-step'
     && next.kind === 'assistant-step'
-    && previous.data.step !== next.data.step
+    && (isClosingReply(previous.data.blocks) !== isClosingReply(next.data.blocks)
+      || hasVisibleReasoning(previous.data.blocks) !== hasVisibleReasoning(next.data.blocks))
+}
+
+function hasVisibleReasoning(blocks: readonly AssistantBlock[]): boolean {
+  return blocks.some(block => block.kind === 'reasoning' && block.text.trim() !== '')
 }
 
 interface TurnProcessPresentation {
