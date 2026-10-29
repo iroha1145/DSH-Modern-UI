@@ -136,7 +136,8 @@ function buildRows(diffs: DiffHunk[]): DiffRow[] {
  */
 function contentLines(text: string): string[] {
   if (text === '') return []
-  const body = text.endsWith('\n') ? text.slice(0, -1) : text
+  const normalized = text.replaceAll('\r\n', '\n')
+  const body = normalized.endsWith('\n') ? normalized.slice(0, -1) : normalized
   return body.split('\n')
 }
 

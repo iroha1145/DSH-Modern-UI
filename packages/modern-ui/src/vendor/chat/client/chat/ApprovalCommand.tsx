@@ -13,7 +13,7 @@ interface ApprovalToolCall {
  * @param call - Tool call arguments, when a correlated call exists.
  * @returns command text, or undefined for absent, malformed, or unrelated arguments.
  */
-export function commandOf(call: ApprovalToolCall | undefined): string | undefined {
+function commandOf(call: ApprovalToolCall | undefined): string | undefined {
   if (call === undefined) return undefined
   try {
     const args = JSON.parse(call.argsRaw) as Record<string, unknown>

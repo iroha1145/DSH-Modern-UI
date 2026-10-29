@@ -11,7 +11,7 @@ type AssistantNodeViewProps = ChatNodeViewProps<'assistant-step'> & InjectFace<P
 /** Streaming, settled, and interrupted Assistant states share one keyed renderer instance. */
 export const AssistantNodeView = memo(function AssistantNodeView({
   node, groupPart, useDisclosure, useGroupAction, useTurnData, turnProcess, openFile, loadImage, fileMentions,
-  usePresentation, useChat, renderSlot, renderSlotChain, t, cwd, sessionId, openExternalLink,
+  usePresentation, useChat, renderSlot, renderSlotChain, t, cwd, openExternalLink,
 }: AssistantNodeViewProps) {
   const data = node.data
   const toolsRunning = useChat(snapshot => snapshot.legacy.runningCalls.length > 0)

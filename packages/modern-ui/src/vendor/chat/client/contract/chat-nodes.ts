@@ -121,7 +121,7 @@ export interface TurnProcessChatData {
  * @param block - Tool root lifecycle value.
  * @returns whether the root carries its final result.
  */
-export function isSettledTool(block: ToolCallBlock): block is Extract<ToolCallBlock, { kind: 'tool-result' }> {
+function isSettledTool(block: ToolCallBlock): block is Extract<ToolCallBlock, { kind: 'tool-result' }> {
   return 'kind' in block
 }
 

@@ -467,18 +467,10 @@
 
 .collapsed .newSessionContent { justify-content: center; }
 
-.navIconSvg,
 .newSessionContent > svg {
   flex: none;
   color: var(--ink-2);
   transition: color 140ms ease, transform 220ms var(--ease-spring);
-}
-
-@media (hover: hover) {
-  .newSession:hover .navIconSvg {
-    color: var(--ink);
-    transform: translateY(-0.5px) scale(1.03);
-  }
 }
 
 .newSessionShortcut {
@@ -575,37 +567,6 @@
   flex-direction: column;
   margin-top: auto;
   padding: 6px 2px 0;
-}
-
-.sidebarConnection {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 8px;
-  margin-bottom: 6px;
-  border-top: 0.5px solid var(--line);
-  border-bottom: 0.5px solid var(--line);
-  color: var(--ink-2);
-  font-size: var(--fs-label, 0.75rem);
-  line-height: 1.3;
-  user-select: none;
-}
-
-.sidebarConnectionText {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.statusDot {
-  flex: none;
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  corner-shape: round;
-  background: var(--green, #127152);
 }
 
 .settingsArea,
@@ -710,7 +671,8 @@
     position: fixed;
     inset: var(--dsh-frame-chrome-top, 0px) 0 auto;
     z-index: 79;
-    display: flex;
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
     align-items: center;
     gap: 8px;
     box-sizing: border-box;

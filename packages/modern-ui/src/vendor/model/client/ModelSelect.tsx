@@ -49,6 +49,7 @@ import {
 } from './profiles.ts'
 import { VendorMarkIcon } from './VendorMarkIcon.tsx'
 import { formatPrice } from './format-price.ts'
+import { useDismissBehindModal } from '../../primitives/useDismissBehindModal.ts'
 
 /** Catalogs above this many models show search. */
 const SEARCH_THRESHOLD = 8
@@ -115,6 +116,7 @@ export function ModelSelect({
   const [toast, setToast] = useState<{ seq: number; text: string } | null>(null)
   const toastSeq = useRef(0)
   const rootRef = useRef<HTMLDivElement | null>(null)
+  useDismissBehindModal(rootRef, open, () => { setOpen(false) })
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const searchRef = useRef<HTMLInputElement | null>(null)
   const listRef = useRef<HTMLDivElement | null>(null)
@@ -306,7 +308,10 @@ export function ModelSelect({
 
   const submit = (selection: ModelSelection, closeOnSuccess: boolean): void => {
     lastActionRef.current = 'select'
-    void select(selection).then((result) => { settle(result, closeOnSuccess) })
+    void select(selection).then(
+      (result) => { settle(result, closeOnSuccess) },
+      (error: unknown) => { announce(t('error.action', { message: error instanceof Error ? error.message : String(error) })) },
+    )
   }
 
   const pick = (row: Row | undefined): void => {

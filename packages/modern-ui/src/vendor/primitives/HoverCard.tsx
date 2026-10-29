@@ -7,6 +7,7 @@ import { usePointerGrace } from './pointer-grace.ts'
 import { overlayTopMargin } from './overlay-top-margin.ts'
 import { HoverCardGroupContext } from './HoverCardGroup.tsx'
 import css from './HoverCard.module.css'
+import { useDismissBehindModal } from './useDismissBehindModal.ts'
 
 /** Preview opacity transition and retained lifetime during dismissal. */
 const PREVIEW_FADE_MS = 100
@@ -23,6 +24,13 @@ interface CardPosition {
   maxWidth?: number
   maxHeight?: number
   bridge?: { left: number; top: number; width: number; height: number }
+}
+
+function samePosition(previous: CardPosition | null, next: CardPosition): boolean {
+  return previous !== null && previous.left === next.left && previous.top === next.top
+    && previous.width === next.width && previous.maxWidth === next.maxWidth && previous.maxHeight === next.maxHeight
+    && previous.bridge?.left === next.bridge?.left && previous.bridge?.top === next.bridge?.top
+    && previous.bridge?.width === next.bridge?.width && previous.bridge?.height === next.bridge?.height
 }
 
 /**
@@ -117,6 +125,7 @@ export function HoverCard({
     clearCopied()
     setPhase('closed')
   }, [clearTimer, cancelClose, clearCopied])
+  useDismissBehindModal(rootRef, open, dismissImmediately)
   // A fading preview still owns the group's visible card until it unmounts or another card replaces it.
   const groupVisible = open && positioned
   useLayoutEffect(() => {
@@ -157,11 +166,13 @@ export function HoverCard({
     if (!open || (variant !== 'preview' && !inline)) return
     const dismiss = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') return
-      if (inline) event.stopPropagation()
       clearTimer()
       cancelClose()
       close()
     }
+    // Inline cards listen during capture without stopping the event: an anchor
+    // control that stops keydown propagation (the quote chip's remove button)
+    // still closes its card, and the focused control still receives Escape.
     window.addEventListener('keydown', dismiss, inline)
     return () => { window.removeEventListener('keydown', dismiss, inline) }
   }, [open, variant, inline, cancelClose, close])
@@ -170,6 +181,7 @@ export function HoverCard({
   // open (capture-phase scroll catches nested panes), as in Menu portal mode.
   useLayoutEffect(() => {
     if (!open) { setPos(null); return }
+    const publish = (next: CardPosition): void => { setPos(previous => samePosition(previous, next) ? previous : next) }
     const place = () => {
       const wrapper = rootRef.current
       /* v8 ignore next -- the ref is attached before the layout effect runs and the listeners die with it. */
@@ -185,7 +197,7 @@ export function HoverCard({
         const below = Math.max(0, window.innerHeight - belowTop - VIEWPORT_MARGIN)
         const onTop = above >= Math.min(PREVIEW_MAX_HEIGHT, below)
         const maxHeight = Math.min(PREVIEW_MAX_HEIGHT, onTop ? above : below)
-        setPos({
+        publish({
           left: Math.max(VIEWPORT_MARGIN, Math.min(bounds.left + PREVIEW_INSET, window.innerWidth - width - VIEWPORT_MARGIN)),
           top: onTop ? Math.max(topMargin, r.top - Math.min(h, maxHeight) - ANCHOR_GAP) : belowTop,
           width, maxHeight,
@@ -206,7 +218,7 @@ export function HoverCard({
         const top = onTop ? r.top - ANCHOR_GAP - Math.min(height, maxHeight) : belowTop
         const bridgeTop = onTop ? top + Math.min(height, maxHeight) : r.bottom
         const bridgeLeft = Math.min(r.left, left)
-        setPos({
+        publish({
           left, top, ...fitContent ? {} : { width }, maxWidth, maxHeight,
           bridge: {
             left: bridgeLeft, top: bridgeTop,
@@ -217,19 +229,25 @@ export function HoverCard({
         return
       }
       const top = r.top + h > window.innerHeight - VIEWPORT_MARGIN ? window.innerHeight - h - VIEWPORT_MARGIN : r.top
-      setPos({ left: r.right + ANCHOR_GAP, top })
+      publish({ left: r.right + ANCHOR_GAP, top })
     }
     place()
-    const observer = (variant === 'preview' || inline) && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(place) : null
+    let frame: number | undefined
+    const schedule = (): void => {
+      if (frame !== undefined) return
+      frame = window.requestAnimationFrame(() => { frame = undefined; place() })
+    }
+    const observer = (variant === 'preview' || inline) && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(schedule) : null
     for (const element of [cardRef.current, rootRef.current, widthAnchorRef?.current]) {
       if (element !== null && element !== undefined) observer?.observe(element)
     }
-    window.addEventListener('scroll', place, true)
-    window.addEventListener('resize', place)
+    window.addEventListener('scroll', schedule, { capture: true, passive: true })
+    window.addEventListener('resize', schedule)
     return () => {
       observer?.disconnect()
-      window.removeEventListener('scroll', place, true)
-      window.removeEventListener('resize', place)
+      if (frame !== undefined) window.cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', schedule, true)
+      window.removeEventListener('resize', schedule)
     }
   }, [open, variant, widthAnchorRef, positioned, inline, fitContent])
 
@@ -311,7 +329,7 @@ export function HoverCard({
         if (!disabled && event.target.matches(':focus-visible')) { cancelClose(); setPhase('open') }
       } : undefined}
       onBlur={inline ? (event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) { clearTimer(); cancelClose(); close() }
+        if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) { clearTimer(); cancelClose(); close() }
       } : undefined}
       onPointerEnter={(event) => {
         if (disabled || event.pointerType === 'touch') return

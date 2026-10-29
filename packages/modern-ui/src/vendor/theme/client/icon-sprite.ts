@@ -19,8 +19,12 @@ export function createIconSprite(document: Document): SVGSVGElement {
   sprite.setAttribute('focusable', 'false')
   // Zero-size rather than display:none: referenced symbols must stay renderable.
   sprite.setAttribute('style', 'position:absolute;width:0;height:0;overflow:hidden')
-  for (const [id, source] of Object.entries(ICON_SYMBOLS)) {
-    const root = parser.parseFromString(source, 'image/svg+xml').documentElement
+  const icons = Object.entries(ICON_SYMBOLS)
+  const artwork = parser.parseFromString(`<svg xmlns="${SVG_NS}">${icons.map(([, source]) => source).join('')}</svg>`, 'image/svg+xml')
+  if (artwork.getElementsByTagName('parsererror').length > 0) throw new Error('Icon artwork is not valid SVG')
+  const roots = Array.from(artwork.documentElement.children)
+  for (const [index, [id]] of icons.entries()) {
+    const root = roots[index]!
     if (root.localName !== 'svg') throw new Error(`Icon artwork ${id} is not an SVG document`)
     const symbol = document.createElementNS(SVG_NS, 'symbol')
     symbol.id = id

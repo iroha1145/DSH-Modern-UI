@@ -273,35 +273,6 @@
   line-height: calc(22px + var(--dsh-content-font-delta, 0px));
 }
 
-/* The last visible row before the status must contain output, not an input.
-   Hidden and empty seats do not separate a user message from the status, and
-   the steering/Inbox echoes after the status are outside the count. */
-:is(.column, :global([data-slot="conversation.chat.flow"])) > :nth-last-child(2 of :not([hidden]):not([data-pending-steering]):not(.flowItem:is(:empty, :has(> [data-slot="conversation.chat.node"]:empty)))):is(
-  .flowItem:not([data-chat-flow-kind="user"]):not([data-chat-flow-kind="steering"]):not([data-chat-flow-kind="turn-trigger"]),
-  [data-chat-group-key]
-) ~ .running > .runningDivider {
-  opacity: 1;
-}
-
-/* Drawn inside the 16px offset above the status row, so showing or hiding it
-   never changes the tail slot's height. */
-.runningDivider {
-  position: absolute;
-  top: -4px;
-  left: 0;
-  right: 0;
-  height: 0.5px;
-  background: color-mix(in srgb, var(--dsw-alias-border-l1) 75%, var(--dsw-alias-border-l2));
-  opacity: 0;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .runningDivider {
-    transition: opacity 160ms ease;
-  }
-}
-
 /* Same offset and height as the completed Turn's tail actions row. */
 .runningContent {
   display: inline-flex;
@@ -310,16 +281,6 @@
   gap: 8px;
   margin-top: 4px;
   height: 28px;
-}
-
-.runningIcon {
-  position: relative;
-  display: inline-flex;
-  flex: none;
-  width: calc(14px + var(--dsh-content-font-delta, 0px));
-  height: calc(14px + var(--dsh-content-font-delta, 0px));
-  contain: strict;
-  overflow: hidden;
 }
 
 .openError {

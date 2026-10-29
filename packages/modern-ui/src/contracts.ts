@@ -3,7 +3,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-model-selection/client'
 import type {} from '@deepseek-ai/dsh-client-ui-subagent/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
-import type { SlotMap } from '@deepseek-ai/dsh-client-ui-slots'
+
 import type { MessageCodeOwnerProps } from './vendor/chat/client/contract/slots.ts'
 import type * as intelligentLocale from './vendor/intelligent/client/locales.ts'
 import type * as modelLocale from './vendor/model/client/locales.ts'

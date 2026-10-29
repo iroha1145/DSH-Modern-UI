@@ -85,7 +85,7 @@ export interface FlowMotion extends FlowMotionRows {
  * @param element - row about to be hidden.
  * @returns whether the fade-then-close transition applies.
  */
-export function motionEnabled(element: HTMLElement): boolean {
+function motionEnabled(element: HTMLElement): boolean {
   if (element.closest(MOTION_SCOPE) === null) return false
   return typeof matchMedia !== 'function' || !matchMedia('(prefers-reduced-motion: reduce)').matches
 }

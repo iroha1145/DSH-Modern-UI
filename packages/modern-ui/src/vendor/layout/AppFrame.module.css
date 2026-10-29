@@ -67,6 +67,17 @@
   z-index: 5;
 }
 
+/* Keep the fading sidebar inside its shrinking track; fixed caption controls
+   keep their viewport containing block and remain available when it closes. */
+.frame:not([data-mobile-layout])[data-sidebar-collapsed] .sidebarCol {
+  overflow: clip;
+}
+
+:global([data-platform='darwin']) .frame[data-sidebar-collapsed] .sidebarCol,
+:global([data-windows-titlebar]) .frame[data-sidebar-collapsed] .sidebarCol {
+  padding-left: 0;
+}
+
 .centerCol {
   min-width: 0;
   display: flex;

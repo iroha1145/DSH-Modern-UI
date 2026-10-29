@@ -118,14 +118,24 @@ export function installCommunityMarkdown(ctx: Context): void {
       }
       scan(document.body)
       const observer = new view.MutationObserver(records => {
+        const blocks = new Set<HTMLElement>()
+        const added = new Set<Node>()
+        let removed = false
         for (const record of records) {
-          if (record.type === 'attributes') attach(record.target as HTMLElement)
+          if (record.type === 'attributes') blocks.add(record.target as HTMLElement)
           else {
-            scan(record.target)
-            record.addedNodes.forEach(scan)
+            const target = record.target instanceof view.Element ? record.target : record.target.parentElement
+            const block = target?.closest<HTMLElement>('.md-code-block')
+            if (block) blocks.add(block)
+            record.addedNodes.forEach(node => added.add(node))
+            removed ||= record.removedNodes.length > 0
           }
         }
-        for (const fold of folds.values()) if (!fold.block.isConnected || !fold.block.matches(BLOCKS)) withdraw(fold)
+        blocks.forEach(attach)
+        added.forEach(scan)
+        if (removed) {
+          for (const fold of folds.values()) if (!fold.block.isConnected || !fold.block.matches(BLOCKS)) withdraw(fold)
+        }
       })
       observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-mermaid-processed'] })
       const unsubscribe = ctx.locale.subscribe(() => folds.forEach(label))

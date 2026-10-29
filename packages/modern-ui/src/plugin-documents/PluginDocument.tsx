@@ -25,7 +25,7 @@ export function PluginDocument({ target, language, t }: { target: DocumentTarget
     void fetch(url, { signal: controller.signal, credentials: 'same-origin', headers: { accept: 'application/json' } })
       .then(async response => {
         if (!response.ok) {
-          const failure: unknown = await response.json()
+          const failure: unknown = await response.json().catch(() => null)
           const reason = typeof failure === 'object' && failure !== null && 'reason' in failure ? failure.reason : undefined
           throw new Error(typeof reason === 'string' ? reason : 'network')
         }

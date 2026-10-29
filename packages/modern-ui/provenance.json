@@ -49,7 +49,7 @@
       "source": "packages/client/ui-chat/src/client/chat/AssistantNodeView.tsx",
       "target": "src/vendor/chat/client/chat/AssistantNodeView.tsx",
       "sourceSha256": "9254fd36ee078431e577da45227f727c14587ebc3c70cc190130d3820771f72b",
-      "targetSha256": "b2f2194a5f3d42c8d830911f654c1c5b4823ef942cb90774f8dbbc815dfa4c73",
+      "targetSha256": "2d04d1c78cd010cd6df18aa4463e262e4a77f0cd9b11a26c4882694b100f9fd6",
       "adapted": true
     },
     {
@@ -140,8 +140,8 @@
       "source": "packages/client/ui-chat/src/client/chat/MessageItem.module.css",
       "target": "src/vendor/chat/client/chat/MessageItem.module.css",
       "sourceSha256": "48df552f42e88383af5acdb05f4c113282e709b4d379b599e47c3acdc4c74479",
-      "targetSha256": "48df552f42e88383af5acdb05f4c113282e709b4d379b599e47c3acdc4c74479",
-      "adapted": false
+      "targetSha256": "94be9d426754316dfa6307a82c769918e4e08a53a3b3a1db3dfb379a901ee69b",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/chat/MessageItem.tsx",
@@ -203,7 +203,7 @@
       "source": "packages/client/ui-chat/src/client/contract/slots.ts",
       "target": "src/vendor/chat/client/contract/slots.ts",
       "sourceSha256": "37f685abcb155b1ed98b446ce529911395fc98efd960e57a5206d21fc2b9a594",
-      "targetSha256": "f351d1f2368ab9782d14df042fd84f13a9f79186129c7fa135c4a1b4d8709ffc",
+      "targetSha256": "7bc21fa3b783d0eb97ee598c894c1c9537c9536fe2adb622bbb0d90628a517c0",
       "adapted": true
     },
     {
@@ -315,7 +315,7 @@
       "source": "packages/client/ui-conversation/src/client/contract/slots.ts",
       "target": "src/vendor/conversation/client/contract/slots.ts",
       "sourceSha256": "8a56dfab0c74a506a7c58d8ce49521c3fa999a3db078597a62d5cd27486db196",
-      "targetSha256": "2248164faa0ecb6b02cd3803e93b746062951ce8f5b0bfc3dad6fe81ed345bd8",
+      "targetSha256": "cdcc7a265b8f7390de5d406812b21cab87726d3ad5fdc36e417491d00e5f2912",
       "adapted": true
     },
     {
@@ -770,7 +770,7 @@
       "source": "packages/client/ui-conversation/src/client/skeleton/HeroShell.module.css",
       "target": "src/vendor/conversation/client/skeleton/HeroShell.module.css",
       "sourceSha256": "725f0454ab60f765d9ea54085545b208a4422e6d07a35daa3a05105e5fa988c7",
-      "targetSha256": "d7680053e324aaef63adcac8e66f05b9dd7f4dc8c84c4f9c6b93043f57a597b7",
+      "targetSha256": "589e126d7f13bcadb3294a4c981c68139ad3656fa6106d2793ef19cbc9b98170",
       "adapted": true
     },
     {
@@ -959,7 +959,7 @@
       "source": "packages/client/ui-layout/src/client/AppFrame.module.css",
       "target": "src/vendor/layout/AppFrame.module.css",
       "sourceSha256": "cf23e7703655143656d73b628f579be01cdb7ec62feaff5c9fc913b6f17403e4",
-      "targetSha256": "3ce5dbe754af34e4742385f7b6094bbfceefbc441620471bdd521821d2ebf007",
+      "targetSha256": "5b374799f5883ac626cc9c62b697c2588c044ec082b1f047169a36a1a7f99bd9",
       "adapted": true
     },
     {
@@ -987,7 +987,7 @@
       "source": "packages/client/ui-layout/src/client/index.ts",
       "target": "src/vendor/layout/index.ts",
       "sourceSha256": "f200d6056230ca2821157fe30f2c1704e5a7674bec13521a8f63c059a30fc145",
-      "targetSha256": "a18809f00cb15d8ff61c9401722aa9ebed9d7c821d56560df2b32ee88fb86f30",
+      "targetSha256": "053d1c1d0780791e106cd2436a46240759b79d9eca0cbb415d5b73b10457f21f",
       "adapted": true
     },
     {
@@ -1043,7 +1043,7 @@
       "source": "packages/client/ui-model-selection/src/client/ModelSelect.tsx",
       "target": "src/vendor/model/client/ModelSelect.tsx",
       "sourceSha256": "72cdaf8eee5362562440ddd86519b039da7d012b1b980db40d283f148dad7d1e",
-      "targetSha256": "5e82829469b10b700b37a7e8d0d2f57102e39eb7dc47e1cb7b87d624bc6c53c7",
+      "targetSha256": "d89034834c0ee34fa58755fc37703f78e27f77a34f57dbaf0433478b7fe5398a",
       "adapted": true
     },
     {
@@ -1281,8 +1281,8 @@
       "source": "packages/client/ui-primitives/src/DiffBlock.tsx",
       "target": "src/vendor/primitives/DiffBlock.tsx",
       "sourceSha256": "a1e2f37c5ebecca7c4509e237a268e300722ed899e75c7bdf1b6193ef8c8b8b8",
-      "targetSha256": "a1e2f37c5ebecca7c4509e237a268e300722ed899e75c7bdf1b6193ef8c8b8b8",
-      "adapted": false
+      "targetSha256": "27fec52b068153809b02e77a23e886aad74623e560208d54370ce1f31d7a8ce8",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/DisclosureRow.module.css",
@@ -1379,8 +1379,8 @@
       "source": "packages/client/ui-primitives/src/HoverCard.tsx",
       "target": "src/vendor/primitives/HoverCard.tsx",
       "sourceSha256": "2374c83b864c9f15c9891b8b838c463cdb45f57c06e679952a48c7cf90df52f5",
-      "targetSha256": "2374c83b864c9f15c9891b8b838c463cdb45f57c06e679952a48c7cf90df52f5",
-      "adapted": false
+      "targetSha256": "6f775ae9d0d17d2ea4c5b2a25a3032a39b9765b67b48fed5010a52ba8c2c52bc",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/HoverCardGroup.tsx",
@@ -1456,7 +1456,7 @@
       "source": "packages/client/ui-primitives/src/index.ts",
       "target": "src/vendor/primitives/index.ts",
       "sourceSha256": "0517c7219b0d903502e3e5bfd1dd99c5aab49580fcaebc1bcbb781b156c90865",
-      "targetSha256": "57d5f5d8cd5c879d201702952effa4e754fac7bf0fe6758d67762c18a2561e32",
+      "targetSha256": "70e3cdfceb75b0ef95c4b0fd05568af8ead5731c64dc8638411c29e8eee3095f",
       "adapted": true
     },
     {
@@ -1547,8 +1547,8 @@
       "source": "packages/client/ui-primitives/src/markdown/CodeBlock.tsx",
       "target": "src/vendor/primitives/markdown/CodeBlock.tsx",
       "sourceSha256": "1829b570450f386cfe50054b3705af70fb0b75189e7bcf2786245b7b8632c93d",
-      "targetSha256": "1829b570450f386cfe50054b3705af70fb0b75189e7bcf2786245b7b8632c93d",
-      "adapted": false
+      "targetSha256": "b0916d0ca091468a3809540ff7f9ccf381fdcdf4d6f8751e5e3ecb1673c75f1f",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/markdown/file-link.ts",
@@ -1610,8 +1610,8 @@
       "source": "packages/client/ui-primitives/src/markdown/MarkdownText.module.css",
       "target": "src/vendor/primitives/markdown/MarkdownText.module.css",
       "sourceSha256": "86cc61d8d6bacbe4ebab5d10c672b5a0ec13e6ed7a1c6ee6aaa382dd825432d1",
-      "targetSha256": "86cc61d8d6bacbe4ebab5d10c672b5a0ec13e6ed7a1c6ee6aaa382dd825432d1",
-      "adapted": false
+      "targetSha256": "48c0cc001201969cc112af932d26be1be5b702da6d7e3a4a9752682f2092179e",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/markdown/MarkdownText.tsx",
@@ -1680,8 +1680,8 @@
       "source": "packages/client/ui-primitives/src/Menu.tsx",
       "target": "src/vendor/primitives/Menu.tsx",
       "sourceSha256": "cf0333db81f314e6d1e49f44109499e2443e1301dd42a455429942cacb793b8c",
-      "targetSha256": "cf0333db81f314e6d1e49f44109499e2443e1301dd42a455429942cacb793b8c",
-      "adapted": false
+      "targetSha256": "5a6e4643128c8435adebe155a250eb840b14eed24cc9aa5897a49d87ce3b373d",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/MenuGroup.module.css",
@@ -1824,20 +1824,6 @@
       "adapted": false
     },
     {
-      "source": "packages/client/ui-primitives/src/settings-form/form-model.ts",
-      "target": "src/vendor/primitives/settings-form/form-model.ts",
-      "sourceSha256": "2dcd07c849abcd0b26d9c1855c9870a1dd1231ce58ef9a6d767ba092608ee81b",
-      "targetSha256": "2dcd07c849abcd0b26d9c1855c9870a1dd1231ce58ef9a6d767ba092608ee81b",
-      "adapted": false
-    },
-    {
-      "source": "packages/client/ui-primitives/src/settings-form/SettingsForm.tsx",
-      "target": "src/vendor/primitives/settings-form/SettingsForm.tsx",
-      "sourceSha256": "bfbc1dbb9c718480eedf914ccded57686304726ed6971c65b317cf3b79d8cdee",
-      "targetSha256": "bfbc1dbb9c718480eedf914ccded57686304726ed6971c65b317cf3b79d8cdee",
-      "adapted": false
-    },
-    {
       "source": "packages/client/ui-primitives/src/ShortcutKeys.module.css",
       "target": "src/vendor/primitives/ShortcutKeys.module.css",
       "sourceSha256": "ffa9624099dafb8dfe3e76c57fe26a523cb7943fa5bedd31d3c67e16e3351139",
@@ -1974,8 +1960,8 @@
       "source": "packages/client/ui-primitives/src/useAnchoredPosition.ts",
       "target": "src/vendor/primitives/useAnchoredPosition.ts",
       "sourceSha256": "d75c63cb89c3402deaaeeeab42fde728bc9881eb0c4d4a48153a9ce676043312",
-      "targetSha256": "d75c63cb89c3402deaaeeeab42fde728bc9881eb0c4d4a48153a9ce676043312",
-      "adapted": false
+      "targetSha256": "8ff6840677c0bbd3ca54628106cab9627d03ca504b70464360027ad0f12e8c20",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/useDismissOnOutsidePointer.ts",
@@ -2058,7 +2044,7 @@
       "source": "packages/client/ui-sidebar/src/client/index.ts",
       "target": "src/vendor/sidebar/client/index.ts",
       "sourceSha256": "81f1fea285263f877602eff044a690a18224da88e36176b55ce643c54a1fd192",
-      "targetSha256": "fa232122ed507fabd470e1851350d8e5f03cfdb3f08917980bd3796c2ba70356",
+      "targetSha256": "bc6c0f8b879ae89c569767c881e58795bdbf144845e9c2fdf8c3797cde1a42c4",
       "adapted": true
     },
     {
@@ -2086,7 +2072,7 @@
       "source": "packages/client/ui-sidebar/src/client/SidebarRoot.module.css",
       "target": "src/vendor/sidebar/client/SidebarRoot.module.css",
       "sourceSha256": "30601460ee35c02b0c8465eaa772a97acead4596dcafc7baf358e5e059d716d9",
-      "targetSha256": "b95c07e86e69ac23dc61b5bcaf18fe5cbf24b3d9825d2700bff99c2ebd35725b",
+      "targetSha256": "659b0db92e413f21f3444244ad9a78aa889d69504d046cf6457031e5c770ef04",
       "adapted": true
     },
     {
@@ -2352,7 +2338,7 @@
       "source": "packages/client/ui-tool/src/client/tool/models/auto-review-denial.ts",
       "target": "src/vendor/tool/client/tool/models/auto-review-denial.ts",
       "sourceSha256": "ff7ebd564e0ec34560f95247e1bb88dd3d472c445c32513cce742a1c61bde568",
-      "targetSha256": "e6a580d7bac775400ce1086f14dce04609ccff7cb7688d5dd96ecc3a51a44642",
+      "targetSha256": "a825da2a7d01377e5d3a6be91b89d80da847f9af513dafcd6c20e0427508f1d8",
       "adapted": true
     },
     {
@@ -2457,7 +2443,7 @@
       "source": "packages/client/ui-tool/src/client/tool/models/tool-call-model.ts",
       "target": "src/vendor/tool/client/tool/models/tool-call-model.ts",
       "sourceSha256": "1c9d44c2a2da9953edd922e21a9987995356dfc7fb8f3f066938e779a7927384",
-      "targetSha256": "af00837307f962e946b2c82bf9dac64304c9f99dbe3f7ac58f2a8c182d5370d5",
+      "targetSha256": "09212e1361908d04c1fb97aca5a92e18c1b1c20c9003b72c0509d774ab0df2a6",
       "adapted": true
     },
     {
@@ -2492,7 +2478,7 @@
       "source": "packages/client/ui-tool/src/client/tool/toolviews/GenericToolCard.tsx",
       "target": "src/vendor/tool/client/tool/toolviews/GenericToolCard.tsx",
       "sourceSha256": "3e1025120be63b2ebb4ec62d84fa2cfaf24d41340f4edf8aaf0c5b34127cab9a",
-      "targetSha256": "3610da376f639ac1f9871db0aec30b5cd203f1f6fa7e85597321389dc8dc8467",
+      "targetSha256": "20d042eaec6abe82add6413855438beca559cc643c7468469e9710a78bc1167e",
       "adapted": true
     },
     {
@@ -2548,7 +2534,7 @@
       "source": "packages/experimental/client-ui-cot-translation/src/client/locales.ts",
       "target": "src/vendor/translation/client/locales.ts",
       "sourceSha256": "ca38f436c419f104618a7f817e75ea27b30030066e571922c5b0d9b332cedc4a",
-      "targetSha256": "8902d375fffa9c822249d6e014b4859e57ca67de060d91d6da0a741d938c2f92",
+      "targetSha256": "1dfbca03f8bcb71b5e116cadcf13592b44bcba53d8f0e881b4cf7e8f47393edb",
       "adapted": true
     },
     {
@@ -2569,7 +2555,7 @@
       "source": "packages/experimental/client-ui-cot-translation/src/client/TranslationBody.tsx",
       "target": "src/vendor/translation/client/TranslationBody.tsx",
       "sourceSha256": "4a6525c4cfa0d59138f68d076bb1306a5d62e845bceed507bcabf7a654ef11cc",
-      "targetSha256": "0f794109944609ede6e304c44748960062f1f25d281bea14d2a60c54572aafbd",
+      "targetSha256": "b7ff44d16047b347917d34ca30fbdb8ccac0d7e1e03a0338db103376089bbf53",
       "adapted": true
     },
     {
@@ -2597,7 +2583,7 @@
       "source": "packages/client/ui-workspace/src/client/index.ts",
       "target": "src/vendor/workspace/client/index.ts",
       "sourceSha256": "4509fac9293877f1f55be3b8c58e96daffcb238847c84656237003620e202ecb",
-      "targetSha256": "c70b700400baab922e900058af4128f30c9e40d9df5fc50dfed7549c50daa486",
+      "targetSha256": "10c58a7afdfcf0990d0d986947d9503e820a28cf94771c81cd351c28b3dccc6a",
       "adapted": true
     },
     {
@@ -2787,8 +2773,8 @@
       "source": "packages/client/ui-chat/src/client/chat/ApprovalCommand.tsx",
       "target": "src/vendor/chat/client/chat/ApprovalCommand.tsx",
       "sourceSha256": "5fe1d13f1072d5393d765ccfd8e61734ee5e75cf57949a45e14f392cc874d844",
-      "targetSha256": "5fe1d13f1072d5393d765ccfd8e61734ee5e75cf57949a45e14f392cc874d844",
-      "adapted": false
+      "targetSha256": "31a9b106ae70a40934f9a834f700ff90361a48ac6dc0ac16f6c2a779454bf3b5",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/chat/ChatFlow.tsx",
@@ -2822,7 +2808,7 @@
       "source": "packages/client/ui-chat/src/client/chat/ChatView.module.css",
       "target": "src/vendor/chat/client/chat/ChatView.module.css",
       "sourceSha256": "01a284c505eb6dbe7a23a2dc1397d038aaf1f3189f56850242edab6dd153f8ce",
-      "targetSha256": "583fae08b6b12581b605c5da197122f7d86b2831f0d11628ccd8e56ca38c4111",
+      "targetSha256": "ae428fec09358cbf8dfe6004448863ea4b65bba727aa775b80cc98e7d70c33dd",
       "adapted": true
     },
     {
@@ -2864,7 +2850,7 @@
       "source": "packages/client/ui-chat/src/client/chat/StatsPills.tsx",
       "target": "src/vendor/chat/client/chat/StatsPills.tsx",
       "sourceSha256": "ce5b0c92adf74bdd43a308a412df639f61304cdc565b3dd7f9f4f2be54fd09ab",
-      "targetSha256": "7bfefe14e486a5dd6817fd6e35831581a9dc7ea7eef884aee990ab3f2e1ea452",
+      "targetSha256": "35a48d802f6004ede8b1161cb083b9a308464a8d919953dc2478a14b6c4b8931",
       "adapted": true
     },
     {
@@ -2941,8 +2927,8 @@
       "source": "packages/client/ui-chat/src/client/chat/flow-motion.ts",
       "target": "src/vendor/chat/client/chat/flow-motion.ts",
       "sourceSha256": "6ddaf028928af612e859f8f2dc7ee238c5adb582d3800d6ab371ab8d62565589",
-      "targetSha256": "6ddaf028928af612e859f8f2dc7ee238c5adb582d3800d6ab371ab8d62565589",
-      "adapted": false
+      "targetSha256": "91d9a0cb05c003b0a2c8e9a8df8e22f793811dc80f653142b997ba465aadf926",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/chat/register-node-renderers.ts",
@@ -3081,8 +3067,8 @@
       "source": "packages/client/ui-chat/src/client/contract/chat-nodes.ts",
       "target": "src/vendor/chat/client/contract/chat-nodes.ts",
       "sourceSha256": "d8149515bae80a6114e95f2908aecdcaaa52588bf95829c6ba3606bedb5ba581",
-      "targetSha256": "d8149515bae80a6114e95f2908aecdcaaa52588bf95829c6ba3606bedb5ba581",
-      "adapted": false
+      "targetSha256": "b39bef0c0f17a9951c982f9632ad3c37fe2510d70008b3e35536275b81f49bee",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/contract/chat-visibility.ts",
@@ -3200,8 +3186,8 @@
       "source": "packages/client/ui-chat/src/client/conversation-nodes/process-activity.ts",
       "target": "src/vendor/chat/client/conversation-nodes/process-activity.ts",
       "sourceSha256": "3f8965ae644b13a28ba8b3710fa7d0b3049e1b6296cf06ee62416d3214ce6f2c",
-      "targetSha256": "3f8965ae644b13a28ba8b3710fa7d0b3049e1b6296cf06ee62416d3214ce6f2c",
-      "adapted": false
+      "targetSha256": "fb71dd3e27c38e6f8decdcf8e6dfd327e2626b5078b9a8f1ae378a3f06a59f96",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/conversation-nodes/process-groups.ts",
@@ -3278,27 +3264,6 @@
       "target": "src/vendor/chat/client/conversation-nodes/turn-tail.ts",
       "sourceSha256": "a711d66ecdebac759a298aa3770019d4027c25694059c754d11e58d8afc6ff07",
       "targetSha256": "a711d66ecdebac759a298aa3770019d4027c25694059c754d11e58d8afc6ff07",
-      "adapted": false
-    },
-    {
-      "source": "packages/client/ui-chat/src/client/model/conversation-context.ts",
-      "target": "src/vendor/chat/client/model/conversation-context.ts",
-      "sourceSha256": "b3e6f263e4a265b28fe66f54d710474c1bd3aecd86b0c7c713f090988a05c9d3",
-      "targetSha256": "b3e6f263e4a265b28fe66f54d710474c1bd3aecd86b0c7c713f090988a05c9d3",
-      "adapted": false
-    },
-    {
-      "source": "packages/client/ui-chat/src/client/model/steering-history.ts",
-      "target": "src/vendor/chat/client/model/steering-history.ts",
-      "sourceSha256": "27b7ea36ab8f69c53dfa3a2b885db2748b44319c458a051fcfafd37828885c8c",
-      "targetSha256": "27b7ea36ab8f69c53dfa3a2b885db2748b44319c458a051fcfafd37828885c8c",
-      "adapted": false
-    },
-    {
-      "source": "packages/client/ui-chat/src/client/model/tool-call-tree.ts",
-      "target": "src/vendor/chat/client/model/tool-call-tree.ts",
-      "sourceSha256": "420300ea3c603db10606eaf485f8e8d51e6213d800d8e0cabb78d2dc239b85c0",
-      "targetSha256": "420300ea3c603db10606eaf485f8e8d51e6213d800d8e0cabb78d2dc239b85c0",
       "adapted": false
     },
     {
@@ -3417,7 +3382,7 @@
       "source": "packages/client/ui-plan/src/client/PlanPreview.tsx",
       "target": "src/vendor/plan/client/PlanPreview.tsx",
       "sourceSha256": "1d83f19a2aea8f3d72a48f3a8fce2efb6324427163fbcff31f52a85560c9c55f",
-      "targetSha256": "916ac265fc376cd2dab53d1ef333d6d9637705a0a42a83ea5d5e17705dd25150",
+      "targetSha256": "d844d3e12f569c8fd595dc9903baf91ac6c255edf4e854f63c59dc95b7aa86ba",
       "adapted": true
     },
     {
@@ -3445,7 +3410,7 @@
       "source": "packages/client/ui-plan/src/client/index.ts",
       "target": "src/vendor/plan/client/index.ts",
       "sourceSha256": "cc36cca800a2d9f4bf041985c2bb89c33e8f661d029e47dc37ed64c0365633d4",
-      "targetSha256": "c2e4bf16a677ec5f92eb8a812ca5c03d97dca82045d934c70cdad999b1e78b88",
+      "targetSha256": "e5745e43bd799c1bfa8519debba827c7420b73fb3839052d81a5cecf4f960946",
       "adapted": true
     },
     {
@@ -3508,7 +3473,7 @@
       "source": "packages/session/message-quotes/src/client/quote-rule.ts",
       "sourceSha256": "1a3a9c4e04f483378b06bfbc051c101531e76d0fd15eea9b7dc4b2dd8c40b98b",
       "target": "src/vendor/message-quotes/quote-rule.ts",
-      "targetSha256": "fcb7b6f8902c4f3a82b68fd01013ea8e3fc02a6918696ceea81f5a439d8c6235",
+      "targetSha256": "23eccb3c156f6dd8e1fcd2df1ceede7f64f71fb2d6883d4664a53a757ea6dbfc",
       "adapted": true
     },
     {
@@ -3550,7 +3515,7 @@
       "source": "packages/client/ui-plugin-market/src/client/DiscoverSection.tsx",
       "sourceSha256": "6082724fbb6332113c2574c8f7066160cb773cd7c3e4ba6a0d173c1463ada918",
       "target": "src/vendor/plugin-market/DiscoverSection.tsx",
-      "targetSha256": "264ff6074a1a651df255e549c9f79873a18ccb8acfc0324cd2f181e32ff7c4f2",
+      "targetSha256": "6bdba3c9bc6ed1db54994c796d0582c36aaffd8a8a734b22db8a4a80c700274a",
       "adapted": true
     },
     {
@@ -3639,7 +3604,7 @@
     },
     {
       "target": "src/vendor/theme/client/icon-sprite.ts",
-      "targetSha256": "bb38d17ace855fd28ec35ca8d1e1a628b34562950253349131bbee3ef1517812",
+      "targetSha256": "3dd51df5e1aea0a354a27f23d309720db0b468299c30330bfe9dfd3f29ee9ec9",
       "description": "Mounts the product icon sprite the patched ui-theme shipped with the shell; the official rc.4 shell has no symbols."
     },
     {
@@ -3674,7 +3639,7 @@
     },
     {
       "target": "src/community-markdown.ts",
-      "targetSha256": "55c0bb412641cd89a64b914e9da16f627515343b337cd721649d605e3fe1c6f7",
+      "targetSha256": "3a03dafea1dbf8a0ad827d6b7b9e70855e68b461e74afa59609acc8b8e8af2a3",
       "description": "Original reversible code-disclosure DOM adapter for the observed dsh-better-sidebar 0.28.0 public preview markup. No community controller, viewer, editor or library code is copied."
     },
     {
@@ -3689,12 +3654,12 @@
     },
     {
       "target": "src/plugin-documents/index.tsx",
-      "targetSha256": "927ef018477af305b983977bffcae6436ba99baa4219f7eb593c7d0190aec813",
+      "targetSha256": "c72fab50e4654958bd022876e011ce209fa3f09a08ba94a1ad9e7e8c2461aeac",
       "description": "Original public plugin detail-section registration and discovery-presentation adapter over the official inventory, installer, locale and controller faces."
     },
     {
       "target": "src/plugin-documents/PluginDocument.tsx",
-      "targetSha256": "464218e59254e1de4656f161b389f41eba52584bf910521ee29656c3e2112c0b",
+      "targetSha256": "0ffee1c49ca45f391e1483e1699340f11fe6e00aa165dcf487fae4663e442497",
       "description": "Original authenticated document/image request, cancellation and retry wrapper over the attributed DetailDocument presenter."
     },
     {
@@ -3726,6 +3691,26 @@
       "target": "src/quotes-contract.ts",
       "targetSha256": "bf77270704fe55b85fe4ef1af775ed3a872f7450b7a138b78c15be628b6cc005",
       "description": "Type-only package contract and official module augmentations for third-party text interaction consumers; emitted as the ./quotes declaration export."
+    },
+    {
+      "target": "src/plugin-documents/discover-navigation.ts",
+      "targetSha256": "d309a21eba3a348104c0ec74a7bb918dd952a2485a365d97c9c1afc59309b140",
+      "description": "Arrow, Home and End navigation over the visible tabs of the official plugin tab ledger, whose duplicated Discover entry stays hidden."
+    },
+    {
+      "target": "src/vendor/plan/client/navigation.ts",
+      "targetSha256": "60013ee7d160e8412c3df6235efd5699687f43770f53f513029fb7cbb04cd6f0",
+      "description": "Resolves plan document file links and images against the plan's own Session or subagent working directory, mirroring the official plan address grammar."
+    },
+    {
+      "target": "src/vendor/primitives/markdown/strip-strong.ts",
+      "targetSha256": "65d65e1415a2afd17195773150010d21fac4bbebbf0352f1a6c2bf561c3835af",
+      "description": "Removes unambiguous strong delimiters from bounded live status text with the plugin's Markdown parser."
+    },
+    {
+      "target": "src/vendor/primitives/useDismissBehindModal.ts",
+      "targetSha256": "71022c213ff9c1ac9b6003c555ed9d33f18342494fbb05da02dacacb51e1cd00",
+      "description": "Closes an open floating surface when an official or Modern modal takes the foreground, read from the shared official modal stack."
     }
   ],
   "adapters": [

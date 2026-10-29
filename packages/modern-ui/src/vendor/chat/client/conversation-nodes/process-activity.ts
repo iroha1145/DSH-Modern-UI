@@ -4,6 +4,7 @@ import type { ProcessActivity, ProcessActivitySummary } from '../contract/proces
 import type { ChatNode } from '../contract/chat-nodes.ts'
 import { isRunningTool } from '../contract/chat-nodes.ts'
 import type { ToolCallBlock } from '../contract/snapshot.ts'
+import { stripStrong } from '../../../primitives/markdown/strip-strong.ts'
 
 function activity(name: string): ProcessActivity {
   if (name === 'read') return 'read'
@@ -101,7 +102,7 @@ function liveReasoningDetail(nodes: readonly ChatNode[]): string {
       if (block?.kind !== 'reasoning') continue
       const paragraphs = block.text.split(/\r?\n[\t ]*\r?\n/)
       for (let paragraphIndex = paragraphs.length - 1; paragraphIndex >= 0; paragraphIndex--) {
-        const detail = normalizeLiveToolDetail(paragraphs[paragraphIndex]?.replaceAll('**', ''))
+        const detail = stripStrong(normalizeLiveToolDetail(paragraphs[paragraphIndex]))
         if (detail !== '') return detail
       }
     }
