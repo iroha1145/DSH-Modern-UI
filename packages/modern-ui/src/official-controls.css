@@ -149,6 +149,16 @@ body[data-modern-official-controls] .pbvGtq_heading,
 body[data-modern-official-controls] .pbvGtq_presetSettingsTitle,
 body[data-modern-official-controls] .AZSXYW_heading,
 body[data-modern-official-controls] .mufS8W_badge { font-weight: var(--fw-medium, 500); }
+/* Agent presets section and its guide (dsh-client-ui-agent-preset AgentPresetSection and
+   PresetGuideDialog .module.css): the patched section used medium weights for the title, group
+   heads, card names and guide headings, and balanced the wrapped card descriptions. The section
+   stays official; a list-slot shadow of it duplicated the settings navigation row. */
+body[data-modern-official-controls] .rtSEdW_title,
+body[data-modern-official-controls] .rtSEdW_groupHead,
+body[data-modern-official-controls] .rtSEdW_cardName,
+body[data-modern-official-controls] .LSQftG_guideTitle,
+body[data-modern-official-controls] .LSQftG_guidePanel h3 { font-weight: var(--fw-medium, 500); }
+body[data-modern-official-controls] .rtSEdW_cardDesc { text-wrap-style: pretty; }
 /* Terminal (dsh-client-ui-sidebar-terminal terminal.module.css): the patched root used the
    layer-2 scrollbar pair, one step quieter in the dark theme. */
 body[data-modern-official-controls] ._UE8Aa_root {

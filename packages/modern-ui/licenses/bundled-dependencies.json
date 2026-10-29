@@ -6,12 +6,6 @@
     "file": "licenses/npm/deepseek-ai_cosmokit1.8.6.txt"
   },
   {
-    "name": "@deepseek-ai/dsh-agent-preset-registry",
-    "version": "0.2.1-rc.4",
-    "license": "MIT",
-    "file": "licenses/npm/deepseek-ai_dsh-agent-preset-registry0.2.1-rc.4.txt"
-  },
-  {
     "name": "@deepseek-ai/dsh-api-workspace-controller",
     "version": "0.2.1-rc.4",
     "license": "MIT",

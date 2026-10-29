@@ -8,7 +8,7 @@
   "modernUiSource": "https://github.com/iroha1145/DSH-Modern-UI",
   "modernUiCommit": "a9f4c370fa480c9a17d5c9a79cb83aeba26bdf0d",
   "patchSha256": "111b5c5a0d817685ab32440df6272f895ce385907b0f16f5e036dd443e240000",
-  "adaptation": "Packages the selected Modern layout, workspace, sidebar, conversation, chat, model-selector and Tool UI owners, presentation primitives/styles, public-contract adapters and language data. The composition disables only the replaced official UI entries. Chat includes its data/view/flow/node/factory/settings closure; Tool includes generic/denied fallback, atomic views, todo-history and standard image child slots. The model selector uses a minimal attributed client catalog/directory/resolver checked against the published rc.4 browser artifact, with standard model-label contributions; Host model catalog and selection execution remain official. Ordinary question and preset-help presentations reuse official faces and the same question store; plan-review remains official. Quotes and browser original-byte image transfers use public conversation/slot contracts. Plugin README utilities and selected Host compatibility entries are explicitly attributed below. Original Host session, command, remote, model catalog/selection, locale, theme, attachment-upload, plugin inventory/installer and question/preset business services remain official. No official package files, module tables or prototypes are modified. Retired per-session web controls and an unavailable Electron native file-drag bridge are not restored.",
+  "adaptation": "Packages the selected Modern layout, workspace, sidebar, conversation, chat, model-selector and Tool UI owners, presentation primitives/styles, public-contract adapters and language data. The composition disables only the replaced official UI entries. Chat includes its data/view/flow/node/factory/settings closure; Tool includes generic/denied fallback, atomic views, todo-history and standard image child slots. The model selector uses a minimal attributed client catalog/directory/resolver checked against the published rc.4 browser artifact, with standard model-label contributions; Host model catalog and selection execution remain official. Ordinary question presentations reuse the official face and the same question store; plan-review and the Agent presets settings section remain official, the latter with patched typography in official-controls.css. Quotes and browser original-byte image transfers use public conversation/slot contracts. Plugin README utilities and selected Host compatibility entries are explicitly attributed below. Original Host session, command, remote, model catalog/selection, locale, theme, attachment-upload, plugin inventory/installer and question/preset business services remain official. No official package files, module tables or prototypes are modified. Retired per-session web controls and an unavailable Electron native file-drag bridge are not restored.",
   "files": [
     {
       "source": "packages/client/ui-attachment/src/client/MessageImages.tsx",
@@ -3456,34 +3456,6 @@
       "adapted": true
     },
     {
-      "source": "packages/client/ui-agent-preset/src/client/AgentPresetSection.module.css",
-      "sourceSha256": "0d1145fbf71be16499a8e779908e4c07ed175bde3d3d6cc6c2d855149fe8c848",
-      "target": "src/vendor/agent-preset/AgentPresetSection.module.css",
-      "targetSha256": "655574073971fa25b79ad3633664b4085c8efd886791bf83374a7ad23afccf40",
-      "adapted": true
-    },
-    {
-      "source": "packages/client/ui-agent-preset/src/client/AgentPresetSection.tsx",
-      "sourceSha256": "034faf7db148e4485842e0dc2f819f877974827398ea1d48d9475b5afd7879b2",
-      "target": "src/vendor/agent-preset/AgentPresetSection.tsx",
-      "targetSha256": "bc38442e732d649412eb40a693e030e734b58a222f48f6da1385bc1a24ffe5b9",
-      "adapted": true
-    },
-    {
-      "source": "packages/client/ui-agent-preset/src/client/PresetGuideDialog.module.css",
-      "sourceSha256": "d1ea993723f44e3d657af171fa25678d421665211110140b0c5e1554805ff48a",
-      "target": "src/vendor/agent-preset/PresetGuideDialog.module.css",
-      "targetSha256": "510cd5726bc89dc61e5683232de120678cac00450f64b5b4293a07a7c7318500",
-      "adapted": true
-    },
-    {
-      "source": "packages/client/ui-agent-preset/src/client/PresetGuideDialog.tsx",
-      "sourceSha256": "27a22c221fad82993c13d8dd4eb587696f343cc3ef977930ec5172226250189c",
-      "target": "src/vendor/agent-preset/PresetGuideDialog.tsx",
-      "targetSha256": "37e7a743f290bf536e1413188f7359a4443209110b4c82c7424fa74cb788c72c",
-      "adapted": true
-    },
-    {
       "source": "packages/client/ui-chat/src/client/chat/text-interaction.ts",
       "sourceSha256": "52902fde520b79e6e7d7baeef75356411b0e07bac7f577f80600c0eaa9c2b103",
       "target": "src/vendor/chat/client/chat/text-interaction.ts",
@@ -3727,8 +3699,8 @@
     },
     {
       "target": "src/presentation-parity.ts",
-      "targetSha256": "b7f4069a8104b2aec5dedde9afe468b7f7c660d85c1ac6e648ab9d692f5fb0e1",
-      "description": "Original public presentation adapters for ordinary questions and preset help, sharing the official controller faces and question draft-store handle. Plan-review stays official; added disclosure labels are plugin-owned eight-language copy."
+      "targetSha256": "dd2efe5cbcd3f68d227709c07b4af5ca2f16387b93aa0020524fa62664b6fd16",
+      "description": "Original public presentation adapter for ordinary questions, sharing the official controller face and question draft-store handle. Plan-review and the Agent presets settings section stay official; added disclosure labels are plugin-owned eight-language copy."
     },
     {
       "target": "src/presentation-shadow.ts",
@@ -3915,7 +3887,7 @@
     },
     {
       "target": "src/official-controls.css",
-      "targetSha256": "50160ea4ab846e21aaf6eea2036254a70b01a2f66d9d24d47a62d6832532f45c",
+      "targetSha256": "67b5b2a0987a7a2014e117780ebd706d3cca4882fc5c71985a61fb1a4aca8bc1",
       "sources": [
         {
           "source": "packages/client/ui-primitives/src/Button.module.css",
@@ -3992,6 +3964,14 @@
         {
           "source": "packages/client/ui-sidebar-terminal/src/client/terminal.module.css",
           "sourceSha256": "6261af329ba405db37dc12eba77c7e733dd94fbbbdd5b5ddb784ad8be04a234e"
+        },
+        {
+          "source": "packages/client/ui-agent-preset/src/client/AgentPresetSection.module.css",
+          "sourceSha256": "0d1145fbf71be16499a8e779908e4c07ed175bde3d3d6cc6c2d855149fe8c848"
+        },
+        {
+          "source": "packages/client/ui-agent-preset/src/client/PresetGuideDialog.module.css",
+          "sourceSha256": "d1ea993723f44e3d657af171fa25678d421665211110140b0c5e1554805ff48a"
         }
       ],
       "description": "Selected patched style deltas mapped to exact published rc.4 Web/client classes. The retired ConfigField delta applies only to the current SettingsValueField gap; no retired component or business owner is restored."

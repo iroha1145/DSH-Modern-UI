@@ -46,7 +46,6 @@ const pure = new Set([
   '@deepseek-ai/dsh-file-reference/grammar', '@deepseek-ai/dsh-session/surface',
   '@deepseek-ai/dsh-util-values', '@deepseek-ai/dsh-util-crypto',
   '@deepseek-ai/dsh-brand',
-  '@deepseek-ai/dsh-agent-preset-registry/display',
   '@deepseek-ai/dsh-api-workspace-controller/default-workspace',
   '@deepseek-ai/dsh-spill-policy/notice', '@deepseek-ai/dsh-output-retention',
   // Pure Turn token-usage derivation the vendored chat data layer (turn-tail) folds into its snapshot,
