@@ -305,3 +305,35 @@ body[data-ds-dark-theme] [data-changed-files] button[class*="_header"] > [class*
 [data-files-entry="other"] > span {
   box-sizing: border-box;
 }
+
+
+/* ==========================================================================
+   ui-plugin-manager tab bar: plugin-documents shadows the official Discover
+   tab (list slot plugins.tab, id "discover", priority -100) to show plugin
+   README pages, and the official tab bar builds its rows from the raw entry
+   list, so with the experimental plugin market enabled the row repeated as
+   "已安装 发现 … 发现" (both tabs share the value and render the same winner).
+   Hide every later duplicate. The official grid is one inline column per row
+   and its indicator is sized and placed by row index, so while a duplicate is
+   hidden the visible tabs share the columns and the selected tab draws the
+   indicator's surface itself. Hooks: SegmentedTabs role="tab" ids are
+   `${tabsId}-${id}` (rc.2, rc.3, rc.4); the indicator is the tablist's only
+   aria-hidden span.
+   ========================================================================== */
+[role="tablist"]:has(> [role="tab"][id$="-discover"] ~ [role="tab"][id$="-discover"]) {
+  grid-template-columns: none !important;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+}
+
+[role="tablist"] > [role="tab"][id$="-discover"] ~ [role="tab"][id$="-discover"],
+[role="tablist"]:has(> [role="tab"][id$="-discover"] ~ [role="tab"][id$="-discover"]) > span[aria-hidden="true"] {
+  display: none;
+}
+
+[role="tablist"]:has(> [role="tab"][id$="-discover"] ~ [role="tab"][id$="-discover"]) > [role="tab"][aria-selected="true"] {
+  box-sizing: border-box;
+  border: .5px solid var(--dsw-alias-border-l3);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-3);
+}

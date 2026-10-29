@@ -1533,8 +1533,8 @@
       "source": "packages/client/ui-primitives/src/markdown/cjkFriendlyStrong.ts",
       "target": "src/vendor/primitives/markdown/cjkFriendlyStrong.ts",
       "sourceSha256": "bc4adf3183f7d0feea17e3a176e7c4b1db5bdddc29e7fc87261f627ff8a39b53",
-      "targetSha256": "bc4adf3183f7d0feea17e3a176e7c4b1db5bdddc29e7fc87261f627ff8a39b53",
-      "adapted": false
+      "targetSha256": "c2f1c44c7d2ed8bce0c31613f272a551819d290cd340880eac152001d2028cb1",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/markdown/CodeBlock.module.css",
@@ -1624,15 +1624,15 @@
       "source": "packages/client/ui-primitives/src/markdown/mathCompatibility.ts",
       "target": "src/vendor/primitives/markdown/mathCompatibility.ts",
       "sourceSha256": "8a4b2640886720556b675b2f80f5202c08d91165fd6fc7aa27eb2673ed9f1a7c",
-      "targetSha256": "8a4b2640886720556b675b2f80f5202c08d91165fd6fc7aa27eb2673ed9f1a7c",
-      "adapted": false
+      "targetSha256": "9906899af6aebcb31e736700153748bb091f959aee230b7844b9b6c520bac6d5",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/markdown/parse.ts",
       "target": "src/vendor/primitives/markdown/parse.ts",
       "sourceSha256": "1fb42f6a4fa6cb3c4a1945e4ddd69198c9ea03a7cf532838d75a50d79d3caf2b",
-      "targetSha256": "1fb42f6a4fa6cb3c4a1945e4ddd69198c9ea03a7cf532838d75a50d79d3caf2b",
-      "adapted": false
+      "targetSha256": "2ee7e47a66691bd76ecc5c17ce209ff5a86c7dd8ddda10f3092f1d2ad71a5cf7",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/markdown/preview-placement.ts",
@@ -2191,7 +2191,7 @@
       "source": "packages/client/ui-theme/src/styles/design-platform.css",
       "target": "src/vendor/theme/styles/design-platform.css",
       "sourceSha256": "7c268e5c64ab548220c813ac69bd17ed16323b3933aa6afa011d888844e51f22",
-      "targetSha256": "c74b2e13090e5a921811c18b1268d84ff6ebf6da97b08fa5d2e1128d075a6692",
+      "targetSha256": "8e2f5e42c6e9a9ce3cc36baec611e427d844dae8ec852bd8a31a1cb28f3c6ffb",
       "adapted": true
     },
     {
@@ -3783,7 +3783,7 @@
     },
     {
       "target": "src/official-surfaces.css",
-      "targetSha256": "72559da48e23699ca52a349356ba8e8942ff3ed9ab7a1cb9efebfce7d73ba44f",
+      "targetSha256": "887735bd87ae5b8ab808595267635a2f978d16e129a9f7919a062994b3e37680",
       "sources": [
         {
           "source": "packages/client/ui-input-trigger/src/client/MenuView.module.css",
@@ -3887,7 +3887,7 @@
     },
     {
       "target": "src/official-controls.css",
-      "targetSha256": "67b5b2a0987a7a2014e117780ebd706d3cca4882fc5c71985a61fb1a4aca8bc1",
+      "targetSha256": "3af11b581955ff5af16dea803d685251945ea692839bd222dd8a60690c10b43e",
       "sources": [
         {
           "source": "packages/client/ui-primitives/src/Button.module.css",

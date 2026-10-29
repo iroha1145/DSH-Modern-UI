@@ -548,6 +548,12 @@ html[data-platform='darwin'] body[data-ds-dark-theme] {
   :root body[data-ds-dark-theme] {
     --dsw-menu-surface-fill: var(--surface);
   }
+
+  /* The macOS desktop menu pins its own fill above; these fallbacks must replace it too. */
+  html[data-platform='darwin'] body,
+  html[data-platform='darwin'] body[data-ds-dark-theme] {
+    --dsw-specific-menu: var(--dsw-menu-surface-fill);
+  }
 }
 
 @media (prefers-reduced-transparency: reduce), (forced-colors: active) {
@@ -555,11 +561,23 @@ html[data-platform='darwin'] body[data-ds-dark-theme] {
   :root body[data-ds-dark-theme] {
     --dsw-menu-surface-fill: var(--surface);
   }
+
+  /* The macOS desktop menu pins its own fill above; these fallbacks must replace it too. */
+  html[data-platform='darwin'] body,
+  html[data-platform='darwin'] body[data-ds-dark-theme] {
+    --dsw-specific-menu: var(--dsw-menu-surface-fill);
+  }
 }
 
 @media (forced-colors: active) {
   :root body,
   :root body[data-ds-dark-theme] {
     --dsw-menu-surface-fill: Canvas;
+  }
+
+  /* The macOS desktop menu pins its own fill above; these fallbacks must replace it too. */
+  html[data-platform='darwin'] body,
+  html[data-platform='darwin'] body[data-ds-dark-theme] {
+    --dsw-specific-menu: var(--dsw-menu-surface-fill);
   }
 }
