@@ -1,5 +1,4 @@
 /** Locale-owned copy for reasoning translation and its preferences. */
-import type { SettingsFormLabels } from '@iroha1145/dsh-modern-ui/primitives'
 
 /** Dictionary namespace for this plugin. */
 export const NS = 'modern-cot-translation'
@@ -41,15 +40,6 @@ export const zh: Record<CotTranslationKey, string> = {
   unavailable: '翻译设置暂不可用', readOnly: '本部署的设置为只读',
   saveFailed: '本部署没有接受这些值，已保留供你修改', save: '保存', saving: '保存中…',
   copy: '复制', copied: '已复制', codeTitle: '代码块', wrap: '自动换行', unwrap: '不换行', footnotes: '脚注',
-}
-
-/**
- * Read shared form chrome from the plugin dictionary.
- * @param t - current locale reader.
- * @returns localized form labels.
- */
-export function formLabels(t: (key: CotTranslationKey) => string): SettingsFormLabels {
-  return { unavailable: t('unavailable'), readOnly: t('readOnly'), saveFailed: t('saveFailed'), save: t('save'), saving: t('saving') }
 }
 
 /** Japanese copy, checked against the English keys. */

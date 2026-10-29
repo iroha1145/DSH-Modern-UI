@@ -10,6 +10,7 @@ on:
       - 'scripts/build-*.mjs'
       - 'scripts/*preview*.mjs'
       - 'tests/compat/**'
+      - 'tests/audit/**'
       - 'package*.json'
       - 'tsconfig*.json'
       - '.github/workflows/plugin-preview.yml'
@@ -38,7 +39,13 @@ jobs:
         run: node --test tests/compat/*.test.mjs
         env:
           COMPAT_BACKEND_PACKAGE: node_modules/@deepseek-ai/dsh/package.json
+      - name: Install the browser for audit regressions
+        run: node node_modules/playwright-core/cli.js install --with-deps chromium
       - run: npm run build
+      - name: Check audit regressions and unused declarations
+        run: |
+          node --test tests/audit/*.test.mjs
+          node node_modules/typescript/bin/tsc --project tsconfig.client.json --noEmit --noUnusedLocals --noUnusedParameters
       - run: node scripts/create-preview.mjs
       - name: Read the exact compatibility targets
         id: compatibility

@@ -18,7 +18,7 @@ import type { SidebarPanelMetadata, SidebarRootInjected } from './contract/slots
 import { createPanelPins } from './panel-pins.ts'
 import { HeaderLeadingControls } from './HeaderLeadingControls.tsx'
 import { SidebarRoot } from './SidebarRoot.tsx'
-import { en, ja, es, fr, de, ru, pt, zh, type SidebarKey } from './locales.ts'
+import { en, ja, es, fr, de, ru, pt, zh } from './locales.ts'
 
 export type {
   SidebarBrandMarkOwnerProps, SidebarBrandNameOwnerProps, SidebarFooterActionOwnerProps,
@@ -32,9 +32,6 @@ export type { SidebarKey } from './locales.ts'
 /** Dictionary namespace owned by this plugin. */
 const NS = 'modern-sidebar'
 
-interface WorkspaceNavigation {
-  startSession(workspaceId?: Parameters<SidebarRootInjected['startSession']>[0]): void
-}
 
 /** Services required by the sidebar plugin. */
 export const inject = ['slots', 'layout', 'modernLayout', 'uiWorkspace', 'locale', 'shortcuts']

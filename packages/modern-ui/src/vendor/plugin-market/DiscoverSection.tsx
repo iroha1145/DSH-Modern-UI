@@ -185,7 +185,7 @@ function VersionRow({ entry, version, title, t, language, onInstall }: {
   )
 }
 
-function EntryDetail({ entry, listing, t, face, hooks, language, onBack, onInstall, onOpenInstalled }: {
+function EntryDetail({ entry, listing, t, face, language, onBack, onInstall, onOpenInstalled }: {
   readonly entry: MarketListingEntry
   readonly listing: MarketSearchResult
   readonly t: Translate

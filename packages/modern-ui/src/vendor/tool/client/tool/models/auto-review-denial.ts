@@ -13,7 +13,7 @@ export interface AutoReviewDenialPresentation {
  * @param reason - raw persisted reviewer reason, or null when none was recorded.
  * @returns one display line, or null when the reason has no displayable text.
  */
-export function normalizeAutoReviewReason(reason: string | null): string | null {
+function normalizeAutoReviewReason(reason: string | null): string | null {
   if (reason === null) return null
   const normalized = reason.trim().replace(/[\r\n\u2028\u2029]+/gu, ' ')
   return normalized === '' ? null : normalized

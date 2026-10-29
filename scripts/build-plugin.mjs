@@ -86,6 +86,7 @@ const client = await build({
   absWorkingDir: root, entryPoints: [path.join(pkg, 'src/client.tsx')],
   outfile: path.join(pkg, 'lib/client.js'), bundle: true, platform: 'browser', format: 'cjs',
   jsx: 'automatic', target: 'es2022', minify: true, legalComments: 'inline', metafile: true,
+  conditions: ['production'],
   external: platform, nodePaths: [path.dirname(require.resolve('esbuild/package.json')).replace(/[/\\]esbuild$/, '')],
   define: { 'process.env.NODE_ENV': '"production"' },
   loader: { '.png': 'dataurl', '.svg': 'dataurl', '.webp': 'dataurl' },
@@ -152,6 +153,9 @@ function logicalInput(input) {
 await writeFile(path.join(pkg, 'lib/build-inputs.json'), JSON.stringify({
   host: defaultHostVersion, compatibleHosts: supportedHostVersions, shared: platform,
   inputs: Object.keys(client.metafile.inputs).map(logicalInput),
-  outputs: Object.fromEntries(Object.entries(client.metafile.outputs).map(([name, value]) => [path.basename(name), { bytes: value.bytes, imports: value.imports }])),
+  outputs: Object.fromEntries(Object.entries(client.metafile.outputs).map(([name, value]) => [path.basename(name), {
+    bytes: value.bytes, imports: value.imports,
+    inputs: Object.fromEntries(Object.entries(value.inputs).map(([input, contribution]) => [logicalInput(input), contribution])),
+  }])),
 }, null, 2) + '\n')
 console.log(`Built ${id} for the official host; ${Object.keys(client.metafile.inputs).length} browser inputs.`)

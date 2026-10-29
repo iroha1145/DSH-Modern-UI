@@ -28,7 +28,7 @@ export interface AutoReviewDenial {
 type ToolTitleKey = Extract<LocaleKeysOf<'modern-tool'>, `tool.title.${string}` | 'ask.rowTitle' | 'todo.rowTitle'>
 
 /** Locale key per generic row variant. */
-export const VARIANT_TITLE_KEYS = {
+const VARIANT_TITLE_KEYS = {
   search: 'tool.title.search', read: 'tool.title.read', bash: 'tool.title.bash',
   write: 'tool.title.write', edit: 'tool.title.edit', code: 'tool.title.code',
   others: 'tool.title.generic',
@@ -179,7 +179,7 @@ function deriveAutoReviewDenial(block: ToolCallBlock): AutoReviewDenial | null {
  * @param node - the settled result node.
  * @returns the flattened result text (may be empty).
  */
-export function resultText(node: ToolResultNode): string {
+function resultText(node: ToolResultNode): string {
   const parts: string[] = []
   for (const block of node.content) {
     if (block.type === 'text') parts.push(block.text)
