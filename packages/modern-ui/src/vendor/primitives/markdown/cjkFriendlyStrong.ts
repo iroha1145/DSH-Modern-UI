@@ -1,4 +1,7 @@
-/** Let asterisk strong emphasis close after punctuation when CJK prose continues without whitespace. */
+/**
+ * Let asterisk strong emphasis open before punctuation and close after punctuation when CJK prose
+ * continues without whitespace on the other side, e.g. `提出**“引力 = 熵力”**假说`.
+ */
 
 import { attention } from 'micromark-core-commonmark'
 import { unicodePunctuation } from 'micromark-util-character'
@@ -46,15 +49,23 @@ const tokenizeCjkFriendlyAttention: Tokenizer = function (effects, ok, nok) {
 
     const token = effects.exit('attentionSequence')
     const after = classifyCharacter(code)
-    const open = !after || (after === constants.characterGroupPunctuation && Boolean(before))
-      || attentionMarkers.includes(code)
+    // Upstream micromark-core-commonmark: `*` and `_` are attention markers through core, but only
+    // other registered markers may force a run to open or close.
+    const commonMarkOpen = !after || (after === constants.characterGroupPunctuation && Boolean(before))
+      || (attentionMarkers.includes(code) && code !== codes.asterisk && code !== codes.underscore)
     const commonMarkClose = !before
       || (before === constants.characterGroupPunctuation && Boolean(after))
-      || attentionMarkers.includes(previous)
+      || (attentionMarkers.includes(previous) && previous !== codes.asterisk && previous !== codes.underscore)
     const markerCount = token.end.offset - token.start.offset
+    // A `**` run between a CJK character and punctuation opens (CJK before) or closes (CJK after),
+    // which CommonMark's flanking rules refuse because the punctuation side is not whitespace.
+    const cjkStrongOpen = markerCount >= 2
+      && isCjkCharacter(previous)
+      && unicodePunctuation(code)
     const cjkStrongClose = markerCount >= 2
       && unicodePunctuation(previous)
       && isCjkCharacter(code)
+    const open = commonMarkOpen || cjkStrongOpen
     const close = commonMarkClose || cjkStrongClose
 
     token._open = open

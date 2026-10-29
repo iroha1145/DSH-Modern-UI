@@ -133,6 +133,107 @@ const tokenizeBackslashMathText: Tokenizer = function (effects, ok, nok) {
   }
 }
 
+/** Whitespace for the single-dollar rules: a space or tab, a line ending, or the end of input. */
+function dollarBoundary(code: number | null): boolean {
+  return code === codes.eof || markdownLineEnding(code) || markdownSpace(code)
+}
+
+function asciiDigit(code: number | null): boolean {
+  return code !== null && code >= codes.digit0 && code <= codes.digit9
+}
+
+const previousDollar: Previous = function (code) {
+  if (code !== codes.dollarSign) return true
+  const tail = this.events.at(-1)
+  /* v8 ignore next -- a previous code necessarily has a preceding event. */
+  if (tail === undefined) return false
+  return tail[1].type === types.characterEscape
+}
+
+/**
+ * Single-dollar inline math under Pandoc's delimiter rules, so prices such as `$5 … $8` stay text:
+ * the opening `$` must be followed by a non-space character, and the closing `$` must follow a
+ * non-space character and must not be followed by a digit. As in TeX, the first unescaped `$`
+ * after the opener ends the formula, so when it cannot close there is no math at all (a price
+ * before a later formula, `价格 $5，…在 $x$`, does not swallow the text in between). An escaped
+ * character never closes, and `$$` runs are left to upstream double-dollar text math.
+ */
+const tokenizeDollarMathText: Tokenizer = function (effects, ok, nok) {
+  let last: number | null = codes.eof
+
+  return start
+
+  function start(code: number | null): State | undefined {
+    /* v8 ignore next -- the text construct is dispatched only for a dollar sign. */
+    if (code !== codes.dollarSign) return nok(code)
+    effects.enter('mathText')
+    effects.enter('mathTextSequence')
+    effects.consume(code)
+    return afterOpen
+  }
+
+  function afterOpen(code: number | null): State | undefined {
+    if (code === codes.dollarSign || dollarBoundary(code)) return nok(code)
+    effects.exit('mathTextSequence')
+    return between(code)
+  }
+
+  function between(code: number | null): State | undefined {
+    if (code === codes.eof) return nok(code)
+    if (code === codes.dollarSign) {
+      return effects.attempt({ partial: true, tokenize: tokenizeClose }, close, nok)(code)
+    }
+    if (markdownLineEnding(code)) {
+      effects.enter(types.lineEnding)
+      effects.consume(code)
+      effects.exit(types.lineEnding)
+      last = code
+      return between
+    }
+    effects.enter('mathTextData')
+    return data(code)
+  }
+
+  function data(code: number | null): State | undefined {
+    if (code === codes.eof || code === codes.dollarSign || markdownLineEnding(code)) {
+      effects.exit('mathTextData')
+      return between(code)
+    }
+    effects.consume(code)
+    last = code
+    return code === codes.backslash ? escaped : data
+  }
+
+  function escaped(code: number | null): State | undefined {
+    if (code === codes.eof || markdownLineEnding(code)) return data(code)
+    effects.consume(code)
+    last = code
+    return data
+  }
+
+  function close(code: number | null): State | undefined {
+    effects.exit('mathText')
+    return ok(code)
+  }
+
+  function tokenizeClose(closeEffects: Parameters<Tokenizer>[0], closeOk: State, closeNok: State): State {
+    return sequence
+
+    function sequence(code: number | null): State | undefined {
+      if (code !== codes.dollarSign || dollarBoundary(last)) return closeNok(code)
+      closeEffects.enter('mathTextSequence')
+      closeEffects.consume(code)
+      closeEffects.exit('mathTextSequence')
+      return after
+    }
+
+    function after(code: number | null): State | undefined {
+      if (code === codes.dollarSign || asciiDigit(code)) return closeNok(code)
+      return closeOk(code)
+    }
+  }
+}
+
 function createMathFlow(marker: number, openMarker: number, closeMarker: number): Construct {
   const tokenize: Tokenizer = function (effects, ok, nok) {
     const self = this
@@ -451,21 +552,32 @@ const dollarMathFlow = createMathFlow(
   codes.dollarSign,
 )
 
+const dollarMathText: Construct = {
+  name: 'dollarMathText',
+  previous: previousDollar,
+  tokenize: tokenizeDollarMathText,
+}
+
 const backslashMath: Extension = {
   flow: {
     [codes.backslash]: backslashMathFlow,
     [codes.dollarSign]: dollarMathFlow,
   },
-  text: { [codes.backslash]: backslashMathText },
+  text: {
+    [codes.backslash]: backslashMathText,
+    [codes.dollarSign]: dollarMathText,
+  },
 }
 
 /**
- * TeX backslash delimiters and display-dollar blocks as a micromark syntax
- * extension reusing `micromark-extension-math`'s token vocabulary; the caller
- * must also register `math()` on the same parse so the emitted tokens compile
- * to standard math nodes. Both `$$<math>$$` on one line and a `$$<math>` block
- * closed by a trailing `$$` parse as one math node, and a closing `$$` may sit
- * at the end of a content line.
+ * TeX backslash delimiters, display-dollar blocks and guarded single-dollar
+ * inline math as a micromark syntax extension reusing
+ * `micromark-extension-math`'s token vocabulary; the caller must also register
+ * `math({ singleDollarTextMath: false })` on the same parse so the emitted
+ * tokens compile to standard math nodes and upstream keeps only `$$` inline
+ * math. Both `$$<math>$$` on one line and a `$$<math>` block closed by a
+ * trailing `$$` parse as one math node, and a closing `$$` may sit at the end
+ * of a content line.
  * @returns The micromark syntax extension.
  */
 export function mathCompatibility(): Extension {
