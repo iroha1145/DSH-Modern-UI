@@ -269,7 +269,7 @@ async function legacyBindingEvidence(profile, snapshots, records, yaml, schema) 
       && replacement.name === HOST_REPLACEMENTS[disable.name]
       && Object.keys(replacement).every(key => ['id', 'name', 'config', 'group', 'disabled', 'inject', 'intercept', 'isolate'].includes(key))
       && (replacement.group === undefined || replacement.group === false || replacement.group === null)
-      && (replacement.disabled === undefined || replacement.disabled === false)
+      && (replacement.disabled === undefined || replacement.disabled === null || replacement.disabled === false)
       && (replacement.config === undefined || config(replacement.config))
   }
   const dump = rows => yaml.dump(rows, { schema, lineWidth: -1, noCompatMode: true })
@@ -595,6 +595,48 @@ export async function preserveChatPreferences(profile, yaml) {
   return result
 }
 
+/** Validate the packaged owner patch without changing a user's activation or configuration. */
+export function validateUiOwnerBindings(bundleSource, effectiveSource, yaml) {
+  const schema = schemaFor(yaml)
+  const bundle = yaml.load(bundleSource, { schema })
+  const effective = yaml.load(effectiveSource, { schema })
+  if (!Array.isArray(bundle) || !Array.isArray(effective)) throw new Error('UI owner validation requires entry lists')
+  const expected = bundle.filter(row => row?.disabled === true && typeof row.name === 'string'
+    && row.name.startsWith('@deepseek-ai/dsh-client-ui-'))
+  if (expected.length !== 7 || expected.some(row => typeof row.id !== 'string' || !row.id)
+    || new Set(expected.map(row => row.id)).size !== expected.length || new Set(expected.map(row => row.name)).size !== expected.length) {
+    throw new Error('Modern UI artifact must declare seven unique UI owner bindings')
+  }
+  const names = new Set(expected.map(row => row.name))
+  const found = []
+  const visit = (rows, nested, seen = new Set()) => {
+    if (seen.has(rows)) throw new Error('Cyclic effective UI owner configuration')
+    seen.add(rows)
+    for (const row of rows) {
+      if (!row || typeof row !== 'object') continue
+      if (names.has(row.name)) found.push({ row, nested })
+      for (const children of [row.group ? row.config : undefined, row.config?.plugins, row.insert]) {
+        if (Array.isArray(children)) visit(children, true, seen)
+      }
+    }
+    seen.delete(rows)
+  }
+  visit(effective, false)
+  return expected.map(({ id, name }) => {
+    const matches = found.filter(item => item.row.name === name)
+    if (matches.length !== 1 || matches[0].nested || matches[0].row.id !== id
+      || ![undefined, null, false].includes(matches[0].row.group)
+      || effective.filter(row => row?.id === id).length !== 1) {
+      throw new Error(`UI owner ${name} requires one top-level entry with id ${id}; custom, nested, missing, or duplicate owners require explicit migration`)
+    }
+    const { disabled } = matches[0].row
+    if (disabled !== undefined && disabled !== null && typeof disabled !== 'boolean') {
+      throw new Error(`Computed activation of UI owner ${id} requires explicit migration`)
+    }
+    return { id, name, ...(disabled !== undefined ? { disabled } : {}) }
+  })
+}
+
 function containsNestedHost(entry, seen = new Set()) {
   if (seen.has(entry)) throw new Error('Cyclic effective Host configuration')
   seen.add(entry)
@@ -622,7 +664,7 @@ export function transformHostBindings(source, effectiveYaml, yaml) {
     const replacement = HOST_REPLACEMENTS[entry.name]
     if (!replacement || entry.disabled === true) continue
     if (typeof entry.id !== 'string' || !entry.id) throw new Error('Host compatibility replacement requires a stable entry id')
-    if (entry.disabled !== undefined && typeof entry.disabled !== 'boolean') throw new Error(`Computed activation of ${entry.id} requires manual compatibility review`)
+    if (entry.disabled !== undefined && entry.disabled !== null && typeof entry.disabled !== 'boolean') throw new Error(`Computed activation of ${entry.id} requires manual compatibility review`)
     const id = `modern-ui-compat-${entry.id}`
     if (ids.has(id)) throw new Error(`Host replacement id is already in use: ${id}`)
     ids.add(id)

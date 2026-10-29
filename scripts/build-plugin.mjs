@@ -3,9 +3,25 @@ import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { buildQuotesTypes } from './build-quotes-types.mjs'
+import { defaultHostVersion, runtimeVersions, supportedHostVersions, getHostCompatibility } from './distribution/compatibility.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const pkg = path.join(root, 'packages/modern-ui')
+const manifestPath = path.join(pkg, 'package.json')
+const manifestSource = await readFile(manifestPath, 'utf8')
+const manifest = JSON.parse(manifestSource)
+const hostRange = supportedHostVersions.join(' || ')
+manifest.version = runtimeVersions.plugin
+manifest.engines = { ...manifest.engines, node: runtimeVersions.node, dsh: hostRange }
+manifest.dsh.compatibleHost = hostRange
+for (const name of Object.keys(manifest.peerDependencies)) {
+  if (name.startsWith('@deepseek-ai/dsh-')) manifest.peerDependencies[name] = hostRange
+}
+const manifestOutput = JSON.stringify(manifest, null, 2) + '\n'
+if (manifestOutput !== manifestSource) await writeFile(manifestPath, manifestOutput)
+await writeFile(path.join(root, 'scripts/distribution/community-lock.json'), JSON.stringify({
+  plugins: getHostCompatibility(defaultHostVersion).communityPlugins,
+}, null, 2) + '\n')
 // An explicit external development dependency directory is useful for hermetic builds.
 const require = createRequire(process.env.MODERN_UI_BUILD_DEPS
   ? path.join(path.resolve(process.env.MODERN_UI_BUILD_DEPS), 'package.json')
@@ -135,7 +151,7 @@ function logicalInput(input) {
   return prefix + (dependency < 0 ? path.relative(root, physical).replaceAll('\\', '/') : physical.slice(dependency + 1))
 }
 await writeFile(path.join(pkg, 'lib/build-inputs.json'), JSON.stringify({
-  host: '0.2.1-rc.4', shared: platform,
+  host: defaultHostVersion, compatibleHosts: supportedHostVersions, shared: platform,
   inputs: Object.keys(client.metafile.inputs).map(logicalInput),
   outputs: Object.fromEntries(Object.entries(client.metafile.outputs).map(([name, value]) => [path.basename(name), { bytes: value.bytes, imports: value.imports }])),
 }, null, 2) + '\n')

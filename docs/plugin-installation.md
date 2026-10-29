@@ -1,6 +1,6 @@
 # 官方 DSH + Modern UI 安装预览（V2）
 
-当前使用真实本地 `npm pack` 插件，尚未发布 npm / Release。官方后端固定 `@deepseek-ai/dsh@0.2.1-rc.4`，Node `24.22.1`、pnpm `11.28.5`。新会话使用官方插件配置管理联网工具；Modern UI 自定义会话联网按钮、命令和协议已取消，不是安装前提。
+当前使用真实预编译插件，尚未发布 npm / Release。默认新装使用官方 `@deepseek-ai/dsh@0.2.1-rc.4`；已有后端保留实际版本，精确旧版本和平台范围见[向后兼容说明](backward-compatibility.md)。Node 固定 `24.22.1`、pnpm `11.28.5`。新会话使用官方插件配置管理联网工具；Modern UI 自定义会话联网按钮、命令和协议已取消，不是安装前提。
 
 ## 优先：已有官方 DSH 一条命令
 
@@ -54,7 +54,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./install.ps1 -Root 'D:/
 
 预览根 install.ps1 已携带本地插件及其摘要，不必手填内部 manager 参数。bootstrap 下载并校验私有运行时、精确官方 npm 成品和预编译 UI，不克隆上游，不构建 DSH / UI。程序与数据目录必须分开。Windows 入口不需要符号链接权限。
 
-bootstrap 默认核心成功后安装三个固定社区插件，分别输出 core/community/timing 结构化结果。社区失败不撤销已成功核心，可独立重试。PowerShell `-SkipCommunity`、POSIX `DSH_MODERN_SKIP_COMMUNITY=1` 仅跳过可选社区步骤。安装脚本不调整系统 PATH。
+bootstrap 默认核心成功后安装清单中的两个固定社区插件，分别输出 core/community/timing 结构化结果。社区失败不撤销已成功核心，可独立重试。PowerShell `-SkipCommunity`、POSIX `DSH_MODERN_SKIP_COMMUNITY=1` 仅跳过可选社区步骤。安装脚本不调整系统 PATH。显式旧宿主选择使用 `-BackendVersion`／`DSH_MODERN_BACKEND_VERSION`；初次采用非 web profile 使用 `-FromProfile`、JS 入口 `--from-profile` 或 POSIX `DSH_MODERN_FROM_PROFILE`，原 profile 不改。
 
 ## 原生组件与辅助程序
 
@@ -91,7 +91,7 @@ $installedState = Get-Content -Raw -Encoding UTF8 'D:/DSH Modern/program/current
 & $installedState.node $installedState.manager verify --root 'D:/DSH Modern/program'
 ```
 
-community-lock.json 随程序保留三个精确包的真实 URL/SRI：dsh-context@0.75.1、dsh-better-sidebar@0.28.0、dsh-plugins-store@0.1.4。同版本跳过；不同版本保留；声明但缺文件也不擅自覆盖。单包失败继续其他包。
+compatibility.json 按宿主记录社区组合；community-lock.json 由其生成默认组合的 URL/SRI：dsh-context@0.75.1、dsh-better-sidebar@0.28.0。同版本跳过；不同版本保留；声明但缺文件也不擅自覆盖。Store 0.1.4 从新安装默认组合排除，已有用户包保持配置并明确不计兼容通过。单包失败继续其他包。
 
 更新仍使用 install-existing / bootstrap。新 generation 下载、校验并自检后才原子切 current.json；先停止使用同一数据目录的进程。程序管理使用 OS 生命周期 TCP 租约，强杀后内核释放；不读取或删除历史 operation.lock 文件。官方会话锁未绕过。
 

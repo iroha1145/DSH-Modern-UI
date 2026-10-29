@@ -97,19 +97,20 @@ export const ChatNodeSeat = memo(function ChatNodeSeat({
   const ownsDisclosure = routedNode?.kind === 'turn-process' || processAnswer || replyRow
   const foldable = processWindowReady
     && (liveProcess || processMember || ownsDisclosure)
+  const nonReplyProcess = processPresentation?.hasNonReplyProcess ?? processPresentation?.hasExternalProcess
   const turnProcess = useMemo(() => processSpec === undefined
     ? undefined
     : {
       spec: processSpec,
       foldable,
       hasContent: !interleavedInput && (processSpec.inlineReasoning || (keepReplies
-        ? processPresentation?.hasNonReplyProcess === true
+        ? nonReplyProcess === true
         : processPresentation?.hasExternalProcess === true)),
       open: processOpen,
       setOpen,
     }, [
     foldable, interleavedInput, keepReplies, processOpen, processSpec,
-    processPresentation?.hasExternalProcess, processPresentation?.hasNonReplyProcess, setOpen,
+    processPresentation?.hasExternalProcess, nonReplyProcess, setOpen,
   ])
   const controllerInactive = routedNode?.kind === 'turn-process'
     && foldCompleted && !foldable

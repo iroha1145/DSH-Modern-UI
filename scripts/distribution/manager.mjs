@@ -10,7 +10,7 @@ import { checkIntegrity, snapshot, verifySnapshot } from './integrity.mjs'
 import { webSelfTest } from './web-self-test.mjs'
 import { dependencyInventory } from './dependency-inventory.mjs'
 import { verifyReleaseSources } from './verify-release-source.mjs'
-import { bindHostCompatibility, preserveEffectivePreferences, preserveConversationPreferences } from './profile-settings.mjs'
+import { bindHostCompatibility, preserveEffectivePreferences, preserveConversationPreferences, validateUiOwnerBindings } from './profile-settings.mjs'
 import { acquireOperationLock } from './operation-lock.mjs'
 import { backupDataHome } from './data-backup.mjs'
 import { createLaunchLifecycle } from './launch-child.mjs'
@@ -18,24 +18,21 @@ import { download, unpack } from './artifacts.mjs'
 import { preparePowerShell, bindPowerShell } from './shell-runtime.mjs'
 import { readSelection, previousState, receiptReference, retainSelection } from './lifecycle.mjs'
 import { isMainModule } from './entrypoint.mjs'
+import { defaultHostVersion, runtimeVersions, getHostCompatibility } from './compatibility.mjs'
 
-export const versions = { backend: '0.2.1-rc.4', node: '24.22.1', pnpm: '11.28.5', plugin: '0.1.0-migration.1' }
-export const officialSource = {
-  name: '@deepseek-ai/dsh', version: versions.backend, channel: 'next (resolved 2026-10-27)',
-  url: 'https://registry.npmjs.org/@deepseek-ai/dsh/-/dsh-0.2.1-rc.4.tgz',
-  integrity: 'sha512-8gxl6zOi6vx1sDolH+vjh9txrpbXD+t74Z2YfWkEBtR3xP2YEtk0bbLkgLZRnYQgDxCoXitXyXDKn5k0+6iXrg==',
-}
+export const versions = { backend: defaultHostVersion, ...runtimeVersions }
+export const officialSource = getHostCompatibility(defaultHostVersion).officialSource
 const here = dirname(fileURLToPath(import.meta.url))
 const json = async path => JSON.parse(await readFile(path, 'utf8'))
 const save = (path, value) => writeFile(path, JSON.stringify(value, null, 2) + '\n')
 function summary(state) {
   return { root: state.root, generation: state.generation, home: state.home, profile: state.profile,
     node: state.node, pnpm: state.pnpm, backend: state.backend, cli: state.cli, manager: state.manager,
-    plugin: state.plugin, officialSource: state.officialSource, nativeProbe: state.nativeProbe,
+    plugin: state.plugin, officialSource: state.officialSource, compatibility: state.compatibility, nativeProbe: state.nativeProbe,
     selfTest: state.selfTest, webSelfTest: state.webSelfTest, previousGeneration: state.previous?.generation,
     sourceLedger: state.sourceLedger, sourceProof: state.sourceProof, powershell: state.powershell ? { path: state.powershell.path, version: state.powershell.version, source: state.powershell.source } : undefined,
     dataBackup: state.dataBackup, effectivePreferences: state.effectivePreferences,
-    settingsMigration: state.settingsMigration, conversationMigration: state.conversationMigration, chatMigration: state.chatMigration, shellBinding: state.shellBinding, hostCompatibility: state.hostCompatibility, profileStore: state.profileStore, sourceProfile: state.sourceProfile ? { name: state.sourceProfile.name, path: state.sourceProfile.path } : undefined,
+    settingsMigration: state.settingsMigration, conversationMigration: state.conversationMigration, chatMigration: state.chatMigration, shellBinding: state.shellBinding, hostCompatibility: state.hostCompatibility, ownerBindings: state.ownerBindings, profileStore: state.profileStore, sourceProfile: state.sourceProfile ? { name: state.sourceProfile.name, path: state.sourceProfile.path } : undefined,
     evidence: join(state.generation, 'installation.json') }
 }
 const run = (exe, args, options = {}) => {
@@ -184,8 +181,42 @@ async function provisionPnpm(state, lock = undefined) {
   state.pnpm = join(state.generation, 'pnpm', 'package', 'bin', 'pnpm.cjs')
   state.runtimeSources ??= { pnpmVersion: lock.pnpmVersion, pnpm: lock.pnpm }
 }
+/** Existing installations keep their actual backend; an explicit version never replaces it. */
+export async function selectInstallHost(options, previous) {
+  const path = options.backend ?? previous?.backend
+  const backend = path ? await realpath(resolve(path)) : undefined
+  let version = options['backend-version'] ?? defaultHostVersion
+  if (backend) {
+    const metadata = await json(backend)
+    if (metadata.name !== '@deepseek-ai/dsh') throw new Error('Official backend name mismatch')
+    if (options['backend-version'] !== undefined && metadata.version !== options['backend-version']) {
+      throw new Error('Requested backend version differs from the existing backend; no backend replacement was performed')
+    }
+    version = metadata.version
+  }
+  if (previous) {
+    const prior = await json(previous.backend)
+    if (prior.name !== '@deepseek-ai/dsh' || (previous.officialSource && prior.version !== previous.officialSource.version)) {
+      throw new Error('Previously selected backend identity changed; existing selection and data were retained')
+    }
+    if (version !== prior.version) {
+      throw new Error('Changing the host version of a managed data home is not supported; use a new program root and isolated data copy, verified by the target official reader')
+    }
+  }
+  return { backend, compatibility: getHostCompatibility(version) }
+}
+
+export function verifyPluginCompatibility(plugin, compatibility) {
+  const expected = compatibility.plugin
+  if (plugin.name !== expected.name || plugin.version !== expected.version) throw new Error('Unexpected Modern UI artifact identity')
+  if (Object.keys(plugin.scripts ?? {}).some(key => ['preinstall', 'install', 'postinstall', 'prepare'].includes(key))) throw new Error('Consumer plugin may not have build lifecycle scripts')
+  const declaration = expected.compatibleHosts.join(' || ')
+  if (plugin.dsh?.compatibleHost !== declaration || plugin.engines?.dsh !== declaration) {
+    throw new Error('Plugin must declare the exact verified host set from the compatibility manifest')
+  }
+}
+
 async function install(options) {
-  if (!['linux-x64', 'linux-arm64', 'darwin-x64', 'darwin-arm64', 'win32-x64'].includes(`${process.platform}-${process.arch}`)) throw new Error('Unsupported candidate platform; no source-build fallback')
   if (process.platform === 'linux' && !process.report.getReport().header.glibcVersionRuntime) throw new Error('Linux musl is not an accepted distribution target')
   if (process.platform === 'win32' && /arm64/i.test(process.env.PROCESSOR_ARCHITEW6432 ?? process.env.PROCESSOR_ARCHITECTURE ?? '')) throw new Error('Windows arm64 has not been accepted')
   const root = options.root
@@ -193,6 +224,8 @@ async function install(options) {
   const bytes = await readFile(resolve(options.plugin))
   checkIntegrity(bytes, options['plugin-integrity'])
   const previous = await readSelection(root)
+  const selectedHost = await selectInstallHost(options, previous)
+  if (!selectedHost.compatibility.platforms.includes(`${process.platform}-${process.arch}`)) throw new Error(`Official DSH ${selectedHost.compatibility.officialSource.version} has not been verified on ${process.platform}-${process.arch}; no source-build fallback`)
   const previousReference = previous ? await receiptReference(previous) : undefined
   const home = await futureRealpath(options.home)
   const contains = (parent, child) => {
@@ -205,7 +238,8 @@ async function install(options) {
   if (relative(home, await realpath(home)) !== '') throw new Error('Data directory resolution changed during creation')
   const id = randomUUID()
   const generation = join(root, 'versions', id)
-  const state = { root, generation, home, profile: `modern-ui-${id}`, previous, created: new Date().toISOString() }
+  const state = { root, generation, home, profile: `modern-ui-${id}`, previous, created: new Date().toISOString(),
+    backend: selectedHost.backend, officialSource: selectedHost.compatibility.officialSource, compatibility: selectedHost.compatibility }
   const homeLease = await acquireOperationLock(home)
   try {
     state.dataBackup = await backupDataHome(home, root)
@@ -232,19 +266,17 @@ async function stage(state, options, bytes, previousReference) {
   if (run(state.node, ['--version']) !== `v${versions.node}` || run(state.node, [state.pnpm, '--version']) !== versions.pnpm) throw new Error('Exact Node/pnpm version mismatch')
   state.powershell = await preparePowerShell(state)
   await privatePnpm(state)
-  if (options.backend || previous?.backend) state.backend = await realpath(options.backend ? resolve(options.backend) : previous.backend)
-  else {
+  if (!state.backend) {
     const archive = join(generation, 'official-dsh.tgz')
-    await download(officialSource.url, officialSource.integrity, archive)
+    await download(state.officialSource.url, state.officialSource.integrity, archive)
     await save(join(generation, 'package.json'), { private: true, dependencies: { '@deepseek-ai/dsh': `file:${archive.replaceAll('\\', '/')}` } })
     await writeFile(join(generation, 'pnpm-workspace.yaml'), 'packages:\n  - .\nnodeLinker: hoisted\n')
     run(state.node, [state.pnpm, 'install', '--ignore-scripts', '--reporter=append-only', '--store-dir', join(root, 'store')], { cwd: generation, env: runtimeEnvironment(state), timeout: 300000 })
     state.backend = join(generation, 'node_modules', '@deepseek-ai', 'dsh', 'package.json')
   }
   const backend = await json(state.backend)
-  if (backend.name !== '@deepseek-ai/dsh' || backend.version !== versions.backend) throw new Error('Official backend version/name mismatch')
+  if (backend.name !== state.officialSource.name || backend.version !== state.officialSource.version) throw new Error('Official backend version/name mismatch')
   state.cli = join(dirname(state.backend), backend.bin.dsh)
-  state.officialSource = officialSource
   state.sourceLedger = join(generation, 'source-ledger.json')
   if (previous?.sourceProof?.verified && previous.inventoryFormat === 2 && relative(previous.backend, state.backend) === '') {
     await verifyOfficial(previous)
@@ -260,7 +292,7 @@ async function stage(state, options, bytes, previousReference) {
     state.officialBaseline = inventory.packages
     state.officialOptionalMissing = inventory.optionalMissing
     state.inventoryFormat = 2
-    const ledger = await verifyReleaseSources(inventory.packages, join(root, 'release-cache'), join(generation, 'release-verification'), { [`${officialSource.name}@${officialSource.version}`]: officialSource })
+    const ledger = await verifyReleaseSources(inventory.packages, join(root, 'release-cache'), join(generation, 'release-verification'), { [`${state.officialSource.name}@${state.officialSource.version}`]: state.officialSource })
     await save(state.sourceLedger, ledger)
     state.sourceProof = { verified: true, packages: ledger.length, ledgerSha256: createHash('sha256').update(await readFile(state.sourceLedger)).digest('hex') }
   }
@@ -270,9 +302,7 @@ async function stage(state, options, bytes, previousReference) {
   await writeFile(artifact, bytes)
   await unpack(artifact, join(generation, 'inspect-plugin'))
   const plugin = await json(join(generation, 'inspect-plugin', 'package', 'package.json'))
-  if (plugin.name !== '@iroha1145/dsh-modern-ui' || plugin.version !== versions.plugin) throw new Error('Unexpected Modern UI artifact identity')
-  if (Object.keys(plugin.scripts ?? {}).some(key => ['preinstall', 'install', 'postinstall', 'prepare'].includes(key))) throw new Error('Consumer plugin may not have build lifecycle scripts')
-  if (plugin.dsh?.compatibleHost !== versions.backend) throw new Error('Plugin must declare the exact verified dsh.compatibleHost')
+  verifyPluginCompatibility(plugin, state.compatibility)
   const profile = join(home, 'profiles', state.profile)
   const sourceName = options['from-profile'] ?? previous?.profile ?? (existsSync(join(home, 'profiles', 'web', 'package.json')) ? 'web' : undefined)
   if (sourceName !== undefined) {
@@ -289,10 +319,11 @@ async function stage(state, options, bytes, previousReference) {
     state.profileStore = await ensureProfileStore(profile, root)
   }
   const originalEffective = dsh(state, [state.profile, '--dump-config'])
+  const backendRequire = createRequire(state.backend)
+  state.ownerBindings = validateUiOwnerBindings(await readFile(join(generation, 'inspect-plugin', 'package', 'cordis.patch.yml'), 'utf8'), originalEffective, backendRequire('js-yaml'))
   dsh(state, ['plugin', '--profile', state.profile, 'add', '--save-exact', '--ignore-scripts', artifact])
   const installed = await json(join(profile, 'node_modules', plugin.name, 'package.json'))
   if (installed.version !== plugin.version) throw new Error('Installed plugin version mismatch')
-  const backendRequire = createRequire(state.backend)
   state.effectivePreferences = await preserveEffectivePreferences(profile, originalEffective, dsh(state, [state.profile, '--dump-config']), backendRequire('js-yaml'))
   state.conversationMigration = await preserveConversationPreferences(profile, dsh(state, [state.profile, '--dump-config']), backendRequire('js-yaml'))
   state.plugin = { name: plugin.name, version: plugin.version, integrity: options['plugin-integrity'], path: join(profile, 'node_modules', plugin.name) }
@@ -346,7 +377,8 @@ export async function main(argv = process.argv.slice(2)) {
     const homeLease = await acquireOperationLock(state.home)
     try {
       if (command === 'community') {
-        const manifest = await json(resolve(options.manifest ?? join(here, 'community-lock.json')))
+        const manifest = options.manifest ? await json(resolve(options.manifest))
+          : { plugins: getHostCompatibility(state.officialSource.version).communityPlugins }
         const profile = join(state.home, 'profiles', state.profile)
         const declared = (await json(join(profile, 'package.json'))).dependencies ?? {}
         const results = []
@@ -395,7 +427,7 @@ export async function main(argv = process.argv.slice(2)) {
           const profile = join(state.home, 'profiles', state.profile)
           const hostCompatibilityRefresh = await bindHostCompatibility(profile, preflight.stdout.trim(), createRequire(state.backend)('js-yaml'))
           if (hostCompatibilityRefresh.changed) console.log(JSON.stringify({ hostCompatibilityRefresh }))
-          console.log(JSON.stringify({ node: state.node, pnpm: state.pnpm, backend: state.backend, version: versions.backend, plugin: state.plugin, profile: state.profile, home: state.home, cwd: process.cwd() }))
+          console.log(JSON.stringify({ node: state.node, pnpm: state.pnpm, backend: state.backend, version: state.officialSource.version, plugin: state.plugin, profile: state.profile, home: state.home, cwd: process.cwd() }))
           const result = await lifecycle.run(state.node, [state.cli, '--profile', state.profile, ...(options.args ?? [])],
             { cwd: process.cwd(), env: launchEnvironment(state), stdio: 'inherit', detached: process.platform !== 'win32' })
           process.exitCode = result.exitCode

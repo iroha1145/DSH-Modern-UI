@@ -1,6 +1,6 @@
 # DSH Modern UI
 
-**DSH Modern UI**（`@iroha1145/dsh-modern-ui`）是为官方 **DeepSeek Harness**（固定适配 `@deepseek-ai/dsh@0.2.1-rc.4`）打造的现代化 Web 界面插件。
+**DSH Modern UI**（`@iroha1145/dsh-modern-ui`）是为官方 **DeepSeek Harness** 打造的现代化 Web 界面插件。默认使用 `0.2.1-rc.4`，旧宿主的精确版本、平台和验收边界见[向后兼容说明](docs/backward-compatibility.md)。
 
 本项目采用 **原版官方后端 + 独立预编译插件 + 隔离安装器** 架构：不修改任何官方后端文件，无需在用户端克隆源码或编译原生模块，创建独立 Profile 运行，随时可回退或切回官方原生界面。
 
@@ -37,7 +37,7 @@ DSH-Modern-UI/
 
 ## 安装指南
 
-插件目前通过预编译预览包（`plugin-preview`）方式分发。安装器会自动配置所需环境，并默认附带安装 3 个常用社区插件（`dsh-context@0.75.1`、`dsh-better-sidebar@0.28.0`、`dsh-plugins-store@0.1.4`）。
+插件目前通过预编译预览包（`plugin-preview`）方式分发。安装器会自动配置所需环境，默认安装 `dsh-context@0.75.1` 和 `dsh-better-sidebar@0.28.0`。Store 0.1.4 的当前 profile 操作存在已复现问题，已从默认组合排除；已有用户安装保留，详见[兼容说明](docs/backward-compatibility.md#社区插件)。
 
 ### 第一步：获取预编译安装包
 
@@ -71,10 +71,10 @@ DSH-Modern-UI/
   sh ./install.sh '/path/to/dsh-modern/program' '/path/to/dsh-modern/data'
   ```
 
-*(可选：若不想安装附带的 3 个社区插件，Windows 可追加 `-SkipCommunity` 参数，macOS / Linux 可在命令前加上 `DSH_MODERN_SKIP_COMMUNITY=1`。)*
+*(可选：Windows 可追加 `-SkipCommunity`，macOS / Linux 可使用 `DSH_MODERN_SKIP_COMMUNITY=1` 跳过可选社区插件。指定旧宿主用 `-BackendVersion` 或 `DSH_MODERN_BACKEND_VERSION`；已有后端的实际版本默认保留。)*
 
 #### 方式 B：基于本机已有的官方 DSH 安装
-如果您本机已安装官方 `@deepseek-ai/dsh@0.2.1-rc.4`，可直接指定其 `package.json` 路径：
+如果您本机已安装兼容清单中的官方 DSH，可直接指定其 `package.json` 路径，安装器读取实际版本而不升级后端：
 
 - **Windows (PowerShell)**：
   ```powershell

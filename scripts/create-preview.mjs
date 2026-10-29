@@ -6,9 +6,14 @@ import { cp, mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { officialSource, versions } from './distribution/manager.mjs'
+import { supportedHostVersions, getHostCompatibility } from './distribution/compatibility.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-assert.equal(process.version, 'v24.22.1', 'Build previews with the pinned Node runtime')
+assert.equal(process.version, `v${versions.node}`, 'Build previews with the pinned Node runtime')
+for (const filename of ['build-inputs.json', 'host-build-inputs.json']) {
+  const built = JSON.parse(await readFile(path.join(root, 'packages/modern-ui/lib', filename), 'utf8'))
+  assert.deepEqual(built.compatibleHosts, supportedHostVersions, 'Rebuild the plugin after changing the compatibility manifest')
+}
 const output = path.resolve(process.argv[2] ?? path.join(root, '.artifacts/plugin-preview'))
 await mkdir(output, { recursive: true })
 const npm = path.join(path.dirname(process.execPath), process.platform === 'win32'
@@ -27,10 +32,12 @@ const runtimes = JSON.parse(await readFile(path.join(output, 'installer/runtime-
 const communities = JSON.parse(await readFile(path.join(output, 'installer/community-lock.json'), 'utf8'))
 const manifest = {
   schemaVersion: 1, status: 'local-preview-unpublished',
-  acceptanceRecord: 'docs/plugin-migration.md',
-  compatibilityScope: 'Pinned host and runtime; platform acceptance is recorded by the matching source revision consumer CI',
+  acceptanceRecord: 'docs/backward-compatibility.md',
+  compatibilityScope: 'Exact host versions; feature and platform acceptance is recorded separately by test:compat',
   plugin: { name: packed.name, version: packed.version, filename: 'modern-ui.tgz', integrity, bytes: bytes.length },
   backend: officialSource,
+  compatibleHosts: supportedHostVersions,
+  backends: Object.fromEntries(supportedHostVersions.map(version => [version, getHostCompatibility(version)])),
   node: versions.node, pnpm: versions.pnpm,
   runtimeSources: runtimes, communityPlugins: communities.plugins,
   decision: 'Modern UI session web controls removed; official plugin configuration remains authoritative',
@@ -41,17 +48,20 @@ await writeFile(path.join(output, 'install.ps1'), `param(
   [Parameter(Mandatory=$true)][string]$Root,
   [Parameter(Mandatory=$true)][string]$DataHome,
   [string]$Backend,
+  [string]$BackendVersion,
+  [string]$FromProfile,
   [string]$Node,
   [switch]$SkipCommunity
 )
 $ErrorActionPreference = 'Stop'
-& (Join-Path $PSScriptRoot 'installer/bootstrap.ps1') -Root $Root -DataHome $DataHome -Plugin (Join-Path $PSScriptRoot 'modern-ui.tgz') -PluginIntegrity '${integrity}' -Backend $Backend -Node $Node -SkipCommunity:$SkipCommunity
+& (Join-Path $PSScriptRoot 'installer/bootstrap.ps1') -Root $Root -DataHome $DataHome -Plugin (Join-Path $PSScriptRoot 'modern-ui.tgz') -PluginIntegrity '${integrity}' -Backend $Backend -BackendVersion $BackendVersion -FromProfile $FromProfile -Node $Node -SkipCommunity:$SkipCommunity
 `)
 await writeFile(path.join(output, 'install-existing.ps1'), `param(
   [Parameter(Mandatory=$true)][string]$Backend,
   [string]$Root,
   [string]$DataHome,
   [string]$Node,
+  [string]$FromProfile,
   [switch]$SkipCommunity
 )
 $ErrorActionPreference = 'Stop'
@@ -109,6 +119,6 @@ The two directories must be separate. User data and other profiles are retained.
 Launch the generated program/dsh-ui.cmd (Windows) or program/dsh-ui (POSIX).
 
 preview.json records exact versions and integrity.
-Compatibility scope and remaining differences are documented in docs/plugin-migration.md.
+Compatibility scope and remaining differences are documented in docs/backward-compatibility.md.
 `)
 console.log(JSON.stringify({ output, ...manifest }, null, 2))

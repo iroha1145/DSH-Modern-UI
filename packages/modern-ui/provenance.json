@@ -2822,7 +2822,7 @@
       "source": "packages/client/ui-chat/src/client/chat/ChatNodeSeat.tsx",
       "target": "src/vendor/chat/client/chat/ChatNodeSeat.tsx",
       "sourceSha256": "6f7b48de4044ada72211b5b2f5c7f20a37e00781f4f3109e8d70f6377b854756",
-      "targetSha256": "01274bc5019afdc67c85b58ae40ebc1b2863a43d65622c633785da420f2cca7f",
+      "targetSha256": "96258f568ad8ef95a914c051034f66eea6dc7af24aeb2bd450ab59d607451cb2",
       "adapted": true
     },
     {
@@ -2955,7 +2955,7 @@
       "source": "packages/client/ui-chat/src/client/chat/register-node-renderers.ts",
       "target": "src/vendor/chat/client/chat/register-node-renderers.ts",
       "sourceSha256": "27c7f9bdcd76f39789a37c83fcfeecddf1edbfbc84cef1e939ce7a75f547c081",
-      "targetSha256": "2643480ec6caa89aee08c93f653c4ccae89943f9c4ac538410e8a2e0853c6711",
+      "targetSha256": "a32a48958b02acfa1a03e09e4189043090d357c40fd84b65a39cd1c5eb2c15f4",
       "adapted": true
     },
     {
@@ -3116,7 +3116,7 @@
       "source": "packages/client/ui-chat/src/client/contract/snapshot.ts",
       "target": "src/vendor/chat/client/contract/snapshot.ts",
       "sourceSha256": "a4a656f65bc4321bdb424d519a469628be394db6456911a660a03b05a641926d",
-      "targetSha256": "b1c22a7f316af1949241705a7ca425e622654a563b69cd509d930b2562c074ab",
+      "targetSha256": "510ff7a71cdfa382777e8c088e9ec55979f357ba7689def6e78915e6fc3be759",
       "adapted": true
     },
     {
@@ -3270,8 +3270,8 @@
       "source": "packages/client/ui-chat/src/client/conversation-nodes/turn-process-presentation.ts",
       "target": "src/vendor/chat/client/conversation-nodes/turn-process-presentation.ts",
       "sourceSha256": "9f635b0741ba1ac72f860c1b9b303fd313638ffb9f19d108224f17070a379bae",
-      "targetSha256": "009acc90486da5aded3685bfc432cb8ebac90b86da7729138c341e6b188f610d",
-      "adapted": false
+      "targetSha256": "2ff66e36ce11a81be9b9c5d8433210f4a0e39f1c326198df861dd48ababd0c51",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/conversation-nodes/turn-process.ts",
@@ -3679,8 +3679,8 @@
     },
     {
       "target": "src/vendor/chat/client/compat.ts",
-      "targetSha256": "ff91e0e49ee8fe24b0ff9bab771a97053a3411611a0cc3e43594293f0dd1a59c",
-      "description": "Registration-boundary cast between the vendored rc.3 chat contract and the official rc.4 slot declarations."
+      "targetSha256": "0884ad6fab7c1af9f4176b620988b76866998231d16165527f5501163c1b8e04",
+      "description": "Typed public slot registration shared by the verified rc.2, rc.3 and rc.4 contracts; optional Modern process fields are adapted at the rendering boundary."
     },
     {
       "target": "src/previews.ts",

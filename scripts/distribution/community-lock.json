@@ -11,12 +11,6 @@
       "version": "0.28.0",
       "url": "https://registry.npmjs.org/dsh-better-sidebar/-/dsh-better-sidebar-0.28.0.tgz",
       "integrity": "sha512-x7+/YmH/HrSlXWOBZkhL7qQqcDgZEnDcWrhR5GlizzUZjz+w84FbQ6jo8trJC9tyaQxMaNvXVnXwDxn4I330Ew=="
-    },
-    {
-      "name": "dsh-plugins-store",
-      "version": "0.1.4",
-      "url": "https://registry.npmjs.org/dsh-plugins-store/-/dsh-plugins-store-0.1.4.tgz",
-      "integrity": "sha512-px/wYb6dBGoXE+8qpNrdm7b5H/pg7Ov65Ic16wROJxUZPV44wEy+eYIRR7eQ3vyJJxcCsyy28toWrumVt9lABw=="
     }
   ]
 }

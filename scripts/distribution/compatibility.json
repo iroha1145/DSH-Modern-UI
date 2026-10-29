@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "defaultHostVersion": "0.2.1-rc.4",
+  "runtimeVersions": {
+    "node": "24.22.1",
+    "pnpm": "11.28.5",
+    "plugin": "0.1.0-migration.1"
+  },
+  "plugin": {
+    "name": "@iroha1145/dsh-modern-ui",
+    "filename": "modern-ui.tgz"
+  },
+  "hosts": {
+    "0.2.1-rc.4": {
+      "platforms": [
+        "linux-x64",
+        "linux-arm64",
+        "darwin-x64",
+        "darwin-arm64",
+        "win32-x64"
+      ],
+      "officialSource": {
+        "name": "@deepseek-ai/dsh",
+        "version": "0.2.1-rc.4",
+        "channel": "exact npm release",
+        "url": "https://registry.npmjs.org/@deepseek-ai/dsh/-/dsh-0.2.1-rc.4.tgz",
+        "integrity": "sha512-8gxl6zOi6vx1sDolH+vjh9txrpbXD+t74Z2YfWkEBtR3xP2YEtk0bbLkgLZRnYQgDxCoXitXyXDKn5k0+6iXrg=="
+      },
+      "communityPlugins": [
+        {
+          "name": "dsh-context",
+          "version": "0.75.1",
+          "url": "https://registry.npmjs.org/dsh-context/-/dsh-context-0.75.1.tgz",
+          "integrity": "sha512-gHpusP9i5hqepogAkZnAL9qyu+P5cwngW3ij5SKqHFyVUSN8sGvsIuSeL9foFaF7TpRHo1/C+nk4WLHVISWcvQ=="
+        },
+        {
+          "name": "dsh-better-sidebar",
+          "version": "0.28.0",
+          "url": "https://registry.npmjs.org/dsh-better-sidebar/-/dsh-better-sidebar-0.28.0.tgz",
+          "integrity": "sha512-x7+/YmH/HrSlXWOBZkhL7qQqcDgZEnDcWrhR5GlizzUZjz+w84FbQ6jo8trJC9tyaQxMaNvXVnXwDxn4I330Ew=="
+        }
+      ]
+    },
+    "0.2.1-rc.3": {
+      "platforms": [
+        "linux-x64",
+        "win32-x64"
+      ],
+      "officialSource": {
+        "name": "@deepseek-ai/dsh",
+        "version": "0.2.1-rc.3",
+        "channel": "exact npm release",
+        "url": "https://registry.npmjs.org/@deepseek-ai/dsh/-/dsh-0.2.1-rc.3.tgz",
+        "integrity": "sha512-H+E9HLnHf7fJqzen84Z9Bq8ggb5xbrcbyhZjXTJLE9NabHr3zteGvTRvdvGkxPl4ov80is4WLglFmSo+/olJjg=="
+      },
+      "communityPlugins": [
+        {
+          "name": "dsh-context",
+          "version": "0.75.1",
+          "url": "https://registry.npmjs.org/dsh-context/-/dsh-context-0.75.1.tgz",
+          "integrity": "sha512-gHpusP9i5hqepogAkZnAL9qyu+P5cwngW3ij5SKqHFyVUSN8sGvsIuSeL9foFaF7TpRHo1/C+nk4WLHVISWcvQ=="
+        },
+        {
+          "name": "dsh-better-sidebar",
+          "version": "0.28.0",
+          "url": "https://registry.npmjs.org/dsh-better-sidebar/-/dsh-better-sidebar-0.28.0.tgz",
+          "integrity": "sha512-x7+/YmH/HrSlXWOBZkhL7qQqcDgZEnDcWrhR5GlizzUZjz+w84FbQ6jo8trJC9tyaQxMaNvXVnXwDxn4I330Ew=="
+        }
+      ]
+    },
+    "0.2.1-rc.2": {
+      "platforms": [
+        "linux-x64",
+        "win32-x64"
+      ],
+      "officialSource": {
+        "name": "@deepseek-ai/dsh",
+        "version": "0.2.1-rc.2",
+        "channel": "exact npm release",
+        "url": "https://registry.npmjs.org/@deepseek-ai/dsh/-/dsh-0.2.1-rc.2.tgz",
+        "integrity": "sha512-tvY+yhfKRifthbqPe/OK0AYxM5ZkvqfYq/jMYgJcEUxiRRL1Vwra3Ti5TB6AXgSWQdiPHYh/Vp6SJa9yHwMNuw=="
+      },
+      "communityPlugins": [
+        {
+          "name": "dsh-context",
+          "version": "0.75.1",
+          "url": "https://registry.npmjs.org/dsh-context/-/dsh-context-0.75.1.tgz",
+          "integrity": "sha512-gHpusP9i5hqepogAkZnAL9qyu+P5cwngW3ij5SKqHFyVUSN8sGvsIuSeL9foFaF7TpRHo1/C+nk4WLHVISWcvQ=="
+        },
+        {
+          "name": "dsh-better-sidebar",
+          "version": "0.28.0",
+          "url": "https://registry.npmjs.org/dsh-better-sidebar/-/dsh-better-sidebar-0.28.0.tgz",
+          "integrity": "sha512-x7+/YmH/HrSlXWOBZkhL7qQqcDgZEnDcWrhR5GlizzUZjz+w84FbQ6jo8trJC9tyaQxMaNvXVnXwDxn4I330Ew=="
+        }
+      ]
+    }
+  },
+  "excludedDefaultPlugins": [
+    {
+      "name": "dsh-plugins-store",
+      "version": "0.1.4",
+      "url": "https://registry.npmjs.org/dsh-plugins-store/-/dsh-plugins-store-0.1.4.tgz",
+      "integrity": "sha512-px/wYb6dBGoXE+8qpNrdm7b5H/pg7Ov65Ic16wROJxUZPV44wEy+eYIRR7eQ3vyJJxcCsyy28toWrumVt9lABw==",
+      "reason": "Inventory, install and remove target web instead of the running profile; no public profile adapter is exposed. Existing user installations are retained."
+    }
+  ]
+}
