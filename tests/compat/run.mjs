@@ -121,9 +121,9 @@ for (const version of versions) {
       result.layers.browser = { state: browserState, evidence: path.join(evidence, 'browser/result.json'), checks: browser.checks }
       assert.equal(browserState, 'passed', 'Real browser acceptance must pass before this run can claim core compatibility')
     } finally { await cleanupFixtures([browserFixtureName]) }
-    assert.equal(await readFile(sentinel, 'utf8'), sentinelBytes)
-    result.layers.unrelatedData = { state: 'passed' }
     result.layers.failedUpgrade = await checkFailedUpgrade(state, path.join(evidence, 'failed-upgrade'))
+    assert.equal(await readFile(sentinel, 'utf8'), sentinelBytes)
+    result.layers.unrelatedData = { state: 'passed', checkedAfterFailedUpgrade: true }
     result.layers.officialAfter = { state: 'passed', result: await main(['verify', '--root', state.root]) }
     result.state = 'passed'
   } catch (error) {
