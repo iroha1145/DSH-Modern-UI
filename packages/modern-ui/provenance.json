@@ -1533,7 +1533,7 @@
       "source": "packages/client/ui-primitives/src/markdown/cjkFriendlyStrong.ts",
       "target": "src/vendor/primitives/markdown/cjkFriendlyStrong.ts",
       "sourceSha256": "bc4adf3183f7d0feea17e3a176e7c4b1db5bdddc29e7fc87261f627ff8a39b53",
-      "targetSha256": "c2f1c44c7d2ed8bce0c31613f272a551819d290cd340880eac152001d2028cb1",
+      "targetSha256": "670a7086e6c19f597f66dcf1273534e9220db14b4a55cfbc4eb23f08dfec959c",
       "adapted": true
     },
     {

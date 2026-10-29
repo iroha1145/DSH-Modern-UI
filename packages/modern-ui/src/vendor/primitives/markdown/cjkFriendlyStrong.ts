@@ -1,6 +1,7 @@
 /**
  * Let asterisk strong emphasis open before punctuation and close after punctuation when CJK prose
- * continues without whitespace on the other side, e.g. `提出**“引力 = 熵力”**假说`.
+ * continues without whitespace on the other side, e.g. `提出**“引力 = 熵力”**假说`, and around
+ * CJK punctuation when Latin letters or digits continue, e.g. `**研究对象：**DeepSeek`.
  */
 
 import { attention } from 'micromark-core-commonmark'
@@ -19,6 +20,17 @@ const cjkCharacter = new RegExp([
 
 function isCjkCharacter(code: number | null): boolean {
   return code !== null && code >= 0 && cjkCharacter.test(String.fromCodePoint(code))
+}
+
+/**
+ * CJK punctuation: CJK Symbols and Punctuation, fullwidth forms such as `：（），`, and the curly
+ * quotes Chinese prose uses. English prose uses ASCII punctuation, so treating these as CJK
+ * context leaves English emphasis on the CommonMark rules.
+ */
+function isCjkPunctuation(code: number | null): boolean {
+  if (code === null || !unicodePunctuation(code)) return false
+  return (code >= 0x3000 && code <= 0x303F) || (code >= 0xFF00 && code <= 0xFFEF)
+    || code === 0x2018 || code === 0x2019 || code === 0x201C || code === 0x201D
 }
 
 const tokenizeCjkFriendlyAttention: Tokenizer = function (effects, ok, nok) {
@@ -58,13 +70,14 @@ const tokenizeCjkFriendlyAttention: Tokenizer = function (effects, ok, nok) {
       || (attentionMarkers.includes(previous) && previous !== codes.asterisk && previous !== codes.underscore)
     const markerCount = token.end.offset - token.start.offset
     // A `**` run between a CJK character and punctuation opens (CJK before) or closes (CJK after),
-    // which CommonMark's flanking rules refuse because the punctuation side is not whitespace.
+    // which CommonMark's flanking rules refuse because the punctuation side is not whitespace. The
+    // same holds next to CJK punctuation when a letter or digit continues on the other side.
     const cjkStrongOpen = markerCount >= 2
-      && isCjkCharacter(previous)
       && unicodePunctuation(code)
+      && (isCjkCharacter(previous) || (isCjkPunctuation(code) && !before))
     const cjkStrongClose = markerCount >= 2
       && unicodePunctuation(previous)
-      && isCjkCharacter(code)
+      && (isCjkCharacter(code) || (isCjkPunctuation(previous) && !after))
     const open = commonMarkOpen || cjkStrongOpen
     const close = commonMarkClose || cjkStrongClose
 
