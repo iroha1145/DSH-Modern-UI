@@ -130,6 +130,28 @@ body[data-modern-official-controls] .Y0dWHa_collapsedTurnEllipsis,
 body[data-modern-official-controls] .Y0dWHa_programError::first-line { font-weight: 500; }
 body[data-modern-official-controls] .Y0dWHa_details { border-left: 0; box-shadow: inset .5px 0 0 var(--dsw-alias-border-l2); }
 @media (max-width: 760px) { body[data-modern-official-controls] .Y0dWHa_details { box-shadow: var(--shadow-float, var(--dsw-elevation-prominent)); } }
+/* Plugin manager page (dsh-client-ui-plugin-manager PluginManagerPage.module.css): the patched page
+   set the 20px titles to the heading line height and the wizard/approval headings to medium. */
+body[data-modern-official-controls] .X_2TxG_pageTitle,
+body[data-modern-official-controls] .X_2TxG_detailTitle { line-height: var(--lh-heading, 1.2); }
+body[data-modern-official-controls] .X_2TxG_wizardBack,
+body[data-modern-official-controls] .X_2TxG_wizardTitle,
+body[data-modern-official-controls] .X_2TxG_subjectName,
+body[data-modern-official-controls] .X_2TxG_approvalTitle { font-weight: var(--fw-medium, 500); }
+/* Settings sections still rendered by official packages: models (ModelsSection), plugins
+   (PluginsSettingsSection), subagents (SubagentCard), and the command popup badge (PopupSelectView). */
+body[data-modern-official-controls] .zGbnIq_title { line-height: var(--lh-heading, 1.2); }
+body[data-modern-official-controls] .zGbnIq_field { gap: var(--space-2, .5rem); }
+body[data-modern-official-controls] .pbvGtq_heading,
+body[data-modern-official-controls] .pbvGtq_presetSettingsTitle,
+body[data-modern-official-controls] .AZSXYW_heading,
+body[data-modern-official-controls] .mufS8W_badge { font-weight: var(--fw-medium, 500); }
+/* Terminal (dsh-client-ui-sidebar-terminal terminal.module.css): the patched root used the
+   layer-2 scrollbar pair, one step quieter in the dark theme. */
+body[data-modern-official-controls] ._UE8Aa_root {
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
 @media (prefers-reduced-motion: reduce) {
   body[data-modern-official-controls] ._button_1rv3m_2,
   body[data-modern-official-controls] ._row_k7ery_26,

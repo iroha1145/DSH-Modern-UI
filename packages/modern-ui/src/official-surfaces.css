@@ -294,3 +294,14 @@ body[data-ds-dark-theme] [data-changed-files] button[class*="_header"] > [class*
   border-radius: var(--r-card);
   box-shadow: var(--shadow-modal);
 }
+
+
+/* ==========================================================================
+   ui-sidebar-files: an "other" entry (neither file nor directory) renders its
+   row as a span, which is content-box; with width:100% plus 10px side padding it
+   overflowed the file tree by 20px and raised a horizontal scrollbar. The
+   patched FilesBody row was border-box. Hook: [data-files-entry="other"] (rc.4).
+   ========================================================================== */
+[data-files-entry="other"] > span {
+  box-sizing: border-box;
+}
