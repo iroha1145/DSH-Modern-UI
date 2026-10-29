@@ -1,8 +1,7 @@
 /* Derived from ui-schedule's Modern UI patch (MIT). Only public semantic roots
-   are targeted; the official catalog, clock mark and task interactions remain. */
-[data-tool="schedule_create"]:not([data-variant]) {
-  border-radius: var(--dsw-radius-md);
-}
+   are targeted; the official catalog, clock mark and task interactions remain.
+   The schedule_create card keeps its official lg radius: the patch only tokenised
+   the 40px icon tile inside it (10px, equal to md in this theme). */
 [data-session-schedule-tasks] [data-session-schedule-task] > [aria-hidden="true"] {
   color: var(--dsw-alias-label-secondary);
 }

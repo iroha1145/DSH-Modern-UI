@@ -70,35 +70,29 @@
   white-space: nowrap;
 }
 
-/* Preserve the patched release badge palette while the original label plugin
-   owns its content and lifetime. The selector is scoped to its official routes. */
+/* The official 1017 release label (ui-deepseek-model-label-1017) renders, through the renderer's
+   display:contents anchor span[data-slot], an inline-flex span holding the name span and an info Tag.
+   Keep the patched look: the badge is plain quiet text, the name ellipsizes, and in the composer
+   control the badge gives way before the model name. Scoped to the official routes and model. */
 :is(.triggerLabel, .name) > :is([data-provider-id='deepseek-account'], [data-provider-id='deepseek-official'])[data-model-id='deepseek-flash'] :global([data-tone='info']) {
+  padding: 0;
+  border-radius: 0;
   background: transparent;
-  color: var(--dsw-alias-label-tertiary);
+  color: var(--bui-ink-3);
   flex-shrink: 0;
 }
 
-:is(.triggerLabel, .name) > :is([data-provider-id='deepseek-account'], [data-provider-id='deepseek-official'])[data-model-id='deepseek-flash'] > span {
+:is(.triggerLabel, .name) > :is([data-provider-id='deepseek-account'], [data-provider-id='deepseek-official'])[data-model-id='deepseek-flash'] > :global([data-slot='conversation.input.model.label']) > span {
   max-width: 100%;
 }
 
-:is(.triggerLabel, .name) > :is([data-provider-id='deepseek-account'], [data-provider-id='deepseek-official'])[data-model-id='deepseek-flash'] > span > span:first-child {
+:is(.triggerLabel, .name) > :is([data-provider-id='deepseek-account'], [data-provider-id='deepseek-official'])[data-model-id='deepseek-flash'] > :global([data-slot='conversation.input.model.label']) > span > span:first-child {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* Model release labels remain plain text within the exposed composer control
-   and the option rows. */
-.triggerLabel :global([data-tone='quiet']),
-.name :global([data-tone='quiet']) {
-  padding: 0;
-  border-radius: 0;
-  color: var(--bui-ink-3);
-}
-
-/* In the composer control the release label gives way before the model name. */
-.triggerLabel :global([data-tone='quiet']) {
+.triggerLabel > :is([data-provider-id='deepseek-account'], [data-provider-id='deepseek-official'])[data-model-id='deepseek-flash'] :global([data-tone='info']) {
   display: block;
   flex-shrink: 1000;
   min-width: 0;

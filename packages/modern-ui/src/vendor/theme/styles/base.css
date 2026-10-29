@@ -101,6 +101,16 @@ body {
      The layer tokens live on body, so the aliases must resolve here, not on :root. */
   --dsw-alias-bg-l1: var(--dsw-alias-bg-layer-1);
   --dsw-alias-bg-l2: var(--dsw-alias-bg-layer-2);
+  /* Official rc.4 packages also name these without a fallback, and no theme defines them:
+     disabled browser-toolbar and preset seats (quaternary label), settings-form errors, field help
+     and subagent-model hover (layer 4), and the jobs menu badges, row hovers and mono labels. */
+  --dsw-alias-label-quaternary: color-mix(in srgb, var(--dsw-alias-label-tertiary) 55%, transparent);
+  --dsw-alias-label-error: var(--dsw-alias-state-error-primary);
+  --dsw-alias-bg-layer-4: var(--dsw-alias-interactive-bg-hover);
+  --dsw-alias-fill-l1: color-mix(in srgb, var(--dsw-alias-label-primary) 5%, transparent);
+  --dsw-alias-fill-l2: color-mix(in srgb, var(--dsw-alias-label-primary) 8%, transparent);
+  --dsw-alias-fill-tsp-secondary: color-mix(in srgb, var(--dsw-alias-label-primary) 6%, transparent);
+  --dsw-font-mono: var(--ds-font-family-code);
   --dsw-font-family: var(--dsh-font-family-text, var(--dsh-font-family-text-default)), var(--dsh-font-family-text-default);
   --ds-font-family-code: var(--dsh-font-family-code, var(--dsh-font-family-code-default)), var(--dsh-font-family-code-default);
   --dsw-alias-settings-card-fill: var(--surface);

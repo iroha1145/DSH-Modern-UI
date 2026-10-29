@@ -32,6 +32,14 @@ const STYLES = [
   ['extensions.css', extensions],
 ] as const
 
+/**
+ * Tokens that media/platform rules in design-platform.css re-declare (macOS desktop menus, no
+ * backdrop-filter, reduced transparency, forced colors). The presenter writes override tokens as
+ * body inline styles, which would beat those rules, so these stay with the stylesheet; their base
+ * values are identical in the official and Modern themes.
+ */
+const CONDITIONAL_TOKENS = new Set(['--dsw-menu-surface-fill', '--dsw-specific-menu'])
+
 /** Read both authored palettes, never the device's current computed scheme. */
 export function modernThemeTokens(): import('@deepseek-ai/dsh-client-ui-theme/client').ThemeTokenOverrides {
   const light: Record<string, string> = {}, dark: Record<string, string> = {}
@@ -42,7 +50,7 @@ export function modernThemeTokens(): import('@deepseek-ai/dsh-client-ui-theme/cl
       if (![':root', 'body', 'body[data-ds-dark-theme]'].includes(selector)) continue
       for (const declaration of rule[2].matchAll(/(--[\w-]+)\s*:\s*([^;]+?)(?:;|$)/g)) {
         const [, name, value] = declaration
-        if (/^--(?:dsw-static|dsw-font|dsh-)/.test(name)) continue
+        if (/^--(?:dsw-static|dsw-font|dsh-)/.test(name) || CONDITIONAL_TOKENS.has(name)) continue
         if (selector !== 'body[data-ds-dark-theme]') light[name] = value.trim()
         else dark[name] = value.trim()
       }

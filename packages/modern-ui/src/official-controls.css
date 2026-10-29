@@ -30,9 +30,12 @@ body[data-modern-official-controls] ._primary_1rv3m_36 {
   background: var(--primary, var(--dsw-alias-button-primary-fill));
   color: var(--dsw-alias-label-primary-foreground);
 }
+/* The patched primitives draw the outline edge with an inset hairline (the transparent border only
+   keeps the box size); rc.4 draws it with the border this rule clears, so both halves are needed. */
 body[data-modern-official-controls] ._outline_1rv3m_54 {
   border: .5px solid transparent;
   background: var(--surface, transparent);
+  box-shadow: inset 0 0 0 var(--dsh-hairline-width, .5px) var(--dsh-button-outline-color, var(--dsw-alias-border-l3));
 }
 body[data-modern-official-controls] ._toolbar_1rv3m_63 {
   border: .5px solid var(--dsw-alias-border-l3);
