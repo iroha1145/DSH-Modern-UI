@@ -4,6 +4,7 @@ param(
   [string]$PluginIntegrity,
   [string]$Root = (Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'DSH-Modern-UI/program'),
   [string]$DataHome,
+  [string]$FromProfile,
   [string]$Node,
   [switch]$SkipCommunity
 )
@@ -32,4 +33,4 @@ if (-not $Node) {
     } catch { Write-Verbose 'System Node probe failed; preparing the pinned private runtime.' }
   }
 }
-& (Join-Path $PSScriptRoot 'bootstrap.ps1') -Root $Root -DataHome $DataHome -Plugin $Plugin -PluginIntegrity $PluginIntegrity -Backend $Backend -Node $Node -SkipCommunity:$SkipCommunity
+& (Join-Path $PSScriptRoot 'bootstrap.ps1') -Root $Root -DataHome $DataHome -Plugin $Plugin -PluginIntegrity $PluginIntegrity -Backend $Backend -FromProfile $FromProfile -Node $Node -SkipCommunity:$SkipCommunity

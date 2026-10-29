@@ -4,7 +4,8 @@ import type { ChatViewSlotProps } from '../contract/slots.ts'
 import { formatRunDuration, LIVE_RUN_CLOCK_INTERVAL_MS } from './message-chrome.ts'
 import { RunningWhaleTail } from './RunningWhaleTail.tsx'
 import a11yCss from './accessibility.module.css'
-import css from './RunningStatus.module.css'
+import css from './ChatView.module.css'
+import loadingCss from './LoadingState.module.css'
 
 /** What the running Turn is doing right now, as the status row names it. */
 export type RunningPhase = 'thinking' | 'tools' | 'responding' | 'working'
@@ -36,12 +37,12 @@ export const RunningStatus = memo(function RunningStatus({ startTime, paused, ph
     : formatRunDuration(Math.max(0, now - startTime), t).map(part => part.text).join('')
   const label = t(`chat.activity.${phase}`)
   return (
-    <div className={css.running} data-modern-running={phase} data-modern-paused={paused ? '' : undefined}>
+    <div className={css.running} data-chat-running data-modern-running={phase} data-modern-paused={paused ? '' : undefined}>
       <span className={a11yCss.visuallyHidden} role="status" aria-live="polite" aria-atomic="true">{label}</span>
-      <span className={css.runningContent}>
+      <span className={`${css.runningContent} ${loadingCss.content}`}>
         {activityVisible && <RunningWhaleTail />}
-        {activityVisible && <span className={css.label} data-loading-label>{label}</span>}
-        {duration !== undefined && <span className={css.elapsed} data-loading-elapsed>{duration}</span>}
+        {activityVisible && <span className={loadingCss.label} data-loading-label>{label}</span>}
+        {duration !== undefined && <span className={loadingCss.elapsed} data-loading-elapsed>{duration}</span>}
       </span>
     </div>
   )

@@ -10,6 +10,7 @@
   "packageManager": "pnpm@11.28.5",
   "scripts": {
     "build": "node scripts/build-plugin.mjs",
+    "test:compat": "node tests/compat/run.mjs",
     "build:host": "node scripts/build-host.mjs",
     "preview": "node scripts/create-preview.mjs",
     "typecheck:host": "tsc --project tsconfig.host.json",

@@ -10,7 +10,7 @@ import { isMainModule } from './entrypoint.mjs'
 export async function installExisting(argv = process.argv.slice(2)) {
   if (process.version !== `v${versions.node}`) throw new Error(`Use Node ${versions.node}, or the bootstrap entry to prepare it privately.`)
   const options = {}
-  const accepted = new Set(['--backend', '--plugin', '--plugin-integrity', '--root', '--home', '--skip-community'])
+  const accepted = new Set(['--backend', '--plugin', '--plugin-integrity', '--root', '--home', '--skip-community', '--from-profile'])
   for (let index = 0; index < argv.length; index += 2) {
     const key = argv[index]
     if (!accepted.has(key) || !argv[index + 1]?.trim() || Object.hasOwn(options, key)) throw new Error(`Invalid or duplicate option: ${key}`)
@@ -29,7 +29,8 @@ export async function installExisting(argv = process.argv.slice(2)) {
   const started = performance.now()
   const core = await main(['install', '--root', root, '--home', home,
     '--backend', resolve(options['--backend']), '--node', process.execPath,
-    '--plugin', resolve(options['--plugin']), '--plugin-integrity', options['--plugin-integrity']])
+    '--plugin', resolve(options['--plugin']), '--plugin-integrity', options['--plugin-integrity'],
+    ...(options['--from-profile'] ? ['--from-profile', options['--from-profile']] : [])])
   const coreElapsedMs = Math.round(performance.now() - started)
   console.log(JSON.stringify({ phase: 'core', result: core }, null, 2))
   let community

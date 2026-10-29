@@ -1,4 +1,5 @@
 import type { Context } from '@deepseek-ai/cordis'
+import { createElement } from 'react'
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import type { PerformanceUsageMode } from '../../chat-settings.ts'
 import type { ChatPresentationPolicy } from '../presentation-policy.ts'
@@ -34,12 +35,16 @@ export function registerChatNodeRenderers(
   presentation: ObservableSnapshot<ChatPresentationPolicy>,
   navigation: MarkdownNavigationInjected,
 ): void {
+  const translate = ctx.locale.bind(NS)
   ctx.effect(() => ctx.slots.registerFactory({
     name: 'conversation.chat.reasoning.content',
     scope: 'root',
-    // The official factory declaration fixes the `chat` namespace; Modern's dictionary lives in modern-chat.
-    locale: NS as unknown as 'chat',
-  }, compat(ReasoningContent)))
+    locale: 'chat',
+  }, props => createElement(ReasoningContent, {
+    ...props,
+    // A fresh translator follows the factory's official locale revision through React.memo.
+    t: (key, parameters) => translate(key, parameters),
+  })))
   ctx.slots.inject('conversation.chat.reasoning.body', () => ctx.slots.register({
     name: 'conversation.chat.reasoning.body',
     priority: 100,

@@ -9,6 +9,7 @@ on:
       - 'scripts/migration/**'
       - 'scripts/build-*.mjs'
       - 'scripts/*preview*.mjs'
+      - 'tests/compat/**'
       - 'package*.json'
       - 'tsconfig*.json'
       - '.github/workflows/plugin-preview.yml'
@@ -23,6 +24,8 @@ jobs:
   plugin:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    outputs:
+      hosts: ${{ steps.compatibility.outputs.hosts }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -31,12 +34,65 @@ jobs:
         with:
           node-version: '24.22.1'
       - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Check source regressions against the development Host
+        run: node --test tests/compat/*.test.mjs
+        env:
+          COMPAT_BACKEND_PACKAGE: node_modules/@deepseek-ai/dsh/package.json
       - run: npm run build
       - run: node scripts/create-preview.mjs
+      - name: Read the exact compatibility targets
+        id: compatibility
+        run: node --input-type=module -e "import fs from 'node:fs'; import { supportedHostVersions } from './scripts/distribution/compatibility.mjs'; fs.appendFileSync(process.env.GITHUB_OUTPUT, 'hosts=' + JSON.stringify(supportedHostVersions) + '\n')"
       - uses: actions/upload-artifact@v7.0.1
         with:
           name: modern-ui-precompiled-preview
           path: .artifacts/plugin-preview/
+          retention-days: 7
+
+  compatibility:
+    needs: plugin
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        host: ${{ fromJSON(needs.plugin.outputs.hosts) }}
+        runner: [ubuntu-24.04, windows-2025]
+        include:
+          - runner: ubuntu-24.04
+            platform: linux-x64
+          - runner: windows-2025
+            platform: win32-x64
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: '24.22.1'
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: modern-ui-precompiled-preview
+          path: preview
+      - name: Install only the browser driver
+        shell: bash
+        run: |
+          npm install --prefix "$RUNNER_TEMP/compat-driver" --ignore-scripts --no-audit --no-fund playwright-core@1.64.1
+          node "$RUNNER_TEMP/compat-driver/node_modules/playwright-core/cli.js" install chromium
+          echo "COMPAT_TEST_DRIVER=$RUNNER_TEMP/compat-driver" >> "$GITHUB_ENV"
+          node -e "require('node:fs').appendFileSync(process.env.GITHUB_ENV, 'MODERN_UI_BROWSER=' + require(process.env.RUNNER_TEMP + '/compat-driver/node_modules/playwright-core').chromium.executablePath() + '\n')"
+      - name: Exercise the isolated official consumer
+        shell: bash
+        run: node tests/compat/run.mjs --preview preview --host '${{ matrix.host }}' --root "$RUNNER_TEMP/compatibility"
+      - uses: actions/upload-artifact@v7.0.1
+        if: always()
+        with:
+          name: compatibility-${{ matrix.host }}-${{ matrix.platform }}
+          path: |
+            ${{ runner.temp }}/compatibility/results-*/**/*.json
+            ${{ runner.temp }}/compatibility/results-*/**/*.log
+            ${{ runner.temp }}/compatibility/results-*/**/*.png
+          if-no-files-found: warn
           retention-days: 7
 
   consumer:

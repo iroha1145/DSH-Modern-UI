@@ -1,6 +1,6 @@
 # DSH Modern UI
 
-Modern UI runs as an independent plugin on the unmodified official `@deepseek-ai/dsh@0.2.1-rc.4` release. This package is a precompiled, unpublished preview.
+Modern UI runs as an independent plugin on exact, verified official DSH releases. The preview's compatibility manifest selects the backend and preserves an existing installation's version; rc.4 remains the new-install default. This package is a precompiled, unpublished preview.
 
 ## Features
 

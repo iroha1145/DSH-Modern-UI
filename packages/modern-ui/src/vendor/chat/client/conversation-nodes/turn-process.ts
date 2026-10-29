@@ -220,8 +220,10 @@ function processSpec(state: TurnProcessState, turn: TurnLocation): TurnProcessSp
   return {
     turn: turn.turn,
     controlAnchorSeq,
-    processStartSeq: turn.start?.seq
-      ?? (Number.isFinite(externalProcessSeq) ? externalProcessSeq : answer.finalNode.seq),
+    // Without the Turn start in the loaded window, process begins at its earliest evidence. The answer is
+    // the earliest closing reply, so process may also follow it (Steps reopened after the answer); the
+    // bound never starts after the answer itself, matching what the full window would show.
+    processStartSeq: turn.start?.seq ?? Math.min(externalProcessSeq, answer.finalNode.seq),
     answerAnchorSeq: answer.finalNode.seq,
     answerStep: answer.step,
     inlineReasoning,

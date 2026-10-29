@@ -6,6 +6,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { spawnSync } from 'node:child_process'
 const here = dirname(fileURLToPath(import.meta.url))
 const { main } = await import(pathToFileURL(join(here, 'installer/manager.mjs')).href)
+const { getHostCompatibility } = await import(pathToFileURL(join(here, 'installer/compatibility.mjs')).href)
 const root = resolve(process.argv[2])
 const output = resolve(process.argv[3])
 const state = JSON.parse(await readFile(join(root, 'current.json'), 'utf8'))
@@ -18,7 +19,7 @@ const run = spawnSync(state.node, [join(root, 'launch.mjs'), '--help'], { cwd: s
 assert.equal(run.status, 0, run.stderr)
 assert.match(run.stdout, /--trusted-host/)
 const community = await main(['community', '--root', root, '--check', 'true'])
-const expectedCommunity = JSON.parse(await readFile(join(here, 'installer/community-lock.json'), 'utf8')).plugins
+const expectedCommunity = getHostCompatibility(state.officialSource.version).communityPlugins
 assert.equal(community.length, expectedCommunity.length)
 for (const expected of expectedCommunity) {
   const actual = community.find(value => value.name === expected.name)

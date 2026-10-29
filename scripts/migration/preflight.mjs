@@ -6,6 +6,7 @@ import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { zstdDecompressSync } from 'node:zlib'
 import { isMainModule } from '../distribution/entrypoint.mjs'
+import { getHostCompatibility } from '../distribution/compatibility.mjs'
 
 export const PREFLIGHT_VERSION = 2
 const MAX_BYTES = 128 * 1024 * 1024
@@ -14,7 +15,7 @@ const digest = bytes => createHash('sha256').update(bytes).digest('hex')
 export async function officialReader(consumer) {
   const require = createRequire(path.resolve(consumer, 'package.json'))
   const metadata = require('@deepseek-ai/dsh/package.json')
-  if (metadata.version !== '0.2.1-rc.4') throw new Error(`Unverified official version: ${metadata.version}`)
+  getHostCompatibility(metadata.version)
   const load = specifier => import(pathToFileURL(require.resolve(specifier)).href)
   const [session, persistence, { sessionFormatCatalog }] = await Promise.all([
     load('@deepseek-ai/dsh-session'), load('@deepseek-ai/dsh-session-persistence'),

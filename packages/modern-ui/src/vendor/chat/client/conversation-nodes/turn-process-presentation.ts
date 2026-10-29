@@ -22,7 +22,8 @@ function samePresentation(
     && left.turnClosed === right.turnClosed
     && left.hasExternalProcess === right.hasExternalProcess
     && left.hasNonReplyProcess === right.hasNonReplyProcess
-    && left.hasInterleavedInput === right.hasInterleavedInput)
+    && left.hasInterleavedInput === right.hasInterleavedInput
+    && left.compactAnswer === right.compactAnswer)
 }
 
 function derivePresentation(
@@ -51,12 +52,14 @@ function derivePresentation(
   let hasExternalProcess = false
   let hasNonReplyProcess = false
   let hasInterleavedInput = false
+  let compactAnswer = true
   for (const key of keys) {
     const node = nodes.get(key) as ChatNode | undefined
     if (node === undefined || !isVisibleChatNode(node) || node.kind === 'turn-process') continue
     if (isAtOrOutside(node, 'input')
       && (openingHumanAnchor === undefined || node.anchorSeq > openingHumanAnchor)) {
       hasInterleavedInput = true
+      if (spec.answerAnchorSeq === null || node.anchorSeq < spec.answerAnchorSeq) compactAnswer = false
     }
     if (isAtOrOutside(node, 'turn') || node.anchorSeq < spec.processStartSeq) continue
     // Answer Steps' reasoning is counted through `inlineReasoning`; every other row of the Turn is process.
@@ -77,6 +80,7 @@ function derivePresentation(
     hasExternalProcess,
     hasNonReplyProcess,
     hasInterleavedInput,
+    compactAnswer,
   }
 }
 

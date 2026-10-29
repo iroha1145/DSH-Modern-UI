@@ -2,6 +2,7 @@ import { createRequire, isBuiltin } from 'node:module'
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { defaultHostVersion, supportedHostVersions } from './distribution/compatibility.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(path.join(root, 'package.json'))
@@ -41,7 +42,7 @@ for (const output of Object.values(result.metafile.outputs)) for (const imported
   if (!Object.hasOwn(dependencies, name)) throw new Error(`Host artifact imports an undeclared runtime dependency: ${imported.path}`)
 }
 await writeFile(path.join(root, 'packages/modern-ui/lib/host-build-inputs.json'), JSON.stringify({
-  officialHost: '0.2.1-rc.4', typescript: ts.version,
+  officialHost: defaultHostVersion, compatibleHosts: supportedHostVersions, typescript: ts.version,
   inputs: Object.keys(result.metafile.inputs).map(name => name.replaceAll('\\', '/')),
   outputs: Object.fromEntries(Object.entries(result.metafile.outputs).map(([name, output]) => [path.basename(name),
     { bytes: output.bytes, imports: output.imports }])),

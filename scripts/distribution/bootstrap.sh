@@ -28,11 +28,12 @@ if [ "$actual" != "$hash" ]; then echo 'Private Node integrity mismatch; previou
 tar -xf "$archive" -C "$bootstrap"
 node="$bootstrap/node-v24.22.1-$target/bin/node"
 if [ -z "$data_home" ]; then data_home=$("$node" "$here/lifecycle.mjs" "$root"); fi
-if [ "$#" -eq 5 ]; then
-  if core_output=$("$node" "$here/manager.mjs" install --root "$root" --home "$data_home" --plugin "$plugin" --plugin-integrity "$integrity" --runtime-lock "$here/runtime-lock.json" --node-archive "$archive" --backend "$5"); then core_exit=0; else core_exit=$?; fi
-else
-  if core_output=$("$node" "$here/manager.mjs" install --root "$root" --home "$data_home" --plugin "$plugin" --plugin-integrity "$integrity" --runtime-lock "$here/runtime-lock.json" --node-archive "$archive"); then core_exit=0; else core_exit=$?; fi
-fi
+backend=${5:-}
+set -- install --root "$root" --home "$data_home" --plugin "$plugin" --plugin-integrity "$integrity" --runtime-lock "$here/runtime-lock.json" --node-archive "$archive"
+if [ -n "$backend" ]; then set -- "$@" --backend "$backend"; fi
+if [ -n "${DSH_MODERN_BACKEND_VERSION:-}" ]; then set -- "$@" --backend-version "$DSH_MODERN_BACKEND_VERSION"; fi
+if [ -n "${DSH_MODERN_FROM_PROFILE:-}" ]; then set -- "$@" --from-profile "$DSH_MODERN_FROM_PROFILE"; fi
+if core_output=$("$node" "$here/manager.mjs" "$@"); then core_exit=0; else core_exit=$?; fi
 if [ "$core_exit" -ne 0 ]; then
   printf '{"phase":"core","result":{"state":"failed","exitCode":%s}}\n' "$core_exit"
   exit "$core_exit"

@@ -6,6 +6,7 @@ import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { writeFile } from 'node:fs/promises'
+import { getHostCompatibility } from '../distribution/compatibility.mjs'
 
 const consumer = resolve(process.argv[2])
 const output = process.argv[3]
@@ -21,7 +22,7 @@ const result = {
   node: process.version,
   scenarios: [],
 }
-assert.equal(result.officialVersion, '0.2.1-rc.4')
+getHostCompatibility(result.officialVersion)
 
 async function listen(handler) {
   const server = createServer(handler)

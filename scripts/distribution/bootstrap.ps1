@@ -4,6 +4,8 @@ param(
   [Parameter(Mandatory=$true)][string]$Plugin,
   [Parameter(Mandatory=$true)][string]$PluginIntegrity,
   [string]$Backend,
+  [string]$BackendVersion,
+  [string]$FromProfile,
   [string]$Node,
   [switch]$SkipCommunity
 )
@@ -45,6 +47,8 @@ try {
     $managerArgs += @('--runtime-lock', $runtimeLock, '--node-archive', $archive)
   }
   if ($Backend) { $managerArgs += @('--backend', $Backend) }
+  if ($BackendVersion) { $managerArgs += @('--backend-version', $BackendVersion) }
+  if ($FromProfile) { $managerArgs += @('--from-profile', $FromProfile) }
   $coreOutput = & $node @managerArgs
   $coreExit = $LASTEXITCODE
   if ($coreExit -ne 0) {
