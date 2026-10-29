@@ -6,6 +6,7 @@ import { IconCheckOutlineRegular } from './icons/index.tsx'
 import { overlayTopMargin } from './overlay-top-margin.ts'
 import { usePointerGrace } from './pointer-grace.ts'
 import { isBehindModal } from './useModalLayer.ts'
+import { useDismissBehindModal } from './useDismissBehindModal.ts'
 import { observeComposition } from './keyboard-composition.ts'
 import { focusWithoutRing } from './focus.ts'
 import { ShortcutKeys } from './ShortcutKeys.tsx'
@@ -194,6 +195,7 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
   listClassName?: string | undefined
 }) {
   const rootRef = useRef<HTMLSpanElement>(null)
+  useDismissBehindModal(rootRef, open, onClose)
   const listRef = useRef<HTMLDivElement>(null)
   /** Index the arrow walk last focused, the resume point when focus left the rows. */
   const walkIndex = useRef<number | null>(null)

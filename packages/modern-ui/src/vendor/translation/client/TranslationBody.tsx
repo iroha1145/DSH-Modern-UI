@@ -26,7 +26,7 @@ export type TranslationBodyProps = PropsRuntime<'conversation.chat.reasoning.bod
   & PropsRenderFactories & PropsLocale<typeof NS> & InjectFace<TranslationBodyInjected>
 
 /**
- * Render translated reasoning, retaining the complete original until a failed request is retried.
+ * Render translated reasoning, retaining successful paragraphs when another request fails.
  * @param props - original reasoning, translation preferences, and cancellation-aware callback.
  * @returns compact Markdown and translation status with a retry action on failure.
  */
@@ -47,12 +47,12 @@ export function TranslationBody(props: TranslationBodyProps) {
   useEffect(() => { translation.current?.update(text, running) },
     [text, running, preferences.provider, targetLanguage, maxTextChars, translate])
   const labels = useMemo(() => markdownLabels(reasoningT), [reasoningT, t])
-  const showOriginal = original || state.failed
+  const showOriginal = original
   const actionLabel = t(showOriginal ? 'translation' : 'original')
   return <div data-cot-translation="true" data-translation-state={state.failed ? 'failed' : state.pending ? 'pending' : 'ready'}
     data-translation-view={showOriginal ? 'original' : 'translated'}>
     <div className={css.toolbar}>
-      <Button className={css.viewToggle} size="sm" variant="ghost" disabled={state.failed}
+      <Button className={css.viewToggle} size="sm" variant="ghost"
         onClick={() => { setOriginal(!showOriginal) }}>{actionLabel}</Button>
       {state.pending && <span role="status" aria-label={t('translating')}><IconLoadingOutlineRegular size={14} className={css.spinner} /></span>}
       {state.failed && <><span className={css.failure} role="status">{t('failed')}</span>

@@ -55,16 +55,27 @@ export function useAnchoredPosition(options: AnchoredPositionOptions): CSSProper
       const height = panel?.offsetHeight ?? 0
       let left = align === 'end' ? rect.right - width : rect.left
       let top = side === 'top' ? rect.top - gap - height : rect.bottom + gap
-      if (width > 0) left = Math.min(Math.max(left, margin), window.innerWidth - width - margin)
-      if (height > 0) top = Math.min(Math.max(top, overlayTopMargin(margin, rect, gap)), window.innerHeight - height - margin)
+      const topMargin = overlayTopMargin(margin, rect, gap)
+      const above = rect.top - gap - topMargin
+      const below = window.innerHeight - margin - rect.bottom - gap
+      if (height > 0 && (side === 'bottom' ? height > below && above > below : height > above && below > above)) {
+        top = side === 'bottom' ? rect.top - gap - height : rect.bottom + gap
+      }
+      if (width > 0) left = Math.max(margin, Math.min(left, window.innerWidth - width - margin))
+      if (height > 0) top = Math.max(topMargin, Math.min(top, window.innerHeight - height - margin))
       /* v8 ignore stop */
-      setPosition({ left, top })
+      setPosition(previous => previous?.left === left && previous.top === top ? previous : { left, top })
     }
     // The first run measures the panel in the same commit that opened it, so
     // the clamp uses real dimensions before anything paints.
     place()
-    window.addEventListener('scroll', place, true)
-    window.addEventListener('resize', place)
+    let frame: number | undefined
+    const schedule = (): void => {
+      if (frame !== undefined) return
+      frame = window.requestAnimationFrame(() => { frame = undefined; place() })
+    }
+    window.addEventListener('scroll', schedule, { capture: true, passive: true })
+    window.addEventListener('resize', schedule)
     // The panel's own height changes without either event — a status line
     // appearing inside it, or a `resize: vertical` textarea dragged taller —
     // and a stale clamp would let a panel near the bottom edge cross the
@@ -73,13 +84,14 @@ export function useAnchoredPosition(options: AnchoredPositionOptions): CSSProper
     const panel = panelRef.current
     let observer: ResizeObserver | null = null
     if (typeof ResizeObserver !== 'undefined' && panel !== null) {
-      observer = new ResizeObserver(place)
+      observer = new ResizeObserver(schedule)
       observer.observe(panel)
     }
     return () => {
       observer?.disconnect()
-      window.removeEventListener('scroll', place, true)
-      window.removeEventListener('resize', place)
+      if (frame !== undefined) window.cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', schedule, true)
+      window.removeEventListener('resize', schedule)
     }
   }, [open, anchorRef, panelRef, side, align, gap, margin])
   return position
