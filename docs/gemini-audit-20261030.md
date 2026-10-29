@@ -25,7 +25,7 @@
 ## 交互和生命周期：L1–L7
 
 - **L1：修复。** 模型选择 RPC 拒绝由既有错误通知通道显示。
-- **L2：修复。** HoverCard 不再在 window 捕获阶段吞掉其他控件的 Escape。
+- **L2：修复。** HoverCard 的行内卡片仍在 window 捕获阶段处理 Escape，但不再 stopPropagation，所以不会吞掉其他控件的 Escape。保留捕获阶段是因为焦点控件可能自己阻止冒泡：引用芯片的移除按钮在 keydown 时 stopPropagation，键盘聚焦它会打开预览卡，只在冒泡阶段监听时这张卡按 Escape 关不掉。
 - **L3：修复边界。** blur 的 relatedTarget 非 Node 时不会传入 contains；合成 Window 焦点事件可复现原异常。
 - **L4：修复。** 非 JSON HTTP 失败保留 network 文档错误提示。
 - **L5：未复现声称的错误。** Portal 节点只在同一 body 内重排，CSS anchor 要求 anchor 在 backing 前。StrictMode、兄弟增删和卸载验证通过，保留实现。
@@ -41,7 +41,7 @@
 - **U5：修复。** 异步/快捷键打开官方或 Modern 模态框时，用官方共享 isBehindModal 关闭背景 Menu、ModelSelect 和 HoverCard；模态框内菜单保留。无 z-index 改写，也不创建第二套模态栈。观察器只看 body 直接 portal 插入，不监听聊天子树流式变化。
 - **U6：修复。** 锚点当前侧空间不足时向空间更多的一侧翻转，超大面板仍保留视口顶部/左侧边距。
 - **U7：修复。** 240px 附件允许收缩并限制最大宽度。180px 容器基线卡片向左溢出 60px，修复后在容器内。
-- **U8：确认局部覆盖并修复。** 折叠过程将 sidebar 内容裁在缩小的轨道内；macOS/Windows 原生零宽轨道移除 16px 左 padding。保留固定 caption 控件与普通 Web 的 68px 图标轨道，不取消正常展开动效。
+- **U8：确认局部覆盖并修复。** 折叠过程将 sidebar 内容裁在缩小的轨道内；macOS/Windows 原生零宽轨道移除 16px 左 padding。保留固定 caption 控件与普通 Web 的 68px 图标轨道，不取消正常展开动效。裁切也覆盖收起后的静止状态，普通 Web 图标轨道右侧很淡的投影因此被切掉（浅色模式两层投影不透明度 3.5% 和 18%）；没有改成只在 `data-animating` 期间裁切，因为窗口缩窄自动收起时不设这个标记，而宽版侧栏内容收起后还会保留 150 ms，届时会盖住对话区。
 
 ## 性能：P1–P12
 

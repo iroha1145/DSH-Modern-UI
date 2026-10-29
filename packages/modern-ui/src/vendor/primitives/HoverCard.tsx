@@ -170,8 +170,11 @@ export function HoverCard({
       cancelClose()
       close()
     }
-    window.addEventListener('keydown', dismiss)
-    return () => { window.removeEventListener('keydown', dismiss) }
+    // Inline cards listen during capture without stopping the event: an anchor
+    // control that stops keydown propagation (the quote chip's remove button)
+    // still closes its card, and the focused control still receives Escape.
+    window.addEventListener('keydown', dismiss, inline)
+    return () => { window.removeEventListener('keydown', dismiss, inline) }
   }, [open, variant, inline, cancelClose, close])
 
   // Fixed-position from the anchor rect before paint; track the anchor while
