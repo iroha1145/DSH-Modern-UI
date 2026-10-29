@@ -11,6 +11,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 // Type-only: pulls the `sidebar.right.pane.tab` SlotMap merge.
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import { PlanPreview } from './PlanPreview.tsx'
+import { planNavigation } from './navigation.ts'
 
 /** The tab type id the official ui-plan package registers its preview under. */
 export const PLAN_PREVIEW_ID = '@deepseek-ai/dsh-client-ui-plan'
@@ -23,7 +24,15 @@ export const PLAN_PREVIEW_PRIORITY = -100
  * @param ctx - plugin context carrying the slot registry.
  */
 export function registerPlanPreview(ctx: Context): void {
+  const t = ctx.locale.bind('modern-chat')
   ctx.slots.inject('sidebar.right.pane.tab', () => ctx.slots.register({
     name: 'sidebar.right.pane.tab', key: PLAN_PREVIEW_ID, priority: PLAN_PREVIEW_PRIORITY, locale: 'modern-plan',
+    inject: () => ({
+      hooks: { sessions: ctx.sessions.list },
+      navigation: (address: string) => planNavigation(ctx, address, {
+        open: t('image.open'), loading: t('image.loading'), failed: t('image.failed'),
+        dialog: t('image.dialog'), close: t('image.close'),
+      }),
+    }),
   }, PlanPreview))
 }

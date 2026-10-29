@@ -15,13 +15,15 @@ export const quoteRule: UserTextRule<'quote'> = {
   order: -10,
   match(text, from) {
     for (const range of messageQuoteRanges(text)) {
-      for (const start of [range.start - 2, range.start, range.end]) {
+      const preceding = /(?:\r?\n){2}$/.exec(text.slice(Math.max(0, range.start - 4), range.start))?.[0]
+      for (const start of [range.start - (preceding?.length ?? 0), range.start, range.end]) {
         if (start < from) continue
         if (start === range.start) {
           return { id: 'quote', start, end: range.end, data: { text: quoteTextOf(text.slice(start, range.end)) } }
         }
-        if (text.slice(start, start + 2) === '\n\n') {
-          return { id: 'text', start, end: start + 2, data: { text: '\n\n', display: ' ' } }
+        const separator = /^(?:\r?\n){2}/.exec(text.slice(start, start + 4))?.[0]
+        if (separator !== undefined) {
+          return { id: 'text', start, end: start + separator.length, data: { text: separator, display: ' ' } }
         }
       }
     }

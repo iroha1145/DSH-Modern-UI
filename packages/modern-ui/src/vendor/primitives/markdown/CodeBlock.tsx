@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useId, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { Fragment, useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import type { CSSProperties, ReactNode, Ref } from 'react'
 import clsx from 'clsx'
 import { writeClipboard } from '../clipboard.ts'
@@ -154,6 +154,15 @@ export function CodeBlock({
     [streaming, highlighting, streamedBody, trimmed, lang, loaded],
   )
   const [copied, setCopied] = useState(false)
+  const copyTimer = useRef<number | undefined>(undefined)
+  const mounted = useRef(false)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+      window.clearTimeout(copyTimer.current)
+    }
+  }, [])
   const [localWrapped, setWrapped] = useState(true)
   const [collapsed, setCollapsed] = useState(false)
   const contentId = useId()
@@ -167,9 +176,10 @@ export function CodeBlock({
        typed fallback if the DOM shape ever diverges. */
     const text = rootRef.current?.querySelector('pre')?.textContent ?? trimmed
     void writeClipboard(text).then((ok) => {
-      if (!ok) return
+      if (!ok || !mounted.current) return
       setCopied(true)
-      window.setTimeout(() => { setCopied(false) }, 1000)
+      window.clearTimeout(copyTimer.current)
+      copyTimer.current = window.setTimeout(() => { setCopied(false) }, 1000)
     })
   }, [copied, trimmed])
 
