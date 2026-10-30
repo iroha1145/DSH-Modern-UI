@@ -17,10 +17,17 @@ for (const filename of ['build-inputs.json', 'host-build-inputs.json']) {
 }
 const output = path.resolve(process.argv[2] ?? path.join(root, '.artifacts/plugin-preview'))
 await mkdir(output, { recursive: true })
-const npm = path.join(path.dirname(process.execPath), process.platform === 'win32'
-  ? 'node_modules/npm/bin/npm-cli.js' : '../lib/node_modules/npm/bin/npm-cli.js')
-const packed = JSON.parse(execFileSync(process.execPath, [npm, 'pack', './packages/modern-ui', '--ignore-scripts', '--json', '--cache', path.join(root, '.artifacts/npm-cache'), '--pack-destination', output],
-  { cwd: root, encoding: 'utf8', windowsHide: true }))[0]
+const npm = path.join(
+  path.dirname(process.execPath),
+  process.platform === 'win32' ? 'node_modules/npm/bin/npm-cli.js' : '../lib/node_modules/npm/bin/npm-cli.js',
+)
+const packed = JSON.parse(
+  execFileSync(
+    process.execPath,
+    [npm, 'pack', './packages/modern-ui', '--ignore-scripts', '--json', '--cache', path.join(root, '.artifacts/npm-cache'), '--pack-destination', output],
+    { cwd: root, encoding: 'utf8', windowsHide: true },
+  ),
+)[0]
 const bytes = await readFile(path.join(output, packed.filename))
 const integrity = 'sha512-' + createHash('sha512').update(bytes).digest('base64')
 assert.equal(integrity, packed.integrity)
@@ -33,7 +40,8 @@ await cp(path.join(root, 'scripts/preview-consumer-check.mjs'), path.join(output
 const runtimes = JSON.parse(await readFile(path.join(output, 'installer/runtime-lock.json'), 'utf8'))
 const communities = JSON.parse(await readFile(path.join(output, 'installer/community-lock.json'), 'utf8'))
 const manifest = {
-  schemaVersion: 1, status: process.env.MODERN_UI_RELEASE ? 'released' : 'local-preview-unpublished',
+  schemaVersion: 1,
+  status: process.env.MODERN_UI_RELEASE ? 'released' : 'local-preview-unpublished',
   acceptanceRecord: 'docs/compatibility.md',
   compatibilityScope: 'Host range with an exact verified list; feature and platform acceptance is recorded separately by test:compat',
   hostRange,
@@ -41,13 +49,23 @@ const manifest = {
   backend: officialSource,
   compatibleHosts: supportedHostVersions,
   backends: Object.fromEntries(supportedHostVersions.map(version => [version, getHostCompatibility(version)])),
-  node: versions.node, pnpm: versions.pnpm,
-  runtimeSources: runtimes, communityPlugins: communities.plugins,
+  node: versions.node,
+  pnpm: versions.pnpm,
+  runtimeSources: runtimes,
+  communityPlugins: communities.plugins,
   decision: 'Modern UI session web controls removed; official plugin configuration remains authoritative',
-  limitations: ['Only targets with passing consumer jobs for the source revision are verified', 'Real touchscreen, WebKit and Electron multi-window execution unverified', 'Legacy web/search snapshots require the retained legacy environment or read-only export', 'Root owner bundle changes require a browser refresh', 'Profiles with explicit Host compatibility bindings retain the package until those bindings are restored'],
+  limitations: [
+    'Only targets with passing consumer jobs for the source revision are verified',
+    'Real touchscreen, WebKit and Electron multi-window execution unverified',
+    'Legacy web/search snapshots require the retained legacy environment or read-only export',
+    'Root owner bundle changes require a browser refresh',
+    'Profiles with explicit Host compatibility bindings retain the package until those bindings are restored',
+  ],
 }
 await writeFile(path.join(output, 'preview.json'), JSON.stringify(manifest, null, 2) + '\n')
-await writeFile(path.join(output, 'install.ps1'), `param(
+await writeFile(
+  path.join(output, 'install.ps1'),
+  `param(
   [Parameter(Mandatory=$true)][string]$Root,
   [Parameter(Mandatory=$true)][string]$DataHome,
   [string]$Backend,
@@ -59,8 +77,11 @@ await writeFile(path.join(output, 'install.ps1'), `param(
 )
 $ErrorActionPreference = 'Stop'
 & (Join-Path $PSScriptRoot 'installer/bootstrap.ps1') -Root $Root -DataHome $DataHome -Plugin (Join-Path $PSScriptRoot 'modern-ui.tgz') -PluginIntegrity '${integrity}' -Backend $Backend -BackendVersion $BackendVersion -FromProfile $FromProfile -Node $Node -SkipCommunity:$SkipCommunity -WithCommunity:$WithCommunity
-`)
-await writeFile(path.join(output, 'install-existing.ps1'), `param(
+`,
+)
+await writeFile(
+  path.join(output, 'install-existing.ps1'),
+  `param(
   [Parameter(Mandatory=$true)][string]$Backend,
   [string]$Root,
   [string]$DataHome,
@@ -74,21 +95,31 @@ $installerArguments = @{} + $PSBoundParameters
 $installerArguments.Plugin = Join-Path $PSScriptRoot 'modern-ui.tgz'
 $installerArguments.PluginIntegrity = '${integrity}'
 & (Join-Path $PSScriptRoot 'installer/install-existing.ps1') @installerArguments
-`)
-await writeFile(path.join(output, 'install-existing.mjs'), `import { fileURLToPath } from 'node:url'
+`,
+)
+await writeFile(
+  path.join(output, 'install-existing.mjs'),
+  `import { fileURLToPath } from 'node:url'
 import { installExisting } from './installer/install-existing.mjs'
 await installExisting(['--plugin', fileURLToPath(new URL('./modern-ui.tgz', import.meta.url)),
   '--plugin-integrity', '${integrity}', ...process.argv.slice(2)])
-`)
-await writeFile(path.join(output, 'install-existing.sh'), `#!/bin/sh
+`,
+)
+await writeFile(
+  path.join(output, 'install-existing.sh'),
+  `#!/bin/sh
 set -eu
 if [ "$#" -lt 1 ] || [ "$#" -gt 3 ]; then echo 'usage: install-existing.sh OFFICIAL_PACKAGE_JSON [PROGRAM_ROOT] [DATA_HOME]' >&2; exit 2; fi
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 backend=$1
 shift
 exec sh "$here/installer/install-existing.sh" "$backend" "$here/modern-ui.tgz" '${integrity}' "$@"
-`, { mode: 0o755 })
-await writeFile(path.join(output, 'install.sh'), `#!/bin/sh
+`,
+  { mode: 0o755 },
+)
+await writeFile(
+  path.join(output, 'install.sh'),
+  `#!/bin/sh
 set -eu
 if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then echo 'usage: install.sh PROGRAM_ROOT DATA_HOME [EXISTING_OFFICIAL_PACKAGE_JSON]' >&2; exit 2; fi
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
@@ -96,8 +127,12 @@ if [ "$#" -eq 3 ]; then
   exec sh "$here/installer/bootstrap.sh" "$1" "$2" "$here/modern-ui.tgz" '${integrity}' "$3"
 fi
 exec sh "$here/installer/bootstrap.sh" "$1" "$2" "$here/modern-ui.tgz" '${integrity}'
-`, { mode: 0o755 })
-await writeFile(path.join(output, 'README.txt'), `DSH Modern UI - precompiled plugin preview (unpublished)
+`,
+  { mode: 0o755 },
+)
+await writeFile(
+  path.join(output, 'README.txt'),
+  `DSH Modern UI - precompiled plugin preview (unpublished)
 
 This directory contains the actual precompiled Modern UI tgz and a thin installer.
 There is no published npm/Release URL for this preview. Preserve legacy web/search sessions for the old environment or read-only export.
@@ -126,5 +161,6 @@ Launch the generated program/dsh-ui.cmd (Windows) or program/dsh-ui (POSIX).
 
 preview.json records exact versions and integrity.
 Compatibility scope and remaining differences are documented in docs/compatibility.md.
-`)
+`,
+)
 console.log(JSON.stringify({ output, ...manifest }, null, 2))

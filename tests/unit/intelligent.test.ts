@@ -1,7 +1,14 @@
 import { describe, expect, test } from 'vitest'
 import { parseFollowups } from '../../packages/modern-ui/src/vendor/intelligent/client/parse-followups.ts'
 import {
-  CONTENT_LIMIT, MAX_FRAGMENTS, MAX_HEIGHT, MIN_HEIGHT, parseContent, partialTitle, reportedHeight, sourceFormat,
+  CONTENT_LIMIT,
+  MAX_FRAGMENTS,
+  MAX_HEIGHT,
+  MIN_HEIGHT,
+  parseContent,
+  partialTitle,
+  reportedHeight,
+  sourceFormat,
 } from '../../packages/modern-ui/src/vendor/intelligent/client/schema.ts'
 import { FRAME_CSP, frameDocument, frameProgram } from '../../packages/modern-ui/src/vendor/intelligent/client/frame-content.ts'
 import { outerDocument } from '../../packages/modern-ui/src/vendor/intelligent/client/sandbox.ts'
@@ -10,7 +17,7 @@ const fallback = 'A plain explanation of the chart.'
 
 describe('parseFollowups', () => {
   test('keeps questions in authored order without list markers or wrapping quotes', () => {
-    expect(parseFollowups('- First?\n2) Second?\n(3) “Third?”\n• \'Fourth?\'')).toEqual(['First?', 'Second?', 'Third?', 'Fourth?'])
+    expect(parseFollowups("- First?\n2) Second?\n(3) “Third?”\n• 'Fourth?'")).toEqual(['First?', 'Second?', 'Third?', 'Fourth?'])
   })
 
   test('drops blank, punctuation-only, duplicate and over-long lines', () => {
@@ -90,7 +97,13 @@ describe('openui content schema', () => {
 })
 
 describe('openui sandbox documents', () => {
-  const content = { version: 1 as const, title: 'T</script><script>alert(1)</script>', html: '<p>\u2028</p>', css: '</style></script>', jsExpressions: ['x("$$")'] }
+  const content = {
+    version: 1 as const,
+    title: 'T</script><script>alert(1)</script>',
+    html: '<p>\u2028</p>',
+    css: '</style></script>',
+    jsExpressions: ['x("$$")'],
+  }
 
   test('the inner shell carries the deny-by-default policy and no authored markup', () => {
     const shell = frameDocument()

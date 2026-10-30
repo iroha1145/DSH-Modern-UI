@@ -29,7 +29,8 @@ export async function dataTree(root) {
       bytes += Number(before.size)
     } else throw new Error(`Cannot back up special data file: ${path}`)
     const after = await lstat(path, { bigint: true })
-    if (!isDeepStrictEqual(stamps[key], [after.dev, after.ino, after.size, after.mtimeNs, after.ctimeNs].map(String))) throw new Error('Data home changed during backup; stop all DSH processes and retry')
+    if (!isDeepStrictEqual(stamps[key], [after.dev, after.ino, after.size, after.mtimeNs, after.ctimeNs].map(String)))
+      throw new Error('Data home changed during backup; stop all DSH processes and retry')
   }
   await visit(root, '')
   return { entries, stamps, bytes }
@@ -44,7 +45,7 @@ export async function backupDataHome(home, root, { copy = cp, space = statfs } =
   const before = await dataTree(home)
   const parent = join(root, 'data-backups')
   await mkdir(parent, { recursive: true })
-  if (await realpath(parent) !== parent) throw new Error('Backup directory must not be a symlink or junction')
+  if ((await realpath(parent)) !== parent) throw new Error('Backup directory must not be a symlink or junction')
   // An interrupted or killed run leaves its unpublished copy; under the root lease no other backup is writing one.
   for (const name of await readdir(parent)) {
     if (/^home-[0-9a-f-]{36}\.pending$/u.test(name)) await rm(join(parent, name), { recursive: true, force: true })
@@ -62,9 +63,16 @@ export async function backupDataHome(home, root, { copy = cp, space = statfs } =
     await copy(home, tree, { recursive: true, dereference: false, verbatimSymlinks: true, preserveTimestamps: true, errorOnExist: true, force: false })
     const copied = await dataTree(tree)
     const after = await dataTree(home)
-    if (!isDeepStrictEqual(before.entries, copied.entries) || !isDeepStrictEqual(before, after)) throw new Error('Data home changed or backup verification failed; stop all DSH processes and retry')
-    const receipt = { format: 1, source: home, created: new Date().toISOString(), bytes: before.bytes, entries: before.entries,
-      note: 'Verified file-tree copy, not an online filesystem snapshot. Symlinks are preserved without copying external targets.' }
+    if (!isDeepStrictEqual(before.entries, copied.entries) || !isDeepStrictEqual(before, after))
+      throw new Error('Data home changed or backup verification failed; stop all DSH processes and retry')
+    const receipt = {
+      format: 1,
+      source: home,
+      created: new Date().toISOString(),
+      bytes: before.bytes,
+      entries: before.entries,
+      note: 'Verified file-tree copy, not an online filesystem snapshot. Symlinks are preserved without copying external targets.',
+    }
     await writeFile(join(pending, 'backup.json'), JSON.stringify(receipt, null, 2) + '\n', { flag: 'wx', mode: 0o600 })
     await rename(pending, destination)
     return { state: 'verified', path: destination, bytes: before.bytes, entries: Object.keys(before.entries).length }

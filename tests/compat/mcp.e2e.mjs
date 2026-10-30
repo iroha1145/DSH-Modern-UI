@@ -21,8 +21,14 @@ export async function prepareMcpFixture(output) {
   const events = join(output, 'mcp-events.jsonl')
   await writeFile(events, '')
   await Promise.all(['mcp-probe.mjs', 'mcp-server.mjs'].map(name => copyFile(join(here, name), join(directory, name))))
-  await writeFile(join(directory, 'package.json'), JSON.stringify({ name: mcpFixtureName, version: '1.0.0', type: 'module',
-    main: './mcp-probe.mjs', dsh: { bundle: { patch: './cordis.patch.yml' } } }, null, 2))
+  await writeFile(
+    join(directory, 'package.json'),
+    JSON.stringify(
+      { name: mcpFixtureName, version: '1.0.0', type: 'module', main: './mcp-probe.mjs', dsh: { bundle: { patch: './cordis.patch.yml' } } },
+      null,
+      2,
+    ),
+  )
   await writeFile(join(directory, 'cordis.patch.yml'), JSON.stringify([{ insert: [{ id: mcpFixtureName, name: mcpFixtureName, config: { events } }] }]))
   const tarball = join(output, 'mcp-probe.tgz')
   await packFixture(directory, tarball)
@@ -35,7 +41,10 @@ export async function runMcpChecks({ baseUrl, cookie, profile, events, output })
   const result = await response.json()
   if (output) await writeFile(resolve(output), JSON.stringify(result, null, 2) + '\n')
   assert.equal(response.status, 200, JSON.stringify(result))
-  const transcript = (await readFile(events, 'utf8')).trim().split('\n').map(line => JSON.parse(line))
+  const transcript = (await readFile(events, 'utf8'))
+    .trim()
+    .split('\n')
+    .map(line => JSON.parse(line))
   return verifyMcpEvidence(result, transcript, profile)
 }
 
@@ -43,7 +52,10 @@ export async function runMcpChecks({ baseUrl, cookie, profile, events, output })
 export function verifyMcpEvidence(result, transcript, profile) {
   assert.equal(result.passed, true, JSON.stringify(result))
   assert.equal(result.profile, profile)
-  assert.deepEqual(result.results.map(row => row.name), ['discovery', 'call', 'error', 'cancellation', 'unload', 'reload-without-duplicate-registration'])
+  assert.deepEqual(
+    result.results.map(row => row.name),
+    ['discovery', 'call', 'error', 'cancellation', 'unload', 'reload-without-duplicate-registration'],
+  )
   assert.ok(result.results.every(row => row.passed === true))
   assert.equal(transcript.filter(row => row.event === 'initialize').length, 2)
   // The real SDK may open a separate modern-protocol probe before negotiating
@@ -60,15 +72,28 @@ export async function runMcpProfile({ stateFile, output }) {
   output = resolve(output)
   await mkdir(output, { recursive: true })
   const fixture = await prepareMcpFixture(join(output, 'fixture'))
-  const installed = await execute(state.node, [state.cli, 'plugin', '--profile', state.profile, 'add', '--save-exact', '--ignore-scripts', fixture.tarball],
-    { cwd: state.generation, env: runtimeEnvironment(state), windowsHide: true, timeout: 180_000, maxBuffer: 8 * 1024 * 1024 })
+  const installed = await execute(state.node, [state.cli, 'plugin', '--profile', state.profile, 'add', '--save-exact', '--ignore-scripts', fixture.tarball], {
+    cwd: state.generation,
+    env: runtimeEnvironment(state),
+    windowsHide: true,
+    timeout: 180_000,
+    maxBuffer: 8 * 1024 * 1024,
+  })
   await writeFile(join(output, 'install.log'), installed.stdout + installed.stderr)
-  const child = spawn(state.node, [state.cli, '--profile', state.profile, '--no-open', '--host', '127.0.0.1', '--port', '0'],
-    { cwd: state.generation, env: { ...launchEnvironment(state), DSH_TELEMETRY_DISABLED: '1' }, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] })
+  const child = spawn(state.node, [state.cli, '--profile', state.profile, '--no-open', '--host', '127.0.0.1', '--port', '0'], {
+    cwd: state.generation,
+    env: { ...launchEnvironment(state), DSH_TELEMETRY_DISABLED: '1' },
+    windowsHide: true,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
   let log = ''
   const closed = new Promise(resolve => child.once('close', resolve))
-  child.stdout.on('data', bytes => { log += bytes })
-  child.stderr.on('data', bytes => { log += bytes })
+  child.stdout.on('data', bytes => {
+    log += bytes
+  })
+  child.stderr.on('data', bytes => {
+    log += bytes
+  })
   try {
     let url
     for (let attempt = 0; attempt < 300; attempt++) {
@@ -80,7 +105,10 @@ export async function runMcpProfile({ stateFile, output }) {
     assert.ok(url, 'Official CLI must publish its loopback URL')
     await delay(1500)
     const authenticated = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(10_000) })
-    const cookie = authenticated.headers.getSetCookie().map(value => value.split(';', 1)[0]).join('; ')
+    const cookie = authenticated.headers
+      .getSetCookie()
+      .map(value => value.split(';', 1)[0])
+      .join('; ')
     assert.ok(cookie, 'Official CLI must exchange the token for a session cookie')
     const result = await runMcpChecks({ baseUrl: url, cookie, profile: state.profile, events: fixture.events, output: join(output, 'result.json') })
     assert.equal(result.officialVersion, state.officialSource.version)
@@ -89,7 +117,10 @@ export async function runMcpProfile({ stateFile, output }) {
   } finally {
     if (child.exitCode === null && child.signalCode === null) child.kill('SIGTERM')
     await Promise.race([closed, delay(5000)])
-    if (child.exitCode === null && child.signalCode === null) { child.kill('SIGKILL'); await closed }
+    if (child.exitCode === null && child.signalCode === null) {
+      child.kill('SIGKILL')
+      await closed
+    }
     await writeFile(join(output, 'host.log'), log.replaceAll(/(http:\/\/127\.0\.0\.1:\d+\/)[^\s]*/g, '$1[redacted]'))
   }
 }

@@ -43,9 +43,16 @@ export async function webSelfTest(state, env) {
   // turn short, losing it; telemetry stays off for the same throwaway run. Everything else is the
   // profile exactly as it will launch.
   const overlay = join(state.generation, 'self-test-overlay.yml')
-  await writeFile(overlay, "# Written by the Modern UI installer for its startup self-test only.\n- id: schedule\n  name: '@deepseek-ai/dsh-schedule'\n  disabled: true\n")
-  const child = spawn(state.node, [state.cli, '--profile', state.profile, '--patch', overlay, '--no-open', '--host', '127.0.0.1', '--port', '0'],
-    { cwd: state.generation, env: { ...env, DSH_TELEMETRY_DISABLED: '1' }, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true })
+  await writeFile(
+    overlay,
+    "# Written by the Modern UI installer for its startup self-test only.\n- id: schedule\n  name: '@deepseek-ai/dsh-schedule'\n  disabled: true\n",
+  )
+  const child = spawn(state.node, [state.cli, '--profile', state.profile, '--patch', overlay, '--no-open', '--host', '127.0.0.1', '--port', '0'], {
+    cwd: state.generation,
+    env: { ...env, DSH_TELEMETRY_DISABLED: '1' },
+    stdio: ['ignore', 'pipe', 'pipe'],
+    windowsHide: true,
+  })
   let output = ''
   let diagnostics = ''
   let timer
@@ -54,11 +61,17 @@ export async function webSelfTest(state, env) {
       timer = setTimeout(() => reject(new Error('Official Web startup did not become ready within 30 seconds')), 30000)
       child.on('error', reject)
       child.on('exit', code => reject(new Error(`Official Web exited before readiness (${code}); selection retained`)))
-      child.stderr.on('data', bytes => { diagnostics = (diagnostics + bytes).slice(-65536) })
+      child.stderr.on('data', bytes => {
+        diagnostics = (diagnostics + bytes).slice(-65536)
+      })
       child.stdout.on('data', bytes => {
         output = (output + bytes).slice(-65536)
         const match = /dsh web: (http:\/\/127\.0\.0\.1:\d+\/[^\s]*)/.exec(output)
-        if (match) { readyAt = new Date().toISOString(); readyElapsedMs = performance.now() - started; resolve(match[1]) }
+        if (match) {
+          readyAt = new Date().toISOString()
+          readyElapsedMs = performance.now() - started
+          resolve(match[1])
+        }
       })
     })
     clearTimeout(timer)
@@ -70,7 +83,10 @@ export async function webSelfTest(state, env) {
       throw new Error('Official Web startup audit reported inactive or invalid entries; selection retained')
     }
     let response = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(10000) })
-    const cookie = response.headers.getSetCookie().map(value => value.split(';', 1)[0]).join('; ')
+    const cookie = response.headers
+      .getSetCookie()
+      .map(value => value.split(';', 1)[0])
+      .join('; ')
     if (!cookie) throw new Error('Official Web did not exchange its token for a browser cookie')
     if ([302, 303].includes(response.status)) {
       const location = new URL(response.headers.get('location') ?? '/', url)
@@ -87,30 +103,49 @@ export async function webSelfTest(state, env) {
     if (!entry || typeof entry.rev !== 'string' || !entry.rev) throw new Error('Modern UI is absent from the official client boot graph')
     const resourceUrl = new URL(entry.url, url)
     const origin = new URL(url).origin
-    if (resourceUrl.origin !== origin || !/^\/plugins(?:\/|$)/.test(resourceUrl.pathname) || !decodeURIComponent(entry.url).includes(entry.rev)) throw new Error('Modern UI client resource is not a same-origin revisioned plugin resource')
+    if (resourceUrl.origin !== origin || !/^\/plugins(?:\/|$)/.test(resourceUrl.pathname) || !decodeURIComponent(entry.url).includes(entry.rev))
+      throw new Error('Modern UI client resource is not a same-origin revisioned plugin resource')
     const resource = await fetch(resourceUrl, { headers: { cookie }, redirect: 'manual', signal: AbortSignal.timeout(10000) })
     if (resource.status !== 200 || (await resource.arrayBuffer()).byteLength === 0) throw new Error('Modern UI revisioned client resource could not be fetched')
     const api = new URL('/api/remote.mux', origin)
     const unauthenticated = await statusRequest(api, { origin })
     const untrustedHost = await statusRequest(api, { origin, cookie, host: 'untrusted.invalid' })
-    if (unauthenticated !== 401 || untrustedHost !== 403) throw new Error(`Official API authentication/trust fence rejected its self-test (unauthenticated ${unauthenticated}, untrusted Host ${untrustedHost})`)
-    return { authenticatedLoopbackHttp: 'passed', release: graph.release,
+    if (unauthenticated !== 401 || untrustedHost !== 403)
+      throw new Error(`Official API authentication/trust fence rejected its self-test (unauthenticated ${unauthenticated}, untrusted Host ${untrustedHost})`)
+    return {
+      authenticatedLoopbackHttp: 'passed',
+      release: graph.release,
       clientEntry: { id: entry.id, revision: entry.rev, resource: 'HTTP 200' },
       apiSecurity: { unauthenticated, untrustedHost },
-      timing: { startedAt, readyAt, readyElapsedMs, completedAt: new Date().toISOString(), elapsedMs: performance.now() - started,
+      timing: {
+        startedAt,
+        readyAt,
+        readyElapsedMs,
+        completedAt: new Date().toISOString(),
+        elapsedMs: performance.now() - started,
         entry: 'official CLI process start through readiness and HTTP checks; excludes manager integrity scan',
-        cacheConditions: 'new process, installed package files already present; OS file cache not flushed' },
+        cacheConditions: 'new process, installed package files already present; OS file cache not flushed',
+      },
       startupAudit: 'no inactive/invalid entries observed after readiness',
       skippedBundles: audit.skippedBundles,
-      ...(audit.skippedBundles.length ? { skippedBundlesNote: 'The copied profile selects bundles this official release does not ship; the official loader skipped them. Remove them from the profile package.json dsh.profile.bundles to silence the warning.' } : {}),
-      fullBrowserAcceptance: 'required separately' }
+      ...(audit.skippedBundles.length
+        ? {
+            skippedBundlesNote:
+              'The copied profile selects bundles this official release does not ship; the official loader skipped them. Remove them from the profile package.json dsh.profile.bundles to silence the warning.',
+          }
+        : {}),
+      fullBrowserAcceptance: 'required separately',
+    }
   } finally {
     clearTimeout(timer)
     if (child.exitCode === null && child.signalCode === null) {
       child.kill('SIGTERM')
       await new Promise(resolve => {
         const stopTimer = setTimeout(resolve, 5000)
-        child.once('exit', () => { clearTimeout(stopTimer); resolve() })
+        child.once('exit', () => {
+          clearTimeout(stopTimer)
+          resolve()
+        })
       })
       if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
     }

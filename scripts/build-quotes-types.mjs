@@ -16,7 +16,12 @@ export function buildQuotesTypes(outDir = path.join(root, 'packages/modern-ui/li
   const diagnostics = [...parsed.errors, ...ts.getPreEmitDiagnostics(program)]
   const emit = diagnostics.length ? undefined : program.emit()
   if (emit) diagnostics.push(...emit.diagnostics)
-  if (diagnostics.length) throw new Error(ts.formatDiagnosticsWithColorAndContext(diagnostics, {
-    getCanonicalFileName: name => name, getCurrentDirectory: () => root, getNewLine: () => '\n',
-  }))
+  if (diagnostics.length)
+    throw new Error(
+      ts.formatDiagnosticsWithColorAndContext(diagnostics, {
+        getCanonicalFileName: name => name,
+        getCurrentDirectory: () => root,
+        getNewLine: () => '\n',
+      }),
+    )
 }

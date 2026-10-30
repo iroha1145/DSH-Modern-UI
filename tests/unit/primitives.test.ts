@@ -68,7 +68,12 @@ describe('small display helpers', () => {
   })
 
   test.each([
-    [0, '0B'], [1023, '1023B'], [1024, '1.0KB'], [10 * 1024, '10KB'], [1536 * 1024, '1.5MB'], [20 * 1024 ** 3, '20GB'],
+    [0, '0B'],
+    [1023, '1023B'],
+    [1024, '1.0KB'],
+    [10 * 1024, '10KB'],
+    [1536 * 1024, '1.5MB'],
+    [20 * 1024 ** 3, '20GB'],
   ])('fileSizeText(%d) is %s', (bytes, text) => {
     expect(fileSizeText(bytes)).toBe(text)
   })

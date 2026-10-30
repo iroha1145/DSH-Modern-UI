@@ -14,3 +14,6 @@ packages/modern-ui/THIRD_PARTY_NOTICES.md -text
 
 # The captured writer body includes the original trailing blank line in its digest.
 tests/compat/fixtures/old-conversation-writer.mjs -whitespace
+
+# Biome formats tests and scripts with LF.
+tests/**/*.ts text eol=lf

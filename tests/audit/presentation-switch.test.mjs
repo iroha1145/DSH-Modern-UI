@@ -23,17 +23,24 @@ async function load(name) {
 }
 
 /** A Loader-resolved volatile section is a reference; read through it either way. */
-const read = value => typeof value?.get === 'function' ? value.get() : value
+const read = value => (typeof value?.get === 'function' ? value.get() : value)
 
 /** Run the Host entry against a recording context and return the non-empty system prompt sections of one assembly. */
 function sectionsFor(config) {
   const sections = []
   const scope = {
     effect: fn => fn(),
-    systemPrompt: { section: section => { sections.push(section) }, getSectionOrder: () => 100 },
+    systemPrompt: {
+      section: section => {
+        sections.push(section)
+      },
+      getSectionOrder: () => 100,
+    },
   }
   const ctx = {
-    inject: (deps, callback) => { if (deps.includes('systemPrompt')) callback(scope) },
+    inject: (deps, callback) => {
+      if (deps.includes('systemPrompt')) callback(scope)
+    },
     on: () => () => {},
   }
   host.apply(ctx, host.Config(config))
@@ -59,9 +66,24 @@ for (const [label, config, expected] of states) {
 test('a live switch change takes effect at the next assembly without remounting', () => {
   const live = { prompt: false }
   const sections = []
-  const scope = { effect: fn => fn(), systemPrompt: { section: section => { sections.push(section) }, getSectionOrder: () => 100 } }
-  host.apply({ inject: (deps, callback) => { if (deps.includes('systemPrompt')) callback(scope) }, on: () => () => {} },
-    { enabled: true, presentation: { get: () => live } })
+  const scope = {
+    effect: fn => fn(),
+    systemPrompt: {
+      section: section => {
+        sections.push(section)
+      },
+      getSectionOrder: () => 100,
+    },
+  }
+  host.apply(
+    {
+      inject: (deps, callback) => {
+        if (deps.includes('systemPrompt')) callback(scope)
+      },
+      on: () => () => {},
+    },
+    { enabled: true, presentation: { get: () => live } },
+  )
   assert.equal(sections.length, 1)
   assert.equal(sections[0].text({}), '')
   live.prompt = true

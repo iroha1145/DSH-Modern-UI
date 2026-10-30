@@ -5,7 +5,14 @@ import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { selectInstallHost, verifyPluginCompatibility, main } from '../../scripts/distribution/manager.mjs'
-import { defaultHostVersion, hostRange, supportedHostVersions, getHostCompatibility, satisfiesRange, compareVersions } from '../../scripts/distribution/compatibility.mjs'
+import {
+  defaultHostVersion,
+  hostRange,
+  supportedHostVersions,
+  getHostCompatibility,
+  satisfiesRange,
+  compareVersions,
+} from '../../scripts/distribution/compatibility.mjs'
 
 async function fixture(version, name = '@deepseek-ai/dsh') {
   // selectInstallHost resolves real paths; macOS temp directories sit behind the /var symlink.
@@ -124,7 +131,10 @@ test('changing a managed host version fails before backup, staging, CLI executio
   await writeFile(plugin, bytes)
   const integrity = 'sha512-' + createHash('sha512').update(bytes).digest('base64')
   const before = await readdir(root, { recursive: true })
-  await assert.rejects(main(['install', '--root', root, '--home', home, '--backend', target.backend, '--plugin', plugin, '--plugin-integrity', integrity]), /new program root and isolated data copy/)
+  await assert.rejects(
+    main(['install', '--root', root, '--home', home, '--backend', target.backend, '--plugin', plugin, '--plugin-integrity', integrity]),
+    /new program root and isolated data copy/,
+  )
   assert.deepEqual(await readdir(root, { recursive: true }), before)
   assert.equal(await readFile(join(root, 'current.json'), 'utf8'), selection)
   assert.equal(await readFile(join(generation, 'installation.json'), 'utf8'), selection)

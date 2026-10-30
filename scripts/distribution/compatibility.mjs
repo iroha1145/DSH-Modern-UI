@@ -58,11 +58,14 @@ export function compareVersions(left, right) {
 export function satisfiesRange(version, range) {
   const parsed = parseVersion(version)
   if (!parsed) return false
-  const comparators = range.trim().split(/\s+/).map(item => {
-    const match = /^(>=|<=|>|<|=)?(.+)$/.exec(item)
-    if (!match || !parseVersion(match[2])) throw new Error(`Unsupported host range comparator: ${item}`)
-    return { operator: match[1] ?? '=', version: match[2] }
-  })
+  const comparators = range
+    .trim()
+    .split(/\s+/)
+    .map(item => {
+      const match = /^(>=|<=|>|<|=)?(.+)$/.exec(item)
+      if (!match || !parseVersion(match[2])) throw new Error(`Unsupported host range comparator: ${item}`)
+      return { operator: match[1] ?? '=', version: match[2] }
+    })
   const holds = { '>=': n => n >= 0, '<=': n => n <= 0, '>': n => n > 0, '<': n => n < 0, '=': n => n === 0 }
   if (!comparators.every(({ operator, version: bound }) => holds[operator](compareVersions(version, bound)))) return false
   if (!parsed.prerelease.length) return true

@@ -1,0 +1,43 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": {
+    "includes": ["scripts/**/*.mjs", "tests/**/*.mjs", "tests/**/*.ts", "*.mjs", "*.json", "!package-lock.json", "!tests/compat/fixtures"]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 160,
+    "lineEnding": "lf"
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "asNeeded",
+      "arrowParentheses": "asNeeded",
+      "trailingCommas": "all"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "style": { "useTemplate": "off" },
+      "performance": { "useDomNodeTextContent": "off" },
+      "suspicious": { "useIterableCallbackReturn": "off" }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["tests/**"],
+      "linter": {
+        "rules": {
+          "correctness": { "noComponentHookFactories": "off" },
+          "suspicious": { "noThenProperty": "off" }
+        }
+      }
+    }
+  ],
+  "assist": { "enabled": false }
+}

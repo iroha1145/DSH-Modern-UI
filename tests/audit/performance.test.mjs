@@ -53,7 +53,10 @@ test('sprite parses once and preserves every symbol attribute and child', async 
   try {
     let parses = 0
     const original = dom.window.DOMParser.prototype.parseFromString
-    dom.window.DOMParser.prototype.parseFromString = function (...args) { parses++; return original.apply(this, args) }
+    dom.window.DOMParser.prototype.parseFromString = function (...args) {
+      parses++
+      return original.apply(this, args)
+    }
     const sprite = createIconSprite(dom.window.document)
     assert.equal(parses, 1)
     assert.equal(sprite.children.length, Object.keys(ICON_SYMBOLS).length)
@@ -71,7 +74,9 @@ test('sprite parses once and preserves every symbol attribute and child', async 
       }
     }
     console.info(`${sprite.children.length} symbols retained with one XML parse`)
-  } finally { dom.window.close() }
+  } finally {
+    dom.window.close()
+  }
 })
 
 test('community folds avoid rescanning unchanged ancestors and preserve replacement and removal', async () => {
@@ -95,7 +100,10 @@ test('community folds avoid rescanning unchanged ancestors and preserve replacem
     assert.equal(block.querySelector('pre').hidden, true)
     let previewScans = 0
     const query = preview.querySelectorAll.bind(preview)
-    preview.querySelectorAll = (...args) => { previewScans++; return query(...args) }
+    preview.querySelectorAll = (...args) => {
+      previewScans++
+      return query(...args)
+    }
     for (let index = 0; index < 20; index++) preview.append('token')
     await tick()
     assert.equal(previewScans, 0)

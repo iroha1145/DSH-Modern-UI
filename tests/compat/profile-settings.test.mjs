@@ -6,10 +6,17 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { pathToFileURL } from 'node:url'
-import { bindHostCompatibility, preserveEffectivePreferences, preservePresentationPrompt, transformHostBindings } from '../../scripts/distribution/profile-settings.mjs'
+import {
+  bindHostCompatibility,
+  preserveEffectivePreferences,
+  preservePresentationPrompt,
+  transformHostBindings,
+} from '../../scripts/distribution/profile-settings.mjs'
 import { preserveConversationPreferences } from './fixtures/old-conversation-writer.mjs'
 
-const requireHost = createRequire(process.env.COMPAT_BACKEND_PACKAGE ? resolve(process.env.COMPAT_BACKEND_PACKAGE) : new URL('../../package.json', import.meta.url))
+const requireHost = createRequire(
+  process.env.COMPAT_BACKEND_PACKAGE ? resolve(process.env.COMPAT_BACKEND_PACKAGE) : new URL('../../package.json', import.meta.url),
+)
 const yaml = requireHost('js-yaml')
 const { applyEntryPatches, entryListSchema } = await import(pathToFileURL(requireHost.resolve('@deepseek-ai/cordis-plugin-include')).href)
 const dump = rows => yaml.dump(rows, { schema: entryListSchema, lineWidth: -1, noCompatMode: true })
@@ -25,22 +32,34 @@ for (const disabled of [undefined, null, false, true]) {
     const profile = await mkdtemp(join(tmpdir(), 'compat-null-host-'))
     onTestFinished(() => rm(profile, { recursive: true, force: true }))
     const filename = join(profile, 'cordis.patch.yml')
-    const host = { id: 'translator', name: '@deepseek-ai/dsh-experimental-translator', group: null,
-      inject: { optional: ['logger'] }, intercept: { logger: 'root' }, isolate: null,
-      config: { timeoutMs: 4321 } }
+    const host = {
+      id: 'translator',
+      name: '@deepseek-ai/dsh-experimental-translator',
+      group: null,
+      inject: { optional: ['logger'] },
+      intercept: { logger: 'root' },
+      isolate: null,
+      config: { timeoutMs: 4321 },
+    }
     if (disabled !== undefined) host.disabled = disabled
     const base = [
       { id: 'modern-ui', name: '@iroha1145/dsh-modern-ui', config: { models: {}, prices: {} } },
       { id: 'models', name: '@deepseek-ai/dsh-client-ui-model-selection', config: picker },
-      { id: 'conversation', name: '@deepseek-ai/dsh-client-ui-conversation', config: { busyEnter: 'steer' } }, host,
+      { id: 'conversation', name: '@deepseek-ai/dsh-client-ui-conversation', config: { busyEnter: 'steer' } },
+      host,
     ]
     await writeFile(filename, dump([]))
-    const compose = async () => applyEntryPatches(base, yaml.load(await readFile(filename, 'utf8'), { schema: entryListSchema }), message => assert.fail(message))
+    const compose = async () =>
+      applyEntryPatches(base, yaml.load(await readFile(filename, 'utf8'), { schema: entryListSchema }), message => assert.fail(message))
     assert.equal((await preserveConversationPreferences(profile, dump(await compose()), yaml)).changed, true)
     const binding = await bindHostCompatibility(profile, dump(await compose()), yaml)
     assert.equal(binding.changed, disabled !== true)
     const bound = await compose()
-    if (disabled === true) assert.deepEqual(bound.find(row => row.id === host.id), host)
+    if (disabled === true)
+      assert.deepEqual(
+        bound.find(row => row.id === host.id),
+        host,
+      )
     else {
       assert.equal(bound.find(row => row.id === host.id).disabled, true)
       const replacement = bound.find(row => row.id === 'modern-ui-compat-translator')
@@ -50,16 +69,26 @@ for (const disabled of [undefined, null, false, true]) {
     const effective = await compose()
     assert.deepEqual(effective.find(row => row.id === 'modern-ui').config.models, picker.models)
     assert.deepEqual(effective.find(row => row.id === 'modern-ui').config.prices, picker.prices)
-    assert.deepEqual(effective.filter(row => row.id !== 'modern-ui'), bound.filter(row => row.id !== 'modern-ui'))
+    assert.deepEqual(
+      effective.filter(row => row.id !== 'modern-ui'),
+      bound.filter(row => row.id !== 'modern-ui'),
+    )
   })
 }
 
 test('real !!js activation is rejected without evaluation; unknown metadata is retained', () => {
   const source = '[]\n'
-  const dynamic = '- id: translator\n  name: "@deepseek-ai/dsh-experimental-translator"\n  disabled: !!js "globalThis.__compatShouldNotRun = true"\n  config: {}\n'
+  const dynamic =
+    '- id: translator\n  name: "@deepseek-ai/dsh-experimental-translator"\n  disabled: !!js "globalThis.__compatShouldNotRun = true"\n  config: {}\n'
   assert.throws(() => transformHostBindings(source, dynamic, yaml), /Computed activation/)
   assert.equal(globalThis.__compatShouldNotRun, undefined)
-  const original = { id: 'translator', name: '@deepseek-ai/dsh-experimental-translator', disabled: null, customMetadata: { retained: 'yes' }, config: { timeoutMs: 1234 } }
+  const original = {
+    id: 'translator',
+    name: '@deepseek-ai/dsh-experimental-translator',
+    disabled: null,
+    customMetadata: { retained: 'yes' },
+    config: { timeoutMs: 1234 },
+  }
   const transformed = transformHostBindings(source, dump([original]), yaml)
   const rows = yaml.load(transformed.source, { schema: entryListSchema })
   assert.deepEqual(rows.at(-1).insert[0], { ...original, id: 'modern-ui-compat-translator', name: '@iroha1145/dsh-modern-ui/translator' })
@@ -72,13 +101,22 @@ test('presentation prompt stays on for upgrades, off for new installs, and never
   const receipt = join(profile, 'modern-ui-presentation-migration.json')
   const modern = config => ({ id: 'modern-ui', name: '@iroha1145/dsh-modern-ui', config })
   const bundled = { enabled: true, models: {}, prices: {}, presentation: { prompt: false } }
-  const compose = async base => applyEntryPatches(base, yaml.load(await readFile(filename, 'utf8'), { schema: entryListSchema }), message => assert.fail(message))
-  const reset = async source => { await rm(receipt, { force: true }); await rm(join(profile, 'modern-ui-presentation-before-migration.yml'), { force: true }); await writeFile(filename, source) }
+  const compose = async base =>
+    applyEntryPatches(base, yaml.load(await readFile(filename, 'utf8'), { schema: entryListSchema }), message => assert.fail(message))
+  const reset = async source => {
+    await rm(receipt, { force: true })
+    await rm(join(profile, 'modern-ui-presentation-before-migration.yml'), { force: true })
+    await writeFile(filename, source)
+  }
 
   // New install: nothing before, nothing written, receipt records the decision.
   await reset(dump([]))
-  assert.deepEqual(await preservePresentationPrompt(profile, dump([]), dump([modern(bundled)]), yaml),
-    { changed: false, reason: 'new-install', conversionVersion: 1, namespace: 'modern-ui' })
+  assert.deepEqual(await preservePresentationPrompt(profile, dump([]), dump([modern(bundled)]), yaml), {
+    changed: false,
+    reason: 'new-install',
+    conversionVersion: 1,
+    namespace: 'modern-ui',
+  })
   assert.equal(await readFile(filename, 'utf8'), dump([]))
 
   // Upgrade from a version that always appended the prompt.
@@ -90,13 +128,22 @@ test('presentation prompt stays on for upgrades, off for new installs, and never
   const effective = (await compose([modern(bundled)])).find(row => row.id === 'modern-ui').config
   assert.equal(effective.presentation.prompt, true)
   assert.equal(effective.busyEnter, 'steer')
-  assert.equal(createHash('sha256').update(await readFile(join(profile, upgraded.backup), 'utf8')).digest('hex'), upgraded.originalSha256)
+  assert.equal(
+    createHash('sha256')
+      .update(await readFile(join(profile, upgraded.backup), 'utf8'))
+      .digest('hex'),
+    upgraded.originalSha256,
+  )
   // The receipt keeps a later toggle from being overwritten.
   assert.equal((await preservePresentationPrompt(profile, dump([modern(previous)]), dump([modern(previous)]), yaml)).alreadyMigrated, true)
 
   // A user who already chose explicitly keeps the choice.
   const chosen = { ...previous, presentation: { prompt: false } }
   await reset(dump([modern(chosen)]))
-  assert.equal((await preservePresentationPrompt(profile, dump([modern({ enabled: true, models: {}, prices: {} })]), dump([modern({ ...bundled, ...chosen })]), yaml)).reason, 'explicit-choice')
+  assert.equal(
+    (await preservePresentationPrompt(profile, dump([modern({ enabled: true, models: {}, prices: {} })]), dump([modern({ ...bundled, ...chosen })]), yaml))
+      .reason,
+    'explicit-choice',
+  )
   assert.equal(await readFile(filename, 'utf8'), dump([modern(chosen)]))
 })

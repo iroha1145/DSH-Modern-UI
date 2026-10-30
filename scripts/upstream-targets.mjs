@@ -14,8 +14,9 @@ if (override) {
   const response = await fetch('https://registry.npmjs.org/@deepseek-ai%2Fdsh', { headers: { accept: 'application/vnd.npm.install-v1+json' } })
   if (!response.ok) throw new Error(`Registry metadata request failed (HTTP ${response.status})`)
   const { versions } = await response.json()
-  const candidates = Object.keys(versions).filter(version => parseVersion(version)
-    && !supportedHostVersions.includes(version) && !Object.hasOwn(knownBrokenHosts, version))
+  const candidates = Object.keys(versions).filter(
+    version => parseVersion(version) && !supportedHostVersions.includes(version) && !Object.hasOwn(knownBrokenHosts, version),
+  )
   const newest = list => list.sort(compareVersions).at(-1)
   hosts = [
     newest(candidates.filter(version => parseVersion(version).prerelease.length > 0)),
