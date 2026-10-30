@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 安全漏洞
+    url: https://github.com/iroha1145/DSH-Modern-UI/security/advisories/new
+    about: 请通过私密漏洞报告提交，不要公开披露

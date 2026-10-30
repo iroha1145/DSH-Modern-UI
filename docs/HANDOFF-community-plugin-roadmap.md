@@ -87,7 +87,7 @@ dsh plugin --profile web add @iroha1145/dsh-modern-ui
 - 一个对话只做一个 WP。需要跨 WP 的改动，先在本文件对应 WP 的「待决策」里登记，不要顺手改。
 - 开工前：`git checkout -b wp<N>/<slug>`，读本文件 §0 与自己的 WP 章节，再读 WP 列出的文件。
 - 每个 WP 的「验收」是 PR 合并条件；验收命令要真实跑过并把输出贴进 PR 描述。
-- 本地验证基线：Node 24.22.1（`.node-version`）、`npm ci --ignore-scripts`、`npm run build`、`node --test tests/audit/*.test.mjs`。`npm run test:compat` 很重（会装一个隔离宿主），只在改到安装/兼容逻辑时跑。
+- 本地验证基线：Node 24.22.1（`.node-version`）、`npm ci --ignore-scripts`、`npm run lint`、`npm run typecheck`、`npm run build`、`npm test`（vitest；compat 层需 `COMPAT_BACKEND_PACKAGE=node_modules/@deepseek-ai/dsh/package.json`，WP6 起）。`npm run test:compat` 很重（会装一个隔离宿主），只在改到安装/兼容逻辑时跑。
 - 提交信息沿用现有风格：`feat|fix|docs|chore|test(scope): 中文描述`。
 - 不要在 WP 里"顺手"修 UI Bug；发现了记进 issue。
 - 改 `package.json` 的兼容字段前先看 `scripts/build-plugin.mjs` 第 10 至 20 行：它会从 `compatibility.json` 重写这些字段。
@@ -307,6 +307,14 @@ WP0 与 WP6 的 lint 部分可以并行；WP2 与 WP3 可以并行；WP4 与 WP5
 6. `.gitattributes` 中 `packages/modern-ui/src/** -text` 是为 provenance 字节一致而设；WP5 回收 vendor 后可逐步收窄。
 
 **验收**：`pr.yml` 绿且时长 < 8 分钟；`npx vitest run` 有 ≥ 40 个用例；上述文件齐全。
+
+> **WP6 执行记录**
+> - 单测选 vitest 5，现有 `tests/audit` 与 `tests/compat` 的 node:test 用例一并迁过去，不保留两套：`vitest.config.mjs` 分 `unit` / `audit` / `compat` 三个 project，共 125 个用例（unit 41、audit 55、compat 29）。vitest 5 依赖 vite，而 vite 8 要求 esbuild ≥0.27 的 peer，与仓库钉死的 esbuild 0.25.12 冲突，所以显式钉 vite 7.3.7（自带嵌套 esbuild 0.27）。
+> - 新单测覆盖 `intelligent/client/{schema,parse-followups,frame-content,sandbox}`（内容校验、序列化不能闭合 script、嵌套沙箱属性）、`primitives/markdown/{parse,highlight}` 与几个展示小工具。`chat-snapshot-builder.ts`、`assembler.ts` 体量大且依赖宿主 store，本轮没补，留作后续。
+> - Biome 2.6 只管 `scripts/`、`tests/` 与根配置：`packages/modern-ui/src` 的字节由 `provenance.json` 记录摘要，`tests/compat/fixtures` 也按原始字节做摘要，都排除。首次格式化单独一个提交（记在 `.git-blame-ignore-revs`）。关掉的规则：`useTemplate`（仓库惯用拼接）、`useDomNodeTextContent`（Playwright 检查有意读可见文本 innerText）、`useIterableCallbackReturn`（`forEach(fn => fn())` 惯用法）；tests 下另关 `noComponentHookFactories`、`noThenProperty`（测试替身）。
+> - `pr.yml`：lint、typecheck（client + host）、unit、装 Chromium、build、audit + compat，本地全套 vitest 约 17 秒，预计 CI 总时长在 8 分钟内（未在 CI 实测）。`plugin-preview.yml` 去掉与 pr.yml 重复的回归步骤，触发改为 `workflow_dispatch` 与 `v*` tag：release.yml 用 `GITHUB_TOKEN` 创建的 Release 不会触发其他工作流的 `release` 事件，所以不用 `release: published`。
+> - 社区文件：`CHANGELOG.md`、`SECURITY.md`（私密漏洞报告需要 owner 在仓库设置里开启 Private vulnerability reporting）、`.github/ISSUE_TEMPLATE/{bug,compat,config}.yml`、`.github/PULL_REQUEST_TEMPLATE.md`、`.github/renovate.json`（需要 owner 安装 Renovate GitHub App）。
+> - 第 6 步（收窄 `.gitattributes` 的 `-text`）依赖 WP5，未动；只新增 `tests/**/*.ts text eol=lf`。
 
 ---
 

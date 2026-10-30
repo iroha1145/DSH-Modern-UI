@@ -1,0 +1,47 @@
+name: 宿主兼容问题
+description: 某个官方 DSH 版本下无法安装、加载失败或功能异常
+labels: [compat]
+body:
+  - type: markdown
+    attributes:
+      value: 支持范围与已验证版本见 [docs/compatibility.md](https://github.com/iroha1145/DSH-Modern-UI/blob/main/docs/compatibility.md)。
+  - type: input
+    id: host
+    attributes:
+      label: 官方 DSH 版本
+      description: '`dsh --version` 的输出'
+      placeholder: 0.2.1-rc.5
+    validations:
+      required: true
+  - type: input
+    id: plugin
+    attributes:
+      label: 插件版本
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: dropdown
+    id: channel
+    attributes:
+      label: 安装方式
+      options:
+        - npm（dsh plugin add @iroha1145/dsh-modern-ui）
+        - Release 中的 modern-ui.tgz
+        - 一键隔离环境安装器
+    validations:
+      required: true
+  - type: textarea
+    id: dump
+    attributes:
+      label: '`--dump-config` 片段'
+      description: '`dsh --profile web --dump-config` 输出中 `id: modern-ui` 所在的那一段（请删除密钥等敏感信息）'
+      render: yaml
+    validations:
+      required: true
+  - type: textarea
+    id: symptom
+    attributes:
+      label: 现象与日志
+      description: 安装命令的完整输出、浏览器控制台报错或截图
+    validations:
+      required: true

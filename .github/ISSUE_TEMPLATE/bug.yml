@@ -1,0 +1,53 @@
+name: 问题报告
+description: Modern UI 的界面或行为问题
+labels: [bug]
+body:
+  - type: input
+    id: plugin
+    attributes:
+      label: 插件版本
+      description: '`dsh plugin --profile web list` 中 `@iroha1145/dsh-modern-ui` 的版本'
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: host
+    attributes:
+      label: 官方 DSH 版本
+      description: '`dsh --version` 的输出'
+      placeholder: 0.2.1-rc.4
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: 系统与浏览器
+      placeholder: Windows 11 x64，Edge 130
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望与实际结果
+    validations:
+      required: true
+  - type: checkboxes
+    id: official
+    attributes:
+      label: 官方界面对照
+      options:
+        - label: 我已在插件管理中停用 `@iroha1145/dsh-modern-ui` 并刷新，官方界面没有这个问题
+  - type: textarea
+    id: logs
+    attributes:
+      label: 浏览器控制台或终端日志
+      render: text

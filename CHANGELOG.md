@@ -1,0 +1,31 @@
+# Changelog
+
+格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。插件版本与官方宿主版本的对应关系见[兼容矩阵](docs/compatibility.md)。
+
+## [Unreleased]
+
+## [0.1.0] - 未发布
+
+首个以 npm 包 `@iroha1145/dsh-modern-ui` 分发的版本。此前的分发方式（对官方前端打补丁）已归档，见 tag `legacy-patch-final`。
+
+### Added
+
+- 一行安装：`dsh plugin --profile web add @iroha1145/dsh-modern-ui`；GitHub Release 附带 `modern-ui.tgz` 与可选的一键隔离环境安装器。
+- 发布管线：`v*` tag 触发校验、npm 发布（带 provenance）与 GitHub Release。
+- 「设置 → 通用 → 回答可视化组件」开关，控制是否向系统提示词追加 Intelligent UI（`openui` / `followups`）指令；`presentation.openui` / `presentation.followups` 配置项可分别关闭两种代码块的渲染。
+- 上游 canary：每天对最新的未验证官方预发布版与正式版跑兼容套件，失败时开 issue。
+- `CONTRIBUTING.md`、`SECURITY.md`、issue / PR 模板、Renovate 配置。
+
+### Changed
+
+- 宿主兼容声明从精确版本枚举改为范围 `>=0.2.1-rc.2 <0.3.0`；范围内未验证的宿主可以安装并给出警告，已知不兼容的版本被拒绝。
+- `engines.node` 放宽为 `>=24.0.0`；`react` / `react-dom`、`@deepseek-ai/cordis`、`@deepseek-ai/schemastery` peers 改为 caret 范围。
+- 默认**不再**改变模型提示词；经安装器从旧版本升级的 profile 保持原行为（开启）。
+- 测试统一到 vitest（unit / audit / compat 三层），`scripts/` 与 `tests/` 由 Biome 格式化与检查。
+
+### Removed
+
+- 会话级联网开关（`/web on|off`）及其协议；联网工具统一走官方插件管理。
+
+[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/iroha1145/DSH-Modern-UI/releases/tag/v0.1.0
