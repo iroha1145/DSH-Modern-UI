@@ -293,6 +293,13 @@ WP0 与 WP6 的 lint 部分可以并行；WP2 与 WP3 可以并行；WP4 与 WP5
 
 **待决策（项目方向性，建议 owner 本人拍板后再开 WP5）**：是否接受"最终形态保留 2 至 3 个重写面、其余回归官方"的目标。若不接受（想长期维持全套替换），则 WP5 只做第 1 步，并把 WP2 的 canary 升级为"每个 rc 必跑 + 人工合并上游 diff"的常规流程，预估每个 rc 半天到两天的维护量。
 
+> **WP5 第 1 步执行记录（`wp5/vendor-drift`）**
+> - `scripts/vendor-drift.mjs --host <版本>`：npm 上的 `@deepseek-ai/dsh-client-ui-*` 不带 `src/`，源码取自上游 GitHub tag `dsh-v<版本>` 的 codeload 归档（每份约 35 MB，流式解压只留 `provenance.json` 里的源文件）；`npm:<包>@<版本>/<文件>` 来源取自 npm registry。源文件来自 `files`、`adapters`、`translations`（含 `{ja,es,…}` 展开），共 601 个。
+> - 实测基线：383 个源文件与 `provenance.json#commit`（`22ddee37`）逐字节一致、172 个不同（本地改写或抓取时已带旧 Modern 补丁）、46 个基线里没有；与 rc.4 tag 一致的只有 251 个，说明 vendor 是按 `22ddee37` 抓的、迁到 rc.4 时没有重新同步。所以报告分两段：相对上一个已验证宿主（canary 线索）与相对抓取基线（累计）。
+> - rc.4 → rc.5：5 个需人工合并（`ReasoningContent.tsx`、`ReasoningRow.tsx`、`chat/contract/slots.ts`、`process-activity.ts`、`TranslationBody.tsx`），同目录新增 `ui-chat/src/client/reasoning-text.ts`。`22ddee37` → rc.5 累计：改动 221（需人工合并 181、未打补丁可直接重新复制 40）、删除或改名 41、旧补丁新增 45。
+> - 「可直接重新复制」只给 `adapted: false` 且抓取时与基线逐字节一致的文件；抓取时已带旧补丁的原样副本归入需人工合并，避免重新复制时丢掉补丁。
+> - 接入 `upstream-canary.yml`：每个宿主一步（`continue-on-error`），报告进步骤摘要与 artifact；失败 issue 引用「相对上一个已验证宿主」一段。单测 `tests/compat/vendor-drift.test.mjs`（不联网，测试内生成 tar.gz 覆盖 ustar 前缀、pax 长路径与全局注释）。
+
 ---
 
 ### WP6 工程基线（M2 起并行，1 至 2 个对话，小到中）

@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- vendor 漂移报告 `scripts/vendor-drift.mjs`：对比 vendored 拷贝的上游源文件在指定官方版本里的改动，接入每日 canary（步骤摘要、artifact、失败 issue）。
+
 ### Fixed
 
 - 官方 Desktop：登录 DeepSeek 账号后首次引导卡在「你希望看到多少工作过程？」，「进入应用」和「跳过」都提示「未能保存设置，请重试。」。引导最后一步写的是官方聊天设置（`ui-chat`），Modern UI 接管聊天时禁用了它，写入必然失败。现在启用 Modern UI 时引导记为已跳过、不再弹出；已经卡在半路的进度会被同样记为跳过。工作过程与用量展示在「设置 → 通用」里调整；卸载 Modern UI 后官方引导照常出现（已被记为跳过的除外）。
