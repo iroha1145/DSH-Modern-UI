@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { cp, mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -17,10 +18,13 @@ for (const filename of ['build-inputs.json', 'host-build-inputs.json']) {
 }
 const output = path.resolve(process.argv[2] ?? path.join(root, '.artifacts/plugin-preview'))
 await mkdir(output, { recursive: true })
-const npm = path.join(
-  path.dirname(process.execPath),
-  process.platform === 'win32' ? 'node_modules/npm/bin/npm-cli.js' : '../lib/node_modules/npm/bin/npm-cli.js',
-)
+// npm's CLI script beside this Node (official archives, nvm), under libexec (Homebrew), or the one running `npm run`.
+const npm = [
+  path.join(path.dirname(process.execPath), process.platform === 'win32' ? 'node_modules/npm/bin/npm-cli.js' : '../lib/node_modules/npm/bin/npm-cli.js'),
+  path.join(path.dirname(process.execPath), '../libexec/lib/node_modules/npm/bin/npm-cli.js'),
+  process.env.npm_execpath,
+].find(file => file && path.basename(file) === 'npm-cli.js' && existsSync(file))
+assert.ok(npm, `Cannot find npm-cli.js for ${process.execPath}; run through npm run preview`)
 const packed = JSON.parse(
   execFileSync(
     process.execPath,
@@ -132,10 +136,18 @@ exec sh "$here/installer/bootstrap.sh" "$1" "$2" "$here/modern-ui.tgz" '${integr
 )
 await writeFile(
   path.join(output, 'README.txt'),
-  `DSH Modern UI - precompiled plugin preview (unpublished)
+  `${
+    process.env.MODERN_UI_RELEASE
+      ? `DSH Modern UI ${process.env.MODERN_UI_RELEASE} - precompiled plugin and installer
+
+This directory contains the precompiled Modern UI tgz published to npm as ${packed.name}@${packed.version}, and a thin installer.
+With an existing official DSH, the one-line install is: dsh plugin --profile web add ${packed.name}`
+      : `DSH Modern UI - precompiled plugin preview (unpublished)
 
 This directory contains the actual precompiled Modern UI tgz and a thin installer.
-There is no published npm/Release URL for this preview. Preserve legacy web/search sessions for the old environment or read-only export.
+There is no published npm/Release URL for this preview.`
+  }
+Preserve legacy web/search sessions for the old environment or read-only export.
 The custom Modern UI session web switch is retired. New sessions use official plugin configuration.
 
 Windows x64, from PowerShell (replace the two target paths):

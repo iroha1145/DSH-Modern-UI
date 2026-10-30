@@ -26,10 +26,10 @@ Desktop 不在 npm，canary 覆盖不到；每个 Desktop 版本单独运行 `te
 
 [`scripts/distribution/compatibility.json`](../scripts/distribution/compatibility.json) 是版本、平台、官方 URL/SRI、私有运行时和社区组合的唯一清单。构建从它生成插件 engines/peers/compatibleHost、默认 community-lock 和预览元数据。
 
-- 插件声明宿主范围 `hostRange` = `>=0.2.1-rc.2 <0.3.0`，写进 `engines.dsh`、`dsh.compatibleHost` 与全部 `@deepseek-ai/dsh-*` peers。按 npm 规则，范围内的预发布版只限 `0.2.1-*`；`0.2.2-alpha.*` 之类的其他预发布版不在范围内。
+- 插件声明宿主范围 `hostRange` = `>=0.2.1-rc.2 <0.3.0-0`，写进 `engines.dsh`、`dsh.compatibleHost` 与全部 `@deepseek-ai/dsh-*` peers。安装器、canary 和 pnpm 的 peer 检查按 npm 规则判断，范围内的预发布版只限 `0.2.1-*`；`0.2.2-alpha.*` 之类的其他预发布版不在范围内。官方宿主加载插件时只看 `engines.dsh`，并把预发布版算进范围（`includePrerelease`），所以经 `dsh plugin add` 安装时，`0.2.2-alpha.*` 等其他 `0.2.x` 预发布宿主也会放行，`knownBroken` 拦不住；上界写成 `<0.3.0-0` 是为了让宿主同样拒绝 `0.3.0-alpha.*`。
 - `verifiedHosts`（rc.4、rc.3、rc.2）是跑过完整兼容套件、带官方 SRI 与社区组合的版本；默认新装仍为 rc.4。
 - 范围内但未验证的版本（例如未来的 `0.2.1` 正式版）可以安装：安装器打印警告，从 npm registry 元数据取官方 tgz 的完整性，只开放已验证宿主出现过的平台，不附装社区插件。
-- `knownBroken` 中的版本与范围外的版本（`0.3.0` 起、更早的 rc）直接拒绝。
+- 安装器对 `knownBroken` 中的版本与范围外的版本（`0.3.0` 起、更早的 rc）直接拒绝。
 - rc.4 保留 Linux x64/arm64、macOS x64/arm64、Windows x64 的既有成品安装范围；rc.3、rc.2 限定 Linux x64 与 Windows x64。
 - Node 要求 major 24（`engines.node` = `>=24.0.0`，私有运行时下载 `24.22.1`）；pnpm 固定 `11.28.5`。`@deepseek-ai/cordis` / `@deepseek-ai/schemastery` / `react` peers 为 `^4.0.5` / `^3.18.5` / `^18.3.0`，记录在 `compatibility.json#platformPeers`，构建时写入包的 peerDependencies。支持旧 DSH 不等于支持旧 Node、旧浏览器或数据格式降级。
 - 真实浏览器核心验收使用 Chromium/Edge。官方 Desktop（Electron）内的 Web Client 检查、Windows 标题栏标记、系统主题跟随、窄视口与 bundle 移除/重装已在 Desktop 0.2.1-rc.5 / Windows x64 通过；原生文件拖出、多窗口、「Open In…」、原生目录选择器、macOS 外壳与最大化/全屏覆盖层只有人工清单，尚为 **unverified**，逐项见 [Desktop 验收记录](compatibility/desktop-0.2.1-rc.5.md)。WebKit、触屏、真实外部收费 provider、旧定制 web/search 会话继续写入均为 **unverified**。

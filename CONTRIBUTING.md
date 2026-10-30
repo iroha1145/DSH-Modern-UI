@@ -35,7 +35,7 @@
 
 插件声明的是宿主**范围**（`compatibility.json#hostRange`，写进 `engines.dsh`、`dsh.compatibleHost` 和 `@deepseek-ai/dsh-*` peers）；范围内但没验证过的版本可以安装，安装器会打印警告。`verifiedHosts` 记录真正跑过完整兼容套件的版本。
 
-每天的 [Upstream canary](.github/workflows/upstream-canary.yml) 对最新的未验证预发布版和正式版跑 `tests/compat/run.mjs` 与 `tests/compat/npm-install.e2e.mjs`，失败时开 issue `upstream: <版本> 兼容失败`。安装器不给未验证宿主附装社区插件；canary 则把默认宿主的社区组合作为候选装上（结果 JSON 的 `communityCandidate`），通过即说明该组合可以写进新宿主的 `communityPlugins`。
+每天的 [Upstream canary](.github/workflows/upstream-canary.yml) 对 `hostRange` 内最新的未验证预发布版和正式版跑 `tests/compat/run.mjs` 与 `tests/compat/npm-install.e2e.mjs`，失败时开 issue `upstream: <版本> 兼容失败`。比已验证宿主新、但落在范围外的最新版本也会排进 canary：它在范围检查处立即失败，这个 issue 不是兼容结论，而是提醒按下面第 4 步评估要不要扩大 `hostRange`；扩大后再手动运行 canary（`host` 填该版本）验证。安装器不给未验证宿主附装社区插件；canary 则把默认宿主的社区组合作为候选装上（结果 JSON 的 `communityCandidate`），通过即说明该组合可以写进新宿主的 `communityPlugins`。
 
 canary 同时对每个宿主跑 `node scripts/vendor-drift.mjs --host <版本>`，列出 `provenance.json` 记录的上游源文件里哪些被这个版本改了（报告进步骤摘要、artifact 和失败 issue）。npm 包不带 `src/`，所以源码取自上游 GitHub tag `dsh-v<版本>` 的源码归档；`npm:` 来源取自 npm registry。报告分两段：
 
@@ -54,4 +54,4 @@ canary 同时对每个宿主跑 `node scripts/vendor-drift.mjs --host <版本>`�
 3. 如果新宿主要成为默认新装版本，同时改 `defaultHostVersion`。
 4. 版本落在 `hostRange` 之外（例如 `0.3.0`）时，先确认 `compatibility.json#platformPeers` 里的 peers（`@deepseek-ai/cordis`、`@deepseek-ai/schemastery`、`react`）仍与新宿主匹配（`npm view @deepseek-ai/dsh-client-ui-slots@<版本> dependencies`），再改 `hostRange`；已知不兼容的版本写进 `knownBroken` 并注明原因。
 5. `npm run build`，跑上面的回归测试，在 [`docs/compatibility.md`](docs/compatibility.md) 顶部矩阵加一行（插件版本、宿主、平台、日期）。
-6. 递增 `runtimeVersions.plugin` 的 patch 位（同步根 `package.json` 与 `package-lock.json`），提交后打 `v<版本>` tag，由 release 工作流发布。
+6. 递增 `runtimeVersions.plugin` 的 patch 位（同步根 `package.json` 与 `package-lock.json`），提交后先在 main 上手动运行 [Official runtime plugin preview](.github/workflows/plugin-preview.yml)，五平台与隔离消费者矩阵全部通过后再打 `v<版本>` tag，由 release 工作流发布。release 工作流不等这两个矩阵，tag 一推就会发布到 npm。

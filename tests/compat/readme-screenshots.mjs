@@ -271,6 +271,6 @@ try {
   await browser.close()
   child.kill('SIGTERM')
   await Promise.race([new Promise(resolve => child.once('exit', resolve)), delay(5000)])
-  await writeFile(path.join(demo, 'host.log'), log.replace(/([?&]token=)[^s&]+/g, '$1[redacted]'))
+  await writeFile(path.join(demo, 'host.log'), log.replace(/([?&]token=)[^\s&]+/g, '$1[redacted]'))
   if (!options['--keep'] && !reused) await rm(consumer, { recursive: true, force: true, maxRetries: 5 })
 }

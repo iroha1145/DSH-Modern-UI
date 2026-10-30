@@ -1,7 +1,8 @@
 import { test } from 'vitest'
 import assert from 'node:assert/strict'
 import { build } from 'esbuild'
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
@@ -10,9 +11,7 @@ const host = await import(pathToFileURL(path.join(root, 'packages/modern-ui/lib/
 
 /** Bundle one client source module for direct inspection (React is not rendered). */
 async function load(name) {
-  const temporary = path.resolve(root, '../presentation-temp')
-  await mkdir(temporary, { recursive: true })
-  const directory = await mkdtemp(path.join(temporary, 'module-'))
+  const directory = await mkdtemp(path.join(tmpdir(), 'modern-presentation-'))
   try {
     const outfile = path.join(directory, 'module.mjs')
     await build({ entryPoints: [path.join(root, 'packages/modern-ui/src', name)], outfile, bundle: true, platform: 'node', format: 'esm', logLevel: 'silent' })

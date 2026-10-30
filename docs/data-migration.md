@@ -14,7 +14,7 @@ node scripts/migration/preflight.mjs quarantine --source <导出文件> --consum
 node scripts/migration/preflight.mjs restore --quarantine <隔离目录> --destination <不存在的恢复文件>
 ```
 
-消费者使用安装器提供的固定 Node，将上面的脚本路径换成实际已安装插件的 `lib/migration.js`；无需源码编译。包尚未发布，不能用虚构的 npm 命令下载它。`--consumer` 是能正常解析 `@deepseek-ai/dsh` 的实际安装目录，不是上游源码目录。
+消费者无需源码编译，将上面的脚本路径换成实际已安装插件的 `lib/migration.js`：安装器用户使用安装器提供的固定 Node；npm 发布后用 `dsh plugin --profile web add @iroha1145/dsh-modern-ui` 安装的，插件位于该 profile 的 `node_modules/@iroha1145/dsh-modern-ui/`。`--consumer` 是能正常解析 `@deepseek-ai/dsh` 的实际安装目录，不是上游源码目录。
 
 输入支持官方 v4 JSONL、追加式多帧 `.jsonl.zstd` 和含这类日志的 ZIP。使用真实已发布 codec/持久化验证 exports；Zstd 逐帧检查，不能只解第一个 header frame。读取前后核对文件状态，拒绝改变中的源；这不是活跃数据目录的一致性备份。
 

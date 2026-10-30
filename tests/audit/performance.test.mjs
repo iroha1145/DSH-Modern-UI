@@ -3,16 +3,15 @@ import assert from 'node:assert/strict'
 import { build } from 'esbuild'
 import { JSDOM } from 'jsdom'
 import { pathToFileURL } from 'node:url'
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 
 const root = path.resolve(import.meta.dirname, '../..')
 const source = name => path.join(root, 'packages/modern-ui/src', name)
 const production = JSON.parse(await readFile(path.join(root, 'packages/modern-ui/lib/build-inputs.json'), 'utf8'))
 async function load(name) {
-  const temporary = path.resolve(root, '../performance-temp')
-  await mkdir(temporary, { recursive: true })
-  const directory = await mkdtemp(path.join(temporary, 'module-'))
+  const directory = await mkdtemp(path.join(tmpdir(), 'modern-performance-'))
   try {
     const outfile = path.join(directory, 'module.mjs')
     await build({ entryPoints: [source(name)], outfile, bundle: true, platform: 'node', format: 'esm', logLevel: 'silent' })

@@ -34,10 +34,13 @@ await mkdir(root, { recursive: true })
 const relative = path.relative(await realpath(repo), await realpath(root))
 assert.ok(relative.startsWith('..') || path.isAbsolute(relative), 'The consumer must be outside the development repository')
 
-const npm = path.join(
-  path.dirname(process.execPath),
-  process.platform === 'win32' ? 'node_modules/npm/bin/npm-cli.js' : '../lib/node_modules/npm/bin/npm-cli.js',
-)
+// npm's CLI script beside this Node (official archives, nvm), under libexec (Homebrew), or the one running `npm run`.
+const npm = [
+  path.join(path.dirname(process.execPath), process.platform === 'win32' ? 'node_modules/npm/bin/npm-cli.js' : '../lib/node_modules/npm/bin/npm-cli.js'),
+  path.join(path.dirname(process.execPath), '../libexec/lib/node_modules/npm/bin/npm-cli.js'),
+  process.env.npm_execpath,
+].find(file => file && path.basename(file) === 'npm-cli.js' && existsSync(file))
+assert.ok(npm, `Cannot find npm-cli.js for ${process.execPath}`)
 const official = path.join(root, 'official')
 const home = path.join(root, 'home')
 const output = path.join(root, 'evidence')

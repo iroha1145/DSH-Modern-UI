@@ -1,9 +1,11 @@
 // Pick the official DSH versions the upstream canary should exercise: the newest prerelease and the
-// newest release that are neither verified nor recorded as known broken.
+// newest release inside hostRange that are neither verified nor recorded as known broken, plus the
+// newest version outside the range. That one fails fast at the range check, and its issue is the cue to
+// review hostRange; it never hides an in-range prerelease line.
 //   node scripts/upstream-targets.mjs [--host <version>]
 // Prints a JSON array; inside GitHub Actions it is also written as the `hosts` step output.
 import { appendFileSync } from 'node:fs'
-import { compareVersions, knownBrokenHosts, parseVersion, supportedHostVersions } from './distribution/compatibility.mjs'
+import { compareVersions, hostRange, knownBrokenHosts, parseVersion, satisfiesRange, supportedHostVersions } from './distribution/compatibility.mjs'
 
 const override = process.argv[2] === '--host' ? process.argv[3] : undefined
 let hosts
@@ -18,9 +20,11 @@ if (override) {
     version => parseVersion(version) && !supportedHostVersions.includes(version) && !Object.hasOwn(knownBrokenHosts, version),
   )
   const newest = list => list.sort(compareVersions).at(-1)
+  const inRange = candidates.filter(version => satisfiesRange(version, hostRange))
   hosts = [
-    newest(candidates.filter(version => parseVersion(version).prerelease.length > 0)),
-    newest(candidates.filter(version => parseVersion(version).prerelease.length === 0)),
+    newest(inRange.filter(version => parseVersion(version).prerelease.length > 0)),
+    newest(inRange.filter(version => parseVersion(version).prerelease.length === 0)),
+    newest(candidates.filter(version => !satisfiesRange(version, hostRange))),
   ].filter(version => version !== undefined && compareVersions(version, supportedHostVersions.toSorted(compareVersions).at(-1)) > 0)
 }
 console.log(JSON.stringify(hosts))

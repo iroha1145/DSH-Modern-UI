@@ -63,7 +63,7 @@ flowchart LR
 
 本轮实现、独立审查和剩余边界见 [迁移缺口补齐记录](history/migration-parity-20261028.md)。`npm run build` 检查 TypeScript、共享 runtime import 边界及实际打包许可证；`npm test` 覆盖真实官方 renderer、SlotCore、HostConnectionService、配置组合、数据和启动生命周期。
 
-`tests/plugin/browser.e2e.mjs` 检查官方 Host 上的真实模型选择、消息发送、流式、引用、导航、主题、语言及默认社区组合；实际安装模式额外要求三个固定社区插件保持启用，并验证社区 Markdown 与 Installed README。`owners.e2e.mjs` 单独停用社区文件地址 owner，以验收官方 Markdown 预览替换，并保留附件、显隐持久化、steering、队列和窄屏检查。
+`tests/compat/run.mjs` 在仓库外建立独立消费者，其中 `tests/compat/browser.mjs` 在官方 Host 上用本地确定性模型夹具检查插件 active 与共享模块身份、模型选择与推理档位、方案动作、消息发送与流式、工具过程与答案区、原样复制与答案导航、附件、停止生成，以及设置和历史在 Host 重启后保留。社区插件不再默认安装；兼容回归把已验证的社区组合作为候选装上，额外验收侧栏文件读取、编辑保存与 Markdown 折叠和真实会话统计。`tests/compat/npm-install.e2e.mjs` 单独验收 `dsh plugin add` 一行安装。
 
 消费 CI 不 checkout，只使用预编译包、薄安装器和官方发布资产；官方文件来源/摘要、实际运行能力和浏览器分别验收。平台结果以匹配提交的 CI 为准。旧 run id、包摘要和测试数量在 [首轮记录](history/plugin-migration.md) 保留为历史，不能视为当前包验收。
 

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "defaultHostVersion": "0.2.1-rc.4",
-  "hostRange": ">=0.2.1-rc.2 <0.3.0",
+  "hostRange": ">=0.2.1-rc.2 <0.3.0-0",
   "platformPeers": {
     "@deepseek-ai/cordis": "^4.0.5",
     "@deepseek-ai/schemastery": "^3.18.5",
