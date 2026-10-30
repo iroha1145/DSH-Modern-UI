@@ -20,11 +20,15 @@ body {
   --dsw-menu-backdrop-filter: blur(40px) saturate(150%);
   --dsw-composer-surface-fill: color-mix(in srgb, var(--bui-surface) 68%, transparent);
   --dsw-composer-backdrop-filter: blur(24px) saturate(140%);
+  /* The glass header (ConversationRoot) reuses the card's blur over the page color,
+     a step more transparent; the page color leaves no band while nothing passes. */
+  --dsw-header-surface-fill: color-mix(in srgb, var(--page, var(--dsw-alias-bg-base)) 56%, transparent);
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   :root body {
     --dsw-composer-surface-fill: var(--bui-surface);
+    --dsw-header-surface-fill: var(--page, var(--dsw-alias-bg-base));
     --dsw-composer-backdrop-filter: none;
     --dsw-menu-backdrop-filter: none;
   }
@@ -33,6 +37,7 @@ body {
 @media (prefers-reduced-transparency: reduce), (forced-colors: active) {
   :root body {
     --dsw-composer-surface-fill: var(--bui-surface);
+    --dsw-header-surface-fill: var(--page, var(--dsw-alias-bg-base));
     --dsw-composer-backdrop-filter: none;
     --dsw-menu-backdrop-filter: none;
   }
@@ -41,6 +46,7 @@ body {
 @media (forced-colors: active) {
   :root body {
     --dsw-composer-surface-fill: Canvas;
+    --dsw-header-surface-fill: Canvas;
   }
 }
 

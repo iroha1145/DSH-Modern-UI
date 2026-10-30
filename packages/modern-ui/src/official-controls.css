@@ -8,7 +8,6 @@ body[data-modern-official-controls] ._button_1rv3m_2 {
   gap: 6px;
   border: 1px solid transparent;
   border-radius: var(--dsw-radius-lg);
-  padding: 0 12px;
   font-size: var(--fs-body, .8125rem);
   font-weight: 500;
   line-height: 20px;
@@ -19,14 +18,19 @@ body[data-modern-official-controls] ._button_1rv3m_2 {
     opacity var(--dsh-feel-control-duration) var(--dsh-feel-control-curve),
     transform var(--dsh-feel-control-duration) var(--dsh-feel-control-curve);
 }
+/* Icon-only official buttons (one glyph plus an accessible name) size themselves in their own
+   modules, e.g. width: 28px; padding: 0 for the Session log "more" and right-sidebar expand
+   buttons. The Modern padding would squeeze their glyph, so it skips them; :where keeps the
+   rule's specificity. Text buttons, including text + chevron ones, carry no aria-label. */
+body[data-modern-official-controls] ._button_1rv3m_2:not(:where([aria-label]:has(> svg:only-child))) { padding: 0 12px; }
 body[data-modern-official-controls] ._button_1rv3m_2:active:not(:disabled) { transform: translateY(1px) scale(.98); }
 body[data-modern-official-controls] ._button_1rv3m_2:disabled { opacity: .45; }
 body[data-modern-official-controls] ._sm_1rv3m_28 {
   font-size: var(--fs-label, .75rem);
   line-height: 18px;
-  padding: 0 10px;
   border-radius: var(--dsw-radius-md);
 }
+body[data-modern-official-controls] ._sm_1rv3m_28:not(:where([aria-label]:has(> svg:only-child))) { padding: 0 10px; }
 body[data-modern-official-controls] ._primary_1rv3m_36 {
   background: var(--primary, var(--dsw-alias-button-primary-fill));
   color: var(--dsw-alias-label-primary-foreground);

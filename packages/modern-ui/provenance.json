@@ -714,8 +714,8 @@
       "source": "packages/client/ui-conversation/src/client/skeleton/ConversationHeader.tsx",
       "target": "src/vendor/conversation/client/skeleton/ConversationHeader.tsx",
       "sourceSha256": "4d8eb123dfcda64d1930ec59402f72b1fcda1f6c63197243a33c52069c57ab94",
-      "targetSha256": "4d8eb123dfcda64d1930ec59402f72b1fcda1f6c63197243a33c52069c57ab94",
-      "adapted": false
+      "targetSha256": "27e531c95a2296266324a8cca54fd10f915696406907b13b7799301f54499591",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-conversation/src/client/skeleton/ConversationMainPanel.tsx",
@@ -735,7 +735,7 @@
       "source": "packages/client/ui-conversation/src/client/skeleton/ConversationRoot.module.css",
       "target": "src/vendor/conversation/client/skeleton/ConversationRoot.module.css",
       "sourceSha256": "e53de4d68f1e88bb602d68bdeb8996034752c1fcbc3652ced44c0429ca9cbcc0",
-      "targetSha256": "dfd1fa5926aa5fb3c3e3e66a5f922dc42b66df38593e72d263307dd463c1939d",
+      "targetSha256": "eae15d5ede3035456e0ea30a2742b28051546c929b79972e95a8259ae8e67cb9",
       "adapted": true
     },
     {
@@ -952,8 +952,8 @@
       "source": "packages/client/ui-intelligent-ui/src/presentation-prompt.ts",
       "target": "src/vendor/intelligent/presentation-prompt.ts",
       "sourceSha256": "7152a0e1a8eb67842eb383f6c9611883d68dc3f02e9c688e323674142ddc6797",
-      "targetSha256": "7152a0e1a8eb67842eb383f6c9611883d68dc3f02e9c688e323674142ddc6797",
-      "adapted": false
+      "targetSha256": "5e5f1ad000665e561f9ab6a210bdd7edda91a806869156bd430252b6a33277e8",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-layout/src/client/AppFrame.module.css",
@@ -2205,8 +2205,8 @@
       "source": "packages/client/ui-theme/src/styles/gradient-shadow-text.css",
       "target": "src/vendor/theme/styles/gradient-shadow-text.css",
       "sourceSha256": "1a7c133f6652c902670a7c3178b907a7e14ae00b7da1ca7ca21e74a20d1b4a48",
-      "targetSha256": "1a7c133f6652c902670a7c3178b907a7e14ae00b7da1ca7ca21e74a20d1b4a48",
-      "adapted": false
+      "targetSha256": "5081dba737c80f067d06f55efd5fa58bc164880596f6d6e95ddf70c765069563",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-theme/src/styles/icon-motion.css",
@@ -2864,7 +2864,7 @@
       "source": "packages/client/ui-chat/src/client/chat/TurnNavigator.module.css",
       "target": "src/vendor/chat/client/chat/TurnNavigator.module.css",
       "sourceSha256": "4cb912c94384efd35a08100e43f068728f57a6699916f2a27c18a5b98c4437c5",
-      "targetSha256": "455ebf4ce573ab6b3beed3e16cbaae86dbb212159438188c7cb3594b116d5975",
+      "targetSha256": "e3b08d9dc3741d5c7c66e7d9279978c22b8bc274058100955f724f6e36f1a8ac",
       "adapted": true
     },
     {
@@ -3025,8 +3025,8 @@
       "source": "packages/client/ui-chat/src/client/chat/use-chat-viewport.ts",
       "target": "src/vendor/chat/client/chat/use-chat-viewport.ts",
       "sourceSha256": "23a57d5d390ce0499e44b078a2137fa79775a0079e50983f57d7662959580fb5",
-      "targetSha256": "23a57d5d390ce0499e44b078a2137fa79775a0079e50983f57d7662959580fb5",
-      "adapted": false
+      "targetSha256": "bb99be254c9d033424f65987e129c279493a95529c8e9facb59c26c36ee2cc08",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/chat/use-disclosure.ts",
@@ -3877,7 +3877,7 @@
     },
     {
       "target": "src/official-controls.css",
-      "targetSha256": "3af11b581955ff5af16dea803d685251945ea692839bd222dd8a60690c10b43e",
+      "targetSha256": "7413256fe91af087d5361fd42bd42558394c1e4045e6464aae25353ba531069c",
       "sources": [
         {
           "source": "packages/client/ui-primitives/src/Button.module.css",
