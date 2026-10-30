@@ -1,6 +1,6 @@
 # 官方 DSH + Modern UI 安装预览（V2）
 
-当前使用真实预编译插件，尚未发布 npm / Release。默认新装使用官方 `@deepseek-ai/dsh@0.2.1-rc.4`；已有后端保留实际版本，精确旧版本和平台范围见[向后兼容说明](backward-compatibility.md)。Node 固定 `24.22.1`、pnpm `11.28.5`。新会话使用官方插件配置管理联网工具；Modern UI 自定义会话联网按钮、命令和协议已取消，不是安装前提。
+当前使用真实预编译插件，尚未发布 npm / Release。默认新装使用官方 `@deepseek-ai/dsh@0.2.1-rc.4`；已有后端保留实际版本，精确旧版本和平台范围见[向后兼容说明](compatibility.md)。Node 固定 `24.22.1`、pnpm `11.28.5`。新会话使用官方插件配置管理联网工具；Modern UI 自定义会话联网按钮、命令和协议已取消，不是安装前提。
 
 ## 优先：已有官方 DSH 一条命令
 
@@ -95,7 +95,7 @@ compatibility.json 按宿主记录社区组合；community-lock.json 由其生�
 
 更新仍使用 install-existing / bootstrap。新 generation 下载、校验并自检后才原子切 current.json；先停止使用同一数据目录的进程。程序管理使用 OS 生命周期 TCP 租约，强杀后内核释放；不读取或删除历史 operation.lock 文件。官方会话锁未绕过。
 
-对非空数据目录，更新或采用前先在程序目录的 `data-backups/home-<uuid>` 保存并校验整树快照；复制、空间或一致性校验失败时不会进入 staging。托管安装和启动同时持有程序根与 data home 租约。旧启动器和直接官方 CLI 不遵守新租约，仍需先停机。`verify`、`rollback`、`uninstall` 不写会话数据，不要求 data home 存在或空闲。快照内容、外部链接及恢复方法见 [分发记录](distribution-parity.md)。
+对非空数据目录，更新或采用前先在程序目录的 `data-backups/home-<uuid>` 保存并校验整树快照；复制、空间或一致性校验失败时不会进入 staging。托管安装和启动同时持有程序根与 data home 租约。旧启动器和直接官方 CLI 不遵守新租约，仍需先停机。`verify`、`rollback`、`uninstall` 不写会话数据，不要求 data home 存在或空闲。快照内容、外部链接及恢复方法见 [分发记录](history/distribution-parity.md)。
 
 POSIX 启动器把官方 DSH 放进自己的进程组启动，并将发给启动器的 SIGTERM、SIGINT 和 SIGHUP 各转发一次，持续持有操作锁直到子进程退出、stdio 关闭。这样终端里按 Ctrl+C 或关闭窗口时，官方进程只收到转发来的那一次信号，按官方逻辑有序退出（官方把连续第二次信号当作「立即强制退出」）。退出后清理信号监听器，保留子进程数值退出码；官方 DSH 自己处理 SIGTERM 和 SIGINT 并以 0 或 130 退出，只有子进程不处理的信号（例如 SIGHUP）才得到 `128 + signal number`（129）。SIGKILL 等无法捕获的强制终止不属于此转发保证，内核会释放已被杀死的启动器所持租约。按 cgroup 整体发信号的管理器（systemd 默认的 `KillMode=control-group`）会让启动器和官方进程各收到一次，再加上转发就是两次；这类环境请只向启动器进程发信号（systemd 用 `KillMode=mixed`）。
 

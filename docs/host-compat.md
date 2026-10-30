@@ -4,7 +4,7 @@
 
 ## 明确选择的替代插件
 
-`@iroha1145/dsh-modern-ui/translator` 与 `@iroha1145/dsh-modern-ui/mcp-client` 由旧修复后的相应小插件提取，保留 MIT、来源及公开配置接口，未复制整个后端。新增 `web-fetch-http` 从真实 rc.4 发布 artifact 派生，保留其网络防护并使用插件自己的 Undici `8.12.2`；新增 `plugin-documents` 通过官方受鉴权 Connection 路由恢复插件长文档。所有 DSH/Cordis 服务均 external/peer；MCP SDK 是插件自身固定的正常依赖 `2.3.0`。当前实现、文档资源限制和启动时重新绑定见 [补齐记录](migration-parity-20261028.md)与 [分发记录](distribution-parity.md)。
+`@iroha1145/dsh-modern-ui/translator` 与 `@iroha1145/dsh-modern-ui/mcp-client` 由旧修复后的相应小插件提取，保留 MIT、来源及公开配置接口，未复制整个后端。新增 `web-fetch-http` 从真实 rc.4 发布 artifact 派生，保留其网络防护并使用插件自己的 Undici `8.12.2`；新增 `plugin-documents` 通过官方受鉴权 Connection 路由恢复插件长文档。所有 DSH/Cordis 服务均 external/peer；MCP SDK 是插件自身固定的正常依赖 `2.3.0`。当前实现、文档资源限制和启动时重新绑定见 [补齐记录](history/migration-parity-20261028.md)与 [分发记录](history/distribution-parity.md)。
 
 安装器读取实际组合后的配置，在新 profile 的用户 patch 中禁用被替换的原条目，再以新 id 插入替代插件，保留配置和条目 metadata。官方 `name` patch 字段是匹配条件，不能用它直接改模块名；`tests/migration/profile-settings.test.mjs` 用真实 `applyEntryPatches` 核对了禁用和插入。显式禁用的功能不会被打开。嵌套/自定义 preset 中的目标或动态 activation 目前要求单独审阅，自动安装会拒绝这类不确定转换。
 
@@ -47,6 +47,6 @@ Host 严格 TypeScript 检查通过。构建先用 TypeScript emit，再 bundle�
 
 ## 运行状态行与「收起后显示的回复」
 
-2026-10-28 起插件整体接管官方 `ui-chat`（见 [聊天流整体接管](ui-chat-takeover.md)）：运行状态行由插件自己的 `ChatFlow` 直接渲染补丁版 `RunningStatus`（矩阵加载、阶段文字、耗时；推理阶段由补丁版分组座显示点阵与「正在思考」，这一行只留耗时；断线或重连时冻结计时），分组座显示完成对勾、工具扳手和展开分组的左侧时间轴。此前（PR #7、#8）通过输入框读数行槽位 portal 渲染进官方运行行的做法、隐藏官方子元素的样式和 `official-chat-view.css` 已删除。
+2026-10-28 起插件整体接管官方 `ui-chat`（见 [聊天流整体接管](history/ui-chat-takeover.md)）：运行状态行由插件自己的 `ChatFlow` 直接渲染补丁版 `RunningStatus`（矩阵加载、阶段文字、耗时；推理阶段由补丁版分组座显示点阵与「正在思考」，这一行只留耗时；断线或重连时冻结计时），分组座显示完成对勾、工具扳手和展开分组的左侧时间轴。此前（PR #7、#8）通过输入框读数行槽位 portal 渲染进官方运行行的做法、隐藏官方子元素的样式和 `official-chat-view.css` 已删除。
 
 「收起后显示的回复」（`foldedReplies`）和官方的 transcriptView / collapseTiming / performanceUsage / linkOpening 一起放在插件的 `modern-ui` 配置命名空间，由补丁版 `TranscriptViewRow`（通用设置 order 12，含三个选择器）、`PerformanceUsageRow`（30）、`LinkOpeningRow`（17）读写。安装器迁移回执 `modern-ui-chat-migration.json` 升到 conversionVersion 2：把 `ui-chat` 行里的这五个字段搬进 `modern-ui` 行（已有值不覆盖，原行保留），v1 回执的 profile 再做一次，备份 `modern-ui-chat-before-migration-v2.yml`。

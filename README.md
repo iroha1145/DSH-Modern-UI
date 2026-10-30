@@ -1,6 +1,6 @@
 # DSH Modern UI
 
-**DSH Modern UI**（`@iroha1145/dsh-modern-ui`）是为官方 **DeepSeek Harness** 打造的现代化 Web 界面插件。默认使用 `0.2.1-rc.4`，旧宿主的精确版本、平台和验收边界见[向后兼容说明](docs/backward-compatibility.md)。
+**DSH Modern UI**（`@iroha1145/dsh-modern-ui`）是为官方 **DeepSeek Harness** 打造的现代化 Web 界面插件。默认使用 `0.2.1-rc.4`，旧宿主的精确版本、平台和验收边界见[向后兼容说明](docs/compatibility.md)。
 
 本项目采用 **原版官方后端 + 独立预编译插件 + 隔离安装器** 架构：不修改任何官方后端文件，无需在用户端克隆源码或编译原生模块，创建独立 Profile 运行，随时可回退或切回官方原生界面。
 
@@ -30,14 +30,16 @@ DSH-Modern-UI/
 │   ├── build-plugin.mjs     # 插件前端与服务端构建脚本 (esbuild + lightningcss)
 │   ├── create-preview.mjs   # 预编译分发包 (.artifacts/plugin-preview) 生成脚本
 │   └── distribution/        # 跨平台安装器、私有运行时拉取与代际管理器 (manager.mjs)
-└── docs/                    # 详细架构映射、安装边界与数据迁移文档
+└── docs/                    # 用户文档（安装、兼容、架构、数据迁移）；history/ 为审计与 PR 跟进记录
 ```
+
+> 旧的“下载上游源码 + 打补丁再编译”路线已从 main 移除，见 tag [`legacy-patch-final`](https://github.com/iroha1145/DSH-Modern-UI/tree/legacy-patch-final)。
 
 ---
 
 ## 安装指南
 
-插件目前通过预编译预览包（`plugin-preview`）方式分发。安装器会自动配置所需环境，默认安装 `dsh-context@0.75.1` 和 `dsh-better-sidebar@0.28.0`。Store 0.1.4 的当前 profile 操作存在已复现问题，已从默认组合排除；已有用户安装保留，详见[兼容说明](docs/backward-compatibility.md#社区插件)。
+插件目前通过预编译预览包（`plugin-preview`）方式分发。安装器会自动配置所需环境，默认安装 `dsh-context@0.75.1` 和 `dsh-better-sidebar@0.28.0`。Store 0.1.4 的当前 profile 操作存在已复现问题，已从默认组合排除；已有用户安装保留，详见[兼容说明](docs/compatibility.md#社区插件)。
 
 ### 第一步：获取预编译安装包
 
@@ -129,7 +131,7 @@ DSH-Modern-UI/
 
 ## 本地构建
 
-如需从源码编译并生成预编译分发包（需 Node.js `24.22.1` 与 pnpm `11.28.5`）：
+如需从源码编译并生成预编译分发包（需 Node.js `24.22.1`，仓库使用 npm 与 `package-lock.json`）：
 
 ```bash
 # 安装依赖
@@ -142,7 +144,7 @@ npm run build
 npm run preview
 ```
 
-更多细节请参阅 [`docs/`](docs/) 目录下的[安装详情](docs/plugin-installation.md)、[UI 映射说明](docs/plugin-ui-map.md)与[旧数据迁移说明](docs/plugin-data-migration.md)。
+更多细节请参阅 [`docs/`](docs/) 目录下的[安装详情](docs/install.md)、[UI 映射说明](docs/architecture.md)与[旧数据迁移说明](docs/data-migration.md)。
 
 ## License
 

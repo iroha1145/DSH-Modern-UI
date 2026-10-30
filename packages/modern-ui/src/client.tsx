@@ -108,7 +108,7 @@ function installPresentation(ctx: Context): void {
   // Per-model reasoning declarations for pi-ai routes whose model is newer than the installed
   // catalog: a block in each pi-ai provider card, writing the stored models list through the
   // shared settings form. The official editor keeps every hidden field on save (verified against
-  // rc.4, see docs/reasoning-and-preview-fold-20261028.md), so the two never fight over the row.
+  // rc.4, see docs/history/reasoning-and-preview-fold-20261028.md), so the two never fight over the row.
   ctx.inject(['remote.llm', 'settingsSchema'], scope => registerReasoningDeclaration(scope, {
     namespace: PI_AI_NAMESPACE,
     form: scope.configForms.get<Record<string, unknown>>(PI_AI_NAMESPACE),

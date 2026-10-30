@@ -7,7 +7,6 @@
   "engines": {
     "node": "24.22.1"
   },
-  "packageManager": "pnpm@11.28.5",
   "scripts": {
     "build": "node scripts/build-plugin.mjs",
     "test:compat": "node tests/compat/run.mjs",

@@ -69,7 +69,7 @@ sha512-GwrCDGceVDy6U4/0L2H3rCrHOdcGBlN1yQW2qE03EQ0F+zkU1U+pNa8TcQSDYv+bcfcp/G29K
 | 官方插件和社区贡献 | 原 pluginManager、公开 children/slots | 三个固定社区包共存，正常官方配置路径保留；最终 bundle/remove 专项另列 |
 | 已删除的联网控制 | 无新命令、projection、事件或工具拦截 | 新插件源码引用检查；真实新会话事件检查另列 |
 
-详见 [UI 地图](plugin-ui-map.md)与 [Host 差异](plugin-host-compat.md)。未知 generic tool fallback 与部分 Schedule 私有 picker/menu 保留官方样式；工具功能没有删减。官方预编译 Web Shell 启动页和故障页保留官方样式，不覆盖 dist，也不承诺固定显示时长。原 reasoning 私有 children 上第三方贡献没有通用透传保证。
+详见 [UI 地图](../architecture.md)与 [Host 差异](../host-compat.md)。未知 generic tool fallback 与部分 Schedule 私有 picker/menu 保留官方样式；工具功能没有删减。官方预编译 Web Shell 启动页和故障页保留官方样式，不覆盖 dist，也不承诺固定显示时长。原 reasoning 私有 children 上第三方贡献没有通用透传保证。
 
 ## M3/M4：安装、数据与消费证据
 
@@ -121,8 +121,8 @@ sha512-GwrCDGceVDy6U4/0L2H3rCrHOdcGBlN1yQW2qE03EQ0F+zkU1U+pNa8TcQSDYv+bcfcp/G29K
 
 ## 使用与后续工作
 
-[安装文档](plugin-installation.md)提供已有官方 DSH 的 Node 单命令、新用户 Windows bootstrap、启动、独立社区重试、回退和卸载。程序版本与数据分离；坏摘要、自检失败不会切换 current.json。原始 profile、会话和恢复代际保留。
+[安装文档](../install.md)提供已有官方 DSH 的 Node 单命令、新用户 Windows bootstrap、启动、独立社区重试、回退和卸载。程序版本与数据分离；坏摘要、自检失败不会切换 current.json。原始 profile、会话和恢复代际保留。
 
-[数据策略](plugin-data-migration.md)说明只处理完成的导出快照，不扫描真实用户会话。旧补丁说明移至 [历史安装文档](legacy-patch-installation.md)，原构建 CI 改为手动入口；新 CI 的消费 job 只下载预编译产物、不 checkout。
+[数据策略](../data-migration.md)说明只处理完成的导出快照，不扫描真实用户会话。旧补丁说明移至 [历史安装文档](https://github.com/iroha1145/DSH-Modern-UI/blob/legacy-patch-final/docs/legacy-patch-installation.md)，原构建 CI 改为手动入口；新 CI 的消费 job 只下载预编译产物、不 checkout。
 
 后续发布前需在真实 Linux/macOS runner 执行候选流程，并依据结果决定平台支持范围。未吸收的官方依赖版本差异、第三方私有 children 适配和真机触屏测试分别跟进，不以“100%兼容”代替证据。旧会话联网控制已取消，不作为后续验收目标。

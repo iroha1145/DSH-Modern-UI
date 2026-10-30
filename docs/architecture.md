@@ -25,14 +25,14 @@ React、React DOM、Cordis、client-store、ui-slots 和官方 ui-primitives 共
 
 ## 验证入口
 
-本轮实现、独立审查和剩余边界见 [迁移缺口补齐记录](migration-parity-20261028.md)。`npm run build` 检查 TypeScript、共享 runtime import 边界及实际打包许可证；`npm test` 覆盖真实官方 renderer、SlotCore、HostConnectionService、配置组合、数据和启动生命周期。
+本轮实现、独立审查和剩余边界见 [迁移缺口补齐记录](history/migration-parity-20261028.md)。`npm run build` 检查 TypeScript、共享 runtime import 边界及实际打包许可证；`npm test` 覆盖真实官方 renderer、SlotCore、HostConnectionService、配置组合、数据和启动生命周期。
 
 `tests/plugin/browser.e2e.mjs` 检查官方 Host 上的真实模型选择、消息发送、流式、引用、导航、主题、语言及默认社区组合；实际安装模式额外要求三个固定社区插件保持启用，并验证社区 Markdown 与 Installed README。`owners.e2e.mjs` 单独停用社区文件地址 owner，以验收官方 Markdown 预览替换，并保留附件、显隐持久化、steering、队列和窄屏检查。
 
-消费 CI 不 checkout，只使用预编译包、薄安装器和官方发布资产；官方文件来源/摘要、实际运行能力和浏览器分别验收。平台结果以匹配提交的 CI 为准。旧 run id、包摘要和测试数量在 [首轮记录](plugin-migration.md) 保留为历史，不能视为当前包验收。
+消费 CI 不 checkout，只使用预编译包、薄安装器和官方发布资产；官方文件来源/摘要、实际运行能力和浏览器分别验收。平台结果以匹配提交的 CI 为准。旧 run id、包摘要和测试数量在 [首轮记录](history/plugin-migration.md) 保留为历史，不能视为当前包验收。
 
 ## 边界
 
-切换整个 Modern UI bundle 后需刷新页面；只停用 `modern-ui` 单 entry 不会恢复被 bundle 停用的官方 owner。含显式 Host 兼容绑定时，移除包前还要恢复这些配置，见 [安装文档](plugin-installation.md)。
+切换整个 Modern UI bundle 后需刷新页面；只停用 `modern-ui` 单 entry 不会恢复被 bundle 停用的官方 owner。含显式 Host 兼容绑定时，移除包前还要恢复这些配置，见 [安装文档](install.md)。
 
 本轮浏览器原图链不包含 rc.4 缺失的原生 Electron 拖出桥。真实触屏、WebKit、Electron 多窗口、全部输入法/辅助技术和第三方私有组件组合没有全面验收。窄视口鼠标模拟不等于真机触屏，功能保留也不等于所有状态逐像素一致。

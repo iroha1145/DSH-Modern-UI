@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url'
 import { officialSource, versions } from './distribution/manager.mjs'
 import { supportedHostVersions, getHostCompatibility } from './distribution/compatibility.mjs'
 
+const userDocuments = ['install.md', 'compatibility.md', 'compatibility', 'architecture.md', 'data-migration.md', 'host-compat.md']
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 assert.equal(process.version, `v${versions.node}`, 'Build previews with the pinned Node runtime')
 for (const filename of ['build-inputs.json', 'host-build-inputs.json']) {
@@ -25,14 +26,15 @@ const integrity = 'sha512-' + createHash('sha512').update(bytes).digest('base64'
 assert.equal(integrity, packed.integrity)
 await rename(path.join(output, packed.filename), path.join(output, 'modern-ui.tgz'))
 await cp(path.join(root, 'scripts/distribution'), path.join(output, 'installer'), { recursive: true })
-await cp(path.join(root, 'docs'), path.join(output, 'docs'), { recursive: true })
+// Ship only the user-facing documents; audit history stays in the repository.
+for (const document of userDocuments) await cp(path.join(root, 'docs', document), path.join(output, 'docs', document), { recursive: true })
 await cp(path.join(root, 'LICENSE'), path.join(output, 'LICENSE'))
 await cp(path.join(root, 'scripts/preview-consumer-check.mjs'), path.join(output, 'consumer-check.mjs'))
 const runtimes = JSON.parse(await readFile(path.join(output, 'installer/runtime-lock.json'), 'utf8'))
 const communities = JSON.parse(await readFile(path.join(output, 'installer/community-lock.json'), 'utf8'))
 const manifest = {
   schemaVersion: 1, status: 'local-preview-unpublished',
-  acceptanceRecord: 'docs/backward-compatibility.md',
+  acceptanceRecord: 'docs/compatibility.md',
   compatibilityScope: 'Exact host versions; feature and platform acceptance is recorded separately by test:compat',
   plugin: { name: packed.name, version: packed.version, filename: 'modern-ui.tgz', integrity, bytes: bytes.length },
   backend: officialSource,
@@ -119,6 +121,6 @@ The two directories must be separate. User data and other profiles are retained.
 Launch the generated program/dsh-ui.cmd (Windows) or program/dsh-ui (POSIX).
 
 preview.json records exact versions and integrity.
-Compatibility scope and remaining differences are documented in docs/backward-compatibility.md.
+Compatibility scope and remaining differences are documented in docs/compatibility.md.
 `)
 console.log(JSON.stringify({ output, ...manifest }, null, 2))
