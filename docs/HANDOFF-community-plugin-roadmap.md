@@ -169,6 +169,12 @@ WP0 与 WP6 的 lint 部分可以并行；WP2 与 WP3 可以并行；WP4 与 WP5
 - 包名是否保留 `@iroha1145/` scope（需要 npm 用户 iroha1145 或同名 org）；若换名要同步 `compatibility.json#plugin.name`、`cordis.patch.yml`、`scripts/build-plugin.mjs` 第 47 行 `id`、`tsconfig.client.json#paths`。
 - 私有运行时安装器是否长期维护。建议：保留但标注"社区维护、尽力支持"，CI 的 `consumer` 矩阵从每个 PR 降为 release 时跑。
 
+> **WP1 执行记录**
+> - 采用建议：保留 `@iroha1145/` scope；社区插件改为 opt-in（`-WithCommunity` / `DSH_MODERN_WITH_COMMUNITY=1` / `--with-community true`），旧的 skip 开关仍被接受；consumer CI 显式 opt-in 以继续验证已验证组合。consumer 矩阵降频留给 WP6 第 3 步。
+> - 新发现：官方 `dsh plugin` 转发给 pnpm，用户需 PATH 上有 pnpm；对从未启动过的 web profile，裸 `plugin add` 只会初始化 base bundle，需先 `dsh web`（或 `dsh --profile web --dump-config`）。README 已写明，`tests/compat/npm-install.e2e.mjs` 也先做这一步。
+> - 市场指南（deepseek.stream/guide）的示例写 `dsh.bundle.patch` 指向 `patches/bundle.yaml`，且未列出插件 `category` 枚举；本包沿用 `./cordis.patch.yml`、`category: "ui"`，WP7 提交市场时以实际审核为准。
+> - 未做（需要 owner 操作）：推送 tag 与分支、配置 `NPM_TOKEN` 或 npm Trusted Publishing、首次 `v0.1.0` 发布。本地已用 `.artifacts/plugin-preview/modern-ui.tgz` 跑通 `npm-install.e2e.mjs`（rc.4，Windows x64，Edge）；add 时 pnpm 报一条 peer 警告，留给 WP2 放宽 peer 范围时复核。
+
 ---
 
 ### WP2 兼容策略（M2，1 至 2 个对话，中）

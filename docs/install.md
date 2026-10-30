@@ -1,6 +1,6 @@
-# 官方 DSH + Modern UI 安装预览（V2）
+# 官方 DSH + Modern UI 安装
 
-当前使用真实预编译插件，尚未发布 npm / Release。默认新装使用官方 `@deepseek-ai/dsh@0.2.1-rc.4`；已有后端保留实际版本，精确旧版本和平台范围见[向后兼容说明](compatibility.md)。Node 固定 `24.22.1`、pnpm `11.28.5`。新会话使用官方插件配置管理联网工具；Modern UI 自定义会话联网按钮、命令和协议已取消，不是安装前提。
+主渠道是 npm：在已有的官方 DSH 上执行 `dsh plugin --profile web add @iroha1145/dsh-modern-ui` 并刷新浏览器（见 [README](../README.md)）。下文是可选的一键隔离环境安装器，适用于没有现成 DSH 或想隔离数据的场景。安装器默认新装使用官方 `@deepseek-ai/dsh@0.2.1-rc.4`；已有后端保留实际版本，精确旧版本和平台范围见[向后兼容说明](compatibility.md)。Node 固定 `24.22.1`、pnpm `11.28.5`。新会话使用官方插件配置管理联网工具；Modern UI 自定义会话联网按钮、命令和协议已取消，不是安装前提。
 
 ## 优先：已有官方 DSH 一条命令
 
@@ -54,7 +54,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./install.ps1 -Root 'D:/
 
 预览根 install.ps1 已携带本地插件及其摘要，不必手填内部 manager 参数。bootstrap 下载并校验私有运行时、精确官方 npm 成品和预编译 UI，不克隆上游，不构建 DSH / UI。程序与数据目录必须分开。Windows 入口不需要符号链接权限。
 
-bootstrap 默认核心成功后安装清单中的两个固定社区插件，分别输出 core/community/timing 结构化结果。社区失败不撤销已成功核心，可独立重试。PowerShell `-SkipCommunity`、POSIX `DSH_MODERN_SKIP_COMMUNITY=1` 仅跳过可选社区步骤。安装脚本不调整系统 PATH。显式旧宿主选择使用 `-BackendVersion`／`DSH_MODERN_BACKEND_VERSION`；初次采用非 web profile 使用 `-FromProfile`、JS 入口 `--from-profile` 或 POSIX `DSH_MODERN_FROM_PROFILE`，原 profile 不改。
+bootstrap 默认只安装核心；社区插件为可选的已验证组合，PowerShell `-WithCommunity`、POSIX `DSH_MODERN_WITH_COMMUNITY=1`、JS 入口 `--with-community true` 才会在核心成功后安装清单中的两个固定社区插件。输出 core/community/timing 结构化结果；社区失败不撤销已成功核心，可用 `community --root <程序目录>` 独立重试。旧的 `-SkipCommunity`／`DSH_MODERN_SKIP_COMMUNITY=1` 仍被接受且优先。安装脚本不调整系统 PATH。显式旧宿主选择使用 `-BackendVersion`／`DSH_MODERN_BACKEND_VERSION`；初次采用非 web profile 使用 `-FromProfile`、JS 入口 `--from-profile` 或 POSIX `DSH_MODERN_FROM_PROFILE`，原 profile 不改。
 
 ## 原生组件与辅助程序
 

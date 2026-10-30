@@ -51,7 +51,7 @@ sh ./install-existing.sh '/path/to/official/node_modules/@deepseek-ai/dsh/packag
 
 ## 社区插件
 
-默认组合为 `dsh-context@0.75.1` 和 `dsh-better-sidebar@0.28.0`，分别验收真实会话统计、文件读取/编辑保存。已有用户版本、配置、禁用状态及未知 metadata 保留，不自动升级或降级。清单以外的插件版本和依赖私有 DOM/内部方法的插件不自动承诺兼容；另一套完整聊天/布局 owner 需单独审查。
+已验证组合为 `dsh-context@0.75.1` 和 `dsh-better-sidebar@0.28.0`。本项目不再默认捆绑安装它们：npm 用户按需自行 `dsh plugin add`，隔离安装器需显式 `-WithCommunity`／`DSH_MODERN_WITH_COMMUNITY=1`。兼容回归与 consumer CI 仍安装这一组合，分别验收真实会话统计、文件读取/编辑保存。已有用户版本、配置、禁用状态及未知 metadata 保留，不自动升级或降级。清单以外的插件版本和依赖私有 DOM/内部方法的插件不自动承诺兼容；另一套完整聊天/布局 owner 需单独审查。
 
 `dsh-plugins-store@0.1.4` 不再作为新安装默认项。真实双 profile 检查发现它将库存和移除作用于 `web`，安装端点还因安装计划二次校验返回 502。它没有公开的 profile 适配入口，因此未改写该发布包或抢占其路由；已有用户安装保留，但不列为兼容通过。使用官方插件管理界面操作当前 profile。详细证据、可复现入口及独立上游修复方案见 [Store 0.1.4](compatibility/store-0.1.4.md)。
 

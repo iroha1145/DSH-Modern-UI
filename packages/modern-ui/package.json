@@ -1,7 +1,24 @@
 {
   "name": "@iroha1145/dsh-modern-ui",
-  "version": "0.1.0-migration.1",
+  "version": "0.1.0",
   "description": "Modern UI browser extension for the unmodified official DSH release",
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "cordis-plugin",
+    "dsh",
+    "ui"
+  ],
+  "author": "iroha1145",
+  "homepage": "https://github.com/iroha1145/DSH-Modern-UI#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iroha1145/DSH-Modern-UI.git",
+    "directory": "packages/modern-ui"
+  },
+  "bugs": {
+    "url": "https://github.com/iroha1145/DSH-Modern-UI/issues"
+  },
   "type": "module",
   "license": "MIT",
   "exports": {
@@ -29,6 +46,8 @@
     "vendor-marks-upstream.json"
   ],
   "dsh": {
+    "name": "Modern UI",
+    "category": "ui",
     "compatibleHost": "0.2.1-rc.4 || 0.2.1-rc.3 || 0.2.1-rc.2",
     "bundle": {
       "patch": [
@@ -102,5 +121,9 @@
   "engines": {
     "dsh": "0.2.1-rc.4 || 0.2.1-rc.3 || 0.2.1-rc.2",
     "node": "24.22.1"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }

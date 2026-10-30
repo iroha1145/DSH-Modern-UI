@@ -133,8 +133,10 @@ jobs:
           $data = Join-Path $env:RUNNER_TEMP 'Modern UI data 数据'
           if ($IsWindows) {
             $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot\System32\WindowsPowerShell\v1.0"
-            & ./preview/install.ps1 -Root $program -DataHome $data
+            # Community plugins are opt-in; the consumer check verifies the recorded combination.
+            & ./preview/install.ps1 -Root $program -DataHome $data -WithCommunity
           } else {
+            $env:DSH_MODERN_WITH_COMMUNITY = '1'
             & sh ./preview/install.sh $program $data
             if ($LASTEXITCODE -ne 0) { throw 'Consumer install failed' }
           }

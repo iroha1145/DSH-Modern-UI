@@ -14,7 +14,7 @@ root=$(sh "$here/program-root.sh" "${4:-}")
 node=${DSH_MODERN_NODE:-node}
 if candidate_version=$("$node" --version 2>/dev/null) && [ "$candidate_version" = 'v24.22.1' ]; then
   data_home=${5:-}
-  set -- --backend "$backend" --plugin "$plugin" --plugin-integrity "$integrity" --root "$root" --skip-community "$(if [ "${DSH_MODERN_SKIP_COMMUNITY:-0}" = 1 ]; then printf true; else printf false; fi)"
+  set -- --backend "$backend" --plugin "$plugin" --plugin-integrity "$integrity" --root "$root" --skip-community "$(if [ "${DSH_MODERN_SKIP_COMMUNITY:-0}" = 1 ]; then printf true; else printf false; fi)" --with-community "$(if [ "${DSH_MODERN_WITH_COMMUNITY:-0}" = 1 ]; then printf true; else printf false; fi)"
   if [ -n "$data_home" ]; then set -- "$@" --home "$data_home"; fi
   if [ -n "${DSH_MODERN_FROM_PROFILE:-}" ]; then set -- "$@" --from-profile "$DSH_MODERN_FROM_PROFILE"; fi
   exec "$node" "$here/install-existing.mjs" "$@"

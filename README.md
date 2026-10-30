@@ -1,8 +1,14 @@
 # DSH Modern UI
 
-**DSH Modern UI**（`@iroha1145/dsh-modern-ui`）是为官方 **DeepSeek Harness** 打造的现代化 Web 界面插件。默认使用 `0.2.1-rc.4`，旧宿主的精确版本、平台和验收边界见[向后兼容说明](docs/compatibility.md)。
+为官方 **DeepSeek Harness（DSH）** 打造的现代化 Web 界面插件（`@iroha1145/dsh-modern-ui`）。不修改官方后端，随时可切回官方界面。
 
-本项目采用 **原版官方后端 + 独立预编译插件 + 隔离安装器** 架构：不修改任何官方后端文件，无需在用户端克隆源码或编译原生模块，创建独立 Profile 运行，随时可回退或切回官方原生界面。
+```bash
+dsh plugin --profile web add @iroha1145/dsh-modern-ui
+```
+
+装好后**刷新浏览器**即可看到 Modern UI。想切回官方界面：在「插件管理」停用整个 `@iroha1145/dsh-modern-ui` bundle 并刷新，或执行 `dsh plugin --profile web remove @iroha1145/dsh-modern-ui`。支持的宿主版本见[兼容矩阵](docs/compatibility.md)。
+
+> 前提：已安装受支持版本的官方 DSH，且 `pnpm` 在 PATH 上（`dsh plugin` 会把命令转发给 pnpm）。如果从未启动过 web profile，先运行一次 `dsh web`。
 
 ---
 
@@ -13,56 +19,20 @@
 - **增强视图与卡片**：内置 Intelligent UI（`openui` 交互式沙箱与 `followups` 追问建议）、Subagent 编队树与调用链视图、精细化工具调用卡片。
 - **模型与推理控制**：现代化模型选择卡片，支持自定义模型标签扩展与推理强度（Reasoning Effort，含 `Off`）配置。
 - **多语言与主题**：内置中、英、日、西、法、德、俄、葡 8 种界面语言与多套明暗主题。
-- **安全隔离与自动备份**：程序与数据目录分离，使用独立 Profile（保留原有配置与聊天数据），安装或更新非空数据目录前自动生成整树快照备份。
 
 > **说明**：旧版自定义的会话级联网开关（`/web on|off`）已移除，联网搜索与网页抓取工具统一遵循官方插件管理与配置。
 
----
+## 安装方式说明
 
-## 项目结构
+- **npm（推荐）**：即上面的一行命令。指定版本用 `@iroha1145/dsh-modern-ui@<版本>`。
+- **GitHub Release**：每个版本的 Release 附带 `modern-ui.tgz`，可 `dsh plugin --profile web add ./modern-ui.tgz` 离线安装。
+- **不支持 Git 源安装**（`dsh plugin add github:iroha1145/DSH-Modern-UI`）：构建依赖在仓库根目录，且 pnpm 10+ 默认禁止 Git 依赖执行 build script。请使用 npm 包或 Release 中的 tgz。
 
-```text
-DSH-Modern-UI/
-├── packages/modern-ui/      # Modern UI 核心插件源码 (@iroha1145/dsh-modern-ui)
-│   ├── cordis.patch.yml     # UI 模块接管声明（替换官方默认展示层 owner）
-│   └── src/                 # 浏览器端 UI 组件、状态管理与宿主兼容层
-├── scripts/
-│   ├── build-plugin.mjs     # 插件前端与服务端构建脚本 (esbuild + lightningcss)
-│   ├── create-preview.mjs   # 预编译分发包 (.artifacts/plugin-preview) 生成脚本
-│   └── distribution/        # 跨平台安装器、私有运行时拉取与代际管理器 (manager.mjs)
-└── docs/                    # 用户文档（安装、兼容、架构、数据迁移）；history/ 为审计与 PR 跟进记录
-```
+## 可选：一键隔离环境
 
-> 旧的“下载上游源码 + 打补丁再编译”路线已从 main 移除，见 tag [`legacy-patch-final`](https://github.com/iroha1145/DSH-Modern-UI/tree/legacy-patch-final)。
+适用于**本机没有现成 DSH**，或想让 Modern UI 使用**独立的程序与数据目录**（不碰现有 `~/.dsh`）的场景。这是社区维护、尽力支持的附件，不是主安装渠道。
 
----
-
-## 安装指南
-
-插件目前通过预编译预览包（`plugin-preview`）方式分发。安装器会自动配置所需环境，默认安装 `dsh-context@0.75.1` 和 `dsh-better-sidebar@0.28.0`。Store 0.1.4 的当前 profile 操作存在已复现问题，已从默认组合排除；已有用户安装保留，详见[兼容说明](docs/compatibility.md#社区插件)。
-
-### 第一步：获取预编译安装包
-
-您可以通过以下任一方式获取 `.artifacts/plugin-preview` 目录：
-
-1. **下载 CI 构建产物**：在 GitHub Actions 的 `Official runtime plugin preview` 工作流中下载 `modern-ui-precompiled-preview` 压缩包并解压。
-2. **从源码本地构建**（需 Node.js `24.22.1`）：
-   ```bash
-   npm ci --ignore-scripts
-   npm run build
-   npm run preview
-   cd .artifacts/plugin-preview
-   ```
-
----
-
-### 第二步：执行安装命令
-
-进入解压（或生成）后的 `plugin-preview` 目录，根据本机环境选择对应安装方式。
-> ⚠️ **注意**：**程序目录（Program Root）** 与 **数据目录（Data Home）** 必须为两个互相独立的目录路径。
-
-#### 方式 A：全新安装（推荐）
-安装器会自动下载并校验独立的私有运行时（Node `24.22.1`、pnpm `11.28.5`，Windows 下含私有 PowerShell `7.6.5`）及官方 `@deepseek-ai/dsh@0.2.1-rc.4` 后端，不影响系统全局环境。
+安装器下载并校验私有 Node `24.22.1`、pnpm `11.28.5`（Windows 另含私有 PowerShell `7.6.5`）与官方 `@deepseek-ai/dsh` 后端，建立独立 profile，再通过官方 `dsh plugin add` 安装插件；安装或更新非空数据目录前自动生成整树快照备份。从 Release 下载 `installer.zip` 并解压，进入 `plugin-preview` 目录（**程序目录与数据目录必须是两个互相独立的路径**）：
 
 - **Windows (PowerShell)**：
   ```powershell
@@ -72,80 +42,32 @@ DSH-Modern-UI/
   ```bash
   sh ./install.sh '/path/to/dsh-modern/program' '/path/to/dsh-modern/data'
   ```
-
-*(可选：Windows 可追加 `-SkipCommunity`，macOS / Linux 可使用 `DSH_MODERN_SKIP_COMMUNITY=1` 跳过可选社区插件。指定旧宿主用 `-BackendVersion` 或 `DSH_MODERN_BACKEND_VERSION`；已有后端的实际版本默认保留。)*
-
-#### 方式 B：基于本机已有的官方 DSH 安装
-如果您本机已安装兼容清单中的官方 DSH，可直接指定其 `package.json` 路径，安装器读取实际版本而不升级后端：
-
-- **Windows (PowerShell)**：
-  ```powershell
-  powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./install-existing.ps1 -Backend 'D:/official/node_modules/@deepseek-ai/dsh/package.json' -Root 'D:/DSH-Modern/program' -DataHome 'D:/DSH-Modern/data'
-  ```
-  *(若本机已安装精确的 Node `24.22.1`，也可直接执行：`node ./install-existing.mjs --backend '<官方package.json路径>' --root '<程序目录>' --home '<数据目录>'`)*
-- **macOS / Linux**：
+- **基于本机已有的官方 DSH**（读取实际版本，不升级后端）：
   ```bash
   sh ./install-existing.sh '/path/to/official/@deepseek-ai/dsh/package.json' '/path/to/dsh-modern/program' '/path/to/dsh-modern/data'
   ```
+  Windows 用 `./install-existing.ps1 -Backend '<官方 package.json>' -Root '<程序目录>' -DataHome '<数据目录>'`。
 
----
+社区插件默认**不安装**。如需同时装上已验证组合（`dsh-context@0.75.1`、`dsh-better-sidebar@0.28.0`），Windows 追加 `-WithCommunity`，macOS / Linux 设置 `DSH_MODERN_WITH_COMMUNITY=1`。指定旧宿主用 `-BackendVersion` 或 `DSH_MODERN_BACKEND_VERSION`。
 
-### 第三步：启动服务
-
-安装完成后，直接运行程序目录下生成的启动脚本即可：
-
-- **Windows**：
-  ```powershell
-  D:/DSH-Modern/program/dsh-ui.cmd
-  ```
-- **macOS / Linux**：
-  ```bash
-  /path/to/dsh-modern/program/dsh-ui
-  ```
-
----
-
-## 更新、切换与卸载
-
-- **更新插件**：获取新版安装包后，对同一程序目录和数据目录再次执行上述安装命令即可（切换前会自动备份非空数据目录至 `<程序目录>/data-backups`）。
-- **网页端临时切回官方 UI**：在 DSH 的「插件管理」页面中，停用整个 **`@iroha1145/dsh-modern-ui` bundle** 并刷新浏览器即可恢复官方原生界面（请勿仅停用内部的单个 `modern-ui` 条目）。
-- **命令行管理（状态 / 校验 / 回滚 / 卸载）**：
-  可通过程序目录内记录的内置管理器执行维护操作（以 PowerShell 为例）：
-  ```powershell
-  $state = Get-Content -Raw -Encoding UTF8 'D:/DSH-Modern/program/current.json' | ConvertFrom-Json
-
-  # 查看当前安装状态
-  & $state.node $state.manager status --root 'D:/DSH-Modern/program'
-
-  # 校验官方后端与依赖完整性
-  & $state.node $state.manager verify --root 'D:/DSH-Modern/program'
-
-  # 回滚到上一个程序代际（不回滚会话数据）
-  & $state.node $state.manager rollback --root 'D:/DSH-Modern/program'
-
-  # 卸载 Modern UI 启动入口（保留所有用户数据与官方环境）
-  & $state.node $state.manager uninstall --root 'D:/DSH-Modern/program'
-  ```
-
----
+安装完成后运行程序目录下的 `dsh-ui.cmd`（Windows）或 `dsh-ui`（macOS / Linux）。状态、校验、回滚与卸载命令见[安装详情](docs/install.md)。
 
 ## 本地构建
 
-如需从源码编译并生成预编译分发包（需 Node.js `24.22.1`，仓库使用 npm 与 `package-lock.json`）：
+需 Node.js `24.22.1`，仓库使用 npm 与 `package-lock.json`：
 
 ```bash
-# 安装依赖
 npm ci --ignore-scripts
-
-# 编译插件产物
-npm run build
-
-# 生成 .artifacts/plugin-preview 预编译分发包
-npm run preview
+npm run build      # 编译插件产物到 packages/modern-ui/lib
+npm run preview    # 生成 .artifacts/plugin-preview（tgz + 可选安装器）
 ```
 
-更多细节请参阅 [`docs/`](docs/) 目录下的[安装详情](docs/install.md)、[UI 映射说明](docs/architecture.md)与[旧数据迁移说明](docs/data-migration.md)。
+## 文档
+
+- [安装详情](docs/install.md)、[兼容矩阵](docs/compatibility.md)、[架构与 UI 映射](docs/architecture.md)、[旧数据迁移](docs/data-migration.md)、[宿主兼容层](docs/host-compat.md)
+- 审计与 PR 跟进记录在 [`docs/history/`](docs/history/)
+- 旧的“下载上游源码 + 打补丁再编译”路线已从 main 移除，见 tag [`legacy-patch-final`](https://github.com/iroha1145/DSH-Modern-UI/tree/legacy-patch-final)
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE)。从 DeepSeek Harness 派生的部分保留上游版权，见 [`THIRD_PARTY_NOTICES.md`](packages/modern-ui/THIRD_PARTY_NOTICES.md)。

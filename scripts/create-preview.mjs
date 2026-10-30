@@ -33,7 +33,7 @@ await cp(path.join(root, 'scripts/preview-consumer-check.mjs'), path.join(output
 const runtimes = JSON.parse(await readFile(path.join(output, 'installer/runtime-lock.json'), 'utf8'))
 const communities = JSON.parse(await readFile(path.join(output, 'installer/community-lock.json'), 'utf8'))
 const manifest = {
-  schemaVersion: 1, status: 'local-preview-unpublished',
+  schemaVersion: 1, status: process.env.MODERN_UI_RELEASE ? 'released' : 'local-preview-unpublished',
   acceptanceRecord: 'docs/compatibility.md',
   compatibilityScope: 'Exact host versions; feature and platform acceptance is recorded separately by test:compat',
   plugin: { name: packed.name, version: packed.version, filename: 'modern-ui.tgz', integrity, bytes: bytes.length },
@@ -53,10 +53,11 @@ await writeFile(path.join(output, 'install.ps1'), `param(
   [string]$BackendVersion,
   [string]$FromProfile,
   [string]$Node,
-  [switch]$SkipCommunity
+  [switch]$SkipCommunity,
+  [switch]$WithCommunity
 )
 $ErrorActionPreference = 'Stop'
-& (Join-Path $PSScriptRoot 'installer/bootstrap.ps1') -Root $Root -DataHome $DataHome -Plugin (Join-Path $PSScriptRoot 'modern-ui.tgz') -PluginIntegrity '${integrity}' -Backend $Backend -BackendVersion $BackendVersion -FromProfile $FromProfile -Node $Node -SkipCommunity:$SkipCommunity
+& (Join-Path $PSScriptRoot 'installer/bootstrap.ps1') -Root $Root -DataHome $DataHome -Plugin (Join-Path $PSScriptRoot 'modern-ui.tgz') -PluginIntegrity '${integrity}' -Backend $Backend -BackendVersion $BackendVersion -FromProfile $FromProfile -Node $Node -SkipCommunity:$SkipCommunity -WithCommunity:$WithCommunity
 `)
 await writeFile(path.join(output, 'install-existing.ps1'), `param(
   [Parameter(Mandatory=$true)][string]$Backend,
@@ -64,7 +65,8 @@ await writeFile(path.join(output, 'install-existing.ps1'), `param(
   [string]$DataHome,
   [string]$Node,
   [string]$FromProfile,
-  [switch]$SkipCommunity
+  [switch]$SkipCommunity,
+  [switch]$WithCommunity
 )
 $ErrorActionPreference = 'Stop'
 $installerArguments = @{} + $PSBoundParameters
@@ -115,8 +117,9 @@ POSIX targets (check the consumer CI for this source revision):
 
 The installer downloads verified official Node, pnpm and DSH release assets; it does not compile source.
 Windows also uses the pinned private Microsoft PowerShell 7 release listed in preview.json.
-Core and community-plugin outcomes are separate. Use -SkipCommunity (PowerShell) or
-DSH_MODERN_SKIP_COMMUNITY=1 (POSIX) to run only the core path.
+Core and community-plugin outcomes are separate. Community plugins are not installed by default;
+use -WithCommunity (PowerShell) or DSH_MODERN_WITH_COMMUNITY=1 (POSIX) to add the verified
+combination listed in preview.json.
 The two directories must be separate. User data and other profiles are retained.
 Launch the generated program/dsh-ui.cmd (Windows) or program/dsh-ui (POSIX).
 

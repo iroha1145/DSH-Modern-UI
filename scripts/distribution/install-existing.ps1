@@ -6,7 +6,8 @@ param(
   [string]$DataHome,
   [string]$FromProfile,
   [string]$Node,
-  [switch]$SkipCommunity
+  [switch]$SkipCommunity,
+  [switch]$WithCommunity
 )
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'filesystem-paths.ps1')
@@ -33,4 +34,4 @@ if (-not $Node) {
     } catch { Write-Verbose 'System Node probe failed; preparing the pinned private runtime.' }
   }
 }
-& (Join-Path $PSScriptRoot 'bootstrap.ps1') -Root $Root -DataHome $DataHome -Plugin $Plugin -PluginIntegrity $PluginIntegrity -Backend $Backend -FromProfile $FromProfile -Node $Node -SkipCommunity:$SkipCommunity
+& (Join-Path $PSScriptRoot 'bootstrap.ps1') -Root $Root -DataHome $DataHome -Plugin $Plugin -PluginIntegrity $PluginIntegrity -Backend $Backend -FromProfile $FromProfile -Node $Node -SkipCommunity:$SkipCommunity -WithCommunity:$WithCommunity
