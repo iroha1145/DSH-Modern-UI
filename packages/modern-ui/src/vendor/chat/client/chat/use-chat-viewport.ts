@@ -28,6 +28,15 @@ interface ViewportEvents {
   intent?: () => void
 }
 
+/**
+ * Read the scrollport's block-start band covered by ConversationRoot's floating glass header.
+ * @param scroller - the conversation scrollport.
+ * @returns covered pixels, or 0 when no header floats over it.
+ */
+function topInset(scroller: HTMLElement): number {
+  return Number.parseFloat(getComputedStyle(scroller).getPropertyValue('--dsh-scrollport-top-inset')) || 0
+}
+
 interface ViewportElements {
   readonly list: HTMLElement
   readonly column: HTMLElement
@@ -556,7 +565,8 @@ export class ChatViewport {
     const elements = this.elements
     const first = this.turns[0]
     if (elements === null || metrics === null || first === undefined) return null
-    const line = elements.scroller.getBoundingClientRect().top + Math.min(96, metrics.height * 0.2)
+    const inset = topInset(elements.scroller)
+    const line = elements.scroller.getBoundingClientRect().top + inset + Math.min(96, (metrics.height - inset) * 0.2)
     // Slot anchors use display:contents: measure their rows, not the anchor's empty box.
     const rows = (elements.column.querySelector(':scope > [data-slot="conversation.chat.flow"]') ?? elements.column).children
     let low = 0
@@ -586,7 +596,7 @@ export class ChatViewport {
     const item = this.turns.find(candidate => candidate.turn === turn)
     if (item === undefined) return null
     const row = this.anchor(item.anchorKey, 'node')
-    return row === null ? null : this.align(row, 24, turn)
+    return row === null || this.elements === null ? null : this.align(row, 24 + topInset(this.elements.scroller), turn)
   }
 
   /**
@@ -598,7 +608,7 @@ export class ChatViewport {
     if (this.elements === null) return null
     for (const row of this.elements.list.querySelectorAll<HTMLElement>('[data-chat-turn]:not([hidden]):not([hidden] *)')) {
       const candidate = Number(row.dataset.chatTurn)
-      if (Number.isSafeInteger(candidate) && candidate >= turn) return this.align(row, 24, candidate)
+      if (Number.isSafeInteger(candidate) && candidate >= turn) return this.align(row, 24 + topInset(this.elements.scroller), candidate)
     }
     return null
   }

@@ -329,9 +329,10 @@
   --dsh-composer-text-max-height: 336px;
 }
 
-/* Active phase: header is ordinary column chrome above the scrollport (not
-   sticky). The scroll body holds the transcript and the sticky composer seat
-   so wheel over the footer moves the flow. */
+/* Active phase: header is column chrome outside the scrollport (not sticky);
+   wide layouts float it over the transcript (see the glass header below). The
+   scroll body holds the transcript and the sticky composer seat so wheel over
+   the footer moves the flow. */
 .root[data-phase='active'] {
   overflow: hidden;
 }
@@ -384,6 +385,46 @@
    offset. WebKit-only: the Firefox path has no track to inset. */
 .scrollBody::-webkit-scrollbar-track {
   margin: 2px;
+}
+
+/* Glass header: wide active layouts float the header over the transcript as the
+   input card's counterpart, slightly more transparent than the card.
+   ConversationHeader publishes its block size on the root and the scrollport pads
+   its start by it. Sticky children (code banners, the open reasoning header, the
+   Turn rail) stick to that padded edge, so they stop below the header on their
+   own; the rail's band and the chat viewport's Turn landings read the inset. As
+   on the input card the glass is a pseudo-element, so menus and fixed overlays
+   inside the header keep sampling the page and their viewport position. */
+@media (min-width: 641px) {
+  .root[data-phase='active'] .header {
+    position: absolute;
+    inset: 0 0 auto;
+    /* Above the transcript's sticky code banners (6), compaction toggle and
+       Turn rail (7) that now pass beneath it. */
+    z-index: 8;
+    isolation: isolate;
+  }
+
+  .root[data-phase='active'] .header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--dsw-header-surface-fill);
+    -webkit-backdrop-filter: var(--dsw-composer-backdrop-filter);
+    backdrop-filter: var(--dsw-composer-backdrop-filter);
+    pointer-events: none;
+  }
+
+  .root[data-phase='active'] .scrollBody {
+    --dsh-scrollport-top-inset: var(--dsh-conversation-header-height, 0px);
+    padding-top: var(--dsh-scrollport-top-inset);
+    scroll-padding-top: var(--dsh-scrollport-top-inset);
+  }
+
+  .root[data-phase='active'] .scrollBody::-webkit-scrollbar-track {
+    margin-top: calc(var(--dsh-scrollport-top-inset) + 2px);
+  }
 }
 
 .root[data-phase='active'] .viewArea,

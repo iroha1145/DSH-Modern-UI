@@ -20,11 +20,12 @@
 
 .frame {
   /* The band a reader actually sees: the scrollport minus the sticky composer
-     stack covering its floor. ConversationRoot publishes both measurements on
-     the scrollport; the fallbacks carry the first paint before its observer
-     fires. */
+     stack covering its floor and the glass header over its top. ConversationRoot
+     publishes the measurements on the scrollport; the fallbacks carry the first
+     paint before its observer fires. */
   --turn-rail-band: calc(
     var(--dsh-conversation-viewport-height, 100dvh) - var(--dsh-composer-height, 152px)
+      - var(--dsh-scrollport-top-inset, 0px)
   );
   --turn-preview-height: 100px;
 
