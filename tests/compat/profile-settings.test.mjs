@@ -6,7 +6,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { pathToFileURL } from 'node:url'
-import { bindHostCompatibility, preserveEffectivePreferences, transformHostBindings } from '../../scripts/distribution/profile-settings.mjs'
+import { bindHostCompatibility, preserveEffectivePreferences, preservePresentationPrompt, transformHostBindings } from '../../scripts/distribution/profile-settings.mjs'
 import { preserveConversationPreferences } from './fixtures/old-conversation-writer.mjs'
 
 const requireHost = createRequire(process.env.COMPAT_BACKEND_PACKAGE ? resolve(process.env.COMPAT_BACKEND_PACKAGE) : new URL('../../package.json', import.meta.url))
@@ -63,4 +63,40 @@ test('real !!js activation is rejected without evaluation; unknown metadata is r
   const transformed = transformHostBindings(source, dump([original]), yaml)
   const rows = yaml.load(transformed.source, { schema: entryListSchema })
   assert.deepEqual(rows.at(-1).insert[0], { ...original, id: 'modern-ui-compat-translator', name: '@iroha1145/dsh-modern-ui/translator' })
+})
+
+test('presentation prompt stays on for upgrades, off for new installs, and never overrides a choice', async t => {
+  const profile = await mkdtemp(join(tmpdir(), 'compat-presentation-'))
+  t.after(() => rm(profile, { recursive: true, force: true }))
+  const filename = join(profile, 'cordis.patch.yml')
+  const receipt = join(profile, 'modern-ui-presentation-migration.json')
+  const modern = config => ({ id: 'modern-ui', name: '@iroha1145/dsh-modern-ui', config })
+  const bundled = { enabled: true, models: {}, prices: {}, presentation: { prompt: false } }
+  const compose = async base => applyEntryPatches(base, yaml.load(await readFile(filename, 'utf8'), { schema: entryListSchema }), message => assert.fail(message))
+  const reset = async source => { await rm(receipt, { force: true }); await rm(join(profile, 'modern-ui-presentation-before-migration.yml'), { force: true }); await writeFile(filename, source) }
+
+  // New install: nothing before, nothing written, receipt records the decision.
+  await reset(dump([]))
+  assert.deepEqual(await preservePresentationPrompt(profile, dump([]), dump([modern(bundled)]), yaml),
+    { changed: false, reason: 'new-install', conversionVersion: 1, namespace: 'modern-ui' })
+  assert.equal(await readFile(filename, 'utf8'), dump([]))
+
+  // Upgrade from a version that always appended the prompt.
+  const previous = { busyEnter: 'steer', models: {}, prices: {} }
+  await reset(dump([modern(previous)]))
+  const upgraded = await preservePresentationPrompt(profile, dump([modern({ enabled: true, ...previous })]), dump([modern({ ...bundled, ...previous })]), yaml)
+  assert.equal(upgraded.changed, true)
+  assert.equal(upgraded.reason, 'upgrade-keeps-prompt')
+  const effective = (await compose([modern(bundled)])).find(row => row.id === 'modern-ui').config
+  assert.equal(effective.presentation.prompt, true)
+  assert.equal(effective.busyEnter, 'steer')
+  assert.equal(createHash('sha256').update(await readFile(join(profile, upgraded.backup), 'utf8')).digest('hex'), upgraded.originalSha256)
+  // The receipt keeps a later toggle from being overwritten.
+  assert.equal((await preservePresentationPrompt(profile, dump([modern(previous)]), dump([modern(previous)]), yaml)).alreadyMigrated, true)
+
+  // A user who already chose explicitly keeps the choice.
+  const chosen = { ...previous, presentation: { prompt: false } }
+  await reset(dump([modern(chosen)]))
+  assert.equal((await preservePresentationPrompt(profile, dump([modern({ enabled: true, models: {}, prices: {} })]), dump([modern({ ...bundled, ...chosen })]), yaml)).reason, 'explicit-choice')
+  assert.equal(await readFile(filename, 'utf8'), dump([modern(chosen)]))
 })

@@ -44,6 +44,8 @@ sh ./install-existing.sh /absolute/official/package.json '/path/to/program' '/pa
 
 聊天偏好：复制出的 profile 里 `ui-chat` 行的 transcriptView、collapseTiming、foldedReplies、performanceUsage、linkOpening 会搬进 `modern-ui` 行（已有值不覆盖，原行保留；回执 `modern-ui-chat-migration.json`，conversionVersion 2，备份 `modern-ui-chat-before-migration-v2.yml`；2026-10-28 之前只搬过 foldedReplies 的 profile 会在下一次升级时补搬其余四项）。
 
+回答可视化提示词：0.1.0 起 `modern-ui` 行的 `presentation.prompt` 默认关闭（Intelligent UI 不再默认向系统提示词追加约 3 KB 指令）。安装器发现复制来源里已经有 Modern UI 且没有 `presentation` 配置时，视为从旧版本升级，在 `modern-ui` 行写入 `presentation.prompt: true` 保持原行为；已显式选择过的不覆盖。回执 `modern-ui-presentation-migration.json`（新安装也会写一份 `changed: false` 的回执，所以只判断一次），改动时备份 `modern-ui-presentation-before-migration.yml`。之后可在「设置 → 通用 → 回答可视化组件」随时切换。
+
 安装在创建代际目录之后失败时，只删除本轮新建的 `versions/<uuid>` 和 `profiles/modern-ui-<uuid>`；`release-cache`、`store`、既往代际、原 profile 和旧的 `current.json` 不动，重试直接复用缓存。入口脚本可以经符号链接路径调用（例如 macOS 上 `/tmp`、`/var` 下的目录）。
 
 ## 新用户

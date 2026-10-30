@@ -36,6 +36,7 @@ import { modelOwner } from './model-owner.ts'
 import { installFileDrag } from './file-drag.ts'
 import { installQuotes } from './quotes.ts'
 import { installPresentationParity } from './presentation-parity.ts'
+import { installPresentationSettings } from './presentation-settings.tsx'
 import { installPluginDocuments } from './plugin-documents/index.tsx'
 import { installOfficialControls } from './official-controls.ts'
 import { installCommunityMarkdown } from './community-markdown.ts'
@@ -120,19 +121,35 @@ function installPresentation(ctx: Context): void {
     },
   }))
   // Code-fence presenters beside the standard CodeBlock (priority 100, registered by the chat entry).
-  ctx.slots.inject('conversation.chat.message.code', function* () {
-    yield ctx.slots.register({
-      name: 'conversation.chat.message.code', locale: 'modern-intelligent', priority: 0,
-      select: owner => owner.lang?.trim().toLowerCase() === 'openui' ? {} : null,
-      inject: (): ThemeInjected => ({ hooks: { theme: {
-        getSnapshot: () => ctx.theme.getTheme(),
-        subscribe: listener => ctx.on('theme/change', listener),
-      } } }),
-    }, IntelligentUI)
-    yield ctx.slots.register({
-      name: 'conversation.chat.message.code', locale: 'modern-intelligent', priority: 0,
-      select: owner => owner.lang?.trim().toLowerCase() === 'followups' ? {} : null,
-    }, Followups)
+  // Each follows its `presentation` switch: a fence whose presenter is off renders as plain code.
+  const presentation = installPresentationSettings(ctx)
+  ctx.slots.inject('conversation.chat.message.code', () => {
+    const presenters = {
+      openui: () => ctx.slots.register({
+        name: 'conversation.chat.message.code', locale: 'modern-intelligent', priority: 0,
+        select: owner => owner.lang?.trim().toLowerCase() === 'openui' ? {} : null,
+        inject: (): ThemeInjected => ({ hooks: { theme: {
+          getSnapshot: () => ctx.theme.getTheme(),
+          subscribe: listener => ctx.on('theme/change', listener),
+        } } }),
+      }, IntelligentUI),
+      followups: () => ctx.slots.register({
+        name: 'conversation.chat.message.code', locale: 'modern-intelligent', priority: 0,
+        select: owner => owner.lang?.trim().toLowerCase() === 'followups' ? {} : null,
+      }, Followups),
+    }
+    const live: Partial<Record<keyof typeof presenters, () => void>> = {}
+    const sync = () => {
+      const switches = presentation.getSnapshot()
+      for (const key of ['openui', 'followups'] as const) {
+        const dispose = live[key]
+        if (switches[key] && dispose === undefined) live[key] = presenters[key]()
+        else if (!switches[key] && dispose !== undefined) { dispose(); delete live[key] }
+      }
+    }
+    sync()
+    const stop = presentation.subscribe(sync)
+    return () => { stop(); for (const dispose of Object.values(live)) dispose() }
   })
   ctx.inject(['uiWorkspace', 'sidebarRight'], scope => {
     const actions = () => ({

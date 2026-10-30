@@ -10,6 +10,17 @@ dsh plugin --profile web add @iroha1145/dsh-modern-ui
 
 Then refresh the browser. `dsh plugin` forwards to pnpm, so `pnpm` must be on PATH. If you have never started the web profile, run `dsh web` once first.
 
+## Model-visible behavior
+
+Modern UI does not change the model prompt by default. It renders `openui` and `followups` code fences a model already wrote. Turning on **Settings → General → Answer visual components** appends about 3 KB of presentation guidance to the system prompt. The same switches live in the entry config:
+
+```yaml
+presentation:
+  prompt: false    # model-visible guidance
+  openui: true     # render openui fences as sandboxed components
+  followups: true  # render followups fences as suggestion chips
+```
+
 ## Switch back to the official UI
 
 Deselect the whole `@iroha1145/dsh-modern-ui` bundle in Plugin Management and refresh, or remove the plugin:

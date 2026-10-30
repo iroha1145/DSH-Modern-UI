@@ -515,6 +515,81 @@ export async function preserveConversationPreferences(profile, effectiveYaml, ya
   return result
 }
 
+/**
+ * Keep the response-presentation prompt on for profiles that already ran Modern UI. Versions
+ * before 0.1.0 appended it unconditionally; 0.1.0 makes it a `presentation.prompt` switch that
+ * defaults to off. An upgrade is recognized by a Modern UI entry in the effective profile before
+ * this install whose config has no `presentation` section; an explicit user choice is never touched.
+ */
+export function transformPresentationPrompt(source, beforeYaml, afterYaml, yaml) {
+  const schema = schemaFor(yaml)
+  const patch = yaml.load(source, { schema }) ?? []
+  const rows = patchRows(patch)
+  const modernOf = text => {
+    const effective = yaml.load(text, { schema })
+    if (!Array.isArray(effective)) throw new Error('Effective profile must be an entry list')
+    const found = effective.filter(row => row?.id === 'modern-ui' && row.name === '@iroha1145/dsh-modern-ui')
+    if (found.length > 1) throw new Error('Multiple Modern UI entries require manual precedence review')
+    return found[0]
+  }
+  const unchanged = reason => ({ source, result: { changed: false, reason, conversionVersion: 1, namespace: 'modern-ui' } })
+  const before = modernOf(beforeYaml)
+  if (before === undefined) return unchanged('new-install')
+  if (Object.hasOwn(before.config ?? {}, 'presentation')) return unchanged('already-configured')
+  const target = modernOf(afterYaml)?.config ?? {}
+  const modernRows = rows.filter(row => row.id === 'modern-ui')
+  if (modernRows.length > 1) throw new Error('Layered Modern UI settings require explicit precedence review')
+  const row = modernRows[0]
+  for (const config of [target, row?.config ?? {}]) {
+    if (!config || Array.isArray(config) || Object.getPrototypeOf(config) !== Object.prototype) {
+      throw new Error('Computed Modern UI settings require explicit review; expressions were not evaluated')
+    }
+  }
+  if (typeof row?.config?.presentation?.prompt === 'boolean') return unchanged('explicit-choice')
+  for (const [key, value] of Object.entries(row?.config ?? {})) {
+    if (!Object.hasOwn(target, key) || !isDeepStrictEqual(target[key], value)) {
+      throw new Error('Composed Modern UI settings do not match the staged profile; retry migration without concurrent edits')
+    }
+  }
+  const presentation = target.presentation && typeof target.presentation === 'object' && !Array.isArray(target.presentation)
+    ? target.presentation : {}
+  const config = { ...target, presentation: { ...presentation, prompt: true } }
+  if (row) row.config = config
+  else patch.push({ id: 'modern-ui', name: '@iroha1145/dsh-modern-ui', config })
+  return { source: yaml.dump(patch, { schema, lineWidth: -1, noCompatMode: true }),
+    result: { changed: true, reason: 'upgrade-keeps-prompt', conversionVersion: 1, namespace: 'modern-ui' } }
+}
+
+/** Separate receipt so the switch is written at most once per profile lineage. */
+export async function preservePresentationPrompt(profile, beforeYaml, afterYaml, yaml) {
+  const filename = join(profile, 'cordis.patch.yml')
+  const receiptPath = join(profile, 'modern-ui-presentation-migration.json')
+  const backupName = 'modern-ui-presentation-before-migration.yml'
+  let previous
+  try { previous = JSON.parse(await readFile(receiptPath, 'utf8')) } catch (error) { if (error.code !== 'ENOENT') throw error }
+  if (previous) {
+    if (previous.conversionVersion !== 1) throw new Error('Unsupported presentation migration receipt')
+    if (previous.changed && (previous.backup !== backupName
+      || hash(await readFile(join(profile, backupName), 'utf8')) !== previous.originalSha256)) throw new Error('Presentation backup checksum mismatch')
+    return { changed: false, alreadyMigrated: true, namespace: 'modern-ui' }
+  }
+  const info = await lstat(filename)
+  if (!info.isFile() || info.isSymbolicLink() || info.size > 1024 * 1024) throw new Error('Presentation migration requires a small regular staged profile patch')
+  const original = await readFile(filename, 'utf8')
+  const transformed = transformPresentationPrompt(original, beforeYaml, afterYaml, yaml)
+  let result = transformed.result
+  if (transformed.result.changed) {
+    await writeFile(join(profile, backupName), original, { flag: 'wx', mode: 0o600 })
+    const temporary = join(profile, 'modern-ui-presentation.pending.yml')
+    await writeFile(temporary, transformed.source, { flag: 'wx', mode: 0o600 })
+    if (await readFile(filename, 'utf8') !== original) throw new Error('Presentation settings changed during conversion')
+    await rename(temporary, filename)
+    result = { ...result, backup: backupName, originalSha256: hash(original), migratedSha256: hash(transformed.source) }
+  }
+  await writeFile(receiptPath, JSON.stringify(result, null, 2) + '\n', { flag: 'wx', mode: 0o600 })
+  return result
+}
+
 /** Move the patch-only folded-reply chat preference into the plugin's own settings row. */
 /** Chat preferences Modern's own chat target reads from its namespace once the official ui-chat entry is disabled. */
 const CHAT_PREFERENCE_FIELDS = ['transcriptView', 'collapseTiming', 'foldedReplies', 'performanceUsage', 'linkOpening']

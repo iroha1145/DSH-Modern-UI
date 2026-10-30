@@ -10,7 +10,7 @@ import { checkIntegrity, snapshot, verifySnapshot } from './integrity.mjs'
 import { webSelfTest } from './web-self-test.mjs'
 import { dependencyInventory } from './dependency-inventory.mjs'
 import { verifyReleaseSources } from './verify-release-source.mjs'
-import { bindHostCompatibility, preserveEffectivePreferences, preserveConversationPreferences, validateUiOwnerBindings } from './profile-settings.mjs'
+import { bindHostCompatibility, preserveEffectivePreferences, preserveConversationPreferences, preservePresentationPrompt, validateUiOwnerBindings } from './profile-settings.mjs'
 import { acquireOperationLock } from './operation-lock.mjs'
 import { backupDataHome } from './data-backup.mjs'
 import { createLaunchLifecycle } from './launch-child.mjs'
@@ -32,7 +32,7 @@ function summary(state) {
     selfTest: state.selfTest, webSelfTest: state.webSelfTest, previousGeneration: state.previous?.generation,
     sourceLedger: state.sourceLedger, sourceProof: state.sourceProof, powershell: state.powershell ? { path: state.powershell.path, version: state.powershell.version, source: state.powershell.source } : undefined,
     dataBackup: state.dataBackup, effectivePreferences: state.effectivePreferences,
-    settingsMigration: state.settingsMigration, conversationMigration: state.conversationMigration, chatMigration: state.chatMigration, shellBinding: state.shellBinding, hostCompatibility: state.hostCompatibility, ownerBindings: state.ownerBindings, profileStore: state.profileStore, sourceProfile: state.sourceProfile ? { name: state.sourceProfile.name, path: state.sourceProfile.path } : undefined,
+    settingsMigration: state.settingsMigration, conversationMigration: state.conversationMigration, presentationMigration: state.presentationMigration, chatMigration: state.chatMigration, shellBinding: state.shellBinding, hostCompatibility: state.hostCompatibility, ownerBindings: state.ownerBindings, profileStore: state.profileStore, sourceProfile: state.sourceProfile ? { name: state.sourceProfile.name, path: state.sourceProfile.path } : undefined,
     evidence: join(state.generation, 'installation.json') }
 }
 const run = (exe, args, options = {}) => {
@@ -340,6 +340,7 @@ async function stage(state, options, bytes, previousReference) {
   if (installed.version !== plugin.version) throw new Error('Installed plugin version mismatch')
   state.effectivePreferences = await preserveEffectivePreferences(profile, originalEffective, dsh(state, [state.profile, '--dump-config']), backendRequire('js-yaml'))
   state.conversationMigration = await preserveConversationPreferences(profile, dsh(state, [state.profile, '--dump-config']), backendRequire('js-yaml'))
+  state.presentationMigration = await preservePresentationPrompt(profile, originalEffective, dsh(state, [state.profile, '--dump-config']), backendRequire('js-yaml'))
   state.plugin = { name: plugin.name, version: plugin.version, integrity: options['plugin-integrity'], path: join(profile, 'node_modules', plugin.name) }
   const beforeBindings = dsh(state, [state.profile, '--dump-config'])
   state.hostCompatibility = await bindHostCompatibility(profile, beforeBindings, backendRequire('js-yaml'))

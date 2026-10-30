@@ -228,6 +228,14 @@ WP0 与 WP6 的 lint 部分可以并行；WP2 与 WP3 可以并行；WP4 与 WP5
 - 默认配置下 `dsh --profile <scratch> --dump-config` 的 systemPrompt 无 `modern-ui:response-presentation` 节；开启后有。
 - `tests/audit` 新增一个用例覆盖开关三态。
 
+> **WP3 执行记录**
+> - `presentation` 标为 `.volatile()`：官方 settings forms 只接受 volatile 节点下的写入，客户端快照也只投影 volatile 字段；不标则设置行写入被 Host 拒绝并回滚（实测 rc.4）。因此 Host 侧不再按 apply 时的值条件注册，而是在 `enabled` 时始终注册 `modern-ui:response-presentation` 节，`text` 为每次 assembly 读取 `presentation.get().prompt` 的 provider，关闭时返回空串（官方 assembler 丢弃空节）。切换开关下一轮对话生效，无需重载。
+> - 验收第 1 条的 `--dump-config` 只输出配置不输出提示词，改为：dump 中 `modern-ui` 行默认含 `presentation.prompt: false`（实测）；节内容由 `tests/audit/presentation-switch.test.mjs` 覆盖缺省 / false / true 三态、运行时切换与 `enabled: false`。
+> - 实测（rc.4，Windows x64，Edge，`.artifacts/plugin-preview/modern-ui.tgz`）：设置页出现「回答可视化组件」行；选「开启」后 profile `cordis.patch.yml` 写入 `presentation.prompt: true`；选「关闭」后官方写入器删掉与 bundle 默认相同的覆盖，dump 回到 `prompt: false`。
+> - `openui` / `followups` 只做配置开关（无设置行），客户端订阅 `configForms.get('modern-ui')`，变化时注销或重新注册对应 code-fence presenter。设置行代码在 `src/presentation-settings.tsx`，纯数据（类型、默认值、8 语言文案、`readPresentation`）在 `src/presentation-switches.ts`，locale 命名空间 `modern-presentation-settings`（`modern-presentation` 已被 presentation-parity 占用）。
+> - 偏离第 6 步：迁移没有并入 `modern-ui-chat-migration.json`，而是独立回执 `modern-ui-presentation-migration.json`。chat 回执带 conversionVersion 2 的补跑语义，并入会让已是 v2 的 profile 需要再升版本号才能触发。判定条件：安装前的 effective 配置里已有 `@iroha1145/dsh-modern-ui` 且该行没有 `presentation` 键，即视为旧版本升级，写 `prompt: true`；用户行已显式写过 `presentation.prompt` 则不动。单测在 `tests/compat/profile-settings.test.mjs`。
+> - 未覆盖：只走一行 `dsh plugin add` 升级（不经安装器）的旧用户不会被迁移，会变成默认关闭。0.1.0 之前没有发布过 npm 包，这类用户应该不存在；如有，在设置里手动开启。
+
 ---
 
 ### WP4 宿主侧拆包（M3，2 至 3 个对话，中到大）

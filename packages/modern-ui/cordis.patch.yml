@@ -30,5 +30,8 @@
         enabled: true
         models: {}
         prices: {}
+        # Model-visible: appends the response-presentation guidance to the system prompt.
+        presentation:
+          prompt: false
     - id: modern-plugin-documents
       name: '@iroha1145/dsh-modern-ui/plugin-documents'
