@@ -1,6 +1,7 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "defaultHostVersion": "0.2.1-rc.4",
+  "hostRange": ">=0.2.1-rc.2 <0.3.0",
   "runtimeVersions": {
     "node": "24.22.1",
     "pnpm": "11.28.5",
@@ -10,7 +11,7 @@
     "name": "@iroha1145/dsh-modern-ui",
     "filename": "modern-ui.tgz"
   },
-  "hosts": {
+  "verifiedHosts": {
     "0.2.1-rc.4": {
       "platforms": [
         "linux-x64",
@@ -95,6 +96,9 @@
         }
       ]
     }
+  },
+  "knownBroken": {
+    "0.2.2-alpha.2": "Cordis/Schemastery alpha peers do not match the plugin peers"
   },
   "excludedDefaultPlugins": [
     {

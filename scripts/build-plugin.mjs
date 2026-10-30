@@ -3,19 +3,27 @@ import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { buildQuotesTypes } from './build-quotes-types.mjs'
-import { defaultHostVersion, runtimeVersions, supportedHostVersions, getHostCompatibility } from './distribution/compatibility.mjs'
+import { defaultHostVersion, hostRange, runtimeVersions, supportedHostVersions, getHostCompatibility } from './distribution/compatibility.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const pkg = path.join(root, 'packages/modern-ui')
 const manifestPath = path.join(pkg, 'package.json')
 const manifestSource = await readFile(manifestPath, 'utf8')
 const manifest = JSON.parse(manifestSource)
-const hostRange = supportedHostVersions.join(' || ')
+// Ranges, not the verified list: a host inside the range installs without peer warnings;
+// which hosts were actually verified is recorded in compatibility.json and docs/compatibility.md.
+const platformRanges = {
+  '@deepseek-ai/cordis': '^4.0.5',
+  '@deepseek-ai/schemastery': '^3.18.5',
+  react: '^18.3.0',
+  'react-dom': '^18.3.0',
+}
 manifest.version = runtimeVersions.plugin
-manifest.engines = { ...manifest.engines, node: runtimeVersions.node, dsh: hostRange }
+manifest.engines = { ...manifest.engines, node: `>=${runtimeVersions.node.split('.')[0]}.0.0`, dsh: hostRange }
 manifest.dsh.compatibleHost = hostRange
 for (const name of Object.keys(manifest.peerDependencies)) {
   if (name.startsWith('@deepseek-ai/dsh-')) manifest.peerDependencies[name] = hostRange
+  else if (Object.hasOwn(platformRanges, name)) manifest.peerDependencies[name] = platformRanges[name]
 }
 const manifestOutput = JSON.stringify(manifest, null, 2) + '\n'
 if (manifestOutput !== manifestSource) await writeFile(manifestPath, manifestOutput)

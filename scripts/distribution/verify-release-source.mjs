@@ -15,7 +15,7 @@ async function cacheWrite(path, bytes) {
 export function sourceArchivePath(cache, source) {
   return join(cache, createHash('sha256').update(source.url + '\n' + source.integrity).digest('hex') + '.tgz')
 }
-async function fetchBytes(url) {
+export async function fetchBytes(url) {
   if (new URL(url).origin !== 'https://registry.npmjs.org') throw new Error('Release provenance requires the official npm registry')
   for (let attempt = 0; attempt < 3; attempt++) {
     try {

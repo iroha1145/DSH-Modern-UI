@@ -2,13 +2,28 @@
 
 使用未经修改的官方 DSH 发布包，以及同一份预编译 Modern UI 核心。安装器不重建后端，不修改官方 JS、前端 dist 或原生模块，也不要求消费者安装编译器。
 
+## 兼容矩阵
+
+| 插件版本 | 官方宿主 | 状态 | 平台 | 日期 |
+| --- | --- | --- | --- | --- |
+| 0.1.0 | `0.2.1-rc.5` | 范围内未验证；canary 全部 9 层通过（含候选社区组合），待 Linux CI 证据后写入 `verifiedHosts` | Windows x64（本地） | 2026-10-30 |
+| 0.1.0 | `0.2.1-rc.4` | 已验证（默认新装） | Linux x64/arm64、macOS x64/arm64、Windows x64 | 2026-10-29 |
+| 0.1.0 | `0.2.1-rc.3` | 已验证 | Linux x64、Windows x64 | 2026-10-29 |
+| 0.1.0 | `0.2.1-rc.2` | 已验证 | Linux x64、Windows x64 | 2026-10-29 |
+| — | `0.2.2-alpha.2` | 已知不兼容：Cordis/Schemastery alpha peers 与插件 peers 不匹配，安装器拒绝 | — | 2026-10-30 |
+
+新宿主由每天的 [Upstream canary](../.github/workflows/upstream-canary.yml) 先行验证，通过后按 [CONTRIBUTING.md](../CONTRIBUTING.md#接纳新的官方宿主版本) 加入本表与 `verifiedHosts`。
+
 ## 支持范围与唯一清单
 
-[`scripts/distribution/compatibility.json`](../scripts/distribution/compatibility.json) 是版本、平台、官方 URL/SRI、私有运行时和社区组合的唯一清单。构建从它生成插件 engines/peers/compatibleHost、默认 community-lock 和预览元数据。当前目标为精确的 `0.2.1-rc.4`、`0.2.1-rc.3`、`0.2.1-rc.2`，默认新装仍为 rc.4；不隐含支持未来 rc、正式版或更早版本。
+[`scripts/distribution/compatibility.json`](../scripts/distribution/compatibility.json) 是版本、平台、官方 URL/SRI、私有运行时和社区组合的唯一清单。构建从它生成插件 engines/peers/compatibleHost、默认 community-lock 和预览元数据。
 
-- rc.4 保留 Linux x64/arm64、macOS x64/arm64、Windows x64 的既有成品安装范围。
-- rc.3、rc.2 限定 Linux x64 与 Windows x64。其他平台未纳入这两个旧宿主的安装准入。
-- Node 固定 `24.22.1`、pnpm 固定 `11.28.5`。支持旧 DSH 不等于支持旧 Node、旧浏览器或数据格式降级。
+- 插件声明宿主范围 `hostRange` = `>=0.2.1-rc.2 <0.3.0`，写进 `engines.dsh`、`dsh.compatibleHost` 与全部 `@deepseek-ai/dsh-*` peers。按 npm 规则，范围内的预发布版只限 `0.2.1-*`；`0.2.2-alpha.*` 之类的其他预发布版不在范围内。
+- `verifiedHosts`（rc.4、rc.3、rc.2）是跑过完整兼容套件、带官方 SRI 与社区组合的版本；默认新装仍为 rc.4。
+- 范围内但未验证的版本（例如未来的 `0.2.1` 正式版）可以安装：安装器打印警告，从 npm registry 元数据取官方 tgz 的完整性，只开放已验证宿主出现过的平台，不附装社区插件。
+- `knownBroken` 中的版本与范围外的版本（`0.3.0` 起、更早的 rc）直接拒绝。
+- rc.4 保留 Linux x64/arm64、macOS x64/arm64、Windows x64 的既有成品安装范围；rc.3、rc.2 限定 Linux x64 与 Windows x64。
+- Node 要求 major 24（`engines.node` = `>=24.0.0`，私有运行时下载 `24.22.1`）；pnpm 固定 `11.28.5`。`@deepseek-ai/cordis` / `@deepseek-ai/schemastery` / `react` peers 为 `^4.0.5` / `^3.18.5` / `^18.3.0`。支持旧 DSH 不等于支持旧 Node、旧浏览器或数据格式降级。
 - 真实浏览器核心验收使用 Chromium/Edge。WebKit、触屏、Electron、多窗口、真实外部收费 provider、旧定制 web/search 会话继续写入均为 **unverified**。
 
 版本清单与当前源提交的 CI 报告共同界定验收。`compatibility-<host>-<platform>` 在 Linux x64 与 Windows x64 分别生成分层 JSON、日志和截图；五个平台的 `consumer-*` 产物只证明实际安装、加载自检和官方文件完整性，不能替代浏览器检查。失败或 unverified 层不能计为通过。

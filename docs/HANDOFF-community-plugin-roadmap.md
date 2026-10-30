@@ -207,6 +207,13 @@ WP0 与 WP6 的 lint 部分可以并行；WP2 与 WP3 可以并行；WP4 与 WP5
 
 **风险**：rc.5 若改了 `ChatTurnProcessPresentation` 等公开契约，canary 会红；那是 WP5 的输入，不在本 WP 修。
 
+> **WP2 执行记录**
+> - `compatibility.json` 升为 `schemaVersion: 2`，`hosts` 改名 `verifiedHosts`，加 `hostRange` 与 `knownBroken`。安装器不带 node_modules，范围判断在 `compatibility.mjs` 里自带一个 SemVer 比较与 npm 预发布规则（预发布只匹配同 major.minor.patch 上带预发布的比较器），所以 `0.2.2-alpha.2` 本来就不在范围内，`knownBroken` 让拒绝理由更明确。加载时断言所有已验证宿主与默认宿主都满足范围。
+> - 未验证宿主：`getHostCompatibility` 返回 `status: 'unverified'` 与警告，平台取已验证宿主平台的并集，不附装社区插件。新装时没有记录的 SRI，manager 从 `registry.npmjs.org/@deepseek-ai%2Fdsh/<版本>` 取 `dist.tarball` / `dist.integrity` 再走原有的 `verifyReleaseSources` 逐包核验；已有后端则沿用其依赖闭包核验。
+> - Node 断言在 `create-preview.mjs`、`tests/compat/run.mjs` 与 manager 的运行时检查里都改为 major 匹配（pnpm 仍精确）。私有 bootstrap 仍下载 `24.22.1`，`install-existing.*` 对已有 Node 的检查仍是精确版本，它决定是否需要下载私有 Node，不属于插件声明。
+> - `tests/compat/run.mjs` 不再要求 `--host` 属于精确集合，而是用预览里的 `installer/compatibility.mjs` 判定，结果 JSON 带 `hostStatus`。canary 每个目标版本跑 `run.mjs`（隔离消费者 + 浏览器）和 `npm-install.e2e.mjs`（一行 npm 路径）。目标由 `scripts/upstream-targets.mjs` 从 registry 元数据挑最新的未验证预发布版与正式版（只取比最新已验证版更新的），当前结果 `["0.2.1-rc.5"]`。
+> - 未推送，无法手动 `workflow_dispatch`；改为本地对 rc.5 跑同一条 `run.mjs`（Windows x64，Edge）：第一次 browser 层 3 项失败（`installed-loader-shared-instances`、`sidebar-read-edit-save-and-markdown-fold`、`context-real-statistics`），原因是未验证宿主不附装 `dsh-context` / `dsh-better-sidebar`，而这三项检查依赖它们，不是 rc.5 契约变化。于是 `run.mjs` 对未验证宿主改为用 `community --manifest` 装默认宿主的社区组合作为候选（结果 JSON 记 `communityCandidate`）；在同一消费者上补装后用 `--state` 重跑，installation / officialBefore / mcp / lifecycle / webConfiguration / browser（12 项）/ failedUpgrade / unrelatedData / officialAfter 全部通过。结论：rc.5 兼容，矩阵记为「范围内未验证、canary 通过」；按 CONTRIBUTING 写进 `verifiedHosts` 需要 Linux x64 CI 证据与插件 patch 发布，留给 owner 推送后由 canary 补齐。
+
 ---
 
 ### WP3 行为边界与配置（M2，1 个对话，小）

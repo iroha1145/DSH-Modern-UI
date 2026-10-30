@@ -1,0 +1,108 @@
+name: Upstream canary
+
+# Daily: run the compatibility suite against the newest official DSH prerelease and release that
+# are not yet verified. A failure opens (or comments on) one issue per host version; a pass is the
+# signal to follow CONTRIBUTING.md and add the host to verifiedHosts.
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+    inputs:
+      host:
+        description: 'Official @deepseek-ai/dsh version (empty: newest unverified prerelease and release)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  DSH_TELEMETRY_DISABLED: '1'
+
+jobs:
+  targets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      hosts: ${{ steps.pick.outputs.hosts }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: '24.22.1'
+      - id: pick
+        env:
+          REQUESTED_HOST: ${{ inputs.host }}
+        run: |
+          if [ -n "$REQUESTED_HOST" ]; then node scripts/upstream-targets.mjs --host "$REQUESTED_HOST"
+          else node scripts/upstream-targets.mjs; fi
+
+  canary:
+    needs: targets
+    if: needs.targets.outputs.hosts != '[]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        host: ${{ fromJSON(needs.targets.outputs.hosts) }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: '24.22.1'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install the browser
+        run: |
+          node node_modules/playwright-core/cli.js install --with-deps chromium
+          node -e "require('node:fs').appendFileSync(process.env.GITHUB_ENV, 'MODERN_UI_BROWSER=' + require('playwright-core').chromium.executablePath() + '\n')"
+      - run: npm run build
+      - run: node scripts/create-preview.mjs
+      - name: Compatibility suite (isolated consumer)
+        id: suite
+        run: node tests/compat/run.mjs --preview .artifacts/plugin-preview --host '${{ matrix.host }}' --root "$RUNNER_TEMP/canary"
+      - name: One-line npm path
+        id: npm
+        if: always()
+        run: node tests/compat/npm-install.e2e.mjs --plugin .artifacts/plugin-preview/modern-ui.tgz --host '${{ matrix.host }}' --root "$RUNNER_TEMP/canary-npm"
+      - uses: actions/upload-artifact@v7.0.1
+        if: always()
+        with:
+          name: canary-${{ matrix.host }}
+          path: |
+            ${{ runner.temp }}/canary/results-*/**/*.json
+            ${{ runner.temp }}/canary/results-*/**/*.log
+            ${{ runner.temp }}/canary/results-*/**/*.png
+            ${{ runner.temp }}/canary-npm/evidence/
+          if-no-files-found: warn
+          retention-days: 14
+
+  report:
+    needs: [targets, canary]
+    if: failure() && needs.targets.outputs.hosts != '[]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      issues: write
+    steps:
+      - name: Open or update one issue per failing host
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api "repos/$GH_REPO/actions/runs/$RUN_ID/jobs" --paginate \
+            --jq '.jobs[] | select(.name | startswith("canary (")) | select(.conclusion == "failure") | .name' |
+          sed -E 's/^canary \((.*)\)$/\1/' | while read -r host; do
+            title="upstream: $host 兼容失败"
+            body="Upstream canary failed for official DSH \`$host\`: $RUN_URL (evidence artifact \`canary-$host\`)."
+            existing=$(gh issue list --state open --search "\"$title\" in:title" --json number,title --jq ".[] | select(.title == \"$title\") | .number" | head -n 1)
+            if [ -n "$existing" ]; then gh issue comment "$existing" --body "$body"
+            else gh issue create --title "$title" --body "$body"; fi
+          done

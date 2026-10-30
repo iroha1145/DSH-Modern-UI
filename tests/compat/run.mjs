@@ -54,7 +54,7 @@ if (existing) {
 }
 const catalog = !existing && await json(path.join(preview, 'preview.json'))
 if (existing && options['--host']) assert.equal(existing.officialSource.version, options['--host'], 'The supplied state must match the requested host')
-assert.equal(process.version, `v${existing?.compatibility.node ?? catalog.node}`, 'Use the exact declared Node runtime')
+assert.equal(process.version.split('.')[0], `v${(existing?.compatibility.node ?? catalog.node).split('.')[0]}`, 'Use the declared Node major version')
 const versions = existing ? [existing.officialSource.version] : options['--host'] ? [options['--host']] : catalog.compatibleHosts
 const report = { schemaVersion: 1, startedAt: new Date().toISOString(), platform: `${process.platform}-${process.arch}`,
   node: process.version, preview, hosts: [], boundaries: ['No paid provider calls', 'External providers, old Node, old browsers and data-format downgrade are unverified', 'Store 0.1.4 is excluded; its separate regression records an unsupported plugin, not a successful compatibility check'] }
@@ -67,7 +67,9 @@ for (const version of versions) {
   try {
     let state = existing
     if (!state) {
-      assert.ok(catalog.compatibleHosts.includes(version), `Host ${version} is outside the precompiled artifact's exact set`)
+      // An unverified host inside the range is what the upstream canary exercises; the installer warns for it.
+      const { defaultHostVersion, getHostCompatibility } = await import(pathToFileURL(path.join(preview, 'installer/compatibility.mjs')).href)
+      result.hostStatus = getHostCompatibility(version).status
       const { main } = await import(pathToFileURL(path.join(preview, 'installer/manager.mjs')).href)
       const consumer = path.join(root, `${version}-${randomUUID()}`)
       const program = path.join(consumer, 'program')
@@ -75,7 +77,15 @@ for (const version of versions) {
       await save(path.join(consumer, '.compat-consumer.json'), { owner: 'modern-ui-compatibility-tests', program, home: path.join(consumer, 'home') })
       await main(['install', '--root', program, '--home', path.join(consumer, 'home'), '--backend-version', version,
         '--node', process.execPath, '--plugin', path.join(preview, catalog.plugin.filename), '--plugin-integrity', catalog.plugin.integrity])
-      await main(['community', '--root', program])
+      if (result.hostStatus === 'verified') await main(['community', '--root', program])
+      else {
+        // Users of an unverified host get no community plugins; the canary tries the default host's set
+        // as the candidate combination, so a pass is evidence for recording it in verifiedHosts.
+        const candidate = path.join(consumer, 'community-candidate.json')
+        result.communityCandidate = getHostCompatibility(defaultHostVersion).communityPlugins
+        await save(candidate, { plugins: result.communityCandidate })
+        await main(['community', '--root', program, '--manifest', candidate])
+      }
       state = await json(path.join(program, 'current.json'))
     }
     assert.equal(state.officialSource.version, version)

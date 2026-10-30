@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { selectInstallHost, verifyPluginCompatibility, main } from '../../scripts/distribution/manager.mjs'
-import { defaultHostVersion, supportedHostVersions, getHostCompatibility } from '../../scripts/distribution/compatibility.mjs'
+import { defaultHostVersion, hostRange, supportedHostVersions, getHostCompatibility, satisfiesRange, compareVersions } from '../../scripts/distribution/compatibility.mjs'
 
 async function fixture(t, version, name = '@deepseek-ai/dsh') {
   // selectInstallHost resolves real paths; macOS temp directories sit behind the /var symlink.
@@ -16,14 +16,15 @@ async function fixture(t, version, name = '@deepseek-ai/dsh') {
   return { directory, backend }
 }
 
-test('fresh install selects only the manifest default or an exact requested host', async () => {
+test('fresh install selects the manifest default or a requested host inside the range', async () => {
   assert.equal((await selectInstallHost({})).compatibility.officialSource.version, defaultHostVersion)
   for (const version of supportedHostVersions) {
     const selected = await selectInstallHost({ 'backend-version': version })
     assert.equal(selected.backend, undefined)
     assert.equal(selected.compatibility.officialSource.version, version)
   }
-  for (const version of ['*', '>=0.2.1-rc.3', '0.2.1', '0.2.1-rc.999']) {
+  // Invalid, out of range, or known broken: refused before any download.
+  for (const version of ['*', '>=0.2.1-rc.3', '0.2.0', '0.3.0', '0.3.0-rc.1', '0.2.1-rc.1', '0.2.2-alpha.2']) {
     await assert.rejects(selectInstallHost({ 'backend-version': version }))
   }
 })
@@ -43,24 +44,48 @@ for (const version of supportedHostVersions) {
   })
 }
 
+test('host range follows SemVer precedence and the npm prerelease rule', () => {
+  for (const version of supportedHostVersions) assert.ok(satisfiesRange(version, hostRange))
+  for (const version of ['0.2.1-rc.5', '0.2.1-rc.10', '0.2.1', '0.2.2', '0.2.9']) assert.ok(satisfiesRange(version, hostRange), version)
+  for (const version of ['0.2.1-rc.1', '0.2.1-alpha.5', '0.2.2-alpha.2', '0.3.0', '0.3.0-rc.1', '0.2.0', '1.0.0', 'latest']) {
+    assert.equal(satisfiesRange(version, hostRange), false, version)
+  }
+  assert.ok(compareVersions('0.2.1-rc.10', '0.2.1-rc.9') > 0)
+  assert.ok(compareVersions('0.2.1', '0.2.1-rc.9') > 0)
+  assert.ok(compareVersions('1.0.0-alpha', '1.0.0-alpha.1') < 0)
+  assert.ok(compareVersions('1.0.0-alpha.beta', '1.0.0-alpha.1') > 0)
+})
+
+test('an existing host inside the range is allowed unverified, without community plugins or a pinned source', async t => {
+  const { backend } = await fixture(t, '0.2.1-rc.999')
+  const selected = await selectInstallHost({ backend })
+  assert.equal(selected.backend, backend)
+  assert.equal(selected.compatibility.status, 'unverified')
+  assert.match(selected.compatibility.warning, /has not been verified/)
+  assert.deepEqual(selected.compatibility.communityPlugins, [])
+  assert.equal(selected.compatibility.officialSource.integrity, undefined)
+  const broken = await fixture(t, '0.2.2-alpha.2')
+  await assert.rejects(selectInstallHost({ backend: broken.backend }), /known to be incompatible/)
+})
+
 test('unsupported or unrelated existing packages cannot silently use the default', async t => {
-  const unsupported = await fixture(t, '0.2.1-rc.999')
+  const unsupported = await fixture(t, '0.3.0')
   const unrelated = await fixture(t, defaultHostVersion, '@example/unrelated')
   await assert.rejects(selectInstallHost({ backend: unsupported.backend }))
   await assert.rejects(selectInstallHost({}, { backend: unsupported.backend }))
   await assert.rejects(selectInstallHost({ backend: unrelated.backend }), /name mismatch/)
 })
 
-test('artifact admission requires exact manifest declarations and no consumer build hooks', () => {
+test('artifact admission requires the manifest host range and no consumer build hooks', () => {
   for (const version of supportedHostVersions) {
     const compatibility = getHostCompatibility(version)
     const expected = compatibility.plugin
-    const declaration = expected.compatibleHosts.join(' || ')
+    const declaration = expected.hostRange
     const artifact = { name: expected.name, version: expected.version, dsh: { compatibleHost: declaration }, engines: { dsh: declaration } }
     verifyPluginCompatibility(artifact, compatibility)
-    for (const value of ['*', '>=0.2.1-rc.3', '0.2.1-rc.999']) {
-      assert.throws(() => verifyPluginCompatibility({ ...artifact, dsh: { compatibleHost: value } }, compatibility), /exact verified host set/)
-      assert.throws(() => verifyPluginCompatibility({ ...artifact, engines: { dsh: value } }, compatibility), /exact verified host set/)
+    for (const value of ['*', '>=0.2.1-rc.3', '0.2.1-rc.999', supportedHostVersions.join(' || ')]) {
+      assert.throws(() => verifyPluginCompatibility({ ...artifact, dsh: { compatibleHost: value } }, compatibility), /host range/)
+      assert.throws(() => verifyPluginCompatibility({ ...artifact, engines: { dsh: value } }, compatibility), /host range/)
     }
     assert.throws(() => verifyPluginCompatibility({ ...artifact, scripts: { install: 'node compile.js' } }, compatibility), /build lifecycle/)
     assert.throws(() => verifyPluginCompatibility({ ...artifact, version: 'unverified' }, compatibility), /artifact identity/)
@@ -68,7 +93,7 @@ test('artifact admission requires exact manifest declarations and no consumer bu
 })
 
 test('unsupported host install fails before touching the data home or selecting a generation', async t => {
-  const { directory, backend } = await fixture(t, '0.2.1-rc.999')
+  const { directory, backend } = await fixture(t, '0.3.0')
   const root = join(directory, 'program')
   const home = join(directory, 'untouched-home')
   const plugin = join(directory, 'plugin.tgz')

@@ -9,7 +9,7 @@ import { createRequire } from 'node:module'
 import { checkIntegrity, snapshot, verifySnapshot } from './integrity.mjs'
 import { webSelfTest } from './web-self-test.mjs'
 import { dependencyInventory } from './dependency-inventory.mjs'
-import { verifyReleaseSources } from './verify-release-source.mjs'
+import { fetchBytes, verifyReleaseSources } from './verify-release-source.mjs'
 import { bindHostCompatibility, preserveEffectivePreferences, preserveConversationPreferences, preservePresentationPrompt, validateUiOwnerBindings } from './profile-settings.mjs'
 import { acquireOperationLock } from './operation-lock.mjs'
 import { backupDataHome } from './data-backup.mjs'
@@ -211,16 +211,24 @@ export async function selectInstallHost(options, previous) {
       throw new Error('Changing the host version of a managed data home is not supported; use a new program root and isolated data copy, verified by the target official reader')
     }
   }
-  return { backend, compatibility: getHostCompatibility(version) }
+  const compatibility = getHostCompatibility(version)
+  if (compatibility.status !== 'unverified') return { backend, compatibility }
+  console.warn(`Warning: ${compatibility.warning}`)
+  if (backend) return { backend, compatibility }
+  // No recorded integrity: take the tarball identity from the official registry, the same source
+  // the release-provenance check trusts for every other installed package.
+  const published = JSON.parse((await fetchBytes(`https://registry.npmjs.org/@deepseek-ai%2Fdsh/${encodeURIComponent(version)}`)).toString())
+  if (published.name !== '@deepseek-ai/dsh' || published.version !== version || !published.dist?.integrity) throw new Error(`Registry metadata for @deepseek-ai/dsh@${version} is incomplete`)
+  return { backend, compatibility: { ...compatibility,
+    officialSource: { ...compatibility.officialSource, url: published.dist.tarball, integrity: published.dist.integrity } } }
 }
 
 export function verifyPluginCompatibility(plugin, compatibility) {
   const expected = compatibility.plugin
   if (plugin.name !== expected.name || plugin.version !== expected.version) throw new Error('Unexpected Modern UI artifact identity')
   if (Object.keys(plugin.scripts ?? {}).some(key => ['preinstall', 'install', 'postinstall', 'prepare'].includes(key))) throw new Error('Consumer plugin may not have build lifecycle scripts')
-  const declaration = expected.compatibleHosts.join(' || ')
-  if (plugin.dsh?.compatibleHost !== declaration || plugin.engines?.dsh !== declaration) {
-    throw new Error('Plugin must declare the exact verified host set from the compatibility manifest')
+  if (plugin.dsh?.compatibleHost !== expected.hostRange || plugin.engines?.dsh !== expected.hostRange) {
+    throw new Error('Plugin must declare the host range from the compatibility manifest')
   }
 }
 
@@ -277,7 +285,8 @@ async function stage(state, options, bytes, previousReference) {
     if (options.pnpm) state.pnpm = await realpath(resolve(options.pnpm))
     else await provisionPnpm(state)
   }
-  if (run(state.node, ['--version']) !== `v${versions.node}` || run(state.node, [state.pnpm, '--version']) !== versions.pnpm) throw new Error('Exact Node/pnpm version mismatch')
+  // The runtime lock pins the exact Node by integrity; a supplied runtime only has to match its major version.
+  if (run(state.node, ['--version']).split('.')[0] !== `v${versions.node.split('.')[0]}` || run(state.node, [state.pnpm, '--version']) !== versions.pnpm) throw new Error('Node major or exact pnpm version mismatch')
   state.powershell = await preparePowerShell(state)
   await privatePnpm(state)
   if (!state.backend) {
@@ -306,7 +315,7 @@ async function stage(state, options, bytes, previousReference) {
     state.officialBaseline = inventory.packages
     state.officialOptionalMissing = inventory.optionalMissing
     state.inventoryFormat = 2
-    const ledger = await verifyReleaseSources(inventory.packages, join(root, 'release-cache'), join(generation, 'release-verification'), { [`${state.officialSource.name}@${state.officialSource.version}`]: state.officialSource })
+    const ledger = await verifyReleaseSources(inventory.packages, join(root, 'release-cache'), join(generation, 'release-verification'), state.officialSource.integrity ? { [`${state.officialSource.name}@${state.officialSource.version}`]: state.officialSource } : {})
     await save(state.sourceLedger, ledger)
     state.sourceProof = { verified: true, packages: ledger.length, ledgerSha256: createHash('sha256').update(await readFile(state.sourceLedger)).digest('hex') }
   }

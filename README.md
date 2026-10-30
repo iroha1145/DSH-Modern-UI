@@ -54,7 +54,7 @@ dsh plugin --profile web add @iroha1145/dsh-modern-ui
 
 ## 本地构建
 
-需 Node.js `24.22.1`，仓库使用 npm 与 `package-lock.json`：
+需 Node.js 24（CI 使用 `24.22.1`），仓库使用 npm 与 `package-lock.json`：
 
 ```bash
 npm ci --ignore-scripts

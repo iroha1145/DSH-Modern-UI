@@ -6,11 +6,11 @@ import { cp, mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { officialSource, versions } from './distribution/manager.mjs'
-import { supportedHostVersions, getHostCompatibility } from './distribution/compatibility.mjs'
+import { hostRange, supportedHostVersions, getHostCompatibility } from './distribution/compatibility.mjs'
 
 const userDocuments = ['install.md', 'compatibility.md', 'compatibility', 'architecture.md', 'data-migration.md', 'host-compat.md']
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-assert.equal(process.version, `v${versions.node}`, 'Build previews with the pinned Node runtime')
+assert.equal(process.version.split('.')[0], `v${versions.node.split('.')[0]}`, 'Build previews with the declared Node major version')
 for (const filename of ['build-inputs.json', 'host-build-inputs.json']) {
   const built = JSON.parse(await readFile(path.join(root, 'packages/modern-ui/lib', filename), 'utf8'))
   assert.deepEqual(built.compatibleHosts, supportedHostVersions, 'Rebuild the plugin after changing the compatibility manifest')
@@ -35,7 +35,8 @@ const communities = JSON.parse(await readFile(path.join(output, 'installer/commu
 const manifest = {
   schemaVersion: 1, status: process.env.MODERN_UI_RELEASE ? 'released' : 'local-preview-unpublished',
   acceptanceRecord: 'docs/compatibility.md',
-  compatibilityScope: 'Exact host versions; feature and platform acceptance is recorded separately by test:compat',
+  compatibilityScope: 'Host range with an exact verified list; feature and platform acceptance is recorded separately by test:compat',
+  hostRange,
   plugin: { name: packed.name, version: packed.version, filename: 'modern-ui.tgz', integrity, bytes: bytes.length },
   backend: officialSource,
   compatibleHosts: supportedHostVersions,
