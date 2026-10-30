@@ -2,7 +2,9 @@ name: Upstream canary
 
 # Daily: run the compatibility suite against the newest official DSH prerelease and release that
 # are not yet verified. A failure opens (or comments on) one issue per host version; a pass is the
-# signal to follow CONTRIBUTING.md and add the host to verifiedHosts.
+# signal to follow CONTRIBUTING.md and add the host to verifiedHosts. Each host also gets a vendor
+# drift report (scripts/vendor-drift.mjs): which vendored upstream sources it changed, the first clue
+# for a failure; the issue quotes its part since the newest verified host.
 on:
   schedule:
     - cron: '17 3 * * *'
@@ -56,6 +58,11 @@ jobs:
         with:
           node-version: '24.22.1'
       - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Vendor drift
+        continue-on-error: true
+        run: |
+          mkdir -p "$RUNNER_TEMP/canary-drift"
+          node scripts/vendor-drift.mjs --host '${{ matrix.host }}' --json "$RUNNER_TEMP/canary-drift/vendor-drift.json" --markdown "$RUNNER_TEMP/canary-drift/vendor-drift.md"
       - name: Install the browser
         run: |
           node node_modules/playwright-core/cli.js install --with-deps chromium
@@ -78,6 +85,7 @@ jobs:
             ${{ runner.temp }}/canary/results-*/**/*.log
             ${{ runner.temp }}/canary/results-*/**/*.png
             ${{ runner.temp }}/canary-npm/evidence/
+            ${{ runner.temp }}/canary-drift/
           if-no-files-found: warn
           retention-days: 14
 
@@ -90,6 +98,11 @@ jobs:
       actions: read
       issues: write
     steps:
+      - uses: actions/download-artifact@v8.0.2
+        continue-on-error: true
+        with:
+          pattern: canary-*
+          path: evidence
       - name: Open or update one issue per failing host
         env:
           GH_TOKEN: ${{ github.token }}
@@ -102,6 +115,13 @@ jobs:
           sed -E 's/^canary \((.*)\)$/\1/' | while read -r host; do
             title="upstream: $host 兼容失败"
             body="Upstream canary failed for official DSH \`$host\`: $RUN_URL (evidence artifact \`canary-$host\`)."
+            drift=$(find "evidence/canary-$host" -name vendor-drift.md 2>/dev/null | head -n 1)
+            if [ -n "$drift" ]; then
+              # Quote only the part since the newest verified host; the cumulative list stays in the artifact.
+              recent=$(sed '/^### 相对 vendor 抓取基线/,$d' "$drift")
+              nl=$'\n'
+              body="$body$nl$nl${recent:-$(head -n 3 "$drift")}$nl${nl}累计漂移见 artifact 中的 \`vendor-drift.md\` / \`vendor-drift.json\`。"
+            fi
             existing=$(gh issue list --state open --search "\"$title\" in:title" --json number,title --jq ".[] | select(.title == \"$title\") | .number" | head -n 1)
             if [ -n "$existing" ]; then gh issue comment "$existing" --body "$body"
             else gh issue create --title "$title" --body "$body"; fi
