@@ -337,6 +337,13 @@ WP0 与 WP6 的 lint 部分可以并行；WP2 与 WP3 可以并行；WP4 与 WP5
 
 **验收**：README 首屏在 GitHub 默认宽度下无需滚动即可看到安装命令与截图。
 
+> **WP7 执行记录（`wp7/docs`）**
+> - 第 1 步：npm `keywords` 早已含 `dsh-plugin`、`deepseek-harness`、`cordis-plugin`；GitHub 仓库 topic 属于仓库设置，留给 owner（见 §9.3）。
+> - 第 2 步：`README.md` 首屏加语言切换和明暗两张截图，新增 `README.en.md`。截图由 `tests/compat/readme-screenshots.mjs` 生成：在隔离消费者里装预览包与演示模型（`tests/compat/fixtures/demo-provider.mjs`），模型输出推理、调用官方 `grep` / `read` 读演示工作区，再给出带代码块、表格和 `followups` 的回答，无头 Chromium 1280×800 拍亮色（本轮开头，过程展开）与暗色（回答结尾）。不调用任何真实模型。
+> - 第 3 步：FAQ 五条（看不到变化、社区插件共存、切回官方界面、宿主升级后失效、是否支持 Desktop），中英文 README 各一份。Desktop 条目引用 WP8 结论：部分支持，原生桥未验证。
+> - 第 4 步：按 owner 指示暂不提交市场。核对结果：市场指南（deepseek.stream/guide）只对 Skill 列出 8 个分类（`academic`、`security`、`reverse`、`workflow`、`dev`、`ops`、`prompt`、`tools`），插件 `dsh.category` 只有示例值 `tools`；官方 `dsh-plugin-market-index` 的分类是市场索引自行声明的不透明 id，宿主不校验包里的 `dsh.category`，官方包也都没有声明。`"ui"` 暂不改，提交时以审核为准，必要时改为 `tools`。
+> - 第 5 步：`docs/architecture.md` 新增 Mermaid 接管关系图与插件作者约定（只走公开槽位、`modern.*` 槽位不对外、两种状态下各自测一遍）。
+
 ---
 
 ### WP8 Desktop 双端支持验收（M3，1 至 2 个对话，中；需要一台装有官方 Desktop 应用的机器）
@@ -442,8 +449,9 @@ WP0、WP1、WP2、WP3、WP6 对照 §2 原则与各 WP 验收逐项核对，均�
 - [x] WP4 开工前补回 translator 空白译文拒绝与 MCP 重定向拒绝的自动化回归（见 `docs/host-compat.md`），否则拆包时没有行为基线。→ `wp6b/regression-gaps`：`tests/compat/host-replacements.test.mjs`，10 项。
 - [x] WP6 遗留：`chat-snapshot-builder.ts`、`assembler.ts` 单测。→ `wp6b/regression-gaps`：`tests/unit/conversation-assembler.test.ts`（12 项）、`tests/unit/chat-snapshot-builder.test.ts`（7 项），经真实组装器驱动，位置与时间线来自引擎本身。
 - [ ] `.gitattributes` 的 `-text` 收窄随 WP5。
-- [ ] WP7：核对 `dsh.category: "ui"` 是否为市场枚举值；README 截图 / GIF；FAQ 增加「是否支持 Desktop」条目（结论来自 WP8）。
-- [ ] WP4、WP5、WP7、WP8 尚未开始；WP8（Desktop 双端支持验收）的现状、步骤、验收与待决策见 §5。
+- [x] WP7：核对 `dsh.category: "ui"`（市场未给插件分类枚举，暂不改）；README 截图；FAQ「是否支持 Desktop」。→ `wp7/docs`，见 §5 WP7 执行记录。
+- [ ] WP7 遗留（owner）：GitHub 仓库 topic 加 `dsh-plugin`、`deepseek-harness`、`cordis-plugin`；发布 npm 后再提交 deepseek.stream 市场。
+- [ ] WP4 尚未开始；WP5 只完成第 1 步（漂移检测），架构终态待 §7 第 4 项拍板。
 
 ### 9.4 作用面：Web Client 与 Desktop
 

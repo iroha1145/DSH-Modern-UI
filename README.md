@@ -1,14 +1,21 @@
 # DSH Modern UI
 
+中文 · [English](README.en.md)
+
 为官方 **DeepSeek Harness（DSH）** 打造的现代化 Web 界面插件（`@iroha1145/dsh-modern-ui`）。不修改官方后端，随时可切回官方界面。
 
 ```bash
 dsh plugin --profile web add @iroha1145/dsh-modern-ui
 ```
 
-装好后**刷新浏览器**即可看到 Modern UI。想切回官方界面：在「插件管理」停用整个 `@iroha1145/dsh-modern-ui` bundle 并刷新，或执行 `dsh plugin --profile web remove @iroha1145/dsh-modern-ui`。支持的宿主版本见[兼容矩阵](docs/compatibility.md)。
+装好后**刷新浏览器**即可看到 Modern UI；切回官方界面见[常见问题](#常见问题)，支持的宿主版本见[兼容矩阵](docs/compatibility.md)。
 
-> 前提：已安装受支持版本的官方 DSH，且 `pnpm` 在 PATH 上（`dsh plugin` 会把命令转发给 pnpm）。如果从未启动过 web profile，先运行一次 `dsh web`。
+<p>
+  <img src="docs/assets/screenshot-light.png" alt="Modern UI 亮色主题：推理分组、官方工具卡与回答" width="49%">
+  <img src="docs/assets/screenshot-dark.png" alt="Modern UI 暗色主题：代码块、表格与追问建议" width="49%">
+</p>
+
+> 前提：已安装受支持版本的官方 DSH，且 `pnpm` 在 PATH 上（`dsh plugin` 会把命令转发给 pnpm）。如果从未启动过 web profile，先运行一次 `dsh web`。截图里的模型是本地演示模型，由 [`tests/compat/readme-screenshots.mjs`](tests/compat/readme-screenshots.mjs) 在隔离环境里生成。
 
 ---
 
@@ -66,6 +73,28 @@ dsh plugin --profile web add @iroha1145/dsh-modern-ui
 
 安装完成后运行程序目录下的 `dsh-ui.cmd`（Windows）或 `dsh-ui`（macOS / Linux）。状态、校验、回滚与卸载命令见[安装详情](docs/install.md)。
 
+## 常见问题
+
+### 装好后界面没有变化？
+
+先刷新浏览器（Desktop 要完全退出再打开）。仍是官方界面时，到「插件管理」确认整个 `@iroha1145/dsh-modern-ui` bundle 处于启用状态，并确认装进了正在运行的 profile：`dsh web` 用的是 `web`，Desktop 用的是 `desktop`。宿主启动日志里如果出现 `entry did not activate`，后面会列出没有激活的条目和原因。
+
+### 能和 better-sidebar 等社区插件一起用吗？
+
+已验证组合是 `dsh-context@0.75.1` 和 `dsh-better-sidebar@0.28.0`，兼容回归每次都带着它们跑。其他插件只要通过官方公开槽位贡献内容一般可以共存；依赖官方私有 DOM 或内部方法的插件，以及另带一套聊天或布局界面的插件不保证兼容，见[兼容矩阵](docs/compatibility.md)。
+
+### 怎么切回官方界面？
+
+在「插件管理」停用**整个** bundle 并刷新，或执行 `dsh plugin --profile web remove @iroha1145/dsh-modern-ui`。只停用里面的 `modern-ui` 条目不够：bundle 停用了七个官方界面模块，只有整个 bundle 关闭时才会还原。配置里有显式宿主兼容绑定时，移除前的额外步骤见[安装详情](docs/install.md)。
+
+### 官方 DSH 升级后插件失效怎么办？
+
+先看[兼容矩阵](docs/compatibility.md)：新版本是否在支持范围内、是否已验证。每天的 canary 会用新的官方版本跑兼容套件，失败时开一个标题为 `upstream: <版本> 兼容失败` 的 [issue](https://github.com/iroha1145/DSH-Modern-UI/issues)，里面附有失败证据和上游改动线索。修复发布前，可以装回矩阵里最近一个已验证的宿主版本；没有对应 issue 时欢迎新开一个，写明 DSH 版本、平台和启动日志。
+
+### 支持官方 Desktop 吗？
+
+部分支持。Desktop 0.2.1-rc.5 / Windows x64 上，Web Client 的 12 项检查、主题跟随、窄视口和移除重装都已通过；原生文件拖出、多窗口、「Open In…」、原生目录选择器和 macOS 外壳尚未验证。安装步骤见上方[官方 Desktop](#官方-desktop)，逐项结论见 [Desktop 验收记录](docs/compatibility/desktop-0.2.1-rc.5.md)。
+
 ## 本地构建
 
 需 Node.js 24（CI 使用 `24.22.1`），仓库使用 npm 与 `package-lock.json`：
@@ -78,7 +107,7 @@ npm run preview    # 生成 .artifacts/plugin-preview（tgz + 可选安装器）
 
 ## 文档
 
-- [安装详情](docs/install.md)、[兼容矩阵](docs/compatibility.md)、[架构与 UI 映射](docs/architecture.md)、[旧数据迁移](docs/data-migration.md)、[宿主兼容层](docs/host-compat.md)
+- [安装详情](docs/install.md)、[兼容矩阵](docs/compatibility.md)、[架构与 UI 映射](docs/architecture.md)（含给第三方插件作者的接管关系图）、[旧数据迁移](docs/data-migration.md)、[宿主兼容层](docs/host-compat.md)
 - 审计与 PR 跟进记录在 [`docs/history/`](docs/history/)
 - 旧的“下载上游源码 + 打补丁再编译”路线已从 main 移除，见 tag [`legacy-patch-final`](https://github.com/iroha1145/DSH-Modern-UI/tree/legacy-patch-final)
 

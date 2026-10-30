@@ -6,6 +6,8 @@
 
 ### Added
 
+- README 首屏截图（明暗各一，`tests/compat/readme-screenshots.mjs` 在隔离环境里用演示模型生成）、英文版 `README.en.md` 与常见问题。
+- `docs/architecture.md` 新增给第三方插件作者的接管关系图。
 - vendor 漂移报告 `scripts/vendor-drift.mjs`：对比 vendored 拷贝的上游源文件在指定官方版本里的改动，接入每日 canary（步骤摘要、artifact、失败 issue）。
 
 ### Fixed

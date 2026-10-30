@@ -10,6 +10,42 @@ React、React DOM、Cordis、client-store、ui-slots 和官方 ui-primitives 共
 
 官方 Host/session/Remote、命令执行、配置、上传、插件管理、模型目录、locale 和 theme 保留。插件只打包模型展示需要的客户端 catalog/directory/resolver，选择仍调用同一官方 API，状态仍来自原 Session projection。Conversation 复用公开 Host schema/apply，偏好写入 `modern-ui`；安装器从实际生效的旧配置迁移并保存回执。
 
+## 接管关系图（给第三方插件作者）
+
+```mermaid
+flowchart LR
+  subgraph Host["官方 DSH 宿主（未修改）"]
+    Patch["profile cordis patch<br/>（Modern bundle 选中时生效）"]
+    Shared["共享服务：ui-renderer / ui-slots / ui-session<br/>settings / theme / locale / connection / file-upload"]
+  end
+  subgraph Official["官方展示入口"]
+    O1["ui-layout · ui-sidebar · ui-workspace<br/>ui-conversation · ui-chat<br/>ui-model-selection · ui-tool"]
+  end
+  subgraph Modern["@iroha1145/dsh-modern-ui"]
+    M1["Modern owner：layout · sidebar · workspace<br/>conversation · chat · model · tool cards"]
+  end
+  Third["第三方插件"]
+  Slots(["公开槽位<br/>conversation.chat.node · conversation.chat.message.code<br/>conversation.input.model · tool.call.toolview<br/>settings.models.provider-card · settings.general.item …"])
+
+  Patch -- "disabled: true" --> O1
+  Patch -- "insert modern-ui" --> M1
+  M1 -- "复用同一实例" --> Shared
+  M1 -- "声明同名标准 children" --> Slots
+  Third -- "ctx.slots.register" --> Slots
+  O1 -. "bundle 取消后恢复" .-> Slots
+```
+
+- **官方 owner 被禁用**：bundle 的 [`cordis.patch.yml`](../packages/modern-ui/cordis.patch.yml) 把七个官方展示入口标为 `disabled: true`。原条目和配置留在基础 profile 里，取消或移除整个 bundle 后原样恢复；只停用 `modern-ui` 单个条目不会恢复它们。
+- **Modern owner 接管**：同一份 patch 插入 `modern-ui` 条目，客户端挂载对应的 Modern owner。宿主、会话、命令、配置、上传和插件管理仍由官方服务提供，React、Cordis、client-store 和 ui-slots 用的是宿主的同一实例。
+- **slot 注入**：Modern owner 声明与官方 owner 同名的标准槽位，所以第三方插件按官方方式 `ctx.slots.register` 的贡献在两套界面里都会出现，例如模型标签、工具详情视图、代码块渲染器、设置项和 provider 卡片。
+
+给插件作者的约定：
+
+- 只通过公开槽位和公开 store / controller 贡献界面，不要依赖 Modern 的 DOM 结构或 CSS 类名。它们随 vendor 同步变化，不属于兼容承诺。
+- `modern.*` 前缀的槽位（如 `modern.workspace.toast`）是本插件内部用的，不对外承诺。
+- 要另带一整套聊天或布局 owner 的插件会和本 bundle 争同一组入口，需要单独评审。已验证可共存的组合见[兼容矩阵](compatibility.md)。
+- 自测时分别在启用和停用 Modern bundle 两种状态下各跑一遍，确认贡献在官方界面和 Modern 界面里都出现。
+
 ## 展示映射
 
 1. 外壳、侧栏、工作区、手机 drawer 和宽度状态使用旧补丁展示，动作由原控制器执行；没有第二份工作区或会话状态。
