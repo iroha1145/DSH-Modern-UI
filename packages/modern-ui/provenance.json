@@ -8,7 +8,7 @@
   "modernUiSource": "https://github.com/iroha1145/DSH-Modern-UI",
   "modernUiCommit": "a9f4c370fa480c9a17d5c9a79cb83aeba26bdf0d",
   "patchSha256": "111b5c5a0d817685ab32440df6272f895ce385907b0f16f5e036dd443e240000",
-  "adaptation": "Packages the selected Modern layout, workspace, sidebar, conversation, chat, model-selector and Tool UI owners, presentation primitives/styles, public-contract adapters and language data. The composition disables only the replaced official UI entries. Chat includes its data/view/flow/node/factory/settings closure; Tool includes generic/denied fallback, atomic views, todo-history and standard image child slots. The model selector uses a minimal attributed client catalog/directory/resolver checked against the published rc.4 browser artifact, with standard model-label contributions; Host model catalog and selection execution remain official. Ordinary question presentations reuse the official face and the same question store; plan-review and the Agent presets settings section remain official, the latter with patched typography in official-controls.css. Quotes and browser original-byte image transfers use public conversation/slot contracts. Plugin README utilities and selected Host compatibility entries are explicitly attributed below. Original Host session, command, remote, model catalog/selection, locale, theme, attachment-upload, plugin inventory/installer and question/preset business services remain official. No official package files, module tables or prototypes are modified. Retired per-session web controls and an unavailable Electron native file-drag bridge are not restored.",
+  "adaptation": "Packages the selected Modern layout, workspace, sidebar, conversation, chat, model-selector and Tool UI owners, presentation primitives/styles, public-contract adapters and language data. The composition disables only the replaced official UI entries, and composes the Desktop onboarding progress as skipped because its final write targets the disabled Chat namespace. Chat includes its data/view/flow/node/factory/settings closure; Tool includes generic/denied fallback, atomic views, todo-history and standard image child slots. The model selector uses a minimal attributed client catalog/directory/resolver checked against the published rc.4 browser artifact, with standard model-label contributions; Host model catalog and selection execution remain official. Ordinary question presentations reuse the official face and the same question store; plan-review and the Agent presets settings section remain official, the latter with patched typography in official-controls.css. Quotes and browser original-byte image transfers use public conversation/slot contracts. Plugin README utilities and selected Host compatibility entries are explicitly attributed below. Original Host session, command, remote, model catalog/selection, locale, theme, attachment-upload, plugin inventory/installer and question/preset business services remain official. No official package files, module tables or prototypes are modified. Retired per-session web controls and an unavailable Electron native file-drag bridge are not restored.",
   "files": [
     {
       "source": "packages/client/ui-attachment/src/client/MessageImages.tsx",
@@ -3634,8 +3634,13 @@
     },
     {
       "target": "src/client.tsx",
-      "targetSha256": "4d4162c47c189a969886272d86b4747183740e04f7956e52075f7d900dc73904",
+      "targetSha256": "2fe9fd772b4f86059f283049b7b98dd4f7acbe3aa592c5209ed81170b53a25ce",
       "description": "Original plugin composition, public owner selection and presentation/service registration."
+    },
+    {
+      "target": "src/desktop-onboarding.ts",
+      "targetSha256": "1cb25a3b2faa7936aa1d9b69159b4f21d9b6c77950b6a1a36427c85ff9dc37f0",
+      "description": "Original Desktop onboarding recovery: re-inherits progress saved over the bundle patch's skipped onboarding composition through the public settings form."
     },
     {
       "target": "src/community-markdown.ts",

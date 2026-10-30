@@ -41,6 +41,7 @@ import { installPluginDocuments } from './plugin-documents/index.tsx'
 import { installOfficialControls } from './official-controls.ts'
 import { installCommunityMarkdown } from './community-markdown.ts'
 import * as conversationOwner from './conversation-owner.ts'
+import { installDesktopOnboarding } from './desktop-onboarding.ts'
 
 export const inject = ['slots', 'theme', 'locale', 'configForms', 'remote', 'remote.session']
 /** The sprite installer, exported so a test can mount a second owner without a second plugin instance. */
@@ -64,6 +65,7 @@ export async function apply(ctx: Context): Promise<void> {
   installCommunityMarkdown(ctx)
   installLanguages(ctx)
   installFileDrag(ctx)
+  installDesktopOnboarding(ctx)
   const owners = [
     ctx.plugin(layoutOwner),
     ctx.plugin(workspaceOwner),

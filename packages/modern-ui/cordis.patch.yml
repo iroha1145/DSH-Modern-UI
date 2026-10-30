@@ -23,6 +23,19 @@
 - id: ui-tool
   name: '@deepseek-ai/dsh-client-ui-tool'
   disabled: true
+# The Desktop onboarding ends by writing ui-chat, which is not served while it is disabled
+# above, so it could never close. Compose it as skipped while this bundle is selected
+# (src/desktop-onboarding.ts re-inherits progress saved before).
+- id: ui-settings-account
+  name: '@deepseek-ai/dsh-client-ui-settings-account'
+  config:
+    version: 1
+    step: done
+    purpose: null
+    process: standard
+    completion: skipped
+    usage: compact
+    developerTools: false
 - insert:
     - id: modern-ui
       name: '@iroha1145/dsh-modern-ui'
