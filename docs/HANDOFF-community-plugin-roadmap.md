@@ -346,8 +346,8 @@ WP0 与 WP6 的 lint 部分可以并行；WP2 与 WP3 可以并行；WP4 与 WP5
 **目标**：对 Desktop 给出三选一的明确结论并落到文档：「支持」「部分支持（列出不工作的面）」「不支持」。不留"理论上可以"。
 
 **步骤**
-1. 盘点 Desktop 宿主：在目标机器安装官方 Desktop，打开一次并完全退出；用 `dsh --profile desktop --dump-config` 确认 profile 目录与内嵌 `@deepseek-ai/dsh` 版本（以 `resolveProfileDir('desktop')` 的结果为准，不要猜路径）。核对该版本是否满足 `hostRange`、是否在 `verifiedHosts`；不满足时先按 CONTRIBUTING 评估是否要扩范围，不要用 `allow-version` 硬装来做结论。
-2. 安装：`dsh plugin --profile desktop add @iroha1145/dsh-modern-ui@<版本>`（M1 未发布前用 Release 的 `modern-ui.tgz`）。记录 CLI 的兼容告警、pnpm peer 警告与退出码；重启 Desktop（Desktop 没有"刷新浏览器"，bundle 切换对应的是重启应用，文档要写清）。
+1. 盘点 Desktop 宿主：在目标机器安装官方 Desktop，打开一次并完全退出；用 Desktop 自带的 `dsh`（`resources/runtime/cli/bin/dsh`，菜单「应用 → 管理 dsh 命令…」加入终端）的 `--version` 确认内嵌 `@deepseek-ai/dsh` 版本，profile 目录以 `DSH_HOME/profiles/desktop` 下出现的 `package.json` 为准。（2026-10-30 实测更正：`--profile desktop --dump-config` 无论 npm 的 `dsh` 还是 Desktop 自带的 `dsh` 都拒绝，报 `profile "desktop" is managed exclusively by the Electron application`；npm 的 `dsh plugin --profile desktop …` 同样被拒，`plugin-*.js` 里的 desktop 分支只经 Desktop 自带的 `dsh` 可达。）核对该版本是否满足 `hostRange`、是否在 `verifiedHosts`；不满足时先按 CONTRIBUTING 评估是否要扩范围，不要用 `allow-version` 硬装来做结论。
+2. 安装：用 Desktop 自带的 `dsh` 执行 `dsh plugin --profile desktop add @iroha1145/dsh-modern-ui@<版本>`（M1 未发布前用 Release 的 `modern-ui.tgz`）。记录 CLI 的兼容告警、pnpm peer 警告与退出码；重启 Desktop（Desktop 没有"刷新浏览器"，bundle 切换对应的是重启应用，文档要写清）。
 3. 手动验收清单（Desktop 不在 npm，无法进 CI；以人工清单加截图为证据）。把 `tests/compat/browser.mjs` 的 12 项浏览器检查逐条翻成人工步骤作为基线，再加 Desktop 专项：
    - macOS：hiddenInset 标题栏留白、菜单底色（`isDarwinDesktop` 分支）、减少透明度设置、全屏；
    - Windows：自定义标题栏（`data-windows-titlebar`）、最大化/全屏下的覆盖层位置；

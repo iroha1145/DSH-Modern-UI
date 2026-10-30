@@ -35,4 +35,4 @@ React、React DOM、Cordis、client-store、ui-slots 和官方 ui-primitives 共
 
 切换整个 Modern UI bundle 后需刷新页面；只停用 `modern-ui` 单 entry 不会恢复被 bundle 停用的官方 owner。含显式 Host 兼容绑定时，移除包前还要恢复这些配置，见 [安装文档](install.md)。
 
-本轮浏览器原图链不包含 rc.4 缺失的原生 Electron 拖出桥。真实触屏、WebKit、Electron 多窗口、全部输入法/辅助技术和第三方私有组件组合没有全面验收。窄视口鼠标模拟不等于真机触屏，功能保留也不等于所有状态逐像素一致。
+本轮浏览器原图链不包含 rc.4 缺失的原生 Electron 拖出桥。真实触屏、WebKit、Electron 多窗口、全部输入法/辅助技术和第三方私有组件组合没有全面验收。窄视口鼠标模拟不等于真机触屏，功能保留也不等于所有状态逐像素一致。官方 Desktop 内的逐项结论见 [Desktop 验收记录](compatibility/desktop-0.2.1-rc.5.md)。

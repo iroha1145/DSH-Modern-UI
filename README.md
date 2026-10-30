@@ -28,6 +28,20 @@ dsh plugin --profile web add @iroha1145/dsh-modern-ui
 - **GitHub Release**：每个版本的 Release 附带 `modern-ui.tgz`，可 `dsh plugin --profile web add ./modern-ui.tgz` 离线安装。
 - **不支持 Git 源安装**（`dsh plugin add github:iroha1145/DSH-Modern-UI`）：构建依赖在仓库根目录，且 pnpm 10+ 默认禁止 Git 依赖执行 build script。请使用 npm 包或 Release 中的 tgz。
 
+## 官方 Desktop
+
+官方 DeepSeek Harness Desktop 内嵌同一套 Web Client 和自己的 DSH 宿主，Modern UI 装进它的保留 profile `desktop`：
+
+1. 打开一次 Desktop 再完全退出，让它初始化 profile。
+2. 用 **Desktop 自带的 `dsh` 命令**安装。菜单「应用 → 管理 dsh 命令…」会把它加入终端；npm 装的 `dsh` 会拒绝 `--profile desktop`。
+   ```bash
+   dsh plugin --profile desktop add @iroha1145/dsh-modern-ui
+   ```
+   Windows 也可以直接运行 `%LOCALAPPDATA%\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd`。
+3. 完全退出并重新打开 Desktop。Desktop 没有「刷新页面」，切换 bundle 要重启应用。
+
+切回官方界面：`dsh plugin --profile desktop remove @iroha1145/dsh-modern-ui`，再重启 Desktop。启用 Modern UI 时 Desktop 的首次引导记为已跳过（它最后一步写的是被 Modern 接管的官方聊天设置）；工作过程和用量展示在「设置 → 通用」里调整。逐项验收结论与未验证的原生能力见 [Desktop 验收记录](docs/compatibility/desktop-0.2.1-rc.5.md)。
+
 ## 可选：一键隔离环境
 
 适用于**本机没有现成 DSH**，或想让 Modern UI 使用**独立的程序与数据目录**（不碰现有 `~/.dsh`）的场景。这是社区维护、尽力支持的附件，不是主安装渠道。

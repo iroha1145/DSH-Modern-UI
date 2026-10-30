@@ -12,6 +12,14 @@
 | 0.1.0 | `0.2.1-rc.2` | 已验证 | Linux x64、Windows x64 | 2026-10-29 |
 | — | `0.2.2-alpha.2` | 已知不兼容：Cordis/Schemastery alpha peers 与插件 peers 不匹配，安装器拒绝 | — | 2026-10-30 |
 
+### 官方 Desktop
+
+| 插件版本 | Desktop 版本 | 内嵌 DSH | 平台 | 结论 | 日期 |
+| --- | --- | --- | --- | --- | --- |
+| 0.1.0（含首次引导修复） | `0.2.1-rc.5`（Electron 44.7.0） | `0.2.1-rc.5`（范围内未验证） | Windows x64 | 部分支持：Web Client 12 项检查、外壳标记、主题跟随、窄视口、移除/重装全部通过；首次引导记为已跳过；原生桥能力未验证 | 2026-10-30 |
+
+Desktop 不在 npm，canary 覆盖不到；每个 Desktop 版本单独运行 `tests/compat/desktop.mjs` 并补人工清单。逐项结论见 [Desktop 0.2.1-rc.5 验收记录](compatibility/desktop-0.2.1-rc.5.md)。
+
 新宿主由每天的 [Upstream canary](../.github/workflows/upstream-canary.yml) 先行验证，通过后按 [CONTRIBUTING.md](../CONTRIBUTING.md#接纳新的官方宿主版本) 加入本表与 `verifiedHosts`。
 
 ## 支持范围与唯一清单
@@ -24,7 +32,7 @@
 - `knownBroken` 中的版本与范围外的版本（`0.3.0` 起、更早的 rc）直接拒绝。
 - rc.4 保留 Linux x64/arm64、macOS x64/arm64、Windows x64 的既有成品安装范围；rc.3、rc.2 限定 Linux x64 与 Windows x64。
 - Node 要求 major 24（`engines.node` = `>=24.0.0`，私有运行时下载 `24.22.1`）；pnpm 固定 `11.28.5`。`@deepseek-ai/cordis` / `@deepseek-ai/schemastery` / `react` peers 为 `^4.0.5` / `^3.18.5` / `^18.3.0`，记录在 `compatibility.json#platformPeers`，构建时写入包的 peerDependencies。支持旧 DSH 不等于支持旧 Node、旧浏览器或数据格式降级。
-- 真实浏览器核心验收使用 Chromium/Edge。WebKit、触屏、Electron、多窗口、真实外部收费 provider、旧定制 web/search 会话继续写入均为 **unverified**。
+- 真实浏览器核心验收使用 Chromium/Edge。官方 Desktop（Electron）内的 Web Client 检查、Windows 标题栏标记、系统主题跟随、窄视口与 bundle 移除/重装已在 Desktop 0.2.1-rc.5 / Windows x64 通过；原生文件拖出、多窗口、「Open In…」、原生目录选择器、macOS 外壳与最大化/全屏覆盖层只有人工清单，尚为 **unverified**，逐项见 [Desktop 验收记录](compatibility/desktop-0.2.1-rc.5.md)。WebKit、触屏、真实外部收费 provider、旧定制 web/search 会话继续写入均为 **unverified**。
 
 版本清单与当前源提交的 CI 报告共同界定验收。`compatibility-<host>-<platform>` 在 Linux x64 与 Windows x64 分别生成分层 JSON、日志和截图；五个平台的 `consumer-*` 产物只证明实际安装、加载自检和官方文件完整性，不能替代浏览器检查。失败或 unverified 层不能计为通过。
 
