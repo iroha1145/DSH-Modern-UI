@@ -13,11 +13,23 @@ input.on('line', line => {
   const request = JSON.parse(line)
   if (request.method === 'initialize') {
     record('initialize')
-    send({ id: request.id, result: { protocolVersion: request.params.protocolVersion, capabilities: { tools: {} }, serverInfo: { name: 'modern-compat-fixture', version: '1.0.0' } } })
+    send({
+      id: request.id,
+      result: { protocolVersion: request.params.protocolVersion, capabilities: { tools: {} }, serverInfo: { name: 'modern-compat-fixture', version: '1.0.0' } },
+    })
   } else if (request.method === 'notifications/initialized') record('initialized')
   else if (request.method === 'tools/list') {
     record('discover')
-    send({ id: request.id, result: { tools: ['echo', 'failure', 'wait'].map(name => ({ name, description: `Compatibility ${name}`, inputSchema: { type: 'object', properties: { text: { type: 'string' } }, additionalProperties: false } })) } })
+    send({
+      id: request.id,
+      result: {
+        tools: ['echo', 'failure', 'wait'].map(name => ({
+          name,
+          description: `Compatibility ${name}`,
+          inputSchema: { type: 'object', properties: { text: { type: 'string' } }, additionalProperties: false },
+        })),
+      },
+    })
   } else if (request.method === 'tools/call') {
     const name = request.params.name
     record('call', { name, requestId: request.id, arguments: request.params.arguments })
@@ -35,5 +47,11 @@ input.on('line', line => {
     send({ id: request.id, error: { code: -32601, message: 'Unsupported fixture method' } })
   }
 })
-input.on('close', () => { record('stdin-closed', { pending: pending.size }); process.exit(0) })
-process.on('SIGTERM', () => { record('terminated', { pending: pending.size }); process.exit(0) })
+input.on('close', () => {
+  record('stdin-closed', { pending: pending.size })
+  process.exit(0)
+})
+process.on('SIGTERM', () => {
+  record('terminated', { pending: pending.size })
+  process.exit(0)
+})

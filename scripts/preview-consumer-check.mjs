@@ -27,11 +27,20 @@ for (const expected of expectedCommunity) {
   assert.equal(actual.installed, expected.version)
   assert.equal(actual.selected, true, `${expected.name} must be selected in the official profile`)
 }
-const result = { node: process.version, platform: process.platform, arch: process.arch,
-  backend: state.officialSource, plugin: state.plugin, officialUnchanged: verified,
-  sourceProof: state.sourceProof, nativeProbe: state.nativeProbe, webSelfTest: state.webSelfTest,
+const result = {
+  node: process.version,
+  platform: process.platform,
+  arch: process.arch,
+  backend: state.officialSource,
+  plugin: state.plugin,
+  officialUnchanged: verified,
+  sourceProof: state.sourceProof,
+  nativeProbe: state.nativeProbe,
+  webSelfTest: state.webSelfTest,
   powershell: state.powershell ? { path: state.powershell.path, version: state.powershell.version, source: state.powershell.source } : undefined,
-  isolatedLauncher: 'passed', community }
+  isolatedLauncher: 'passed',
+  community,
+}
 await mkdir(output, { recursive: true })
 await writeFile(join(output, 'consumer-result.json'), JSON.stringify(result, null, 2) + '\n')
 console.log(JSON.stringify(result, null, 2))

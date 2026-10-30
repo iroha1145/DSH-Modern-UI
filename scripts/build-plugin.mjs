@@ -3,29 +3,39 @@ import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { buildQuotesTypes } from './build-quotes-types.mjs'
-import { defaultHostVersion, runtimeVersions, supportedHostVersions, getHostCompatibility } from './distribution/compatibility.mjs'
+import { defaultHostVersion, hostRange, platformPeers, runtimeVersions, supportedHostVersions, getHostCompatibility } from './distribution/compatibility.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const pkg = path.join(root, 'packages/modern-ui')
 const manifestPath = path.join(pkg, 'package.json')
 const manifestSource = await readFile(manifestPath, 'utf8')
 const manifest = JSON.parse(manifestSource)
-const hostRange = supportedHostVersions.join(' || ')
+// Ranges, not the verified list: a host inside the range installs without peer warnings;
+// which hosts were actually verified is recorded in compatibility.json and docs/compatibility.md.
+// The platform peer ranges come from the same manifest so no version lives only in this script.
 manifest.version = runtimeVersions.plugin
-manifest.engines = { ...manifest.engines, node: runtimeVersions.node, dsh: hostRange }
+manifest.engines = { ...manifest.engines, node: `>=${runtimeVersions.node.split('.')[0]}.0.0`, dsh: hostRange }
 manifest.dsh.compatibleHost = hostRange
 for (const name of Object.keys(manifest.peerDependencies)) {
   if (name.startsWith('@deepseek-ai/dsh-')) manifest.peerDependencies[name] = hostRange
+  else if (Object.hasOwn(platformPeers, name)) manifest.peerDependencies[name] = platformPeers[name]
 }
 const manifestOutput = JSON.stringify(manifest, null, 2) + '\n'
 if (manifestOutput !== manifestSource) await writeFile(manifestPath, manifestOutput)
-await writeFile(path.join(root, 'scripts/distribution/community-lock.json'), JSON.stringify({
-  plugins: getHostCompatibility(defaultHostVersion).communityPlugins,
-}, null, 2) + '\n')
+await writeFile(
+  path.join(root, 'scripts/distribution/community-lock.json'),
+  JSON.stringify(
+    {
+      plugins: getHostCompatibility(defaultHostVersion).communityPlugins,
+    },
+    null,
+    2,
+  ) + '\n',
+)
 // An explicit external development dependency directory is useful for hermetic builds.
-const require = createRequire(process.env.MODERN_UI_BUILD_DEPS
-  ? path.join(path.resolve(process.env.MODERN_UI_BUILD_DEPS), 'package.json')
-  : path.join(root, 'package.json'))
+const require = createRequire(
+  process.env.MODERN_UI_BUILD_DEPS ? path.join(path.resolve(process.env.MODERN_UI_BUILD_DEPS), 'package.json') : path.join(root, 'package.json'),
+)
 const { build } = require('esbuild')
 const { transform } = require('lightningcss')
 const rootRequire = createRequire(path.join(root, 'package.json'))
@@ -36,21 +46,40 @@ if (config.error) throw new Error(ts.flattenDiagnosticMessageText(config.error.m
 const parsed = ts.parseJsonConfigFileContent(config.config, ts.sys, root, {}, configPath)
 const program = ts.createProgram(parsed.fileNames, parsed.options)
 const diagnostics = [...parsed.errors, ...ts.getPreEmitDiagnostics(program)]
-if (diagnostics.length) throw new Error(ts.formatDiagnosticsWithColorAndContext(diagnostics, {
-  getCanonicalFileName: name => name, getCurrentDirectory: () => root, getNewLine: () => '\n',
-}))
+if (diagnostics.length)
+  throw new Error(
+    ts.formatDiagnosticsWithColorAndContext(diagnostics, {
+      getCanonicalFileName: name => name,
+      getCurrentDirectory: () => root,
+      getNewLine: () => '\n',
+    }),
+  )
 const id = '@iroha1145/dsh-modern-ui'
-const platform = ['react', 'react/jsx-runtime', 'react-dom', 'react-dom/client', '@deepseek-ai/cordis', '@deepseek-ai/dsh-client-store', '@deepseek-ai/dsh-client-ui-slots', '@deepseek-ai/dsh-client-ui-primitives']
+const platform = [
+  'react',
+  'react/jsx-runtime',
+  'react-dom',
+  'react-dom/client',
+  '@deepseek-ai/cordis',
+  '@deepseek-ai/dsh-client-store',
+  '@deepseek-ai/dsh-client-ui-slots',
+  '@deepseek-ai/dsh-client-ui-primitives',
+]
 const pure = new Set([
-  '@deepseek-ai/dsh-util-workspace-path', '@deepseek-ai/dsh-util-code-language',
-  '@deepseek-ai/dsh-file-reference/grammar', '@deepseek-ai/dsh-session/surface',
-  '@deepseek-ai/dsh-util-values', '@deepseek-ai/dsh-util-crypto',
+  '@deepseek-ai/dsh-util-workspace-path',
+  '@deepseek-ai/dsh-util-code-language',
+  '@deepseek-ai/dsh-file-reference/grammar',
+  '@deepseek-ai/dsh-session/surface',
+  '@deepseek-ai/dsh-util-values',
+  '@deepseek-ai/dsh-util-crypto',
   '@deepseek-ai/dsh-brand',
   '@deepseek-ai/dsh-api-workspace-controller/default-workspace',
-  '@deepseek-ai/dsh-spill-policy/notice', '@deepseek-ai/dsh-output-retention',
+  '@deepseek-ai/dsh-spill-policy/notice',
+  '@deepseek-ai/dsh-output-retention',
   // Pure Turn token-usage derivation the vendored chat data layer (turn-tail) folds into its snapshot,
   // and the pure assistant-stream assembler it reads the last chunk through.
-  '@deepseek-ai/dsh-token-meter/client', '@deepseek-ai/dsh-llm/assistant-stream',
+  '@deepseek-ai/dsh-token-meter/client',
+  '@deepseek-ai/dsh-llm/assistant-stream',
 ])
 const stylePlugin = {
   name: 'modern-ui-owned-resources',
@@ -71,11 +100,20 @@ const stylePlugin = {
         const mime = relative.endsWith('.woff2') ? 'font/woff2' : relative.endsWith('.woff') ? 'font/woff' : 'font/ttf'
         source = source.replace(match[0], `url(data:${mime};base64,${bytes.toString('base64')})`)
       }
-      const result = transform({ filename: path.relative(pkg, args.path).replaceAll('\\', '/'), code: Buffer.from(source), minify: true, cssModules: args.path.endsWith('.module.css') })
+      const result = transform({
+        filename: path.relative(pkg, args.path).replaceAll('\\', '/'),
+        code: Buffer.from(source),
+        minify: true,
+        cssModules: args.path.endsWith('.module.css'),
+      })
       const text = result.code.toString()
       if (args.namespace === 'inline-css') return { contents: `export default ${JSON.stringify(text)}`, loader: 'js' }
       const names = Object.fromEntries(Object.entries(result.exports ?? {}).map(([key, value]) => [key, value.name]))
-      return { contents: `import {registerStyle} from ${JSON.stringify(path.join(pkg, 'src/styles.ts'))};registerStyle(${JSON.stringify(path.relative(pkg, args.path).replaceAll('\\', '/'))},${JSON.stringify(text)});export default ${JSON.stringify(names)};`, loader: 'js', resolveDir: pkg }
+      return {
+        contents: `import {registerStyle} from ${JSON.stringify(path.join(pkg, 'src/styles.ts'))};registerStyle(${JSON.stringify(path.relative(pkg, args.path).replaceAll('\\', '/'))},${JSON.stringify(text)});export default ${JSON.stringify(names)};`,
+        loader: 'js',
+        resolveDir: pkg,
+      }
     }
     builder.onLoad({ filter: /.*/, namespace: 'owned-css' }, css)
     builder.onLoad({ filter: /.*/, namespace: 'inline-css' }, css)
@@ -83,30 +121,46 @@ const stylePlugin = {
 }
 await mkdir(path.join(pkg, 'lib'), { recursive: true })
 const client = await build({
-  absWorkingDir: root, entryPoints: [path.join(pkg, 'src/client.tsx')],
-  outfile: path.join(pkg, 'lib/client.js'), bundle: true, platform: 'browser', format: 'cjs',
-  jsx: 'automatic', target: 'es2022', minify: true, legalComments: 'inline', metafile: true,
+  absWorkingDir: root,
+  entryPoints: [path.join(pkg, 'src/client.tsx')],
+  outfile: path.join(pkg, 'lib/client.js'),
+  bundle: true,
+  platform: 'browser',
+  format: 'cjs',
+  jsx: 'automatic',
+  target: 'es2022',
+  minify: true,
+  legalComments: 'inline',
+  metafile: true,
   conditions: ['production'],
-  external: platform, nodePaths: [path.dirname(require.resolve('esbuild/package.json')).replace(/[/\\]esbuild$/, '')],
+  external: platform,
+  nodePaths: [path.dirname(require.resolve('esbuild/package.json')).replace(/[/\\]esbuild$/, '')],
   define: { 'process.env.NODE_ENV': '"production"' },
   loader: { '.png': 'dataurl', '.svg': 'dataurl', '.webp': 'dataurl' },
-  plugins: [stylePlugin, {
-    name: 'shared-runtime-boundary',
-    setup(builder) {
-      builder.onResolve({ filter: /^@deepseek-ai\// }, args => {
-        if (pure.has(args.path) || /^@deepseek-ai\/(schemastery|cosmokit)(\/|$)/.test(args.path)) return null
-        if (!platform.includes(args.path)) throw new Error(`Undeclared shared runtime import: ${args.path}`)
-        return { path: args.path, external: true }
-      })
+  plugins: [
+    stylePlugin,
+    {
+      name: 'shared-runtime-boundary',
+      setup(builder) {
+        builder.onResolve({ filter: /^@deepseek-ai\// }, args => {
+          if (pure.has(args.path) || /^@deepseek-ai\/(schemastery|cosmokit)(\/|$)/.test(args.path)) return null
+          if (!platform.includes(args.path)) throw new Error(`Undeclared shared runtime import: ${args.path}`)
+          return { path: args.path, external: true }
+        })
+      },
     },
-  }],
+  ],
   banner: { js: `window.__ModuleLoader__.load({id:${JSON.stringify(id)},factory:(require)=>{const module={exports:{}};const exports=module.exports;` },
   footer: { js: 'return module.exports;}});' },
 })
 await build({
   absWorkingDir: root,
-  entryPoints: [path.join(pkg, 'src/index.ts')], outfile: path.join(pkg, 'lib/index.js'),
-  bundle: true, platform: 'node', format: 'esm', target: 'node24',
+  entryPoints: [path.join(pkg, 'src/index.ts')],
+  outfile: path.join(pkg, 'lib/index.js'),
+  bundle: true,
+  platform: 'node',
+  format: 'esm',
+  target: 'node24',
   external: ['@deepseek-ai/*'],
 })
 await import('./build-host.mjs')
@@ -118,8 +172,11 @@ for (const input of Object.keys(client.metafile.inputs)) {
   let directory = path.dirname(path.resolve(root, physical))
   while (directory !== path.dirname(directory)) {
     let manifest
-    try { manifest = JSON.parse(await readFile(path.join(directory, 'package.json'), 'utf8')) }
-    catch (error) { if (error.code !== 'ENOENT') throw error }
+    try {
+      manifest = JSON.parse(await readFile(path.join(directory, 'package.json'), 'utf8'))
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error
+    }
     if (manifest?.name && manifest?.version) {
       licensed.set(`${manifest.name}@${manifest.version}`, { manifest, directory })
       break
@@ -150,12 +207,27 @@ function logicalInput(input) {
   const dependency = physical.lastIndexOf('/node_modules/')
   return prefix + (dependency < 0 ? path.relative(root, physical).replaceAll('\\', '/') : physical.slice(dependency + 1))
 }
-await writeFile(path.join(pkg, 'lib/build-inputs.json'), JSON.stringify({
-  host: defaultHostVersion, compatibleHosts: supportedHostVersions, shared: platform,
-  inputs: Object.keys(client.metafile.inputs).map(logicalInput),
-  outputs: Object.fromEntries(Object.entries(client.metafile.outputs).map(([name, value]) => [path.basename(name), {
-    bytes: value.bytes, imports: value.imports,
-    inputs: Object.fromEntries(Object.entries(value.inputs).map(([input, contribution]) => [logicalInput(input), contribution])),
-  }])),
-}, null, 2) + '\n')
+await writeFile(
+  path.join(pkg, 'lib/build-inputs.json'),
+  JSON.stringify(
+    {
+      host: defaultHostVersion,
+      compatibleHosts: supportedHostVersions,
+      shared: platform,
+      inputs: Object.keys(client.metafile.inputs).map(logicalInput),
+      outputs: Object.fromEntries(
+        Object.entries(client.metafile.outputs).map(([name, value]) => [
+          path.basename(name),
+          {
+            bytes: value.bytes,
+            imports: value.imports,
+            inputs: Object.fromEntries(Object.entries(value.inputs).map(([input, contribution]) => [logicalInput(input), contribution])),
+          },
+        ]),
+      ),
+    },
+    null,
+    2,
+  ) + '\n',
+)
 console.log(`Built ${id} for the official host; ${Object.keys(client.metafile.inputs).length} browser inputs.`)

@@ -1,18 +1,17 @@
-import test from 'node:test'
+import { test } from 'vitest'
 import assert from 'node:assert/strict'
 import { build } from 'esbuild'
 import { JSDOM } from 'jsdom'
 import { pathToFileURL } from 'node:url'
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 
 const root = path.resolve(import.meta.dirname, '../..')
 const source = name => path.join(root, 'packages/modern-ui/src', name)
 const production = JSON.parse(await readFile(path.join(root, 'packages/modern-ui/lib/build-inputs.json'), 'utf8'))
 async function load(name) {
-  const temporary = path.resolve(root, '../performance-temp')
-  await mkdir(temporary, { recursive: true })
-  const directory = await mkdtemp(path.join(temporary, 'module-'))
+  const directory = await mkdtemp(path.join(tmpdir(), 'modern-performance-'))
   try {
     const outfile = path.join(directory, 'module.mjs')
     await build({ entryPoints: [source(name)], outfile, bundle: true, platform: 'node', format: 'esm', logLevel: 'silent' })
@@ -22,18 +21,18 @@ async function load(name) {
   }
 }
 
-test('production conditions select Lexical production artifacts', async t => {
+test('production conditions select Lexical production artifacts', async () => {
   assert.ok(production.inputs.some(name => name.endsWith('Lexical.prod.mjs')))
   assert.ok(!production.inputs.some(name => /(?:lexical|@lexical).*\.dev\.mjs$/.test(name)))
-  t.diagnostic(`Actual production client bundle: ${production.outputs['client.js'].bytes} bytes`)
+  console.info(`Actual production client bundle: ${production.outputs['client.js'].bytes} bytes`)
 })
 
-test('site glyph barrel retains only referenced icon paths in output', async t => {
+test('site glyph barrel retains only referenced icon paths in output', async () => {
   const inputs = production.outputs['client.js'].inputs
   const icon = Object.entries(inputs).find(([name]) => name.endsWith('simple-icons/index.mjs'))
   assert.ok(icon)
   assert.ok(icon[1].bytesInOutput < 200_000, `retained icon bytes: ${icon[1].bytesInOutput}`)
-  t.diagnostic(`simple-icons bytes retained in the full production bundle: ${icon[1].bytesInOutput}`)
+  console.info(`simple-icons bytes retained in the full production bundle: ${icon[1].bytesInOutput}`)
 })
 
 test('chat builder keeps the node store stable across updates and replaces it with the builder', async () => {
@@ -46,14 +45,17 @@ test('chat builder keeps the node store stable across updates and replaces it wi
   assert.notEqual(new ChatSnapshotBuilder().empty.nodes, store)
 })
 
-test('sprite parses once and preserves every symbol attribute and child', async t => {
+test('sprite parses once and preserves every symbol attribute and child', async () => {
   const { createIconSprite } = await load('vendor/theme/client/icon-sprite.ts')
   const { ICON_SYMBOLS } = await load('vendor/primitives/icons/artwork.ts')
   const dom = new JSDOM('<!doctype html><body></body>')
   try {
     let parses = 0
     const original = dom.window.DOMParser.prototype.parseFromString
-    dom.window.DOMParser.prototype.parseFromString = function (...args) { parses++; return original.apply(this, args) }
+    dom.window.DOMParser.prototype.parseFromString = function (...args) {
+      parses++
+      return original.apply(this, args)
+    }
     const sprite = createIconSprite(dom.window.document)
     assert.equal(parses, 1)
     assert.equal(sprite.children.length, Object.keys(ICON_SYMBOLS).length)
@@ -70,11 +72,13 @@ test('sprite parses once and preserves every symbol attribute and child', async 
         assert.ok(symbol.childNodes[index].isEqualNode(expected.childNodes[index]), id)
       }
     }
-    t.diagnostic(`${sprite.children.length} symbols retained with one XML parse`)
-  } finally { dom.window.close() }
+    console.info(`${sprite.children.length} symbols retained with one XML parse`)
+  } finally {
+    dom.window.close()
+  }
 })
 
-test('community folds avoid rescanning unchanged ancestors and preserve replacement and removal', async t => {
+test('community folds avoid rescanning unchanged ancestors and preserve replacement and removal', async () => {
   const { installCommunityMarkdown } = await load('community-markdown.ts')
   const dom = new JSDOM('<!doctype html><body><section data-dsh-better-sidebar><div class="nArs4W_editorMd"></div></section><div id="chat"></div></body>')
   const previousDocument = globalThis.document
@@ -95,11 +99,14 @@ test('community folds avoid rescanning unchanged ancestors and preserve replacem
     assert.equal(block.querySelector('pre').hidden, true)
     let previewScans = 0
     const query = preview.querySelectorAll.bind(preview)
-    preview.querySelectorAll = (...args) => { previewScans++; return query(...args) }
+    preview.querySelectorAll = (...args) => {
+      previewScans++
+      return query(...args)
+    }
     for (let index = 0; index < 20; index++) preview.append('token')
     await tick()
     assert.equal(previewScans, 0)
-    t.diagnostic('20 streamed text additions cause zero scans of the existing preview subtree')
+    console.info('20 streamed text additions cause zero scans of the existing preview subtree')
     block.querySelector('pre').replaceWith(document.createElement('pre'))
     block.querySelector('pre').setAttribute('data-code-block-content', '')
     await tick()

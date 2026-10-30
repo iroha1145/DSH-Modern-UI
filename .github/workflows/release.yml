@@ -1,0 +1,123 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+env:
+  DSH_TELEMETRY_DISABLED: '1'
+
+jobs:
+  # Build and test with a read-only token; nothing here can mint the publishing identity.
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: '24.22.1'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install the browser for audit regressions
+        run: node node_modules/playwright-core/cli.js install --with-deps chromium
+      - run: npm run build
+      - name: Unit, audit and compat regressions
+        run: npx vitest run
+        env:
+          COMPAT_BACKEND_PACKAGE: node_modules/@deepseek-ai/dsh/package.json
+      - name: Tag, compatibility manifest and package agree on one version
+        id: version
+        run: |
+          result=$(node scripts/verify-release-version.mjs "$GITHUB_REF_NAME")
+          echo "$result"
+          echo "version=$(node -p "JSON.parse(process.argv[1]).version" "$result")" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$(node -p "JSON.parse(process.argv[1]).prerelease" "$result")" >> "$GITHUB_OUTPUT"
+      - run: node scripts/create-preview.mjs
+        env:
+          MODERN_UI_RELEASE: ${{ steps.version.outputs.version }}
+      - name: Published files match the package files field
+        run: npm pack ./packages/modern-ui --dry-run --json > .artifacts/pack-files.json && node -e "const files=require('./.artifacts/pack-files.json')[0].files.map(f=>f.path);if(files.some(f=>f.startsWith('src/')))throw new Error('src/ must not be published');console.log(files.length+' files')"
+      - name: Collect the release assets
+        run: |
+          (cd .artifacts && zip -qr installer.zip plugin-preview)
+          mkdir -p .artifacts/release
+          cp .artifacts/plugin-preview/modern-ui.tgz .artifacts/plugin-preview/preview.json .artifacts/installer.zip .artifacts/release/
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: release-assets
+          path: .artifacts/release/
+          if-no-files-found: error
+          retention-days: 30
+
+  # Only this job holds the publishing identity; it publishes the exact tgz whose integrity preview.json records.
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      # npm provenance (and npm Trusted Publishing, when configured) sign with the workflow identity.
+      id-token: write
+    steps:
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: '24.22.1'
+          registry-url: 'https://registry.npmjs.org'
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: release-assets
+          path: release
+      - name: Publish to npm
+        run: npm publish ./release/modern-ui.tgz --provenance --access public --tag "${{ needs.build.outputs.prerelease == 'true' && 'next' || 'latest' }}"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Create the GitHub Release
+        run: |
+          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes \
+            ${{ needs.build.outputs.prerelease == 'true' && '--prerelease' || '' }} \
+            release/modern-ui.tgz \
+            release/preview.json \
+            release/installer.zip
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+
+  npm-install:
+    needs: [build, publish]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: '24.22.1'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node node_modules/playwright-core/cli.js install --with-deps chromium
+      - name: Wait for the registry to serve the published version
+        run: |
+          for attempt in $(seq 1 30); do
+            npm view "@iroha1145/dsh-modern-ui@${{ needs.build.outputs.version }}" version && exit 0
+            sleep 10
+          done
+          exit 1
+      - name: Install from npm with the official CLI and check both UIs in a browser
+        run: |
+          export MODERN_UI_BROWSER=$(node -p "require('playwright-core').chromium.executablePath()")
+          node tests/compat/npm-install.e2e.mjs --plugin "@iroha1145/dsh-modern-ui@${{ needs.build.outputs.version }}" --root "$RUNNER_TEMP/npm-install"
+      - uses: actions/upload-artifact@v7.0.1
+        if: always()
+        with:
+          name: npm-install-evidence
+          path: ${{ runner.temp }}/npm-install/evidence/
+          if-no-files-found: warn
+          retention-days: 30

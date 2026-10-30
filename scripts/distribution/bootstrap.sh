@@ -39,7 +39,8 @@ if [ "$core_exit" -ne 0 ]; then
   exit "$core_exit"
 fi
 printf '{"phase":"core","result":%s}\n' "$core_output"
-if [ "${DSH_MODERN_SKIP_COMMUNITY:-0}" = 1 ]; then
+# Community plugins are an opt-in, verified combination; the core path never needs them.
+if [ "${DSH_MODERN_WITH_COMMUNITY:-0}" != 1 ] || [ "${DSH_MODERN_SKIP_COMMUNITY:-0}" = 1 ]; then
   printf '{"phase":"community","result":{"state":"skipped"}}\n'
 elif community_output=$("$node" "$here/manager.mjs" community --root "$root"); then
   printf '{"phase":"community","result":%s}\n' "$community_output"

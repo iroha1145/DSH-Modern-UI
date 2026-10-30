@@ -36,10 +36,12 @@ import { modelOwner } from './model-owner.ts'
 import { installFileDrag } from './file-drag.ts'
 import { installQuotes } from './quotes.ts'
 import { installPresentationParity } from './presentation-parity.ts'
+import { installPresentationSettings } from './presentation-settings.tsx'
 import { installPluginDocuments } from './plugin-documents/index.tsx'
 import { installOfficialControls } from './official-controls.ts'
 import { installCommunityMarkdown } from './community-markdown.ts'
 import * as conversationOwner from './conversation-owner.ts'
+import { installDesktopOnboarding } from './desktop-onboarding.ts'
 
 export const inject = ['slots', 'theme', 'locale', 'configForms', 'remote', 'remote.session']
 /** The sprite installer, exported so a test can mount a second owner without a second plugin instance. */
@@ -63,6 +65,7 @@ export async function apply(ctx: Context): Promise<void> {
   installCommunityMarkdown(ctx)
   installLanguages(ctx)
   installFileDrag(ctx)
+  installDesktopOnboarding(ctx)
   const owners = [
     ctx.plugin(layoutOwner),
     ctx.plugin(workspaceOwner),
@@ -108,7 +111,7 @@ function installPresentation(ctx: Context): void {
   // Per-model reasoning declarations for pi-ai routes whose model is newer than the installed
   // catalog: a block in each pi-ai provider card, writing the stored models list through the
   // shared settings form. The official editor keeps every hidden field on save (verified against
-  // rc.4, see docs/reasoning-and-preview-fold-20261028.md), so the two never fight over the row.
+  // rc.4, see docs/history/reasoning-and-preview-fold-20261028.md), so the two never fight over the row.
   ctx.inject(['remote.llm', 'settingsSchema'], scope => registerReasoningDeclaration(scope, {
     namespace: PI_AI_NAMESPACE,
     form: scope.configForms.get<Record<string, unknown>>(PI_AI_NAMESPACE),
@@ -120,19 +123,35 @@ function installPresentation(ctx: Context): void {
     },
   }))
   // Code-fence presenters beside the standard CodeBlock (priority 100, registered by the chat entry).
-  ctx.slots.inject('conversation.chat.message.code', function* () {
-    yield ctx.slots.register({
-      name: 'conversation.chat.message.code', locale: 'modern-intelligent', priority: 0,
-      select: owner => owner.lang?.trim().toLowerCase() === 'openui' ? {} : null,
-      inject: (): ThemeInjected => ({ hooks: { theme: {
-        getSnapshot: () => ctx.theme.getTheme(),
-        subscribe: listener => ctx.on('theme/change', listener),
-      } } }),
-    }, IntelligentUI)
-    yield ctx.slots.register({
-      name: 'conversation.chat.message.code', locale: 'modern-intelligent', priority: 0,
-      select: owner => owner.lang?.trim().toLowerCase() === 'followups' ? {} : null,
-    }, Followups)
+  // Each follows its `presentation` switch: a fence whose presenter is off renders as plain code.
+  const presentation = installPresentationSettings(ctx)
+  ctx.slots.inject('conversation.chat.message.code', () => {
+    const presenters = {
+      openui: () => ctx.slots.register({
+        name: 'conversation.chat.message.code', locale: 'modern-intelligent', priority: 0,
+        select: owner => owner.lang?.trim().toLowerCase() === 'openui' ? {} : null,
+        inject: (): ThemeInjected => ({ hooks: { theme: {
+          getSnapshot: () => ctx.theme.getTheme(),
+          subscribe: listener => ctx.on('theme/change', listener),
+        } } }),
+      }, IntelligentUI),
+      followups: () => ctx.slots.register({
+        name: 'conversation.chat.message.code', locale: 'modern-intelligent', priority: 0,
+        select: owner => owner.lang?.trim().toLowerCase() === 'followups' ? {} : null,
+      }, Followups),
+    }
+    const live: Partial<Record<keyof typeof presenters, () => void>> = {}
+    const sync = () => {
+      const switches = presentation.getSnapshot()
+      for (const key of ['openui', 'followups'] as const) {
+        const dispose = live[key]
+        if (switches[key] && dispose === undefined) live[key] = presenters[key]()
+        else if (!switches[key] && dispose !== undefined) { dispose(); delete live[key] }
+      }
+    }
+    sync()
+    const stop = presentation.subscribe(sync)
+    return () => { stop(); for (const dispose of Object.values(live)) dispose() }
   })
   ctx.inject(['uiWorkspace', 'sidebarRight'], scope => {
     const actions = () => ({

@@ -1,6 +1,3 @@
-# The patch is checked by its sha256 and applied byte for byte; never let git rewrite its line endings.
-# A blank unified-diff context line is one space. Preserve that syntax; check restored source whitespace instead.
-*.patch -text -whitespace
 *.sh text eol=lf
 *.mjs text eol=lf
 *.json text eol=lf
@@ -17,3 +14,6 @@ packages/modern-ui/THIRD_PARTY_NOTICES.md -text
 
 # The captured writer body includes the original trailing blank line in its digest.
 tests/compat/fixtures/old-conversation-writer.mjs -whitespace
+
+# Biome formats tests and scripts with LF.
+tests/**/*.ts text eol=lf

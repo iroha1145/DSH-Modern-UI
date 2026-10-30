@@ -12,7 +12,10 @@ const PORT_COUNT = 40_000
 /** A live owner or an unrelated listener occupies this root's lock endpoint. */
 export class OperationLockedError extends Error {
   constructor(root, endpoint, cause) {
-    super(`Another operation/launch is active, or the operation-lock endpoint ${endpoint.host}:${endpoint.port} is occupied; cannot lock ${root}. Stop the owning operation and retry. Removing a lock file will not help.`, { cause })
+    super(
+      `Another operation/launch is active, or the operation-lock endpoint ${endpoint.host}:${endpoint.port} is occupied; cannot lock ${root}. Stop the owning operation and retry. Removing a lock file will not help.`,
+      { cause },
+    )
     this.name = 'OperationLockedError'
     this.code = 'DSH_OPERATION_LOCKED'
     this.root = root
@@ -68,10 +71,11 @@ export async function acquireOperationLock(root) {
     })
   })
   let releasing
-  return Object.freeze({ ...descriptor,
+  return Object.freeze({
+    ...descriptor,
     release() {
       releasing ??= new Promise((accept, reject) => {
-        server.close(error => error ? reject(error) : accept())
+        server.close(error => (error ? reject(error) : accept()))
       })
       return releasing
     },
@@ -81,6 +85,9 @@ export async function acquireOperationLock(root) {
 /** Run one operation under the lease, releasing it on success or rejection. */
 export async function withOperationLock(root, operation) {
   const lease = await acquireOperationLock(root)
-  try { return await operation(lease) }
-  finally { await lease.release() }
+  try {
+    return await operation(lease)
+  } finally {
+    await lease.release()
+  }
 }

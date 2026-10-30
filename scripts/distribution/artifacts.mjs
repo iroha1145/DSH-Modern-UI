@@ -4,7 +4,17 @@ import { basename, dirname, join, relative, resolve, win32 } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { checkIntegrity } from './integrity.mjs'
 
-const RETRIED_CAUSES = new Set(['ECONNRESET', 'ETIMEDOUT', 'EAI_AGAIN', 'ECONNREFUSED', 'EPIPE', 'UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_SOCKET', 'UND_ERR_HEADERS_TIMEOUT', 'UND_ERR_BODY_TIMEOUT'])
+const RETRIED_CAUSES = new Set([
+  'ECONNRESET',
+  'ETIMEDOUT',
+  'EAI_AGAIN',
+  'ECONNREFUSED',
+  'EPIPE',
+  'UND_ERR_CONNECT_TIMEOUT',
+  'UND_ERR_SOCKET',
+  'UND_ERR_HEADERS_TIMEOUT',
+  'UND_ERR_BODY_TIMEOUT',
+])
 export async function download(url, integrity, output) {
   if (!url.startsWith('https://')) throw new Error('Only HTTPS artifact URLs are accepted')
   let bytes
@@ -13,7 +23,10 @@ export async function download(url, integrity, output) {
   for (let attempt = 1; ; attempt++) {
     try {
       const response = await fetch(url, { signal: AbortSignal.timeout(180000) })
-      if ([429, 502, 503, 504].includes(response.status) && attempt < 3) { await delay(1000 * attempt); continue }
+      if ([429, 502, 503, 504].includes(response.status) && attempt < 3) {
+        await delay(1000 * attempt)
+        continue
+      }
       if (!response.ok) throw new Error(`Download failed: ${response.status} ${url}`)
       bytes = Buffer.from(await response.arrayBuffer())
       break
@@ -34,8 +47,14 @@ export function archiveEntries(listing) {
   if (!entries.length) throw new Error('Release archive is empty')
   for (const entry of entries) {
     const name = entry.replace(/^(?:\.\/)+/, '')
-    if (name.startsWith('/') || name.startsWith('\\') || win32.isAbsolute(name)
-      || name.includes(':') || name.includes('\0') || name.split(/[\\/]/).includes('..')) {
+    if (
+      name.startsWith('/') ||
+      name.startsWith('\\') ||
+      win32.isAbsolute(name) ||
+      name.includes(':') ||
+      name.includes('\0') ||
+      name.split(/[\\/]/).includes('..')
+    ) {
       throw new Error(`Unsafe archive entry: ${entry}`)
     }
   }
@@ -43,8 +62,7 @@ export function archiveEntries(listing) {
 }
 
 function runTar(args, cwd, action) {
-  const executable = process.platform === 'win32'
-    ? join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'tar.exe') : 'tar'
+  const executable = process.platform === 'win32' ? join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'tar.exe') : 'tar'
   const result = spawnSync(executable, args, { cwd, encoding: 'utf8', windowsHide: true, maxBuffer: 16 * 1024 * 1024 })
   if (result.error || result.status !== 0) {
     const detail = result.error?.message || result.stderr.trim() || `exit ${result.status}, signal ${result.signal}`

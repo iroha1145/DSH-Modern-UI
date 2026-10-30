@@ -26,19 +26,25 @@ export async function snapshot(root, options = {}) {
   }
   await visit(root)
   let next = 0
-  await Promise.all(Array.from({ length: Math.min(HASH_CONCURRENCY, pending.length) }, async () => {
-    while (next < pending.length) {
-      const file = pending[next++]
-      files[file.key] = { sha256: createHash('sha256').update(await readFile(file.path)).digest('hex'), mode: file.mode }
-    }
-  }))
+  await Promise.all(
+    Array.from({ length: Math.min(HASH_CONCURRENCY, pending.length) }, async () => {
+      while (next < pending.length) {
+        const file = pending[next++]
+        files[file.key] = {
+          sha256: createHash('sha256')
+            .update(await readFile(file.path))
+            .digest('hex'),
+          mode: file.mode,
+        }
+      }
+    }),
+  )
   return files
 }
 
 export async function verifySnapshot(root, expected, options = {}) {
   const actual = await snapshot(root, options)
-  const changed = [...new Set([...Object.keys(expected), ...Object.keys(actual)])]
-    .filter(key => JSON.stringify(actual[key]) !== JSON.stringify(expected[key]))
+  const changed = [...new Set([...Object.keys(expected), ...Object.keys(actual)])].filter(key => JSON.stringify(actual[key]) !== JSON.stringify(expected[key]))
   if (changed.length) throw new Error(`Official files changed: ${changed.join(', ')}`)
   return { files: Object.keys(actual).length, unchanged: true }
 }

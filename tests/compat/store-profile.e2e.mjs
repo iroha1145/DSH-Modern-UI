@@ -13,10 +13,12 @@ import { packFixture } from './pack-fixture.mjs'
 
 const run = promisify(execFile)
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
-const options = Object.fromEntries(process.argv.slice(2).reduce((all, value, index, argv) => {
-  if (index % 2 === 0) all.push([value.replace(/^--/, ''), argv[index + 1]])
-  return all
-}, []))
+const options = Object.fromEntries(
+  process.argv.slice(2).reduce((all, value, index, argv) => {
+    if (index % 2 === 0) all.push([value.replace(/^--/, ''), argv[index + 1]])
+    return all
+  }, []),
+)
 assert.ok(options.consumer && options.pnpm && options.store, 'Pass --consumer, --pnpm and the pinned --store tarball')
 const consumer = await realpath(path.resolve(options.consumer))
 const require = createRequire(path.join(consumer, 'package.json'))
@@ -38,11 +40,26 @@ const json = async filename => JSON.parse(await readFile(filename, 'utf8'))
 const profileDir = name => path.join(home, 'profiles', name)
 const profileBytes = name => readFile(path.join(profileDir(name), 'package.json'), 'utf8')
 const profileDeps = async name => (await json(path.join(profileDir(name), 'package.json'))).dependencies ?? {}
-const profileState = async name => Object.fromEntries(await Promise.all(['package.json', 'pnpm-lock.yaml', 'cordis.patch.yml', 'pnpm-workspace.yaml', '.npmrc'].map(async file => {
-  try { return [file, sha256(await readFile(path.join(profileDir(name), file)))] }
-  catch (error) { if (error.code !== 'ENOENT') throw error; return [file, null] }
-})))
-const env = { ...process.env, DSH_HOME: home, DSH_TELEMETRY_DISABLED: '1', PATH: [bin, path.dirname(process.execPath), process.env.PATH ?? ''].join(path.delimiter), npm_config_update_notifier: 'false' }
+const profileState = async name =>
+  Object.fromEntries(
+    await Promise.all(
+      ['package.json', 'pnpm-lock.yaml', 'cordis.patch.yml', 'pnpm-workspace.yaml', '.npmrc'].map(async file => {
+        try {
+          return [file, sha256(await readFile(path.join(profileDir(name), file)))]
+        } catch (error) {
+          if (error.code !== 'ENOENT') throw error
+          return [file, null]
+        }
+      }),
+    ),
+  )
+const env = {
+  ...process.env,
+  DSH_HOME: home,
+  DSH_TELEMETRY_DISABLED: '1',
+  PATH: [bin, path.dirname(process.execPath), process.env.PATH ?? ''].join(path.delimiter),
+  npm_config_update_notifier: 'false',
+}
 delete env.NODE_PATH
 delete env.NODE_OPTIONS
 if (process.platform === 'win32') {
@@ -54,8 +71,12 @@ if (process.platform === 'win32') {
 
 async function dsh(args, label) {
   let result
-  try { result = await run(process.execPath, [cli, ...args], { cwd: consumer, env, windowsHide: true, timeout: 180_000, maxBuffer: 8 * 1024 * 1024 }) }
-  catch (error) { await writeFile(path.join(output, `${label}.log`), `${error.stdout ?? ''}${error.stderr ?? ''}`); throw error }
+  try {
+    result = await run(process.execPath, [cli, ...args], { cwd: consumer, env, windowsHide: true, timeout: 180_000, maxBuffer: 8 * 1024 * 1024 })
+  } catch (error) {
+    await writeFile(path.join(output, `${label}.log`), `${error.stdout ?? ''}${error.stderr ?? ''}`)
+    throw error
+  }
   await writeFile(path.join(output, `${label}.log`), result.stdout + result.stderr)
   return result.stdout
 }
@@ -93,7 +114,10 @@ export function apply(ctx, config) {
 async function pack(name, code = 'export function apply() {}\n', config) {
   const directory = path.join(fixtures, name, 'package')
   await mkdir(directory, { recursive: true })
-  await writeFile(path.join(directory, 'package.json'), JSON.stringify({ name, version: '1.0.0', type: 'module', main: './index.js', dsh: { bundle: { patch: './cordis.patch.yml' } } }, null, 2))
+  await writeFile(
+    path.join(directory, 'package.json'),
+    JSON.stringify({ name, version: '1.0.0', type: 'module', main: './index.js', dsh: { bundle: { patch: './cordis.patch.yml' } } }, null, 2),
+  )
   await writeFile(path.join(directory, 'index.js'), code)
   await writeFile(path.join(directory, 'cordis.patch.yml'), JSON.stringify([{ insert: [{ id: name, name, ...(config ? { config } : {}) }] }]))
   const tarball = path.join(fixtures, `${name}-1.0.0.tgz`)
@@ -110,13 +134,29 @@ const registry = createServer(async (request, response) => {
   const location = new URL(request.url, 'http://localhost')
   if (location.pathname === `/${names.target}/-/${names.target}-1.0.0.tgz`) {
     response.setHeader('Content-Type', 'application/octet-stream')
-    response.end(await readFile(tarballs[names.target])); return
+    response.end(await readFile(tarballs[names.target]))
+    return
   }
   if (location.pathname === `/${names.target}` || location.pathname === `/${names.target}/1.0.0`) {
     const bytes = await readFile(tarballs[names.target])
-    const version = { name: names.target, version: '1.0.0', dist: { tarball: `${registryUrl}/${names.target}/-/${names.target}-1.0.0.tgz`, shasum: createHash('sha1').update(bytes).digest('hex'), integrity: `sha512-${createHash('sha512').update(bytes).digest('base64')}` } }
+    const version = {
+      name: names.target,
+      version: '1.0.0',
+      dist: {
+        tarball: `${registryUrl}/${names.target}/-/${names.target}-1.0.0.tgz`,
+        shasum: createHash('sha1').update(bytes).digest('hex'),
+        integrity: `sha512-${createHash('sha512').update(bytes).digest('base64')}`,
+      },
+    }
     response.setHeader('Content-Type', 'application/json')
-    response.end(JSON.stringify(location.pathname.endsWith('/1.0.0') ? version : { name: names.target, 'dist-tags': { latest: '1.0.0' }, versions: { '1.0.0': version }, time: { '1.0.0': '2026-01-01T00:00:00.000Z' } })); return
+    response.end(
+      JSON.stringify(
+        location.pathname.endsWith('/1.0.0')
+          ? version
+          : { name: names.target, 'dist-tags': { latest: '1.0.0' }, versions: { '1.0.0': version }, time: { '1.0.0': '2026-01-01T00:00:00.000Z' } },
+      ),
+    )
+    return
   }
   response.statusCode = 404
   response.end(JSON.stringify({ error: 'Only the local fixture package is available' }))
@@ -139,21 +179,32 @@ try {
   for (const profile of [webProfile, currentProfile]) {
     await dsh([profile, ...(profile === webProfile ? [] : ['--from-default-profile', 'web']), '--dump-config'], `init-${profile}`)
     await writeFile(path.join(profileDir(profile), '.npmrc'), `registry=${registryUrl}\nminimum-release-age=0\n`)
-    await dsh(['plugin', '--profile', profile, 'add', '--ignore-scripts', '--save-exact', tarballs[profile === webProfile ? names.web : names.current]], `marker-${profile}`)
+    await dsh(
+      ['plugin', '--profile', profile, 'add', '--ignore-scripts', '--save-exact', tarballs[profile === webProfile ? names.web : names.current]],
+      `marker-${profile}`,
+    )
   }
   const webManifest = await json(path.join(profileDir(webProfile), 'package.json'))
   webManifest.compatPreserve = { nullable: null, enabled: false, unknown: { kept: true } }
   await writeFile(path.join(profileDir(webProfile), 'package.json'), JSON.stringify(webManifest, null, 2) + '\n')
-  await writeFile(path.join(profileDir(webProfile), 'cordis.patch.yml'), `# Original web profile configuration stays independent.\n- id: ${names.web}\n  name: ${names.web}\n  disabled: null\n  config:\n    unknown-user-setting: retained\n`)
+  await writeFile(
+    path.join(profileDir(webProfile), 'cordis.patch.yml'),
+    `# Original web profile configuration stays independent.\n- id: ${names.web}\n  name: ${names.web}\n  disabled: null\n  config:\n    unknown-user-setting: retained\n`,
+  )
   await dsh(['plugin', '--profile', currentProfile, 'add', '--ignore-scripts', '--save-exact', storeTarball, tarballs[names.probe]], 'install-store-and-probe')
   assert.equal((await json(path.join(profileDir(currentProfile), 'node_modules/dsh-plugins-store/package.json'))).version, '0.1.4')
-  if (options.modern) await dsh(['plugin', '--profile', currentProfile, 'add', '--ignore-scripts', '--save-exact', path.resolve(options.modern)], 'install-modern')
+  if (options.modern)
+    await dsh(['plugin', '--profile', currentProfile, 'add', '--ignore-scripts', '--save-exact', path.resolve(options.modern)], 'install-modern')
   const currentBefore = await profileBytes(currentProfile)
   const webBefore = await profileBytes(webProfile)
   const currentStateBefore = await profileState(currentProfile)
   const webStateBefore = await profileState(webProfile)
-  child = spawn(process.execPath, [cli, '--profile', currentProfile, '--no-open', '--host', '127.0.0.1', '--port', '0'], { cwd: consumer, env, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] })
-  let url
+  child = spawn(process.execPath, [cli, '--profile', currentProfile, '--no-open', '--host', '127.0.0.1', '--port', '0'], {
+    cwd: consumer,
+    env,
+    windowsHide: true,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
   const startup = new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('Store test Host did not become ready')), 60_000)
     child.on('error', reject)
@@ -161,41 +212,72 @@ try {
     const collect = bytes => {
       childOutput += bytes
       const match = /dsh web: (http:\/\/127\.0\.0\.1:\d+\/[^\s]*)/.exec(childOutput)
-      if (match) { clearTimeout(timer); resolve(match[1]) }
+      if (match) {
+        clearTimeout(timer)
+        resolve(match[1])
+      }
     }
-    child.stdout.on('data', collect); child.stderr.on('data', collect)
+    child.stdout.on('data', collect)
+    child.stderr.on('data', collect)
   })
-  url = await startup
+  const url = await startup
   const initial = await fetch(url, { redirect: 'manual' })
-  const cookie = initial.headers.getSetCookie().map(value => value.split(';')[0]).join('; ')
+  const cookie = initial.headers
+    .getSetCookie()
+    .map(value => value.split(';')[0])
+    .join('; ')
   const origin = new URL(url).origin
   const api = async (pathname, body, expectedStatus = 200) => {
-    const response = await fetch(new URL(pathname, origin), { method: body ? 'POST' : 'GET', headers: { cookie, origin, ...(body ? { 'Content-Type': 'application/json' } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(150_000) })
+    const response = await fetch(new URL(pathname, origin), {
+      method: body ? 'POST' : 'GET',
+      headers: { cookie, origin, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+      signal: AbortSignal.timeout(150_000),
+    })
     const text = await response.text()
     assert.equal(response.status, expectedStatus, `${pathname}: ${response.status} ${text}`)
     return JSON.parse(text)
   }
   let evidence
   for (let attempt = 0; attempt < 40; attempt++) {
-    try { evidence = await api('/api/compat-store-profile/evidence'); break } catch (error) { if (attempt === 39) throw error; await delay(250) }
+    try {
+      evidence = await api('/api/compat-store-profile/evidence')
+      break
+    } catch (error) {
+      if (attempt === 39) throw error
+      await delay(250)
+    }
   }
   assert.equal(evidence.profile.name, currentProfile)
   assert.equal(evidence.profile.dir, profileDir(currentProfile))
   const store = evidence.plugins.find(row => row.moduleName === 'dsh-plugins-store')
   assert.equal(store?.fiberPhase, 'active', 'Store must actually activate, not be skipped')
   assert.deepEqual(evidence.storeExports, ['apply', 'inject', 'name'], 'The released package offers no public profile adapter or Config')
-  assert.ok(Object.values(evidence.shared).every(item => item.same), 'Store probe uses the Host shared instances')
+  assert.ok(
+    Object.values(evidence.shared).every(item => item.same),
+    'Store probe uses the Host shared instances',
+  )
   observations.hostEvidence = evidence
   const inventory = await api('/api/dsh-plugins-store/plugins')
   assert.equal(inventory.ok, true)
-  assert.ok(inventory.plugins.some(item => item.name === names.web), 'The old Store incorrectly lists the web-only marker')
+  assert.ok(
+    inventory.plugins.some(item => item.name === names.web),
+    'The old Store incorrectly lists the web-only marker',
+  )
   assert.ok(!inventory.plugins.some(item => item.name === names.current), 'The old Store misses the running profile marker')
   observations.storeInventory = inventory
   assert.equal(await profileBytes(webProfile), webBefore, 'Inventory alone must not mutate web')
   assert.equal(await profileBytes(currentProfile), currentBefore)
   assert.deepEqual(await profileState(webProfile), webStateBefore)
   assert.deepEqual(await profileState(currentProfile), currentStateBefore)
-  const install = await api('/api/dsh-plugins-store/install', { repositoryId: 'compat-local-fixture', install: { source: 'npm', target: `${names.target}@1.0.0`, executable: true, args: ['plugin', '--profile', 'web', 'add', `${names.target}@1.0.0`] } }, 502)
+  const install = await api(
+    '/api/dsh-plugins-store/install',
+    {
+      repositoryId: 'compat-local-fixture',
+      install: { source: 'npm', target: `${names.target}@1.0.0`, executable: true, args: ['plugin', '--profile', 'web', 'add', `${names.target}@1.0.0`] },
+    },
+    502,
+  )
   assert.equal(install.ok, false)
   assert.match(install.message, /安装计划不可执行/)
   assert.ok(!Object.hasOwn(await profileDeps(webProfile), names.target), 'The original HTTP installer rejects its normalized plan before mutation')
@@ -228,12 +310,39 @@ try {
   assert.equal(await profileBytes(webProfile), webControl)
   assert.deepEqual(await profileState(webProfile), webStateControl)
   assert.deepEqual((await json(path.join(profileDir(webProfile), 'package.json'))).compatPreserve, webManifest.compatPreserve)
-  result = { host: manifest.version, platform: `${process.platform}-${process.arch}`, node: process.versions.node, cli, officialPaths,
-    store: { name: 'dsh-plugins-store', version: '0.1.4', tarballSha256: sha256(await readFile(storeTarball)), fiberPhase: store.fiberPhase,
-      compatibility: 'unsupported-current-profile', inventoryProfile: webProfile, installProfile: 'blocked-before-mutation', installPlanProfile: webProfile, removeProfile: webProfile, actualProfile: currentProfile },
-    publicAlternative: { profileContext: evidence.profile, sameSharedInstances: evidence.shared, inventory: 'current-profile', install: publicInstall.application, remove: publicRemove.application, nonTargetWebUnchanged: true },
-    fixtures: 'Only local dependency-free bundles, including a loopback npm registry for the original Store install', registryRequests,
-    modernArtifact: options.modern ?? null, browser: 'not-run; Host/HTTP/actual package operations only', observations, output }
+  result = {
+    host: manifest.version,
+    platform: `${process.platform}-${process.arch}`,
+    node: process.versions.node,
+    cli,
+    officialPaths,
+    store: {
+      name: 'dsh-plugins-store',
+      version: '0.1.4',
+      tarballSha256: sha256(await readFile(storeTarball)),
+      fiberPhase: store.fiberPhase,
+      compatibility: 'unsupported-current-profile',
+      inventoryProfile: webProfile,
+      installProfile: 'blocked-before-mutation',
+      installPlanProfile: webProfile,
+      removeProfile: webProfile,
+      actualProfile: currentProfile,
+    },
+    publicAlternative: {
+      profileContext: evidence.profile,
+      sameSharedInstances: evidence.shared,
+      inventory: 'current-profile',
+      install: publicInstall.application,
+      remove: publicRemove.application,
+      nonTargetWebUnchanged: true,
+    },
+    fixtures: 'Only local dependency-free bundles, including a loopback npm registry for the original Store install',
+    registryRequests,
+    modernArtifact: options.modern ?? null,
+    browser: 'not-run; Host/HTTP/actual package operations only',
+    observations,
+    output,
+  }
   console.log(JSON.stringify({ host: result.host, store: result.store.compatibility, publicAlternative: 'passed', output }))
 } catch (error) {
   result = { status: 'failed', host: manifest.version, message: error.stack, observations, output }

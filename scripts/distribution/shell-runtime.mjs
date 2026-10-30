@@ -29,8 +29,12 @@ export async function preparePowerShell(state) {
     if (!existsSync(join(root, name))) throw new Error(`Official PowerShell distribution is incomplete: ${name}`)
   }
   const executable = join(root, source.executable)
-  const result = spawnSync(executable, ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', '$PSVersionTable.PSVersion.ToString()'],
-    { encoding: 'utf8', windowsHide: true, timeout: 30000, env: { ...process.env, POWERSHELL_TELEMETRY_OPTOUT: '1', PSModuleAnalysisCachePath: join(state.root, 'runtime-cache', 'powershell-module-analysis') } })
+  const result = spawnSync(executable, ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', '$PSVersionTable.PSVersion.ToString()'], {
+    encoding: 'utf8',
+    windowsHide: true,
+    timeout: 30000,
+    env: { ...process.env, POWERSHELL_TELEMETRY_OPTOUT: '1', PSModuleAnalysisCachePath: join(state.root, 'runtime-cache', 'powershell-module-analysis') },
+  })
   if (result.error || result.status !== 0 || result.stdout.trim() !== source.version) throw new Error('Private PowerShell version/self-test failed')
   return { path: executable, root, version: source.version, source, baseline: prior?.root === root ? prior.baseline : await snapshot(root) }
 }
@@ -47,9 +51,11 @@ export async function bindPowerShell(profile, effectiveYaml, powershell, yaml) {
   const additions = []
   for (const row of rows) {
     if (!row.id || typeof row.id !== 'string') throw new Error('PowerShell executor requires a stable profile id')
-    if (row.config !== undefined && (!row.config || Array.isArray(row.config) || Object.getPrototypeOf(row.config) !== Object.prototype)) throw new Error(`Computed executor configuration for ${row.id} requires manual review`)
+    if (row.config !== undefined && (!row.config || Array.isArray(row.config) || Object.getPrototypeOf(row.config) !== Object.prototype))
+      throw new Error(`Computed executor configuration for ${row.id} requires manual review`)
     const configured = row.config?.pwshPath
-    if (configured !== undefined && configured !== '' && configured !== powershell.path) throw new Error(`Executor ${row.id} pins another PowerShell path; source configuration was not overwritten`)
+    if (configured !== undefined && configured !== '' && configured !== powershell.path)
+      throw new Error(`Executor ${row.id} pins another PowerShell path; source configuration was not overwritten`)
     // Official entry patches replace config as a whole, so retain the effective executor settings.
     if (configured !== powershell.path) additions.push({ id: row.id, name: row.name, config: { ...row.config, pwshPath: powershell.path } })
   }

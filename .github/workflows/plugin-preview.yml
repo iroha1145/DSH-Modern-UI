@@ -1,19 +1,11 @@
 name: Official runtime plugin preview
 
+# The heavy matrices: every verified host on Linux and Windows through the isolated consumer, and the
+# five-platform consumer install. Pull requests get the fast gate in pr.yml instead.
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - 'packages/modern-ui/**'
-      - 'scripts/distribution/**'
-      - 'scripts/migration/**'
-      - 'scripts/build-*.mjs'
-      - 'scripts/*preview*.mjs'
-      - 'tests/compat/**'
-      - 'tests/audit/**'
-      - 'package*.json'
-      - 'tsconfig*.json'
-      - '.github/workflows/plugin-preview.yml'
+  push:
+    tags: ['v*']
 
 permissions:
   contents: read
@@ -35,19 +27,9 @@ jobs:
         with:
           node-version: '24.22.1'
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Check source regressions against the development Host
-        run: node --test tests/compat/*.test.mjs
-        env:
-          COMPAT_BACKEND_PACKAGE: node_modules/@deepseek-ai/dsh/package.json
-      - name: Install the browser for audit regressions
-        run: node node_modules/playwright-core/cli.js install --with-deps chromium
       - run: npm run build
-      - name: Check audit regressions and unused declarations
-        run: |
-          node --test tests/audit/*.test.mjs
-          node node_modules/typescript/bin/tsc --project tsconfig.client.json --noEmit --noUnusedLocals --noUnusedParameters
       - run: node scripts/create-preview.mjs
-      - name: Read the exact compatibility targets
+      - name: Read the verified compatibility targets
         id: compatibility
         run: node --input-type=module -e "import fs from 'node:fs'; import { supportedHostVersions } from './scripts/distribution/compatibility.mjs'; fs.appendFileSync(process.env.GITHUB_OUTPUT, 'hosts=' + JSON.stringify(supportedHostVersions) + '\n')"
       - uses: actions/upload-artifact@v7.0.1
@@ -133,8 +115,10 @@ jobs:
           $data = Join-Path $env:RUNNER_TEMP 'Modern UI data 数据'
           if ($IsWindows) {
             $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot\System32\WindowsPowerShell\v1.0"
-            & ./preview/install.ps1 -Root $program -DataHome $data
+            # Community plugins are opt-in; the consumer check verifies the recorded combination.
+            & ./preview/install.ps1 -Root $program -DataHome $data -WithCommunity
           } else {
+            $env:DSH_MODERN_WITH_COMMUNITY = '1'
             & sh ./preview/install.sh $program $data
             if ($LASTEXITCODE -ne 0) { throw 'Consumer install failed' }
           }

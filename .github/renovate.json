@@ -1,0 +1,28 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "rangeStrategy": "pin",
+  "packageRules": [
+    {
+      "description": "Official DSH packages move with host compatibility: one PR, reviewed by hand against the compatibility matrix.",
+      "matchPackageNames": ["@deepseek-ai/**"],
+      "groupName": "official DSH",
+      "automerge": false,
+      "schedule": ["at any time"]
+    },
+    {
+      "description": "Other development dependencies are merged weekly once CI passes; major updates (several are bundled into lib/client.js) wait for review.",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "matchPackageNames": ["!@deepseek-ai/**"],
+      "groupName": "development dependencies",
+      "schedule": ["before 6am on monday"],
+      "automerge": true
+    },
+    {
+      "description": "The plugin's own peer ranges are generated from compatibility.json by scripts/build-plugin.mjs.",
+      "matchFileNames": ["packages/modern-ui/package.json"],
+      "enabled": false
+    }
+  ]
+}

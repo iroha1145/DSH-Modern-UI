@@ -1,0 +1,41 @@
+# Changelog
+
+格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。插件版本与官方宿主版本的对应关系见[兼容矩阵](docs/compatibility.md)。
+
+## [Unreleased]
+
+### Added
+
+- README 首屏截图（明暗各一，`tests/compat/readme-screenshots.mjs` 在隔离环境里用演示模型生成）、英文版 `README.en.md` 与常见问题。
+- `docs/architecture.md` 新增给第三方插件作者的接管关系图。
+- vendor 漂移报告 `scripts/vendor-drift.mjs`：对比 vendored 拷贝的上游源文件在指定官方版本里的改动，接入每日 canary（步骤摘要、artifact、失败 issue）。
+
+### Fixed
+
+- 官方 Desktop：登录 DeepSeek 账号后首次引导卡在「你希望看到多少工作过程？」，「进入应用」和「跳过」都提示「未能保存设置，请重试。」。引导最后一步写的是官方聊天设置（`ui-chat`），Modern UI 接管聊天时禁用了它，写入必然失败。现在启用 Modern UI 时引导记为已跳过、不再弹出；已经卡在半路的进度会被同样记为跳过。工作过程与用量展示在「设置 → 通用」里调整；卸载 Modern UI 后官方引导照常出现（已被记为跳过的除外）。
+
+## [0.1.0] - 未发布
+
+首个以 npm 包 `@iroha1145/dsh-modern-ui` 分发的版本。此前的分发方式（对官方前端打补丁）已归档，见 tag `legacy-patch-final`。
+
+### Added
+
+- 一行安装：`dsh plugin --profile web add @iroha1145/dsh-modern-ui`；GitHub Release 附带 `modern-ui.tgz` 与可选的一键隔离环境安装器。
+- 发布管线：`v*` tag 触发校验、npm 发布（带 provenance）与 GitHub Release。
+- 「设置 → 通用 → 回答可视化组件」开关，控制是否向系统提示词追加 Intelligent UI（`openui` / `followups`）指令；`presentation.openui` / `presentation.followups` 配置项可分别关闭两种代码块的渲染。
+- 上游 canary：每天对范围内最新的未验证官方预发布版与正式版跑兼容套件，失败时开 issue；范围外更新的版本也开 issue，提醒评估宿主范围。
+- `CONTRIBUTING.md`、`SECURITY.md`、issue / PR 模板、Renovate 配置。
+
+### Changed
+
+- 宿主兼容声明从精确版本枚举改为范围 `>=0.2.1-rc.2 <0.3.0-0`（上界写成 `-0`，官方宿主按含预发布版的规则判断时也不会放行 `0.3.0-alpha.*`）；范围内未验证的宿主可以安装并给出警告，已知不兼容的版本被安装器拒绝。
+- `engines.node` 放宽为 `>=24.0.0`；`react` / `react-dom`、`@deepseek-ai/cordis`、`@deepseek-ai/schemastery` peers 改为 caret 范围。
+- 默认**不再**改变模型提示词；经安装器从旧版本升级的 profile 保持原行为（开启）。
+- 测试统一到 vitest（unit / audit / compat 三层），`scripts/` 与 `tests/` 由 Biome 格式化与检查。
+
+### Removed
+
+- 会话级联网开关（`/web on|off`）及其协议；联网工具统一走官方插件管理。
+
+[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/iroha1145/DSH-Modern-UI/releases/tag/v0.1.0

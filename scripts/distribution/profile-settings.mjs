@@ -18,10 +18,16 @@ function plain(value, seen = new Set()) {
 }
 
 export function schemaFor(yaml) {
-  class Expression { constructor(source) { this.source = source } }
+  class Expression {
+    constructor(source) {
+      this.source = source
+    }
+  }
   const expression = new yaml.Type('tag:yaml.org,2002:js', {
-    kind: 'scalar', instanceOf: Expression,
-    construct: source => new Expression(source), represent: value => value.source,
+    kind: 'scalar',
+    instanceOf: Expression,
+    construct: source => new Expression(source),
+    represent: value => value.source,
   })
   return yaml.JSON_SCHEMA.extend([expression])
 }
@@ -72,15 +78,23 @@ export function transformProfileSettings(source, yaml) {
     if (Object.hasOwn(target, name) && !isDeepStrictEqual(target[name], value)) {
       throw new Error(`Legacy ${name} conflicts with modern-ui settings; neither value was overwritten`)
     }
-    if (!Object.hasOwn(target, name)) { target[name] = value; added.push(name) }
+    if (!Object.hasOwn(target, name)) {
+      target[name] = value
+      added.push(name)
+    }
   }
   if (!added.length) return { source, result: { changed: false, movedFields: [], conversionVersion: 1 } }
   if (modern) modern.config = target
   else patch.push({ id: 'modern-ui', config: target })
-  return { source: yaml.dump(patch, { schema, lineWidth: -1, noCompatMode: true }), result: {
-    changed: true, movedFields: added, conversionVersion: 1,
-    collapsedViews: proposed.collapsedViews === undefined ? 'not present' : 'preserved; UI application not yet accepted',
-  } }
+  return {
+    source: yaml.dump(patch, { schema, lineWidth: -1, noCompatMode: true }),
+    result: {
+      changed: true,
+      movedFields: added,
+      conversionVersion: 1,
+      collapsedViews: proposed.collapsedViews === undefined ? 'not present' : 'preserved; UI application not yet accepted',
+    },
+  }
 }
 
 /** Call only for a new staged profile, after copying the user's source profile. */
@@ -88,16 +102,25 @@ export async function preserveLegacySettings(profile, yaml) {
   const filename = join(profile, 'cordis.patch.yml')
   const receiptPath = join(profile, 'modern-ui-settings-migration.json')
   let receiptBytes
-  try { receiptBytes = await readFile(receiptPath, 'utf8') } catch (error) { if (error.code !== 'ENOENT') throw error }
+  try {
+    receiptBytes = await readFile(receiptPath, 'utf8')
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error
+  }
   if (receiptBytes !== undefined) {
     const receipt = JSON.parse(receiptBytes)
-    if (receipt.conversionVersion !== 1 || receipt.backup !== 'modern-ui-settings-before-migration.yml') throw new Error('Unsupported settings migration receipt')
+    if (receipt.conversionVersion !== 1 || receipt.backup !== 'modern-ui-settings-before-migration.yml')
+      throw new Error('Unsupported settings migration receipt')
     const backup = await readFile(join(profile, receipt.backup), 'utf8')
     if (hash(backup) !== receipt.originalSha256) throw new Error('Settings migration backup checksum mismatch')
     return { changed: false, movedFields: [], conversionVersion: 1, alreadyMigrated: true }
   }
   let info
-  try { info = await lstat(filename) } catch (error) { if (error.code !== 'ENOENT') throw error }
+  try {
+    info = await lstat(filename)
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error
+  }
   if (!info) return { changed: false, movedFields: [], conversionVersion: 1 }
   if (!info.isFile() || info.isSymbolicLink()) throw new Error('Staged profile patch must be a regular file')
   if (info.size > 1024 * 1024) throw new Error('Profile patch is too large for automatic settings conversion')
@@ -109,10 +132,14 @@ export async function preserveLegacySettings(profile, yaml) {
   await writeFile(backup, original, { flag: 'wx', mode: 0o600 })
   const temporary = join(profile, 'modern-ui-settings.pending.yml')
   await writeFile(temporary, transformed.source, { flag: 'wx', mode: 0o600 })
-  if (await readFile(filename, 'utf8') !== original) throw new Error('Staged profile patch changed during settings conversion')
+  if ((await readFile(filename, 'utf8')) !== original) throw new Error('Staged profile patch changed during settings conversion')
   await rename(temporary, filename)
-  const result = { ...transformed.result, originalSha256: hash(original), migratedSha256: hash(transformed.source),
-    backup: 'modern-ui-settings-before-migration.yml' }
+  const result = {
+    ...transformed.result,
+    originalSha256: hash(original),
+    migratedSha256: hash(transformed.source),
+    backup: 'modern-ui-settings-before-migration.yml',
+  }
   await writeFile(receiptPath, JSON.stringify(result, null, 2) + '\n', { flag: 'wx', mode: 0o600 })
   return result
 }
@@ -152,7 +179,8 @@ export function transformEffectivePreferences(source, beforeYaml, afterYaml, yam
   // patch value (including an intentionally empty map) always wins.
   for (const key of ['models', 'prices']) {
     const value = protectedFields[key]
-    if (!Object.hasOwn(explicit, key) && value && Object.getPrototypeOf(value) === Object.prototype && Object.keys(value).length === 0) delete protectedFields[key]
+    if (!Object.hasOwn(explicit, key) && value && Object.getPrototypeOf(value) === Object.prototype && Object.keys(value).length === 0)
+      delete protectedFields[key]
   }
   const config = { ...target.config, ...explicit }
   const movedFields = []
@@ -165,7 +193,8 @@ export function transformEffectivePreferences(source, beforeYaml, afterYaml, yam
     for (const key of keys) {
       if (!Object.hasOwn(original, key) || Object.hasOwn(protectedFields, key)) continue
       if (!plain(original[key])) throw new Error(`Computed ${key} requires explicit review; not evaluated`)
-      if (CHAT_PREFERENCE_FIELDS.includes(key) && (typeof original[key] !== 'string' || (key === 'foldedReplies' && !['all', 'final'].includes(original[key])))) throw new Error(`Invalid chat preference: ${key}`)
+      if (CHAT_PREFERENCE_FIELDS.includes(key) && (typeof original[key] !== 'string' || (key === 'foldedReplies' && !['all', 'final'].includes(original[key]))))
+        throw new Error(`Invalid chat preference: ${key}`)
       config[key] = original[key]
       movedFields.push(key)
     }
@@ -178,31 +207,47 @@ export function transformEffectivePreferences(source, beforeYaml, afterYaml, yam
   const documentTarget = unique(after, documentName)
   const proposed = {}
   const sourceFields = {
-    bundle: ['@deepseek-ai/dsh-plugin-manager', {
-      detailMaxBytes: 'maxDocumentBytes', detailImageMaxBytes: 'maxImageBytes',
-      detailFetchTimeoutMs: 'fetchTimeoutMs', detailNpmFileSources: 'npmFileSources',
-    }],
-    market: ['@deepseek-ai/dsh-plugin-market', {
-      detailMaxBytes: 'maxDocumentBytes', detailImageMaxBytes: 'maxImageBytes', fetchTimeoutMs: 'fetchTimeoutMs',
-      cacheTtlMs: 'cacheTtlMs', detailNpmFileSources: 'npmFileSources', detailGitlabHosts: 'gitlabHosts',
-      detailRepositoryMaxBytes: 'maxRepositoryBytes', detailCacheMaxBytes: 'maxCacheBytes',
-      detailCacheDir: 'cacheDir', detailGitTimeoutMs: 'gitTimeoutMs',
-    }],
+    bundle: [
+      '@deepseek-ai/dsh-plugin-manager',
+      {
+        detailMaxBytes: 'maxDocumentBytes',
+        detailImageMaxBytes: 'maxImageBytes',
+        detailFetchTimeoutMs: 'fetchTimeoutMs',
+        detailNpmFileSources: 'npmFileSources',
+      },
+    ],
+    market: [
+      '@deepseek-ai/dsh-plugin-market',
+      {
+        detailMaxBytes: 'maxDocumentBytes',
+        detailImageMaxBytes: 'maxImageBytes',
+        fetchTimeoutMs: 'fetchTimeoutMs',
+        cacheTtlMs: 'cacheTtlMs',
+        detailNpmFileSources: 'npmFileSources',
+        detailGitlabHosts: 'gitlabHosts',
+        detailRepositoryMaxBytes: 'maxRepositoryBytes',
+        detailCacheMaxBytes: 'maxCacheBytes',
+        detailCacheDir: 'cacheDir',
+        detailGitTimeoutMs: 'gitTimeoutMs',
+      },
+    ],
   }
   for (const [kind, [name, mapping]] of Object.entries(sourceFields)) {
     const original = unique(before, name).config
-    for (const [from, to] of Object.entries(mapping)) if (Object.hasOwn(original, from)) {
-      const value = original[from]
-      if (!proposed[kind]) proposed[kind] = {}
-      proposed[kind][to] = value
-    }
+    for (const [from, to] of Object.entries(mapping))
+      if (Object.hasOwn(original, from)) {
+        const value = original[from]
+        if (!proposed[kind]) proposed[kind] = {}
+        proposed[kind][to] = value
+      }
   }
   if (Object.keys(proposed).length) {
     if (typeof documentTarget.entry?.id !== 'string') throw new Error('Document settings require one addressable Modern document owner')
     const documentRows = rows.filter(row => row.id === documentTarget.entry.id)
     if (documentRows.length > 1) throw new Error('Layered Modern document settings require explicit precedence review')
     const explicitDocument = documentRows[0]?.config ?? {}
-    if (!explicitDocument || Object.getPrototypeOf(explicitDocument) !== Object.prototype) throw new Error('Computed Modern document config requires explicit review')
+    if (!explicitDocument || Object.getPrototypeOf(explicitDocument) !== Object.prototype)
+      throw new Error('Computed Modern document config requires explicit review')
     const target = { ...documentTarget.config, ...explicitDocument }
     const originalModern = unique(before, documentName).config
     const protectedConfig = { ...originalModern, ...target }
@@ -210,7 +255,8 @@ export function transformEffectivePreferences(source, beforeYaml, afterYaml, yam
     for (const [kind, values] of Object.entries(proposed)) {
       const inherited = originalModern[kind] ?? {}
       const current = target[kind] ?? {}
-      if (!inherited || Object.getPrototypeOf(inherited) !== Object.prototype || !current || Object.getPrototypeOf(current) !== Object.prototype) throw new Error(`Computed document ${kind} config requires explicit review`)
+      if (!inherited || Object.getPrototypeOf(inherited) !== Object.prototype || !current || Object.getPrototypeOf(current) !== Object.prototype)
+        throw new Error(`Computed document ${kind} config requires explicit review`)
       const existing = { ...inherited, ...current }
       const migrated = { ...existing }
       for (const [key, value] of Object.entries(values)) {
@@ -228,13 +274,20 @@ export function transformEffectivePreferences(source, beforeYaml, afterYaml, yam
       movedFields.push(...additions)
     }
   }
-  return { source: movedFields.length ? yaml.dump(patch, { schema, lineWidth: -1, noCompatMode: true }) : source,
-    result: { changed: movedFields.length > 0, movedFields, conversionVersion: 2 } }
+  return {
+    source: movedFields.length ? yaml.dump(patch, { schema, lineWidth: -1, noCompatMode: true }) : source,
+    result: { changed: movedFields.length > 0, movedFields, conversionVersion: 2 },
+  }
 }
 
 async function readMigrationEvidence(profile, name) {
   let info
-  try { info = await lstat(join(profile, name)) } catch (error) { if (error.code !== 'ENOENT') throw error; return }
+  try {
+    info = await lstat(join(profile, name))
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error
+    return
+  }
   if (!info.isFile() || info.isSymbolicLink() || info.size > 1024 * 1024) return
   return readFile(join(profile, name), 'utf8')
 }
@@ -243,9 +296,19 @@ async function migrationEvidence(profile, filename, backups) {
   const bytes = await readMigrationEvidence(profile, filename)
   if (bytes === undefined) return
   let receipt
-  try { receipt = JSON.parse(bytes) } catch (error) { if (!(error instanceof SyntaxError)) throw error; return }
-  if (!receipt || !Object.hasOwn(backups, receipt.conversionVersion) || !backups[receipt.conversionVersion].includes(receipt.backup)
-    || ![receipt.originalSha256, receipt.migratedSha256].every(value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value))) return
+  try {
+    receipt = JSON.parse(bytes)
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) throw error
+    return
+  }
+  if (
+    !receipt ||
+    !Object.hasOwn(backups, receipt.conversionVersion) ||
+    !backups[receipt.conversionVersion].includes(receipt.backup) ||
+    ![receipt.originalSha256, receipt.migratedSha256].every(value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value))
+  )
+    return
   const source = await readMigrationEvidence(profile, receipt.backup)
   if (source === undefined || hash(source) !== receipt.originalSha256) return
   return { filename, receipt, source, receiptSha256: hash(bytes) }
@@ -258,19 +321,34 @@ async function legacyBindingEvidence(profile, snapshots, records, yaml, schema) 
   const id = value => typeof value === 'string' && value.length > 0 && value !== 'modern-ui'
   const config = value => object(value) && !Object.hasOwn(value, 'plugins')
   const shellNames = new Set(['@deepseek-ai/dsh-pwsh-local', '@deepseek-ai/dsh-pwsh-sandbox'])
-  const shell = row => keys(row, ['id', 'name', 'config']) && id(row.id) && shellNames.has(row.name)
-    && config(row.config) && typeof row.config.pwshPath === 'string' && row.config.pwshPath.length > 0
+  const shell = row =>
+    keys(row, ['id', 'name', 'config']) &&
+    id(row.id) &&
+    shellNames.has(row.name) &&
+    config(row.config) &&
+    typeof row.config.pwshPath === 'string' &&
+    row.config.pwshPath.length > 0
   const host = (disable, insert) => {
-    if (!keys(disable, ['id', 'name', 'disabled']) || !id(disable.id) || disable.disabled !== true
-      || !Object.hasOwn(HOST_REPLACEMENTS, disable.name) || !keys(insert, ['insert'])
-      || !Array.isArray(insert.insert) || insert.insert.length !== 1) return false
+    if (
+      !keys(disable, ['id', 'name', 'disabled']) ||
+      !id(disable.id) ||
+      disable.disabled !== true ||
+      !Object.hasOwn(HOST_REPLACEMENTS, disable.name) ||
+      !keys(insert, ['insert']) ||
+      !Array.isArray(insert.insert) ||
+      insert.insert.length !== 1
+    )
+      return false
     const replacement = insert.insert[0]
-    return object(replacement) && replacement.id === `modern-ui-compat-${disable.id}`
-      && replacement.name === HOST_REPLACEMENTS[disable.name]
-      && Object.keys(replacement).every(key => ['id', 'name', 'config', 'group', 'disabled', 'inject', 'intercept', 'isolate'].includes(key))
-      && (replacement.group === undefined || replacement.group === false || replacement.group === null)
-      && (replacement.disabled === undefined || replacement.disabled === null || replacement.disabled === false)
-      && (replacement.config === undefined || config(replacement.config))
+    return (
+      object(replacement) &&
+      replacement.id === `modern-ui-compat-${disable.id}` &&
+      replacement.name === HOST_REPLACEMENTS[disable.name] &&
+      Object.keys(replacement).every(key => ['id', 'name', 'config', 'group', 'disabled', 'inject', 'intercept', 'isolate'].includes(key)) &&
+      (replacement.group === undefined || replacement.group === false || replacement.group === null) &&
+      (replacement.disabled === undefined || replacement.disabled === null || replacement.disabled === false) &&
+      (replacement.config === undefined || config(replacement.config))
+    )
   }
   const dump = rows => yaml.dump(rows, { schema, lineWidth: -1, noCompatMode: true })
   const anchors = new Set(records.flatMap(({ receipt }) => [receipt.originalSha256, receipt.migratedSha256]))
@@ -279,19 +357,23 @@ async function legacyBindingEvidence(profile, snapshots, records, yaml, schema) 
   // accepted path still has to reach a checksum from a validated old receipt.
   for (const [migratedSha256, source] of snapshots) {
     let rows
-    try { rows = yaml.load(source, { schema }) } catch (error) { if (!(error instanceof yaml.YAMLException)) throw error; continue }
+    try {
+      rows = yaml.load(source, { schema })
+    } catch (error) {
+      if (!(error instanceof yaml.YAMLException)) throw error
+      continue
+    }
     if (!Array.isArray(rows) || dump(rows) !== source) continue
     const connectPrefix = async (end, kind) => {
       const prefix = dump(rows.slice(0, end))
       const originalSha256 = hash(prefix)
       // A PowerShell predecessor must be recorded, or end in the Host stage
       // that can lead to a recorded predecessor. Do not retain arbitrary cuts.
-      if (kind === 'powershell' && !anchors.has(originalSha256)
-        && !(end >= 2 && host(rows[end - 2], rows[end - 1]))) return
+      if (kind === 'powershell' && !anchors.has(originalSha256) && !(end >= 2 && host(rows[end - 2], rows[end - 1]))) return
       const edge = { kind, originalSha256, migratedSha256 }
       if (kind === 'host') {
         edge.backup = `modern-ui-host-before-${originalSha256.slice(0, 16)}.yml`
-        if (await readMigrationEvidence(profile, edge.backup) !== prefix) return
+        if ((await readMigrationEvidence(profile, edge.backup)) !== prefix) return
       }
       snapshots.set(originalSha256, prefix)
       edges.push(edge)
@@ -321,12 +403,16 @@ async function recoverConversationPickerDefaults(profile, beforeYaml, afterYaml,
   const recovered = await migrationEvidence(profile, receiptName, { 1: [backup] })
   if (recovered) return { changed: false, alreadyRecovered: true }
   // A partial or altered recovery is not permission to run it again.
-  try { await lstat(join(profile, receiptName)); throw new Error('Picker defaults recovery receipt is invalid') }
-  catch (error) { if (error.code !== 'ENOENT') throw error }
+  try {
+    await lstat(join(profile, receiptName))
+    throw new Error('Picker defaults recovery receipt is invalid')
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error
+  }
   const conversation = await migrationEvidence(profile, 'modern-ui-conversation-migration.json', {
     1: ['modern-ui-conversation-before-migration.yml'],
   })
-  if (!conversation || conversation.receipt.changed !== true || conversation.receipt.namespace !== 'modern-ui') return { changed: false }
+  if (conversation?.receipt.changed !== true || conversation.receipt.namespace !== 'modern-ui') return { changed: false }
   const filename = join(profile, 'cordis.patch.yml')
   const info = await lstat(filename)
   if (!info.isFile() || info.isSymbolicLink() || info.size > 1024 * 1024) return { changed: false }
@@ -335,7 +421,10 @@ async function recoverConversationPickerDefaults(profile, beforeYaml, afterYaml,
   const records = [conversation]
   for (const [name, backups] of [
     ['modern-ui-settings-migration.json', { 1: ['modern-ui-settings-before-migration.yml'] }],
-    ['modern-ui-chat-migration.json', { 1: ['modern-ui-chat-before-migration.yml'], 2: ['modern-ui-chat-before-migration.yml', 'modern-ui-chat-before-migration-v2.yml'] }],
+    [
+      'modern-ui-chat-migration.json',
+      { 1: ['modern-ui-chat-before-migration.yml'], 2: ['modern-ui-chat-before-migration.yml', 'modern-ui-chat-before-migration-v2.yml'] },
+    ],
     ['modern-ui-effective-preferences-v1.json', { 1: ['modern-ui-effective-preferences-before-v1.yml'], 2: ['modern-ui-effective-preferences-before-v2.yml'] }],
   ]) {
     const record = await migrationEvidence(profile, name, backups)
@@ -350,7 +439,9 @@ async function recoverConversationPickerDefaults(profile, beforeYaml, afterYaml,
       const rows = patchRows(yaml.load(source, { schema }) ?? []).filter(row => row.id === 'modern-ui')
       const config = rows[0]?.config ?? {}
       return rows.length <= 1 && config && Object.getPrototypeOf(config) === Object.prototype ? config : undefined
-    } catch { return undefined } // Unsupported historical YAML is not evidence for an automatic overwrite.
+    } catch {
+      return undefined
+    } // Unsupported historical YAML is not evidence for an automatic overwrite.
   }
   const empty = value => value && Object.getPrototypeOf(value) === Object.prototype && Object.keys(value).length === 0
   const originalConfig = configOf(conversation.source)
@@ -371,15 +462,23 @@ async function recoverConversationPickerDefaults(profile, beforeYaml, afterYaml,
   const evidence = new Map([[conversation.filename, conversation.receiptSha256]])
   const automaticBindings = new Set()
   for (const key of ['models', 'prices']) {
-    if (Object.hasOwn(originalConfig, key) || !empty(generatedConfig[key]) || !empty(currentConfig?.[key])
-      || !empty(before?.[key]) || !empty(after?.[key]) || !inherited?.[key]
-      || Object.getPrototypeOf(inherited[key]) !== Object.prototype || !Object.keys(inherited[key]).length || !plain(inherited[key])) continue
+    if (
+      Object.hasOwn(originalConfig, key) ||
+      !empty(generatedConfig[key]) ||
+      !empty(currentConfig?.[key]) ||
+      !empty(before?.[key]) ||
+      !empty(after?.[key]) ||
+      !inherited?.[key] ||
+      Object.getPrototypeOf(inherited[key]) !== Object.prototype ||
+      !Object.keys(inherited[key]).length ||
+      !plain(inherited[key])
+    )
+      continue
     const paths = new Map([[generatedHash, []]])
     for (const [digest, chain] of paths) {
       for (const record of [...records, ...bindings]) {
         const receipt = record.receipt ?? record
-        if (receipt.originalSha256 !== digest || paths.has(receipt.migratedSha256)
-          || !empty(configOf(snapshots.get(receipt.migratedSha256))?.[key])) continue
+        if (receipt.originalSha256 !== digest || paths.has(receipt.migratedSha256) || !empty(configOf(snapshots.get(receipt.migratedSha256))?.[key])) continue
         paths.set(receipt.migratedSha256, [...chain, record])
       }
     }
@@ -399,11 +498,18 @@ async function recoverConversationPickerDefaults(profile, beforeYaml, afterYaml,
   await writeFile(join(profile, backup), original, { flag: 'wx', mode: 0o600 })
   const pending = join(profile, 'modern-ui-picker-defaults-recovery.pending.yml')
   await writeFile(pending, changed, { flag: 'wx', mode: 0o600 })
-  if (await readFile(filename, 'utf8') !== original) throw new Error('Profile changed during picker defaults recovery')
+  if ((await readFile(filename, 'utf8')) !== original) throw new Error('Profile changed during picker defaults recovery')
   await rename(pending, filename)
-  const result = { changed: true, conversionVersion: 1, recoveredFields: Object.keys(additions), backup,
-    originalSha256: currentHash, migratedSha256: hash(changed), receipts: Object.fromEntries(evidence),
-    automaticBindings: [...automaticBindings] }
+  const result = {
+    changed: true,
+    conversionVersion: 1,
+    recoveredFields: Object.keys(additions),
+    backup,
+    originalSha256: currentHash,
+    migratedSha256: hash(changed),
+    receipts: Object.fromEntries(evidence),
+    automaticBindings: [...automaticBindings],
+  }
   await writeFile(join(profile, receiptName), JSON.stringify(result, null, 2) + '\n', { flag: 'wx', mode: 0o600 })
   return result
 }
@@ -415,13 +521,21 @@ export async function preserveEffectivePreferences(profile, beforeYaml, afterYam
   const backups = { 1: 'modern-ui-effective-preferences-before-v1.yml', 2: 'modern-ui-effective-preferences-before-v2.yml' }
   const backup = backups[2]
   let previous
-  try { previous = JSON.parse(await readFile(receiptPath, 'utf8')) } catch (error) { if (error.code !== 'ENOENT') throw error }
+  try {
+    previous = JSON.parse(await readFile(receiptPath, 'utf8'))
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error
+  }
   if (previous) {
-    if (!(previous.conversionVersion in backups) || previous.backup !== backups[previous.conversionVersion] || hash(await readFile(join(profile, previous.backup), 'utf8')) !== previous.originalSha256) throw new Error('Effective preferences migration receipt is invalid')
+    if (
+      !(previous.conversionVersion in backups) ||
+      previous.backup !== backups[previous.conversionVersion] ||
+      hash(await readFile(join(profile, previous.backup), 'utf8')) !== previous.originalSha256
+    )
+      throw new Error('Effective preferences migration receipt is invalid')
   }
   const pickerDefaultsRecovery = await recoverConversationPickerDefaults(profile, beforeYaml, afterYaml, yaml)
-  if (previous?.conversionVersion === 2) return { changed: pickerDefaultsRecovery.changed, alreadyMigrated: true,
-    conversionVersion: 2, pickerDefaultsRecovery }
+  if (previous?.conversionVersion === 2) return { changed: pickerDefaultsRecovery.changed, alreadyMigrated: true, conversionVersion: 2, pickerDefaultsRecovery }
   const info = await lstat(filename)
   if (!info.isFile() || info.isSymbolicLink() || info.size > 1024 * 1024) throw new Error('Effective migration requires a small regular profile patch')
   const original = await readFile(filename, 'utf8')
@@ -430,7 +544,7 @@ export async function preserveEffectivePreferences(profile, beforeYaml, afterYam
   if (transformed.result.changed) {
     const pending = join(profile, 'modern-ui-effective-preferences.pending.yml')
     await writeFile(pending, transformed.source, { flag: 'wx', mode: 0o600 })
-    if (await readFile(filename, 'utf8') !== original) throw new Error('Profile changed during effective settings migration')
+    if ((await readFile(filename, 'utf8')) !== original) throw new Error('Profile changed during effective settings migration')
     await rename(pending, filename)
   }
   const result = { ...transformed.result, backup, originalSha256: hash(original), migratedSha256: hash(transformed.source) }
@@ -459,8 +573,7 @@ export function transformConversationPreferences(source, effectiveYaml, yaml) {
   for (const key of ['busyEnter', 'collapsedViews']) {
     if (Object.hasOwn(target, key) || !Object.hasOwn(original, key)) continue
     const value = original[key]
-    if (key === 'busyEnter' ? !['queue', 'steer'].includes(value)
-      : !Array.isArray(value) || value.some(id => typeof id !== 'string')) {
+    if (key === 'busyEnter' ? !['queue', 'steer'].includes(value) : !Array.isArray(value) || value.some(id => typeof id !== 'string')) {
       throw new Error(`Invalid original conversation preference: ${key}`)
     }
     additions[key] = value
@@ -482,9 +595,10 @@ export function transformConversationPreferences(source, effectiveYaml, yaml) {
       row.config = { ...target, ...additions }
     } else patch.push({ id: 'modern-ui', name: '@iroha1145/dsh-modern-ui', config: { ...target, ...additions } })
   }
-  return { source: movedFields.length ? yaml.dump(patch, { schema, lineWidth: -1, noCompatMode: true }) : source,
-    result: { changed: movedFields.length > 0, movedFields, conversionVersion: 1,
-      namespace: 'modern-ui', retainedOriginalEntry: originals[0]?.id } }
+  return {
+    source: movedFields.length ? yaml.dump(patch, { schema, lineWidth: -1, noCompatMode: true }) : source,
+    result: { changed: movedFields.length > 0, movedFields, conversionVersion: 1, namespace: 'modern-ui', retainedOriginalEntry: originals[0]?.id },
+  }
 }
 
 /** This separate receipt also upgrades profiles that already migrated model settings. */
@@ -493,24 +607,109 @@ export async function preserveConversationPreferences(profile, effectiveYaml, ya
   const receiptPath = join(profile, 'modern-ui-conversation-migration.json')
   const backupName = 'modern-ui-conversation-before-migration.yml'
   let previous
-  try { previous = JSON.parse(await readFile(receiptPath, 'utf8')) } catch (error) { if (error.code !== 'ENOENT') throw error }
+  try {
+    previous = JSON.parse(await readFile(receiptPath, 'utf8'))
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error
+  }
   if (previous) {
     if (previous.conversionVersion !== 1 || previous.backup !== backupName) throw new Error('Unsupported conversation migration receipt')
     if (hash(await readFile(join(profile, backupName), 'utf8')) !== previous.originalSha256) throw new Error('Conversation backup checksum mismatch')
     return { changed: false, movedFields: [], alreadyMigrated: true, namespace: 'modern-ui' }
   }
   const info = await lstat(filename)
-  if (!info.isFile() || info.isSymbolicLink() || info.size > 1024 * 1024) throw new Error('Conversation migration requires a small regular staged profile patch')
+  if (!info.isFile() || info.isSymbolicLink() || info.size > 1024 * 1024)
+    throw new Error('Conversation migration requires a small regular staged profile patch')
   const original = await readFile(filename, 'utf8')
   const transformed = transformConversationPreferences(original, effectiveYaml, yaml)
   if (!transformed.result.changed) return transformed.result
   await writeFile(join(profile, backupName), original, { flag: 'wx', mode: 0o600 })
   const temporary = join(profile, 'modern-ui-conversation.pending.yml')
   await writeFile(temporary, transformed.source, { flag: 'wx', mode: 0o600 })
-  if (await readFile(filename, 'utf8') !== original) throw new Error('Conversation settings changed during conversion')
+  if ((await readFile(filename, 'utf8')) !== original) throw new Error('Conversation settings changed during conversion')
   await rename(temporary, filename)
-  const result = { ...transformed.result, backup: backupName,
-    originalSha256: hash(original), migratedSha256: hash(transformed.source) }
+  const result = { ...transformed.result, backup: backupName, originalSha256: hash(original), migratedSha256: hash(transformed.source) }
+  await writeFile(receiptPath, JSON.stringify(result, null, 2) + '\n', { flag: 'wx', mode: 0o600 })
+  return result
+}
+
+/**
+ * Keep the response-presentation prompt on for profiles that already ran Modern UI. Versions
+ * before 0.1.0 appended it unconditionally; 0.1.0 makes it a `presentation.prompt` switch that
+ * defaults to off. An upgrade is recognized by a Modern UI entry in the effective profile before
+ * this install whose config has no `presentation` section; an explicit user choice is never touched.
+ */
+export function transformPresentationPrompt(source, beforeYaml, afterYaml, yaml) {
+  const schema = schemaFor(yaml)
+  const patch = yaml.load(source, { schema }) ?? []
+  const rows = patchRows(patch)
+  const modernOf = text => {
+    const effective = yaml.load(text, { schema })
+    if (!Array.isArray(effective)) throw new Error('Effective profile must be an entry list')
+    const found = effective.filter(row => row?.id === 'modern-ui' && row.name === '@iroha1145/dsh-modern-ui')
+    if (found.length > 1) throw new Error('Multiple Modern UI entries require manual precedence review')
+    return found[0]
+  }
+  const unchanged = reason => ({ source, result: { changed: false, reason, conversionVersion: 1, namespace: 'modern-ui' } })
+  const before = modernOf(beforeYaml)
+  if (before === undefined) return unchanged('new-install')
+  if (Object.hasOwn(before.config ?? {}, 'presentation')) return unchanged('already-configured')
+  const target = modernOf(afterYaml)?.config ?? {}
+  const modernRows = rows.filter(row => row.id === 'modern-ui')
+  if (modernRows.length > 1) throw new Error('Layered Modern UI settings require explicit precedence review')
+  const row = modernRows[0]
+  for (const config of [target, row?.config ?? {}]) {
+    if (!config || Array.isArray(config) || Object.getPrototypeOf(config) !== Object.prototype) {
+      throw new Error('Computed Modern UI settings require explicit review; expressions were not evaluated')
+    }
+  }
+  if (typeof row?.config?.presentation?.prompt === 'boolean') return unchanged('explicit-choice')
+  for (const [key, value] of Object.entries(row?.config ?? {})) {
+    if (!Object.hasOwn(target, key) || !isDeepStrictEqual(target[key], value)) {
+      throw new Error('Composed Modern UI settings do not match the staged profile; retry migration without concurrent edits')
+    }
+  }
+  const presentation = target.presentation && typeof target.presentation === 'object' && !Array.isArray(target.presentation) ? target.presentation : {}
+  const config = { ...target, presentation: { ...presentation, prompt: true } }
+  if (row) row.config = config
+  else patch.push({ id: 'modern-ui', name: '@iroha1145/dsh-modern-ui', config })
+  return {
+    source: yaml.dump(patch, { schema, lineWidth: -1, noCompatMode: true }),
+    result: { changed: true, reason: 'upgrade-keeps-prompt', conversionVersion: 1, namespace: 'modern-ui' },
+  }
+}
+
+/** Separate receipt so the switch is written at most once per profile lineage. */
+export async function preservePresentationPrompt(profile, beforeYaml, afterYaml, yaml) {
+  const filename = join(profile, 'cordis.patch.yml')
+  const receiptPath = join(profile, 'modern-ui-presentation-migration.json')
+  const backupName = 'modern-ui-presentation-before-migration.yml'
+  let previous
+  try {
+    previous = JSON.parse(await readFile(receiptPath, 'utf8'))
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error
+  }
+  if (previous) {
+    if (previous.conversionVersion !== 1) throw new Error('Unsupported presentation migration receipt')
+    if (previous.changed && (previous.backup !== backupName || hash(await readFile(join(profile, backupName), 'utf8')) !== previous.originalSha256))
+      throw new Error('Presentation backup checksum mismatch')
+    return { changed: false, alreadyMigrated: true, namespace: 'modern-ui' }
+  }
+  const info = await lstat(filename)
+  if (!info.isFile() || info.isSymbolicLink() || info.size > 1024 * 1024)
+    throw new Error('Presentation migration requires a small regular staged profile patch')
+  const original = await readFile(filename, 'utf8')
+  const transformed = transformPresentationPrompt(original, beforeYaml, afterYaml, yaml)
+  let result = transformed.result
+  if (transformed.result.changed) {
+    await writeFile(join(profile, backupName), original, { flag: 'wx', mode: 0o600 })
+    const temporary = join(profile, 'modern-ui-presentation.pending.yml')
+    await writeFile(temporary, transformed.source, { flag: 'wx', mode: 0o600 })
+    if ((await readFile(filename, 'utf8')) !== original) throw new Error('Presentation settings changed during conversion')
+    await rename(temporary, filename)
+    result = { ...result, backup: backupName, originalSha256: hash(original), migratedSha256: hash(transformed.source) }
+  }
   await writeFile(receiptPath, JSON.stringify(result, null, 2) + '\n', { flag: 'wx', mode: 0o600 })
   return result
 }
@@ -545,14 +744,23 @@ export function transformChatPreferences(source, yaml) {
     const value = chat.config[field]
     if (typeof value !== 'string') throw new Error(`Legacy ${field} must be a plain string; computed values were not evaluated`)
     const accepted = CHAT_PREFERENCE_VALUES[field]
-    if (accepted && !accepted.includes(value)) throw new Error(`Legacy ${field} must be ${accepted.map(item => `"${item}"`).join(' or ')}; computed values were not evaluated`)
+    if (accepted && !accepted.includes(value))
+      throw new Error(`Legacy ${field} must be ${accepted.map(item => `"${item}"`).join(' or ')}; computed values were not evaluated`)
     target[field] = value
   }
   if (modern) modern.config = target
   else patch.push({ id: 'modern-ui', name: '@iroha1145/dsh-modern-ui', config: target })
   // The ui-chat row keeps its values for the retained original profile; its entry is disabled by the bundle patch.
-  return { source: yaml.dump(patch, { schema, lineWidth: -1, noCompatMode: true }), result: {
-    changed: true, movedFields, conversionVersion: CHAT_CONVERSION_VERSION, namespace: 'modern-ui', retainedOriginalEntry: chat.id } }
+  return {
+    source: yaml.dump(patch, { schema, lineWidth: -1, noCompatMode: true }),
+    result: {
+      changed: true,
+      movedFields,
+      conversionVersion: CHAT_CONVERSION_VERSION,
+      namespace: 'modern-ui',
+      retainedOriginalEntry: chat.id,
+    },
+  }
 }
 
 /**
@@ -565,10 +773,15 @@ export async function preserveChatPreferences(profile, yaml) {
   const receiptPath = join(profile, 'modern-ui-chat-migration.json')
   const backupNames = { 1: 'modern-ui-chat-before-migration.yml', 2: 'modern-ui-chat-before-migration-v2.yml' }
   let previous
-  try { previous = JSON.parse(await readFile(receiptPath, 'utf8')) } catch (error) { if (error.code !== 'ENOENT') throw error }
+  try {
+    previous = JSON.parse(await readFile(receiptPath, 'utf8'))
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error
+  }
   if (previous) {
     // A version-2 receipt may still point at the version-1 backup when that pass had nothing left to move.
-    if (!(previous.conversionVersion in backupNames) || !Object.values(backupNames).includes(previous.backup)) throw new Error('Unsupported chat migration receipt')
+    if (!(previous.conversionVersion in backupNames) || !Object.values(backupNames).includes(previous.backup))
+      throw new Error('Unsupported chat migration receipt')
     if (hash(await readFile(join(profile, previous.backup), 'utf8')) !== previous.originalSha256) throw new Error('Chat backup checksum mismatch')
     if (previous.conversionVersion === CHAT_CONVERSION_VERSION) return { changed: false, movedFields: [], alreadyMigrated: true, namespace: 'modern-ui' }
   }
@@ -580,17 +793,28 @@ export async function preserveChatPreferences(profile, yaml) {
   if (!transformed.result.changed) {
     if (!previous) return transformed.result
     // Nothing left to move: record the current version against the earlier backup, which still verifies.
-    const result = { ...transformed.result, backup: previous.backup, originalSha256: previous.originalSha256, migratedSha256: previous.migratedSha256, previousConversionVersion: previous.conversionVersion }
+    const result = {
+      ...transformed.result,
+      backup: previous.backup,
+      originalSha256: previous.originalSha256,
+      migratedSha256: previous.migratedSha256,
+      previousConversionVersion: previous.conversionVersion,
+    }
     await writeFile(receiptPath, JSON.stringify(result, null, 2) + '\n', { mode: 0o600 })
     return result
   }
   await writeFile(join(profile, backupName), original, { flag: 'wx', mode: 0o600 })
   const temporary = join(profile, 'modern-ui-chat.pending.yml')
   await writeFile(temporary, transformed.source, { flag: 'wx', mode: 0o600 })
-  if (await readFile(filename, 'utf8') !== original) throw new Error('Chat settings changed during conversion')
+  if ((await readFile(filename, 'utf8')) !== original) throw new Error('Chat settings changed during conversion')
   await rename(temporary, filename)
-  const result = { ...transformed.result, backup: backupName, originalSha256: hash(original), migratedSha256: hash(transformed.source),
-    ...previous ? { previousConversionVersion: previous.conversionVersion } : {} }
+  const result = {
+    ...transformed.result,
+    backup: backupName,
+    originalSha256: hash(original),
+    migratedSha256: hash(transformed.source),
+    ...(previous ? { previousConversionVersion: previous.conversionVersion } : {}),
+  }
   await writeFile(receiptPath, JSON.stringify(result, null, 2) + '\n', { mode: 0o600 })
   return result
 }
@@ -601,10 +825,13 @@ export function validateUiOwnerBindings(bundleSource, effectiveSource, yaml) {
   const bundle = yaml.load(bundleSource, { schema })
   const effective = yaml.load(effectiveSource, { schema })
   if (!Array.isArray(bundle) || !Array.isArray(effective)) throw new Error('UI owner validation requires entry lists')
-  const expected = bundle.filter(row => row?.disabled === true && typeof row.name === 'string'
-    && row.name.startsWith('@deepseek-ai/dsh-client-ui-'))
-  if (expected.length !== 7 || expected.some(row => typeof row.id !== 'string' || !row.id)
-    || new Set(expected.map(row => row.id)).size !== expected.length || new Set(expected.map(row => row.name)).size !== expected.length) {
+  const expected = bundle.filter(row => row?.disabled === true && typeof row.name === 'string' && row.name.startsWith('@deepseek-ai/dsh-client-ui-'))
+  if (
+    expected.length !== 7 ||
+    expected.some(row => typeof row.id !== 'string' || !row.id) ||
+    new Set(expected.map(row => row.id)).size !== expected.length ||
+    new Set(expected.map(row => row.name)).size !== expected.length
+  ) {
     throw new Error('Modern UI artifact must declare seven unique UI owner bindings')
   }
   const names = new Set(expected.map(row => row.name))
@@ -624,9 +851,13 @@ export function validateUiOwnerBindings(bundleSource, effectiveSource, yaml) {
   visit(effective, false)
   return expected.map(({ id, name }) => {
     const matches = found.filter(item => item.row.name === name)
-    if (matches.length !== 1 || matches[0].nested || matches[0].row.id !== id
-      || ![undefined, null, false].includes(matches[0].row.group)
-      || effective.filter(row => row?.id === id).length !== 1) {
+    if (
+      matches.length !== 1 ||
+      matches[0].nested ||
+      matches[0].row.id !== id ||
+      ![undefined, null, false].includes(matches[0].row.group) ||
+      effective.filter(row => row?.id === id).length !== 1
+    ) {
       throw new Error(`UI owner ${name} requires one top-level entry with id ${id}; custom, nested, missing, or duplicate owners require explicit migration`)
     }
     const { disabled } = matches[0].row
@@ -640,10 +871,10 @@ export function validateUiOwnerBindings(bundleSource, effectiveSource, yaml) {
 function containsNestedHost(entry, seen = new Set()) {
   if (seen.has(entry)) throw new Error('Cyclic effective Host configuration')
   seen.add(entry)
-  const children = [...(entry.group && Array.isArray(entry.config) ? entry.config : []),
-    ...(Array.isArray(entry.config?.plugins) ? entry.config.plugins : [])]
-  const found = children.some(child => child && typeof child === 'object' &&
-    ((HOST_REPLACEMENTS[child.name] && child.disabled !== true) || containsNestedHost(child, seen)))
+  const children = [...(entry.group && Array.isArray(entry.config) ? entry.config : []), ...(Array.isArray(entry.config?.plugins) ? entry.config.plugins : [])]
+  const found = children.some(
+    child => child && typeof child === 'object' && ((HOST_REPLACEMENTS[child.name] && child.disabled !== true) || containsNestedHost(child, seen)),
+  )
   seen.delete(entry)
   return found
 }
@@ -664,15 +895,18 @@ export function transformHostBindings(source, effectiveYaml, yaml) {
     const replacement = HOST_REPLACEMENTS[entry.name]
     if (!replacement || entry.disabled === true) continue
     if (typeof entry.id !== 'string' || !entry.id) throw new Error('Host compatibility replacement requires a stable entry id')
-    if (entry.disabled !== undefined && entry.disabled !== null && typeof entry.disabled !== 'boolean') throw new Error(`Computed activation of ${entry.id} requires manual compatibility review`)
+    if (entry.disabled !== undefined && entry.disabled !== null && typeof entry.disabled !== 'boolean')
+      throw new Error(`Computed activation of ${entry.id} requires manual compatibility review`)
     const id = `modern-ui-compat-${entry.id}`
     if (ids.has(id)) throw new Error(`Host replacement id is already in use: ${id}`)
     ids.add(id)
     patch.push({ id: entry.id, name: entry.name, disabled: true }, { insert: [{ ...entry, id, name: replacement }] })
     replacements.push({ fromId: entry.id, toId: id, plugin: replacement })
   }
-  return { source: replacements.length ? yaml.dump(patch, { schema, lineWidth: -1, noCompatMode: true }) : source,
-    result: { changed: replacements.length > 0, replacements } }
+  return {
+    source: replacements.length ? yaml.dump(patch, { schema, lineWidth: -1, noCompatMode: true }) : source,
+    result: { changed: replacements.length > 0, replacements },
+  }
 }
 
 /** Apply only to a staged profile after its plugin package is installed. */
@@ -685,13 +919,14 @@ export async function bindHostCompatibility(profile, effectiveYaml, yaml) {
   const transformed = transformHostBindings(original, effectiveYaml, yaml)
   if (!transformed.result.changed) return transformed.result
   const backup = `modern-ui-host-before-${hash(original).slice(0, 16)}.yml`
-  try { await writeFile(join(profile, backup), original, { flag: 'wx', mode: 0o600 }) }
-  catch (error) {
-    if (error.code !== 'EEXIST' || await readFile(join(profile, backup), 'utf8') !== original) throw error
+  try {
+    await writeFile(join(profile, backup), original, { flag: 'wx', mode: 0o600 })
+  } catch (error) {
+    if (error.code !== 'EEXIST' || (await readFile(join(profile, backup), 'utf8')) !== original) throw error
   }
   const temporary = join(profile, 'modern-ui-host.pending.yml')
   await writeFile(temporary, transformed.source, { flag: 'wx', mode: 0o600 })
-  if (await readFile(filename, 'utf8') !== original) throw new Error('Staged profile changed during Host composition')
+  if ((await readFile(filename, 'utf8')) !== original) throw new Error('Staged profile changed during Host composition')
   await rename(temporary, filename)
   return { ...transformed.result, backup, originalSha256: hash(original), migratedSha256: hash(transformed.source) }
 }

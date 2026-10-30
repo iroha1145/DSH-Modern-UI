@@ -32,7 +32,10 @@ export async function dependencyInventory(backendManifest, options = {}) {
     const required = { ...metadata.dependencies, ...metadata.peerDependencies }
     const optional = { ...metadata.optionalDependencies }
     for (const [name, peer] of Object.entries(metadata.peerDependenciesMeta ?? {})) {
-      if (peer.optional) { optional[name] = required[name]; delete required[name] }
+      if (peer.optional) {
+        optional[name] = required[name]
+        delete required[name]
+      }
     }
     for (const name of Object.keys(metadata.optionalDependencies ?? {})) delete required[name]
     const enqueue = async (name, spec) => {
@@ -48,8 +51,9 @@ export async function dependencyInventory(backendManifest, options = {}) {
     }
     for (const [name, spec] of Object.entries(required)) await enqueue(name, spec)
     for (const name of Object.keys(optional)) {
-      try { await enqueue(name, optional[name]) }
-      catch (error) {
+      try {
+        await enqueue(name, optional[name])
+      } catch (error) {
         if (!error.message.startsWith('Missing dependency ')) throw error
         optionalMissing.push({ declaringPackage: metadata.name, name, reason: 'Optional dependency is not installed for this target' })
       }

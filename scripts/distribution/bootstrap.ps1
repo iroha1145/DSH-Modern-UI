@@ -7,7 +7,8 @@ param(
   [string]$BackendVersion,
   [string]$FromProfile,
   [string]$Node,
-  [switch]$SkipCommunity
+  [switch]$SkipCommunity,
+  [switch]$WithCommunity
 )
 $ErrorActionPreference = 'Stop'
 $installStarted = [DateTimeOffset]::UtcNow.ToString('o')
@@ -57,7 +58,8 @@ try {
   }
   $coreElapsedMs = $installTimer.ElapsedMilliseconds
   @{ phase = 'core'; result = (($coreOutput -join "`n") | ConvertFrom-Json) } | ConvertTo-Json -Depth 20
-  if ($SkipCommunity) {
+  # Community plugins are an opt-in, verified combination; the core path never needs them.
+  if ($SkipCommunity -or -not $WithCommunity) {
     @{ phase = 'community'; result = @{ state = 'skipped' } } | ConvertTo-Json -Depth 10
   } else {
     try {
