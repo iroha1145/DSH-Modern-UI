@@ -213,6 +213,7 @@ WP0 与 WP6 的 lint 部分可以并行；WP2 与 WP3 可以并行；WP4 与 WP5
 > - Node 断言在 `create-preview.mjs`、`tests/compat/run.mjs` 与 manager 的运行时检查里都改为 major 匹配（pnpm 仍精确）。私有 bootstrap 仍下载 `24.22.1`，`install-existing.*` 对已有 Node 的检查仍是精确版本，它决定是否需要下载私有 Node，不属于插件声明。
 > - `tests/compat/run.mjs` 不再要求 `--host` 属于精确集合，而是用预览里的 `installer/compatibility.mjs` 判定，结果 JSON 带 `hostStatus`。canary 每个目标版本跑 `run.mjs`（隔离消费者 + 浏览器）和 `npm-install.e2e.mjs`（一行 npm 路径）。目标由 `scripts/upstream-targets.mjs` 从 registry 元数据挑最新的未验证预发布版与正式版（只取比最新已验证版更新的），当前结果 `["0.2.1-rc.5"]`。
 > - 未推送，无法手动 `workflow_dispatch`；改为本地对 rc.5 跑同一条 `run.mjs`（Windows x64，Edge）：第一次 browser 层 3 项失败（`installed-loader-shared-instances`、`sidebar-read-edit-save-and-markdown-fold`、`context-real-statistics`），原因是未验证宿主不附装 `dsh-context` / `dsh-better-sidebar`，而这三项检查依赖它们，不是 rc.5 契约变化。于是 `run.mjs` 对未验证宿主改为用 `community --manifest` 装默认宿主的社区组合作为候选（结果 JSON 记 `communityCandidate`）；在同一消费者上补装后用 `--state` 重跑，installation / officialBefore / mcp / lifecycle / webConfiguration / browser（12 项）/ failedUpgrade / unrelatedData / officialAfter 全部通过。结论：rc.5 兼容，矩阵记为「范围内未验证、canary 通过」；按 CONTRIBUTING 写进 `verifiedHosts` 需要 Linux x64 CI 证据与插件 patch 发布，留给 owner 推送后由 canary 补齐。
+> - 验收第 2 条：改动后对 `0.2.1-rc.4` 跑完整 `run.mjs`（Windows x64，Edge），9 层全部通过；`npm pack --dry-run` 无 engines 警告。
 
 ---
 
