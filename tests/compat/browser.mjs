@@ -39,8 +39,51 @@ const png = Buffer.concat([
   pngChunk('IEND', Buffer.alloc(0)),
 ])
 
-export async function runBrowserChecks({ state, output, executablePath, checkHost }) {
+/**
+ * `application`, when given, replaces both the CLI Host and the launched browser: an app that embeds the Web
+ * Client (the official Desktop) and starts its own Host. `start({ environment, overlay })` launches it with the
+ * fixture environment and patch overlay and resolves a CDP endpoint; `stop()` quits it. A Host restart is then an
+ * application restart. `state.cliEnvironment` is merged into official `plugin` commands for CLIs that need it.
+ */
+/**
+ * Keep a Desktop window producing frames until the returned stop is called. Desktop paints no frame while nothing on
+ * screen changes, and a capture or a media-query change event waits for one; an invisible mark changes every frame.
+ */
+export async function keepPainting(page) {
+  await page.evaluate(() => {
+    const mark = document.createElement('div')
+    mark.dataset.compatRepaint = ''
+    mark.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;background:#808080;pointer-events:none'
+    document.body.append(mark)
+    const tick = () => {
+      if (!mark.isConnected) return
+      mark.style.opacity = mark.style.opacity === '0.01' ? '0.02' : '0.01'
+      requestAnimationFrame(tick)
+    }
+    tick()
+  })
+  return () => page.evaluate(() => document.querySelector('[data-compat-repaint]')?.remove()).catch(() => {})
+}
+
+/**
+ * Capture a Desktop window as it is shown. Playwright's capture resizes the Electron view for a full page and can
+ * stall for good there; the protocol's own capture of the visible window does not, once frames keep coming.
+ */
+export async function captureWindow(page, filename) {
+  const session = await page.context().newCDPSession(page)
+  const stop = await keepPainting(page)
+  try {
+    const { data } = await session.send('Page.captureScreenshot', { format: 'png' })
+    await writeFile(filename, Buffer.from(data, 'base64'))
+  } finally {
+    await stop()
+    await session.detach().catch(() => {})
+  }
+}
+
+export async function runBrowserChecks({ state, output, executablePath, checkHost, application }) {
   assert.ok(state?.cli && state?.node && state?.home && state?.profile, 'Pass an actually installed state')
+  assert.ok(!(application && checkHost), 'Host callbacks need the CLI Host origin')
   output = path.resolve(output)
   await mkdir(output, { recursive: true })
   executablePath ??=
@@ -61,11 +104,12 @@ export async function runBrowserChecks({ state, output, executablePath, checkHos
     screenshots: [],
   }
   if (
-    !executablePath ||
-    !(await access(executablePath).then(
-      () => true,
-      () => false,
-    ))
+    !application &&
+    (!executablePath ||
+      !(await access(executablePath).then(
+        () => true,
+        () => false,
+      )))
   ) {
     report.passed = false
     report.checks.push({ name: 'real-browser', state: 'unverified', reason: 'No browser executable is available' })
@@ -152,7 +196,7 @@ export async function runBrowserChecks({ state, output, executablePath, checkHos
     try {
       const install = await execute(state.node, [state.cli, 'plugin', '--profile', state.profile, 'add', '--save-exact', '--ignore-scripts', tarball], {
         cwd: output,
-        env: environment,
+        env: { ...environment, ...state.cliEnvironment },
         windowsHide: true,
         timeout: 180_000,
         maxBuffer: 8 * 1024 * 1024,
@@ -172,20 +216,25 @@ export async function runBrowserChecks({ state, output, executablePath, checkHos
     JSON.stringify([
       { id: 'agent-default-model', config: { provider: providerId, model: 'compat-balanced' } },
       { id: 'workspace-controller', config: { documentsDirectory: path.join(output, 'documents') } },
-      { id: 'modern-ui', config: { foldedReplies: 'final' } },
+      // Desktop defaults work details to "standard" like the official Chat; the flow check expands them inline.
+      { id: 'modern-ui', config: { foldedReplies: 'final', transcriptView: 'detailed' } },
     ]),
   )
   let child,
     browser,
+    context,
     page,
     origin,
     childOutput = '',
     hostRestarted = false,
     restartInProgress = false
   const retiredOrigins = new Set()
+  // An application keeps its origin across restarts; what retires is the page of the quit instance.
+  const retiredPages = new Set()
   const responseReads = []
   const sockets = []
   const stopHost = async () => {
+    if (application) return application.stop()
     if (!child || child.exitCode !== null || child.signalCode !== null) return
     child.kill('SIGTERM')
     await Promise.race([new Promise(resolve => child.once('exit', resolve)), delay(5000)])
@@ -196,6 +245,7 @@ export async function runBrowserChecks({ state, output, executablePath, checkHos
     }
   }
   const startHost = async () => {
+    if (application) return application.start({ environment, overlay })
     child = spawn(state.node, [state.cli, '--profile', state.profile, '--patch', overlay, '--host', '127.0.0.1', '--port', '0', '--no-open'], {
       cwd: output,
       env: environment,
@@ -225,7 +275,12 @@ export async function runBrowserChecks({ state, output, executablePath, checkHos
   }
   const screen = async name => {
     const filename = path.join(output, `${name}.png`)
-    await page.screenshot({ path: filename, fullPage: true })
+    if (!application) await page.screenshot({ path: filename, fullPage: true })
+    else {
+      await page.bringToFront()
+      if ((await page.evaluate(() => document.visibilityState)) === 'hidden') throw new Error('The Desktop window is minimized; screenshots need it restored')
+      await captureWindow(page, filename)
+    }
     report.screenshots.push(filename)
   }
   const check = async (name, action) => {
@@ -267,7 +322,8 @@ export async function runBrowserChecks({ state, output, executablePath, checkHos
     if (await button.count()) await button.click({ timeout: 15000 })
   }
   const settings = async () => {
-    if (process.platform === 'linux') {
+    // Desktop's window menu owns the keyboard shortcuts; open settings the way its users do.
+    if (application || process.platform === 'linux') {
       await page.locator('[data-modern-settings-seat]').getByRole('button').press('Enter')
       await page.getByRole('menuitem', { name: /^(设置|Settings)$/ }).press('Enter')
     } else await page.keyboard.press(process.platform === 'darwin' ? 'Meta+Alt+Comma' : 'Control+Alt+Comma')
@@ -276,28 +332,28 @@ export async function runBrowserChecks({ state, output, executablePath, checkHos
       .filter({ has: page.getByRole('button', { name: /^(通用设置|General)$/ }) })
       .waitFor()
   }
-  try {
-    const url = await startHost()
-    origin = new URL(url).origin
-    const { chromium } = tooling('playwright-core')
-    browser = await chromium.launch({ executablePath, headless: true })
-    const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, locale: 'zh-CN', permissions: ['clipboard-read', 'clipboard-write'] })
-    page = await context.newPage()
-    page.setDefaultTimeout(15000)
-    page.on('pageerror', error => report.errors.push(error.message))
-    page.on('console', message => {
+  const attach = view => {
+    view.setDefaultTimeout(15000)
+    view.on('pageerror', error => report.errors.push(error.message))
+    view.on('console', message => {
       if (['warning', 'error'].includes(message.type()))
-        report.console.push({ type: message.type(), text: message.text(), location: message.location(), duringRestart: restartInProgress })
+        report.console.push({
+          type: message.type(),
+          text: message.text(),
+          location: message.location(),
+          duringRestart: restartInProgress,
+          ...(retiredPages.has(view) && { retired: true }),
+        })
     })
-    page.on('request', request => {
+    view.on('request', request => {
       const url = new URL(request.url())
       if (url.pathname.includes('/sidebar/') || url.pathname.includes('/session/'))
         report.requests.push({ path: url.pathname, method: request.method(), body: request.postData() })
     })
-    page.on('requestfailed', request => {
+    view.on('requestfailed', request => {
       const target = new URL(request.url())
       const failure = request.failure()
-      const restart = retiredOrigins.has(target.origin)
+      const restart = retiredOrigins.has(target.origin) || retiredPages.has(view)
       const unusedResource = failure?.errorText === 'net::ERR_ABORTED' && ['/sidebar/bundle/editor.js', '/sidebar/api/changes.ops'].includes(target.pathname)
       report.failedRequests.push({
         url: request.url(),
@@ -310,9 +366,17 @@ export async function runBrowserChecks({ state, output, executablePath, checkHos
             : 'Unexpected request failure',
       })
     })
-    page.on('response', response => {
+    view.on('response', response => {
       const target = new URL(response.url())
-      if (response.status() >= 400) {
+      if (response.status() >= 400 && retiredPages.has(view) && restartInProgress && [502, 503].includes(response.status())) {
+        // Desktop's own protocol answers the retired window while its Host is stopped.
+        report.failedRequests.push({
+          url: response.url(),
+          status: response.status(),
+          expected: true,
+          reason: 'The retired Desktop window reached the deliberately stopped Host',
+        })
+      } else if (response.status() >= 400) {
         const item = { url: response.url(), status: response.status(), expected: false }
         report.failedRequests.push(item)
         responseReads.push(
@@ -340,13 +404,54 @@ export async function runBrowserChecks({ state, output, executablePath, checkHos
             .catch(() => {}),
         )
     })
-    page.on('websocket', socket => {
+    view.on('websocket', socket => {
       const item = { path: new URL(socket.url()).pathname, sent: 0, received: 0 }
       sockets.push(item)
       socket.on('framesent', () => item.sent++)
       socket.on('framereceived', () => item.received++)
     })
-    await page.goto(url)
+  }
+  const { chromium } = tooling('playwright-core')
+  // The application may hold other windows (a sign-in prompt); the Web Client is the page with the fixture's report.
+  const applicationPage = async () => {
+    for (let at = 0; at < 120; at++) {
+      for (const candidate of browser.contexts().flatMap(row => row.pages()))
+        if (
+          await candidate
+            .locator('[data-compat-client-report]')
+            .count()
+            .catch(() => 0)
+        )
+          return candidate
+      await delay(500)
+    }
+    throw new Error('No application window rendered the Web Client')
+  }
+  const open = async target => {
+    if (application) {
+      browser = await chromium.connectOverCDP(target)
+      context = browser.contexts()[0]
+      await context.grantPermissions(['clipboard-read', 'clipboard-write']).catch(() => {})
+      page = await applicationPage()
+      // A relaunched window may open behind others; screenshots need it composited.
+      await page.bringToFront()
+      attach(page)
+      // The application loaded the page before the listeners existed; reload so they observe a whole startup.
+      await page.reload()
+      return
+    }
+    if (!page) {
+      browser = await chromium.launch({ executablePath, headless: true })
+      context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, locale: 'zh-CN', permissions: ['clipboard-read', 'clipboard-write'] })
+      page = await context.newPage()
+      attach(page)
+    }
+    await page.goto(target)
+  }
+  try {
+    const url = await startHost()
+    if (!application) origin = new URL(url).origin
+    await open(url)
     await page.waitForTimeout(1200)
     await acceptWelcome()
     await page.locator('[data-compat-client-report]').waitFor({ state: 'attached' })
@@ -412,7 +517,11 @@ export async function runBrowserChecks({ state, output, executablePath, checkHos
       const process = page.locator('[data-turn-process][data-process-outcome="completed"]').last()
       await process.waitFor()
       await page.waitForTimeout(800)
-      if ((await process.getAttribute('aria-expanded')) === 'false') await process.click()
+      // A just-closed Turn can still settle (more slowly inside Desktop) and fold again; expand until it stays open.
+      for (let at = 0; at < 10 && (await process.getAttribute('aria-expanded')) !== 'true'; at++) {
+        if ((await process.getAttribute('aria-expanded')) === 'false') await process.click()
+        await page.waitForTimeout(500)
+      }
       assert.equal(await process.getAttribute('aria-expanded'), 'true')
       await page.waitForTimeout(300)
       for (const item of await page.locator('[data-process-activity][aria-expanded="false"]:visible').all()) await item.click()
@@ -572,11 +681,11 @@ export async function runBrowserChecks({ state, output, executablePath, checkHos
       await page.keyboard.press('Escape')
       await page.waitForTimeout(500)
       restartInProgress = true
-      retiredOrigins.add(new URL(page.url()).origin)
+      if (application) retiredPages.add(page)
+      else retiredOrigins.add(new URL(page.url()).origin)
       await stopHost()
       hostRestarted = true
-      const next = await startHost()
-      await page.goto(next)
+      await open(await startHost())
       await page.locator('[data-compat-client-report]').waitFor({ state: 'attached' })
       restartInProgress = false
       await page.locator(`[data-row-key="session:${previous.sessionId}"]`).click()
@@ -599,7 +708,7 @@ export async function runBrowserChecks({ state, output, executablePath, checkHos
         [],
       )
       const unexpectedConsole = report.console.filter(row => {
-        if (row.type !== 'error') return false
+        if (row.type !== 'error' || row.retired) return false
         if (row.text.startsWith('Failed to load resource:') && report.failedRequests.some(request => request.expected)) return false
         const socket = /^WebSocket connection to '(ws:\/\/[^/]+)\//.exec(row.text)
         if (socket && retiredOrigins.has(socket[1].replace(/^ws:/, 'http:'))) return false
@@ -632,7 +741,7 @@ export async function runBrowserChecks({ state, output, executablePath, checkHos
   } finally {
     await browser?.close()
     await stopHost()
-    await writeFile(path.join(output, 'host.log'), childOutput.replace(/\?token=[^\s]+/g, '?token=[redacted]'))
+    if (!application) await writeFile(path.join(output, 'host.log'), childOutput.replace(/\?token=[^\s]+/g, '?token=[redacted]'))
     report.passed = report.checks.every(row => row.state === 'passed')
     await writeFile(path.join(output, 'result.json'), JSON.stringify(report, null, 2) + '\n')
   }
