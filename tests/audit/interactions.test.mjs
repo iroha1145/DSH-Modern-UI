@@ -229,7 +229,7 @@ test('U6/P4 anchored panels flip, coalesce scroll, retain identity, and cancel p
   let position,
     renders = 0,
     measurements = 0
-  let rect = { left: 200, right: 240, top: 700, bottom: 730 }
+  const rect = { left: 200, right: 240, top: 700, bottom: 730 }
   const anchor = {
     current: {
       getBoundingClientRect: () => {

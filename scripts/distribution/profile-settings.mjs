@@ -412,7 +412,7 @@ async function recoverConversationPickerDefaults(profile, beforeYaml, afterYaml,
   const conversation = await migrationEvidence(profile, 'modern-ui-conversation-migration.json', {
     1: ['modern-ui-conversation-before-migration.yml'],
   })
-  if (!conversation || conversation.receipt.changed !== true || conversation.receipt.namespace !== 'modern-ui') return { changed: false }
+  if (conversation?.receipt.changed !== true || conversation.receipt.namespace !== 'modern-ui') return { changed: false }
   const filename = join(profile, 'cordis.patch.yml')
   const info = await lstat(filename)
   if (!info.isFile() || info.isSymbolicLink() || info.size > 1024 * 1024) return { changed: false }

@@ -205,7 +205,6 @@ try {
     windowsHide: true,
     stdio: ['ignore', 'pipe', 'pipe'],
   })
-  let url
   const startup = new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('Store test Host did not become ready')), 60_000)
     child.on('error', reject)
@@ -221,7 +220,7 @@ try {
     child.stdout.on('data', collect)
     child.stderr.on('data', collect)
   })
-  url = await startup
+  const url = await startup
   const initial = await fetch(url, { redirect: 'manual' })
   const cookie = initial.headers
     .getSetCookie()
