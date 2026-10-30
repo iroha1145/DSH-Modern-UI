@@ -359,3 +359,46 @@ WP0 与 WP6 的 lint 部分可以并行；WP2 与 WP3 可以并行；WP4 与 WP5
 - 市场上架条件：https://deepseek.stream/guide
 - 成熟社区插件参照：https://github.com/omdsh-dev/DSH-better-sidebar （`^0.2.1-rc.1` 范围声明 + 旧宿主版本对照表）、https://github.com/bowenliang123/dsh-context （`>=0.2.0-rc.2` + `docs/compatibility.md`）
 - 上游 Releases：https://github.com/deepseek-ai/deepseek-harness/releases
+
+---
+
+## 9. 复审记录与待办（2026-10-30，基于 `wp6/engineering-baseline`）
+
+### 9.1 复审结论
+
+WP0、WP1、WP2、WP3、WP6 对照 §2 原则与各 WP 验收逐项核对，均达标。本地 `npm run lint`、`npm run typecheck`、`npm run build`、`npm test`（125 个用例）通过；构建后 `git status` 干净，生成物与提交一致；`npm pack --dry-run` 134 个文件、无 `src/`。相对基线 `179598e`，`src/vendor`、`provenance.json`、`THIRD_PARTY_NOTICES.md`、`licenses/` 零改动（原则 1 与 §6）。WP2 第 3 步要求的前提已核实：rc.2 至 rc.5 四个宿主都钉 `@deepseek-ai/cordis ~4.0.5`、`@deepseek-ai/schemastery ~3.18.5`。
+
+### 9.2 复审修正（已提交）
+
+- 原则 2：`react` / `react-dom` / `cordis` / `schemastery` 的 peer 范围原写死在 `scripts/build-plugin.mjs`，现移入 `compatibility.json#platformPeers`，由 `compatibility.mjs` 导出、构建脚本读取；生成的 `package.json` 不变。
+- `docs/host-compat.md`：`tests/migration/...` 改为现存的 `tests/compat/profile-settings.test.mjs`；`node --test tests/host-compat/host.test.mjs` 改为历史记录，并写明「空白译文拒绝」「MCP 重定向拒绝」目前没有自动化回归（原套件在 `00c143e` 随旧测试目录删除）。
+- `docs/install.md`：删去「未发布前只能使用真实本地 tgz」的过时表述。
+- 根 README：按原则 4 补列 `presentation.openui` / `presentation.followups` 配置项。
+- `docs/compatibility.md`、`CONTRIBUTING.md`：写明平台 peers 的来源字段与核对命令。
+- `biome migrate`：`biome.json` 的 `recommended: true` 迁为 `preset`。
+
+### 9.3 待办
+
+**owner 操作**
+- [ ] 推送并开 PR。五条分支依次叠放（wp0 → wp1 → wp3 → wp2 → wp6），按此顺序合并，或让每个 PR 的 base 指向前一条分支。WP2 对 rc.4 的验收记录提交在 wp6 分支（`6cc6cb4`），wp2 分支本身没有。
+- [ ] 配置 `NPM_TOKEN` 或 npm Trusted Publishing，打 `v0.1.0`；发布时把 CHANGELOG 的「未发布」改为日期。
+- [ ] 推送后手动 `workflow_dispatch` 一次 canary，取 rc.5 的 Linux x64 结果，按 CONTRIBUTING 写进 `verifiedHosts` 并发 patch 版本。
+- [ ] 仓库设置开启 Private vulnerability reporting；安装 Renovate GitHub App。
+- [ ] §7 第 4 项（架构终态）拍板后再开 WP5。
+
+**只能在真实 CI 上验证的三项**
+- [ ] `pr.yml` 总时长是否在 8 分钟内。
+- [ ] canary 的 report job 能否按版本开 issue / 追加评论。
+- [ ] `release.yml` 的 `npm publish`：走 Trusted Publishing 时 `NODE_AUTH_TOKEN` 为空串，依赖 npm ≥ 11.5 的 OIDC 流程接管。
+
+**后续 WP 的输入**
+- [ ] WP4 开工前补回 translator 空白译文拒绝与 MCP 重定向拒绝的自动化回归（见 `docs/host-compat.md`），否则拆包时没有行为基线。
+- [ ] WP6 遗留：`chat-snapshot-builder.ts`、`assembler.ts` 单测；`.gitattributes` 的 `-text` 收窄随 WP5。
+- [ ] WP7：核对 `dsh.category: "ui"` 是否为市场枚举值；README 截图 / GIF；FAQ 增加「是否支持 Desktop」条目（见 §9.4）。
+- [ ] WP4、WP5、WP7 尚未开始。
+
+### 9.4 作用面：Web Client 与 Desktop
+
+- **事实**：本插件 `dsh.client.platform` 为 `"web"`。rc.4 宿主的 `@deepseek-ai/dsh-client-modules` 只把 platform 为 `web` 的客户端插件编进 `__DSH_BOOT__` 模块表，其他值直接忽略。`dsh` CLI 本身没有终端聊天界面：官方 profile 模板只有 `web`、`acp`、`headless`、`sdk`、`sdk-minimal`，交互 UI 只有浏览器 Web Client（`dsh web`），其余是 JSONL / headless / ACP / SDK 输出面，UI 插件对它们不起作用。
+- **Desktop**：官方 Desktop 应用（Electron 外壳，不在 npm 上发布）使用保留 profile `desktop`，不走上述模板，由应用自己初始化；CLI 支持 `dsh plugin --profile desktop add ...`，前提是先打开过 Desktop 并完全退出（`@deepseek-ai/dsh/lib/plugin-*.js` 的 `requireDesktopProfile`）。官方 layout 样式表含 `html[data-platform=darwin]` 与 `data-windows-titlebar` 规则，说明 Desktop 外壳渲染的是同一套 Web Client。因此 Modern UI 在机制上可以装进 desktop profile，与 web profile 用同一个包。
+- **未验收**：没有在 Desktop 上跑过任何一层检查；Electron 专有桥（原生文件拖出、原生目录选择、多窗口、macOS 菜单透明）在 vendored 代码里只按 rc.4 的公开接口降级（见 `docs/architecture.md`、`docs/history/chat-interactions-parity.md`）；安装器与 `tests/compat` 只建 web profile。要宣称「双端支持」，需要单独一个 WP：在 Desktop 上跑 browser 层检查、README 补 `--profile desktop` 安装说明、把 Electron 差异写进兼容矩阵的 unverified 列。在此之前文档只应写「Web Client」。

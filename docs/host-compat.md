@@ -6,13 +6,13 @@
 
 `@iroha1145/dsh-modern-ui/translator` 与 `@iroha1145/dsh-modern-ui/mcp-client` 由旧修复后的相应小插件提取，保留 MIT、来源及公开配置接口，未复制整个后端。新增 `web-fetch-http` 从真实 rc.4 发布 artifact 派生，保留其网络防护并使用插件自己的 Undici `8.12.2`；新增 `plugin-documents` 通过官方受鉴权 Connection 路由恢复插件长文档。所有 DSH/Cordis 服务均 external/peer；MCP SDK 是插件自身固定的正常依赖 `2.3.0`。当前实现、文档资源限制和启动时重新绑定见 [补齐记录](history/migration-parity-20261028.md)与 [分发记录](history/distribution-parity.md)。
 
-安装器读取实际组合后的配置，在新 profile 的用户 patch 中禁用被替换的原条目，再以新 id 插入替代插件，保留配置和条目 metadata。官方 `name` patch 字段是匹配条件，不能用它直接改模块名；`tests/migration/profile-settings.test.mjs` 用真实 `applyEntryPatches` 核对了禁用和插入。显式禁用的功能不会被打开。嵌套/自定义 preset 中的目标或动态 activation 目前要求单独审阅，自动安装会拒绝这类不确定转换。
+安装器读取实际组合后的配置，在新 profile 的用户 patch 中禁用被替换的原条目，再以新 id 插入替代插件，保留配置和条目 metadata。官方 `name` patch 字段是匹配条件，不能用它直接改模块名；`tests/compat/profile-settings.test.mjs` 用真实 `applyEntryPatches` 核对了禁用和插入。显式禁用的功能不会被打开。嵌套/自定义 preset 中的目标或动态 activation 目前要求单独审阅，自动安装会拒绝这类不确定转换。
 
 没有模块别名劫持、原型修改、加载器拦截或官方文件覆盖。默认没有翻译/MCP 实例的官方 Web profile 不会为此凭空启用它们；存在这些顶层实例的配置副本才选择替代。
 
 ## 已运行行为检查
 
-`node --test tests/host-compat/host.test.mjs`，固定 Node `24.22.1`，10 项通过：
+下列 10 项行为检查原由 `tests/host-compat/host.test.mjs` 在固定 Node `24.22.1` 下跑过并全部通过；该套件已随旧测试目录移除（提交 `00c143e`），目前仓库里没有覆盖「空白译文拒绝」与「MCP 重定向拒绝」的自动化回归，只保留手动对照脚本 `scripts/host-compat/probe.mjs`。宿主侧模块拆包（hand-off WP4）前应先补回这层回归：
 
 - Google 和 Bing：非空原文得到空白译文时拒绝；合法译文原样返回；失败后可以重试。
 - 正常官方翻译器生成旧空白缓存，再使用替代插件与真实 JSONL/Agent 恢复：追加有效结果、旧事件及文件前缀不改，第二次读取和完整 Host 重启后均复用有效缓存，不再发送 HTTP 请求。

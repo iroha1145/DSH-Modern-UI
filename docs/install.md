@@ -20,7 +20,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./install-existing.ps1 -
 
 PowerShell 参数只对这个进程生效，解决 Windows 默认 Restricted 对本地脚本的限制；不修改系统或用户执行策略。
 
-预览根入口已经携带 `modern-ui.tgz` 路径和实际 SRI；源码对应 `scripts/distribution/install-existing.mjs` / `.ps1`。它调用官方正常 profile / plugin 管理，不改写官方包。未发布前只能使用真实本地 tgz，不能把待定包名当成已发布 registry 包。
+预览根入口已经携带 `modern-ui.tgz` 路径和实际 SRI；源码对应 `scripts/distribution/install-existing.mjs` / `.ps1`。它调用官方正常 profile / plugin 管理，不改写官方包。安装器只使用预览目录自带的 `modern-ui.tgz`，不从 npm registry 拉取插件包；要用 npm 包请走 README 的一行安装。
 
 可选 `-Root` 指定程序目录，`-DataHome` 指定独立数据目录。默认程序位于 LocalAppData 的 DSH-Modern-UI/program；首次数据目录使用新 UUID，不自动读取真实 `~/.dsh`、旧聊天或其他 profile。再次更新同一程序目录时，只沿用它自己 current.json 中记录的数据目录。`-Node` 可指定已有精确 Node；PATH 上 Node 不匹配时自动使用私有 bootstrap，不修改系统 Node。已有精确 Node 时不重新下载它，pnpm 仍私有准备。
 

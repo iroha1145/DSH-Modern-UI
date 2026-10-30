@@ -16,7 +16,7 @@ dsh plugin --profile web add @iroha1145/dsh-modern-ui
 
 - **现代化对话体验**：全新设计的对话流、思考过程（Reasoning）分组折叠、消息时间轴导航、代码块与 Markdown 预览一键折叠。
 - **高效输入与交互**：支持选中文字快捷引用、浏览器原图拖拽/粘贴无损直传、命令与文件引用胶囊（Lexical 编辑器）。
-- **增强视图与卡片**：内置 Intelligent UI（`openui` 交互式沙箱与 `followups` 追问建议）、Subagent 编队树与调用链视图、精细化工具调用卡片。Intelligent UI 默认**不改变模型提示词**，只渲染模型已经写出的 `openui` / `followups` 代码块；在「设置 → 通用 → 回答可视化组件」开启后会向系统提示词追加约 3 KB 指令。从旧版本升级的安装器用户保持原行为（开启）。
+- **增强视图与卡片**：内置 Intelligent UI（`openui` 交互式沙箱与 `followups` 追问建议）、Subagent 编队树与调用链视图、精细化工具调用卡片。Intelligent UI 默认**不改变模型提示词**，只渲染模型已经写出的 `openui` / `followups` 代码块；在「设置 → 通用 → 回答可视化组件」开启后会向系统提示词追加约 3 KB 指令。从旧版本升级的安装器用户保持原行为（开启）。条目配置里的 `presentation.openui` / `presentation.followups` 可分别关闭这两种代码块的渲染（关闭后按普通代码块显示），见[包说明](packages/modern-ui/README.md)。
 - **模型与推理控制**：现代化模型选择卡片，支持自定义模型标签扩展与推理强度（Reasoning Effort，含 `Off`）配置。
 - **多语言与主题**：内置中、英、日、西、法、德、俄、葡 8 种界面语言与多套明暗主题。
 
