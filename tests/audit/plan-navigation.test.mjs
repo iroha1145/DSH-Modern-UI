@@ -1,4 +1,4 @@
-import test from 'node:test'
+import { afterAll, test } from 'vitest'
 import assert from 'node:assert/strict'
 import { build } from 'esbuild'
 import { writeFile, rm } from 'node:fs/promises'
@@ -31,7 +31,7 @@ const labels = {open:'Open',loading:'Loading',failed:'Failed',dialog:'Image',clo
 const dom = new JSDOM('<div id="root"></div>', {url:'https://example.test/prefix/'})
 for (const key of ['window','document','navigator','Node','HTMLElement','DOMParser']) Object.defineProperty(globalThis,key,{configurable:true,value:dom.window[key]})
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
-test.after(() => dom.window.close())
+afterAll(() => dom.window.close())
 function fixture() {
   let cwd = '/child/live'
   const calls = []

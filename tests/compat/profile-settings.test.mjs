@@ -1,4 +1,4 @@
-import test from 'node:test'
+import { onTestFinished, test } from 'vitest'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
@@ -21,9 +21,9 @@ test('frozen conversation writer retains its extracted source digest', async () 
 })
 
 for (const disabled of [undefined, null, false, true]) {
-  test(`Host disabled=${String(disabled)} preserves activation, metadata, and recoverable picker evidence`, async t => {
+  test(`Host disabled=${String(disabled)} preserves activation, metadata, and recoverable picker evidence`, async () => {
     const profile = await mkdtemp(join(tmpdir(), 'compat-null-host-'))
-    t.after(() => rm(profile, { recursive: true, force: true }))
+    onTestFinished(() => rm(profile, { recursive: true, force: true }))
     const filename = join(profile, 'cordis.patch.yml')
     const host = { id: 'translator', name: '@deepseek-ai/dsh-experimental-translator', group: null,
       inject: { optional: ['logger'] }, intercept: { logger: 'root' }, isolate: null,
@@ -65,9 +65,9 @@ test('real !!js activation is rejected without evaluation; unknown metadata is r
   assert.deepEqual(rows.at(-1).insert[0], { ...original, id: 'modern-ui-compat-translator', name: '@iroha1145/dsh-modern-ui/translator' })
 })
 
-test('presentation prompt stays on for upgrades, off for new installs, and never overrides a choice', async t => {
+test('presentation prompt stays on for upgrades, off for new installs, and never overrides a choice', async () => {
   const profile = await mkdtemp(join(tmpdir(), 'compat-presentation-'))
-  t.after(() => rm(profile, { recursive: true, force: true }))
+  onTestFinished(() => rm(profile, { recursive: true, force: true }))
   const filename = join(profile, 'cordis.patch.yml')
   const receipt = join(profile, 'modern-ui-presentation-migration.json')
   const modern = config => ({ id: 'modern-ui', name: '@iroha1145/dsh-modern-ui', config })

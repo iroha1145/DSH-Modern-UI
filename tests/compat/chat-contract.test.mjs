@@ -1,4 +1,4 @@
-import test from 'node:test'
+import { test } from 'vitest'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { readFileSync, realpathSync } from 'node:fs'
@@ -81,11 +81,11 @@ function fixture({ inputAt, answer = true } = {}) {
   return { spec, turn, byKey, nodes, locations, order: [...byKey.keys()], control: byKey.get('control') }
 }
 
-test('published compactAnswer contract is present and follows the actual selected Host projector', t => {
+test('published compactAnswer contract is present and follows the actual selected Host projector', () => {
   const keys = declarations(path.join(chatRoot, 'lib/types/client/contract/snapshot.d.ts'), 'ChatTurnProcessPresentation')
   assert.ok(keys.includes('compactAnswer'))
   assert.ok(!keys.includes('hasNonReplyProcess'))
-  t.diagnostic(JSON.stringify({ version, backendPackage, chatPackage, publishedClientSha256: createHash('sha256').update(official).digest('hex'), fields: keys }))
+  console.info(JSON.stringify({ version, backendPackage, chatPackage, publishedClientSha256: createHash('sha256').update(official).digest('hex'), fields: keys }))
   for (const input of [{}, { inputAt: 5 }, { inputAt: 15 }, { inputAt: 5, answer: false }]) {
     const f = fixture(input)
     const modern = new ChatTurnProcessProjector(), host = new OfficialProjector()

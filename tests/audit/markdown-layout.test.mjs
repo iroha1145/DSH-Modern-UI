@@ -1,4 +1,4 @@
-import test from 'node:test'
+import { afterAll, test } from 'vitest'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
@@ -10,7 +10,7 @@ const css = (await readFile(resolve(root, 'packages/modern-ui/src/vendor/primiti
 const executablePath = process.env.MODERN_UI_BROWSER
 const browser = await chromium.launch(executablePath ? { executablePath, headless: true }
   : existsSync(chromium.executablePath()) ? { headless: true } : { channel: 'msedge', headless: true })
-test.after(() => browser.close())
+afterAll(() => browser.close())
 test('inline code shares paragraph lines without overflowing a narrow viewport', async () => {
   const page = await browser.newPage()
   try {

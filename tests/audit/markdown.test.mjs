@@ -1,4 +1,4 @@
-import test from 'node:test'
+import { test } from 'vitest'
 import assert from 'node:assert/strict'
 import { build } from 'esbuild'
 import { rm, writeFile } from 'node:fs/promises'
@@ -100,7 +100,7 @@ test('reasoning preserves multiple glob paths and word-internal exponent stars',
   assert.equal(reasoning('**Search** src/**/a.ts and test/**/b.ts'), 'Search src/**/a.ts and test/**/b.ts')
   assert.equal(reasoning('**outer __inner__ outer**'), 'outer inner outer')
 })
-test('long streamed reasoning keeps a bounded preview', t => {
+test('long streamed reasoning keeps a bounded preview', () => {
   for (const size of [1000, 10000, 50000]) {
     const text = '**word** '.repeat(Math.ceil(size / 9)).slice(0,size)
     const samples = []
@@ -110,7 +110,7 @@ test('long streamed reasoning keeps a bounded preview', t => {
     }
     assert.ok([...preview].length <= 160)
     assert.ok(preview.endsWith('…'))
-    t.diagnostic(`${size} chars: median ${samples.sort((a,b)=>a-b)[2].toFixed(3)}ms`)
+    console.info(`${size} chars: median ${samples.sort((a,b)=>a-b)[2].toFixed(3)}ms`)
   }
 })
 

@@ -1,4 +1,4 @@
-import test from 'node:test'
+import { afterAll, test } from 'vitest'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
@@ -10,7 +10,7 @@ const css = async file => (await readFile(path.join(root, 'packages/modern-ui/sr
 const executablePath = process.env.MODERN_UI_BROWSER
 const browser = await chromium.launch(executablePath ? { executablePath, headless: true }
   : existsSync(chromium.executablePath()) ? { headless: true } : { channel: 'msedge', headless: true })
-test.after(() => browser.close())
+afterAll(() => browser.close())
 
 test('mobile title remains centered when a new session is unavailable', async () => {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } })

@@ -1,4 +1,4 @@
-import test from 'node:test'
+import { afterAll, test } from 'vitest'
 import assert from 'node:assert/strict'
 import { readFileSync, existsSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -22,7 +22,7 @@ const officialCss = readFileSync(path.join(repo, 'packages/modern-ui/src/officia
 const executablePath = process.env.MODERN_UI_BROWSER
 const browser = await chromium.launch(executablePath ? { executablePath, headless: true }
  : existsSync(chromium.executablePath()) ? { headless: true } : { channel: 'msedge', headless: true })
-test.after(() => browser.close())
+afterAll(() => browser.close())
 
 async function fixture({ install = !process.env.AUDIT_BASELINE } = {}) {
  const page = await browser.newPage()

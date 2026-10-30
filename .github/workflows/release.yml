@@ -32,8 +32,10 @@ jobs:
       - name: Install the browser for audit regressions
         run: node node_modules/playwright-core/cli.js install --with-deps chromium
       - run: npm run build
-      - name: Check audit regressions
-        run: node --test tests/audit/*.test.mjs
+      - name: Unit, audit and compat regressions
+        run: npx vitest run
+        env:
+          COMPAT_BACKEND_PACKAGE: node_modules/@deepseek-ai/dsh/package.json
       - name: Tag, compatibility manifest and package agree on one version
         id: version
         run: |
