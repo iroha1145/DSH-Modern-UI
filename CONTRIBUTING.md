@@ -54,4 +54,4 @@ canary 同时对每个宿主跑 `node scripts/vendor-drift.mjs --host <版本>`�
 3. 如果新宿主要成为默认新装版本，同时改 `defaultHostVersion`。
 4. 版本落在 `hostRange` 之外（例如 `0.3.0`）时，先确认 `compatibility.json#platformPeers` 里的 peers（`@deepseek-ai/cordis`、`@deepseek-ai/schemastery`、`react`）仍与新宿主匹配（`npm view @deepseek-ai/dsh-client-ui-slots@<版本> dependencies`），再改 `hostRange`；已知不兼容的版本写进 `knownBroken` 并注明原因。
 5. `npm run build`，跑上面的回归测试，在 [`docs/compatibility.md`](docs/compatibility.md) 顶部矩阵加一行（插件版本、宿主、平台、日期）。
-6. 递增 `runtimeVersions.plugin` 的 patch 位（同步根 `package.json` 与 `package-lock.json`），提交后先在 main 上手动运行 [Official runtime plugin preview](.github/workflows/plugin-preview.yml)，五平台与隔离消费者矩阵全部通过后再打 `v<版本>` tag，由 release 工作流发布。release 工作流不等这两个矩阵，tag 一推就会发布到 npm。
+6. 递增 `runtimeVersions.plugin` 的 patch 位（同步根 `package.json` 与 `package-lock.json`），提交后先在 main 上手动运行 [Official runtime plugin preview](.github/workflows/plugin-preview.yml)，五平台安装、隔离消费者与同一 tgz 的 `dsh plugin add` 一行安装全部通过后再打 `v<版本>` tag，由 release 工作流发布。release 工作流不等这些矩阵，tag 一推就会发布到 npm。首个版本发布后，删掉中英文 README 与 `docs/install.md` 里的「发布状态」说明和「首个版本发布后可用」标注。

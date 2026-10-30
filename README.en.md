@@ -10,12 +10,16 @@ dsh plugin --profile web add @iroha1145/dsh-modern-ui
 
 **Refresh the browser** after installing to see Modern UI. To switch back, see the [FAQ](#faq); supported host versions are in the [compatibility matrix](docs/compatibility.md).
 
+> **Release status**: the npm package and GitHub Releases start with `v0.1.0`. Until that first version is out, neither the command above nor the Release downloads below work (if `npm view @iroha1145/dsh-modern-ui version` finds nothing, it is not published yet). Meanwhile, download `modern-ui-precompiled-preview` from the latest successful [Official runtime plugin preview](https://github.com/iroha1145/DSH-Modern-UI/actions/workflows/plugin-preview.yml?query=branch%3Amain+is%3Asuccess) run (GitHub sign-in required; kept for 7 days), unzip it, and run `dsh plugin --profile web add ./modern-ui.tgz` inside it.
+
 <p>
   <img src="docs/assets/screenshot-light.png" alt="Modern UI light theme: reasoning groups, official tool cards and the answer" width="49%">
   <img src="docs/assets/screenshot-dark.png" alt="Modern UI dark theme: code block, table and follow-up suggestions" width="49%">
 </p>
 
 > Requirements: a supported official DSH release, with `pnpm` on PATH (`dsh plugin` forwards to pnpm). If you have never started the web profile, run `dsh web` once first. The model in the screenshots is a local demo model; [`tests/compat/readme-screenshots.mjs`](tests/compat/readme-screenshots.mjs) produces them in an isolated environment.
+>
+> The one-line install does **not** carry over the official chat interface's preferences (work-details view, collapse timing, usage display, link opening, what Enter does while busy, and so on). Modern UI starts from its own defaults; choose again under Settings → General. The official settings are not deleted and apply again when you switch back. The optional isolated installer below migrates these preferences.
 
 ---
 
@@ -31,8 +35,8 @@ dsh plugin --profile web add @iroha1145/dsh-modern-ui
 
 ## Installation options
 
-- **npm (recommended)**: the one-line command above. Pin a version with `@iroha1145/dsh-modern-ui@<version>`.
-- **GitHub Release**: each Release attaches `modern-ui.tgz` for offline installs with `dsh plugin --profile web add ./modern-ui.tgz`.
+- **npm (recommended, once the first version is published)**: the one-line command above. Pin a version with `@iroha1145/dsh-modern-ui@<version>`.
+- **GitHub Release (once the first version is published)**: each Release attaches `modern-ui.tgz` for offline installs with `dsh plugin --profile web add ./modern-ui.tgz`. Before that, use the CI build from "Release status" above with the same command.
 - **Git sources are not supported** (`dsh plugin add github:iroha1145/DSH-Modern-UI`): the build dependencies live at the repository root, and pnpm 10+ blocks build scripts of Git dependencies by default. Use the npm package or the Release tgz.
 
 ## Official Desktop
