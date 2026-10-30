@@ -100,9 +100,9 @@ dsh plugin --profile web add @iroha1145/dsh-modern-ui
 |---|---|---|---|
 | **M1 可一行安装** | npm 上有包，README 首屏一行命令，旧路线归档 | WP0 → WP1 | 无 |
 | **M2 可跟上上游** | 兼容范围声明 + 每日对上游最新 rc 自动验收 + 行为开关 | WP2、WP3、WP6（部分） | M1 |
-| **M3 可持续维护** | 宿主侧拆包、vendor 体量下降、上游漂移可检测、工程基线齐全 | WP4、WP5、WP6（全部）、WP7 | M2 |
+| **M3 可持续维护** | 宿主侧拆包、vendor 体量下降、上游漂移可检测、工程基线齐全 | WP4、WP5、WP6（全部）、WP7、WP8 | M2 |
 
-WP0 与 WP6 的 lint 部分可以并行；WP2 与 WP3 可以并行；WP4 与 WP5 可以并行但都在 M2 之后。
+WP0 与 WP6 的 lint 部分可以并行；WP2 与 WP3 可以并行；WP4 与 WP5 可以并行但都在 M2 之后。WP8 需要 M1 的可安装包和一台装有官方 Desktop 的机器，建议排在 WP7 之前，FAQ 依赖它的结论。
 
 ---
 
@@ -332,6 +332,45 @@ WP0 与 WP6 的 lint 部分可以并行；WP2 与 WP3 可以并行；WP4 与 WP5
 
 ---
 
+### WP8 Desktop 双端支持验收（M3，1 至 2 个对话，中；需要一台装有官方 Desktop 应用的机器）
+
+**现状**（复审 §9.4 的展开）
+
+- 插件 `dsh.client.platform` 为 `"web"`；rc.4 宿主的 `@deepseek-ai/dsh-client-modules` 只把 platform 为 `web` 的客户端插件编进模块表。`dsh` CLI 没有终端聊天界面，官方 profile 模板只有 `web`、`acp`、`headless`、`sdk`、`sdk-minimal`；所以"CLI 端"就是 `dsh web` 的浏览器 Web Client，本插件已经覆盖，不存在另一个 CLI 界面需要支持。
+- 官方 Desktop 应用是 Electron 外壳，不在 npm 发布，使用保留 profile `desktop`。宿主 CLI（`@deepseek-ai/dsh/lib/plugin-*.js`）对它的处理与 web 不同：不创建、不初始化目录，要求 Desktop 自己先初始化过（`requireDesktopProfile`，否则报错让用户"打开一次 Desktop 再完全退出"），在 profile `package.json` 上加文件锁后走同一条 `runProfilePnpm`；`allow-version` / `revoke-version` 兼容豁免命令同样适用。即 `dsh plugin --profile desktop add @iroha1145/dsh-modern-ui` 在机制上可行。
+- Desktop 渲染的是同一套 Web Client：Electron preload 在 `<html>` 上写 `data-platform="darwin"`（Windows 写 `data-windows-titlebar`），官方 layout 样式据此改标题栏留白与菜单底色。Modern 的 vendored 代码已经带着这些分支：`src/vendor/primitives/darwin-desktop.ts`（`isDarwinDesktop`）、`src/vendor/layout/AppFrame.{tsx,module.css}`、`sidebar/SidebarRoot.module.css`、`primitives/Menu*.module.css`，`docs/history/main-and-bold-audit-20261029.md` 还修过一处只在 macOS 外壳出现的菜单透明问题。也就是说代码"知道"桌面外壳，但 Modern 的构建从未在 Desktop 里实际运行过。
+- 已知缺口：Electron 专有桥（原生文件拖出 `prepare/start/release`、多窗口）rc.4 没有公开接口，Modern 按 Web 路径降级并在 `docs/architecture.md`、`docs/history/chat-interactions-parity.md` 声明为 unverified；`docs/compatibility.md` 把 Electron 列在 unverified。官方 `ui-open-in-app`、`directory-picker-native` 等 owner 没有被 bundle 停用，理论上在 Desktop 内照常工作，但同样没验过。
+- Desktop 内嵌的 DSH 版本由应用自己决定，发布节奏独立于 npm 上的 rc；它是否落在 `hostRange` 内、是否在 `verifiedHosts` 里，每个 Desktop 版本都要单独看。Desktop 不在 npm，WP2 的 canary 无法覆盖它。
+- 安装器与 `tests/compat`（含 `npm-install.e2e.mjs`）只建 web profile；README、包 README、兼容矩阵目前都只写 Web Client。
+
+**目标**：对 Desktop 给出三选一的明确结论并落到文档：「支持」「部分支持（列出不工作的面）」「不支持」。不留"理论上可以"。
+
+**步骤**
+1. 盘点 Desktop 宿主：在目标机器安装官方 Desktop，打开一次并完全退出；用 `dsh --profile desktop --dump-config` 确认 profile 目录与内嵌 `@deepseek-ai/dsh` 版本（以 `resolveProfileDir('desktop')` 的结果为准，不要猜路径）。核对该版本是否满足 `hostRange`、是否在 `verifiedHosts`；不满足时先按 CONTRIBUTING 评估是否要扩范围，不要用 `allow-version` 硬装来做结论。
+2. 安装：`dsh plugin --profile desktop add @iroha1145/dsh-modern-ui@<版本>`（M1 未发布前用 Release 的 `modern-ui.tgz`）。记录 CLI 的兼容告警、pnpm peer 警告与退出码；重启 Desktop（Desktop 没有"刷新浏览器"，bundle 切换对应的是重启应用，文档要写清）。
+3. 手动验收清单（Desktop 不在 npm，无法进 CI；以人工清单加截图为证据）。把 `tests/compat/browser.mjs` 的 12 项浏览器检查逐条翻成人工步骤作为基线，再加 Desktop 专项：
+   - macOS：hiddenInset 标题栏留白、菜单底色（`isDarwinDesktop` 分支）、减少透明度设置、全屏；
+   - Windows：自定义标题栏（`data-windows-titlebar`）、最大化/全屏下的覆盖层位置；
+   - 两端共有：多窗口同时开两个会话、原生拖出文件到系统、「Open In…」打开工作区目录、原生目录选择器、系统深浅主题切换跟随、窗口缩到窄视口、设置页「回答可视化组件」开关写入后重启仍生效、在插件管理停用 bundle 并重启后官方界面完整恢复。
+   每项记"通过 / 降级（说明表现）/ 不工作"，截图与 `--dump-config` 片段放进 `docs/compatibility/desktop-<Desktop 版本>.md`。
+4. 可选的半自动化：若 Desktop 支持 `--remote-debugging-port` 或 Playwright `_electron.launch` 能启动它，给 `tests/compat/browser.mjs` 加一个"接到已有 CDP 端点"的入口（例如 `--cdp <url>`），复用现有检查函数；做不到就只保留第 3 步的人工清单。不为此新增任何 Electron 专有代码或 vendored 文件（原则 1）。
+5. 文档落地：README 与包 README 加「Desktop」小节（命令、先打开再完全退出的前提、用重启代替刷新、已知不工作的面）；`docs/compatibility.md` 矩阵加 Desktop 行（Desktop 版本、内嵌 DSH 版本、平台、人工验收日期、结论），Electron 相关条目从笼统的 unverified 改为逐项结论；WP7 的 FAQ 引用这里的结论。
+6. 发现的问题分流：能用 slot / CSS 变量 / 公开服务修的，走独立 `fix` PR（不在本 WP 内顺手改）；依赖 Electron 桥的，记为"降级"或"不支持"，不伪造 native 调用（§6）。
+
+**验收**
+- 至少一台 Desktop（macOS 或 Windows）上第 3 步清单全部有结论，证据文档已提交。
+- README、包 README、`docs/compatibility.md` 对 Desktop 的描述一致，且与证据文档逐项对得上；没有"理论上可以"这类表述。
+- 本 WP 不改变 `npm pack` 的内容；若第 4 步改了 `tests/compat/browser.mjs`，`npx vitest run` 与现有 web 路径的 `run.mjs` 仍通过。
+
+**依赖**：M1（需要可安装的包或 tgz）；WP2 的 unverified 机制（Desktop 内嵌版本大概率不在 `verifiedHosts`）。建议排在 WP7 之前，FAQ 需要它的结论。
+
+**待决策**
+- 是否把 Desktop 纳入承诺的支持范围。纳入意味着每个 Desktop 版本都要重跑一次人工清单（canary 覆盖不到），维护成本按每版半天估。
+- 证据平台：只做 macOS、只做 Windows，还是两者都做；Linux Desktop 是否存在以实际发布为准。
+- 若 Desktop 内嵌版本长期落在 `verifiedHosts` 之外，是否接受"Desktop 永远是 unverified 宿主"的定位，还是把 Desktop 版本也加进 `verifiedHosts` 的人工接纳流程。
+
+---
+
 ## 6. 明确不做的事
 
 - 不重写安装器为"更好的安装器"。它的问题是定位而非质量。
@@ -350,6 +389,7 @@ WP0 与 WP6 的 lint 部分可以并行；WP2 与 WP3 可以并行；WP4 与 WP5
 | 4 | 架构终态：保留少数重写面 vs 长期全套替换 | WP5 | 前者；后者意味着每个 rc 半天到两天的同步成本 |
 | 5 | 宿主侧四个模块上游化由谁推进 | WP4 | owner 本人提 PR，独立包作为过渡 |
 | 6 | 根包管理器 npm 或 pnpm | WP0 | npm |
+| 7 | Desktop 是否纳入承诺的支持范围 | WP8、WP7 | 先完成 WP8 的人工验收再定；未验收前所有文档只写 Web Client |
 
 ## 8. 参考
 
@@ -394,11 +434,11 @@ WP0、WP1、WP2、WP3、WP6 对照 §2 原则与各 WP 验收逐项核对，均�
 **后续 WP 的输入**
 - [ ] WP4 开工前补回 translator 空白译文拒绝与 MCP 重定向拒绝的自动化回归（见 `docs/host-compat.md`），否则拆包时没有行为基线。
 - [ ] WP6 遗留：`chat-snapshot-builder.ts`、`assembler.ts` 单测；`.gitattributes` 的 `-text` 收窄随 WP5。
-- [ ] WP7：核对 `dsh.category: "ui"` 是否为市场枚举值；README 截图 / GIF；FAQ 增加「是否支持 Desktop」条目（见 §9.4）。
-- [ ] WP4、WP5、WP7 尚未开始。
+- [ ] WP7：核对 `dsh.category: "ui"` 是否为市场枚举值；README 截图 / GIF；FAQ 增加「是否支持 Desktop」条目（结论来自 WP8）。
+- [ ] WP4、WP5、WP7、WP8 尚未开始；WP8（Desktop 双端支持验收）的现状、步骤、验收与待决策见 §5。
 
 ### 9.4 作用面：Web Client 与 Desktop
 
 - **事实**：本插件 `dsh.client.platform` 为 `"web"`。rc.4 宿主的 `@deepseek-ai/dsh-client-modules` 只把 platform 为 `web` 的客户端插件编进 `__DSH_BOOT__` 模块表，其他值直接忽略。`dsh` CLI 本身没有终端聊天界面：官方 profile 模板只有 `web`、`acp`、`headless`、`sdk`、`sdk-minimal`，交互 UI 只有浏览器 Web Client（`dsh web`），其余是 JSONL / headless / ACP / SDK 输出面，UI 插件对它们不起作用。
 - **Desktop**：官方 Desktop 应用（Electron 外壳，不在 npm 上发布）使用保留 profile `desktop`，不走上述模板，由应用自己初始化；CLI 支持 `dsh plugin --profile desktop add ...`，前提是先打开过 Desktop 并完全退出（`@deepseek-ai/dsh/lib/plugin-*.js` 的 `requireDesktopProfile`）。官方 layout 样式表含 `html[data-platform=darwin]` 与 `data-windows-titlebar` 规则，说明 Desktop 外壳渲染的是同一套 Web Client。因此 Modern UI 在机制上可以装进 desktop profile，与 web profile 用同一个包。
-- **未验收**：没有在 Desktop 上跑过任何一层检查；Electron 专有桥（原生文件拖出、原生目录选择、多窗口、macOS 菜单透明）在 vendored 代码里只按 rc.4 的公开接口降级（见 `docs/architecture.md`、`docs/history/chat-interactions-parity.md`）；安装器与 `tests/compat` 只建 web profile。要宣称「双端支持」，需要单独一个 WP：在 Desktop 上跑 browser 层检查、README 补 `--profile desktop` 安装说明、把 Electron 差异写进兼容矩阵的 unverified 列。在此之前文档只应写「Web Client」。
+- **未验收**：没有在 Desktop 上跑过任何一层检查；Electron 专有桥（原生文件拖出、原生目录选择、多窗口、macOS 菜单透明）在 vendored 代码里只按 rc.4 的公开接口降级（见 `docs/architecture.md`、`docs/history/chat-interactions-parity.md`）；安装器与 `tests/compat` 只建 web profile。要宣称「双端支持」，按 WP8 做人工验收并落文档；在此之前文档只应写「Web Client」。
