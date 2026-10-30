@@ -1,6 +1,6 @@
 # 官方 DSH + Modern UI 安装
 
-主渠道是 npm：在已有的官方 DSH 上执行 `dsh plugin --profile web add @iroha1145/dsh-modern-ui` 并刷新浏览器（见 [README](../README.md)）。npm 包与 GitHub Release 从 `v0.1.0` 起提供；首个版本发布前，用 CI 的 `modern-ui-precompiled-preview` 成品执行 `dsh plugin --profile web add ./modern-ui.tgz`，做法见 README 的「发布状态」。这条直接安装路线不迁移官方 `ui-chat` / `ui-conversation` 的聊天偏好，Modern UI 从自己的默认值开始，官方原有设置保留；下文的安装器会迁移这些偏好。下文是可选的一键隔离环境安装器，适用于没有现成 DSH 或想隔离数据的场景。安装器默认新装使用官方 `@deepseek-ai/dsh@0.2.1-rc.4`；已有后端保留实际版本，支持的宿主范围、已验证版本和平台见[向后兼容说明](compatibility.md)。安装器的私有运行时固定 Node `24.22.1`、pnpm `11.28.5`。新会话使用官方插件配置管理联网工具；Modern UI 自定义会话联网按钮、命令和协议已取消，不是安装前提。
+主渠道是 npm：在已有的官方 DSH 上执行 `dsh plugin --profile web add @iroha1145/dsh-modern-ui` 并刷新浏览器（见 [README](../README.md)）。这条直接安装路线不迁移官方 `ui-chat` / `ui-conversation` 的聊天偏好，Modern UI 从自己的默认值开始，官方原有设置保留；下文的安装器会迁移这些偏好。下文是可选的一键隔离环境安装器，适用于没有现成 DSH 或想隔离数据的场景。安装器默认新装使用官方 `@deepseek-ai/dsh@0.2.1-rc.4`；已有后端保留实际版本，支持的宿主范围、已验证版本和平台见[向后兼容说明](compatibility.md)。安装器的私有运行时固定 Node `24.22.1`、pnpm `11.28.5`。新会话使用官方插件配置管理联网工具；Modern UI 自定义会话联网按钮、命令和协议已取消，不是安装前提。
 
 ## 优先：已有官方 DSH 一条命令
 
