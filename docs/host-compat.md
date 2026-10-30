@@ -12,14 +12,14 @@
 
 ## 已运行行为检查
 
-下列 10 项行为检查原由 `tests/host-compat/host.test.mjs` 在固定 Node `24.22.1` 下跑过并全部通过；该套件已随旧测试目录移除（提交 `00c143e`），目前仓库里没有覆盖「空白译文拒绝」与「MCP 重定向拒绝」的自动化回归，只保留手动对照脚本 `scripts/host-compat/probe.mjs`。宿主侧模块拆包（hand-off WP4）前应先补回这层回归：
+下列 10 项行为检查由 [`tests/compat/host-replacements.test.mjs`](../tests/compat/host-replacements.test.mjs) 覆盖，属于 PR 门禁的 compat 层。它加载构建产物 `packages/modern-ui/lib/{translator,mcp-client}.js`，所以先 `npm run build`。原套件 `tests/host-compat/host.test.mjs` 随旧测试目录移除（提交 `00c143e`），2026-10-30 按原断言迁到 vitest，作为宿主侧模块拆包（hand-off WP4）的行为基线：
 
 - Google 和 Bing：非空原文得到空白译文时拒绝；合法译文原样返回；失败后可以重试。
 - 正常官方翻译器生成旧空白缓存，再使用替代插件与真实 JSONL/Agent 恢复：追加有效结果、旧事件及文件前缀不改，第二次读取和完整 Host 重启后均复用有效缓存，不再发送 HTTP 请求。
 - 官方 `CotTranslationController` 能识别替代插件抛出的公开 `TranslationError` 并启动冷会话。没有复制第二个错误类来破坏 `instanceof` 契约。
 - MCP 直接回环端点正常连接；同源/跨源 307 和 308 都在到达目标前失败，目标访问计数为零。请求头和正文只包含合成夹具内容。
 
-`scripts/host-compat/probe.mjs <官方消费者>` 对未修改的官方成品给出对照：rc.4 接受空白译文，MCP 的四种重定向都到达目标。因此不能把这两项旧修复说成已被官方 rc.4 吸收。
+`scripts/host-compat/probe.mjs <官方消费者>` 对未修改的官方成品给出对照：rc.4 接受空白译文，MCP 的四种重定向都到达目标（2026-10-30 以仓库根的 rc.4 依赖重跑，结论不变；同一组夹具下替代插件全部拒绝，说明回归能区分两者）。因此不能把这两项旧修复说成已被官方 rc.4 吸收。
 
 Host 严格 TypeScript 检查通过。构建先用 TypeScript emit，再 bundle，以内联已发布 Cordis 只有类型声明、没有 JavaScript 导出的 const enum。所有被引用宿主模块来自公开 exports，不读取 `src/*` 或上游 checkout。
 

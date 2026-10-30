@@ -432,8 +432,9 @@ WP0、WP1、WP2、WP3、WP6 对照 §2 原则与各 WP 验收逐项核对，均�
 - [ ] `release.yml` 的 `npm publish`：走 Trusted Publishing 时 `NODE_AUTH_TOKEN` 为空串，依赖 npm ≥ 11.5 的 OIDC 流程接管。
 
 **后续 WP 的输入**
-- [ ] WP4 开工前补回 translator 空白译文拒绝与 MCP 重定向拒绝的自动化回归（见 `docs/host-compat.md`），否则拆包时没有行为基线。
-- [ ] WP6 遗留：`chat-snapshot-builder.ts`、`assembler.ts` 单测；`.gitattributes` 的 `-text` 收窄随 WP5。
+- [x] WP4 开工前补回 translator 空白译文拒绝与 MCP 重定向拒绝的自动化回归（见 `docs/host-compat.md`），否则拆包时没有行为基线。→ `wp6b/regression-gaps`：`tests/compat/host-replacements.test.mjs`，10 项。
+- [x] WP6 遗留：`chat-snapshot-builder.ts`、`assembler.ts` 单测。→ `wp6b/regression-gaps`：`tests/unit/conversation-assembler.test.ts`（12 项）、`tests/unit/chat-snapshot-builder.test.ts`（7 项），经真实组装器驱动，位置与时间线来自引擎本身。
+- [ ] `.gitattributes` 的 `-text` 收窄随 WP5。
 - [ ] WP7：核对 `dsh.category: "ui"` 是否为市场枚举值；README 截图 / GIF；FAQ 增加「是否支持 Desktop」条目（结论来自 WP8）。
 - [ ] WP4、WP5、WP7、WP8 尚未开始；WP8（Desktop 双端支持验收）的现状、步骤、验收与待决策见 §5。
 

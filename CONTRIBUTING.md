@@ -17,9 +17,9 @@
 
 | 层 | 位置 | 命令 | 内容 | 何时跑 |
 | --- | --- | --- | --- | --- |
-| unit | `tests/unit/*.test.ts` | `npm run test:unit` | 纯函数：openui 内容校验与沙箱文档、markdown 语法、高亮等 | 每次提交，PR 门禁 |
+| unit | `tests/unit/*.test.ts` | `npm run test:unit` | 纯函数：openui 内容校验与沙箱文档、markdown 语法、高亮，会话组装器与聊天快照构建器等 | 每次提交，PR 门禁 |
 | audit | `tests/audit/*.test.mjs` | `npx vitest run --project audit` | 先 `npm run build`；打包体积、jsdom 与真实 Chromium 中的交互和布局 | PR 门禁 |
-| compat（单元） | `tests/compat/*.test.mjs` | `npx vitest run --project compat` | 安装器选择、profile 迁移、聊天契约；需要 `COMPAT_BACKEND_PACKAGE` | PR 门禁 |
+| compat（单元） | `tests/compat/*.test.mjs` | `npx vitest run --project compat` | 安装器选择、profile 迁移、聊天契约，翻译与 MCP 替代插件的行为基线；先 `npm run build`，需要 `COMPAT_BACKEND_PACKAGE` | PR 门禁 |
 | compat（隔离消费者） | `tests/compat/run.mjs` | `npm run test:compat -- --preview .artifacts/plugin-preview --host <版本> --root <隔离目录>` | 装一套独立的官方宿主，跑 MCP、生命周期、浏览器、升级失败回滚等 9 层 | 改到安装或兼容逻辑时；CI 在手动触发和 `v*` tag 时跑 |
 
 [`pr.yml`](.github/workflows/pr.yml) 跑前三层；[`plugin-preview.yml`](.github/workflows/plugin-preview.yml) 跑已验证宿主 × Linux/Windows 的隔离消费者矩阵与五平台安装矩阵；[`upstream-canary.yml`](.github/workflows/upstream-canary.yml) 每天对上游新版本跑隔离消费者。
