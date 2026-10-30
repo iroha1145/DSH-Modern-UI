@@ -2,6 +2,12 @@
   "schemaVersion": 2,
   "defaultHostVersion": "0.2.1-rc.4",
   "hostRange": ">=0.2.1-rc.2 <0.3.0",
+  "platformPeers": {
+    "@deepseek-ai/cordis": "^4.0.5",
+    "@deepseek-ai/schemastery": "^3.18.5",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  },
   "runtimeVersions": {
     "node": "24.22.1",
     "pnpm": "11.28.5",

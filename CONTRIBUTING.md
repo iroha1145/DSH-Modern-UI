@@ -43,6 +43,6 @@
    ```
 2. 在 `scripts/distribution/compatibility.json#verifiedHosts` 加一项，复制相邻宿主的结构：`platforms`（只写实际有 CI 证据的平台）、`officialSource`（`name`、`version`、`channel: "exact npm release"`、`url`、`integrity`）、`communityPlugins`（只写和该宿主一起验证过的组合）。
 3. 如果新宿主要成为默认新装版本，同时改 `defaultHostVersion`。
-4. 版本落在 `hostRange` 之外（例如 `0.3.0`）时，先确认 peers（`@deepseek-ai/cordis`、`@deepseek-ai/schemastery`、`react`）仍匹配，再改 `hostRange`；已知不兼容的版本写进 `knownBroken` 并注明原因。
+4. 版本落在 `hostRange` 之外（例如 `0.3.0`）时，先确认 `compatibility.json#platformPeers` 里的 peers（`@deepseek-ai/cordis`、`@deepseek-ai/schemastery`、`react`）仍与新宿主匹配（`npm view @deepseek-ai/dsh-client-ui-slots@<版本> dependencies`），再改 `hostRange`；已知不兼容的版本写进 `knownBroken` 并注明原因。
 5. `npm run build`，跑上面的回归测试，在 [`docs/compatibility.md`](docs/compatibility.md) 顶部矩阵加一行（插件版本、宿主、平台、日期）。
 6. 递增 `runtimeVersions.plugin` 的 patch 位（同步根 `package.json` 与 `package-lock.json`），提交后打 `v<版本>` tag，由 release 工作流发布。

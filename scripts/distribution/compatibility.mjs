@@ -4,6 +4,8 @@ export const defaultHostVersion = compatibility.defaultHostVersion
 export const runtimeVersions = compatibility.runtimeVersions
 /** Declared host range, written to the package's engines, compatibleHost and host peers. */
 export const hostRange = compatibility.hostRange
+/** Peer ranges of the shared platform packages (Cordis, Schemastery, React) every verified host pins compatibly. */
+export const platformPeers = compatibility.platformPeers
 /** Hosts that passed the full compatibility suite; each records its exact official source. */
 export const supportedHostVersions = Object.keys(compatibility.verifiedHosts)
 export const knownBrokenHosts = compatibility.knownBroken

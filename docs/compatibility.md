@@ -23,7 +23,7 @@
 - 范围内但未验证的版本（例如未来的 `0.2.1` 正式版）可以安装：安装器打印警告，从 npm registry 元数据取官方 tgz 的完整性，只开放已验证宿主出现过的平台，不附装社区插件。
 - `knownBroken` 中的版本与范围外的版本（`0.3.0` 起、更早的 rc）直接拒绝。
 - rc.4 保留 Linux x64/arm64、macOS x64/arm64、Windows x64 的既有成品安装范围；rc.3、rc.2 限定 Linux x64 与 Windows x64。
-- Node 要求 major 24（`engines.node` = `>=24.0.0`，私有运行时下载 `24.22.1`）；pnpm 固定 `11.28.5`。`@deepseek-ai/cordis` / `@deepseek-ai/schemastery` / `react` peers 为 `^4.0.5` / `^3.18.5` / `^18.3.0`。支持旧 DSH 不等于支持旧 Node、旧浏览器或数据格式降级。
+- Node 要求 major 24（`engines.node` = `>=24.0.0`，私有运行时下载 `24.22.1`）；pnpm 固定 `11.28.5`。`@deepseek-ai/cordis` / `@deepseek-ai/schemastery` / `react` peers 为 `^4.0.5` / `^3.18.5` / `^18.3.0`，记录在 `compatibility.json#platformPeers`，构建时写入包的 peerDependencies。支持旧 DSH 不等于支持旧 Node、旧浏览器或数据格式降级。
 - 真实浏览器核心验收使用 Chromium/Edge。WebKit、触屏、Electron、多窗口、真实外部收费 provider、旧定制 web/search 会话继续写入均为 **unverified**。
 
 版本清单与当前源提交的 CI 报告共同界定验收。`compatibility-<host>-<platform>` 在 Linux x64 与 Windows x64 分别生成分层 JSON、日志和截图；五个平台的 `consumer-*` 产物只证明实际安装、加载自检和官方文件完整性，不能替代浏览器检查。失败或 unverified 层不能计为通过。
