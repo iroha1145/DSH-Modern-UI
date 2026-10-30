@@ -952,8 +952,8 @@
       "source": "packages/client/ui-intelligent-ui/src/presentation-prompt.ts",
       "target": "src/vendor/intelligent/presentation-prompt.ts",
       "sourceSha256": "7152a0e1a8eb67842eb383f6c9611883d68dc3f02e9c688e323674142ddc6797",
-      "targetSha256": "7152a0e1a8eb67842eb383f6c9611883d68dc3f02e9c688e323674142ddc6797",
-      "adapted": false
+      "targetSha256": "5e5f1ad000665e561f9ab6a210bdd7edda91a806869156bd430252b6a33277e8",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-layout/src/client/AppFrame.module.css",
