@@ -1,16 +1,18 @@
 /** Settings row for the model-visible presentation prompt, and the live switches for the code-fence presenters. */
 import type { Context } from '@deepseek-ai/cordis'
-import { createSnapshotStore, type ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
+import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { CHAT_SETTINGS_NAMESPACE } from './vendor/chat/chat-settings.ts'
 import { PreferenceRow } from './vendor/chat/client/settings/PreferenceRow.tsx'
-import { PRESENTATION_LOCALE, presentationLocale, readPresentation, type PresentationSettings } from './presentation-switches.ts'
+import { PRESENTATION_LOCALE, presentationLocale, trackPresentation, type PresentationSettings } from './presentation-switches.ts'
 
 /** Registration-side prompt switch. */
 export interface PresentationRowInjected {
   hooks: {
-    /** Whether the presentation prompt is on, bound as usePrompt. */
+    /** Whether the Host has the presentation prompt on, bound as usePrompt. */
     prompt: ObservableSnapshot<boolean>
+    /** Whether the latest write failed, bound as useSaveFailed. */
+    saveFailed: ObservableSnapshot<boolean>
   }
   /** Persist the prompt switch to the Modern UI entry config. */
   setPrompt: (enabled: boolean) => void
@@ -23,16 +25,17 @@ export type PresentationRowProps =
   & InjectFace<PresentationRowInjected>
 
 /**
- * Render the presentation prompt switch.
+ * Render the presentation prompt switch; a failed write replaces the description with the failure.
  * @param props - Composed Settings slot props.
  * @returns The preference row.
  */
-export function PresentationRow({ usePrompt, setPrompt, t }: PresentationRowProps) {
+export function PresentationRow({ usePrompt, useSaveFailed, setPrompt, t }: PresentationRowProps) {
   const enabled = usePrompt(value => value)
+  const saveFailed = useSaveFailed(value => value)
   return (
     <PreferenceRow
       title={t('settings.presentation.title')}
-      description={t('settings.presentation.description')}
+      description={t(saveFailed ? 'settings.presentation.saveFailed' : 'settings.presentation.description')}
       value={enabled ? 'on' : 'off'}
       selectedLabel={t(enabled ? 'settings.presentation.on' : 'settings.presentation.off')}
       options={[
@@ -50,16 +53,11 @@ export function PresentationRow({ usePrompt, setPrompt, t }: PresentationRowProp
  * @returns the live switches for the code-fence presenters.
  */
 export function installPresentationSettings(ctx: Context): ObservableSnapshot<PresentationSettings> {
-  const form = ctx.configForms.get<{ presentation?: Partial<PresentationSettings> }>(CHAT_SETTINGS_NAMESPACE)
-  const settings = createSnapshotStore(readPresentation(form.getSnapshot().value?.presentation))
-  ctx.effect(() => form.subscribe(() => {
-    const next = readPresentation(form.getSnapshot().value?.presentation)
-    const current = settings.getSnapshot()
-    if (next.prompt !== current.prompt || next.openui !== current.openui || next.followups !== current.followups) settings.set(next)
-  }))
+  const state = trackPresentation(ctx.configForms.get<{ presentation?: Partial<PresentationSettings> }>(CHAT_SETTINGS_NAMESPACE))
+  ctx.effect(() => state.dispose)
   const prompt: ObservableSnapshot<boolean> = {
-    getSnapshot: () => settings.getSnapshot().prompt,
-    subscribe: listener => settings.subscribe(listener),
+    getSnapshot: () => state.settings.getSnapshot().prompt,
+    subscribe: listener => state.settings.subscribe(listener),
   }
   ctx.effect(() => ctx.locale.register(PRESENTATION_LOCALE, presentationLocale))
   ctx.slots.inject('settings.general.item', () => ctx.slots.register({
@@ -67,15 +65,7 @@ export function installPresentationSettings(ctx: Context): ObservableSnapshot<Pr
     id: 'presentation-prompt',
     order: 18,
     locale: PRESENTATION_LOCALE,
-    inject: (): PresentationRowInjected => ({
-      hooks: { prompt },
-      setPrompt: (enabled) => {
-        settings.set({ ...settings.getSnapshot(), prompt: enabled })
-        void form.mutate([{ op: 'set', path: ['presentation', 'prompt'], value: enabled }]).catch((_error: unknown) => {
-          // The Host reload on the next snapshot restores the accepted value.
-        })
-      },
-    }),
+    inject: (): PresentationRowInjected => ({ hooks: { prompt, saveFailed: state.saveFailed }, setPrompt: state.setPrompt }),
   }, PresentationRow))
-  return settings
+  return state.settings
 }

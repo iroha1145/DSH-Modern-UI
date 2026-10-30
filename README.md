@@ -10,12 +10,16 @@ dsh plugin --profile web add @iroha1145/dsh-modern-ui
 
 装好后**刷新浏览器**即可看到 Modern UI；切回官方界面见[常见问题](#常见问题)，支持的宿主版本见[兼容矩阵](docs/compatibility.md)。
 
+> **发布状态**：npm 包和 GitHub Release 从 `v0.1.0` 起提供。首个版本发布前，上面的命令和下文的 Release 都还用不了（`npm view @iroha1145/dsh-modern-ui version` 查不到就是还没发布）。在那之前，从 [Official runtime plugin preview](https://github.com/iroha1145/DSH-Modern-UI/actions/workflows/plugin-preview.yml?query=branch%3Amain+is%3Asuccess) 最近一次成功的运行里下载 `modern-ui-precompiled-preview`（要登录 GitHub，只保留 7 天），解压后在其中执行 `dsh plugin --profile web add ./modern-ui.tgz`。
+
 <p>
   <img src="docs/assets/screenshot-light.png" alt="Modern UI 亮色主题：推理分组、官方工具卡与回答" width="49%">
   <img src="docs/assets/screenshot-dark.png" alt="Modern UI 暗色主题：代码块、表格与追问建议" width="49%">
 </p>
 
 > 前提：已安装受支持版本的官方 DSH，且 `pnpm` 在 PATH 上（`dsh plugin` 会把命令转发给 pnpm）。如果从未启动过 web profile，先运行一次 `dsh web`。截图里的模型是本地演示模型，由 [`tests/compat/readme-screenshots.mjs`](tests/compat/readme-screenshots.mjs) 在隔离环境里生成。
+>
+> 一行安装**不会**把官方聊天界面的偏好（工作过程视图、折叠时机、用量展示、链接打开方式、忙碌时回车的行为等）搬进 Modern UI，Modern UI 先用自己的默认值，可在「设置 → 通用」里重新选。官方原有的设置不会被删，切回官方界面后照旧生效。下文的一键隔离安装器会迁移这些偏好。
 
 ---
 
@@ -31,8 +35,8 @@ dsh plugin --profile web add @iroha1145/dsh-modern-ui
 
 ## 安装方式说明
 
-- **npm（推荐）**：即上面的一行命令。指定版本用 `@iroha1145/dsh-modern-ui@<版本>`。
-- **GitHub Release**：每个版本的 Release 附带 `modern-ui.tgz`，可 `dsh plugin --profile web add ./modern-ui.tgz` 离线安装。
+- **npm（推荐，首个版本发布后可用）**：即上面的一行命令。指定版本用 `@iroha1145/dsh-modern-ui@<版本>`。
+- **GitHub Release（首个版本发布后可用）**：每个版本的 Release 附带 `modern-ui.tgz`，可 `dsh plugin --profile web add ./modern-ui.tgz` 离线安装。发布前用上面「发布状态」里的 CI 成品，安装命令相同。
 - **不支持 Git 源安装**（`dsh plugin add github:iroha1145/DSH-Modern-UI`）：构建依赖在仓库根目录，且 pnpm 10+ 默认禁止 Git 依赖执行 build script。请使用 npm 包或 Release 中的 tgz。
 
 ## 官方 Desktop

@@ -1,7 +1,8 @@
 name: Official runtime plugin preview
 
-# The heavy matrices: every verified host on Linux and Windows through the isolated consumer, and the
-# five-platform consumer install. Pull requests get the fast gate in pr.yml instead.
+# The heavy matrices: every verified host on Linux and Windows through the isolated consumer and the
+# one-line `dsh plugin add` of the same tgz, and the five-platform consumer install. Run it on main before
+# pushing a release tag (CONTRIBUTING.md). Pull requests get the fast gate in pr.yml instead.
 on:
   workflow_dispatch:
   push:
@@ -73,6 +74,10 @@ jobs:
       - name: Exercise the isolated official consumer
         shell: bash
         run: node tests/compat/run.mjs --preview preview --host '${{ matrix.host }}' --root "$RUNNER_TEMP/compatibility"
+      - name: One-line install of the same tgz through the official CLI
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: node tests/compat/npm-install.e2e.mjs --plugin preview/modern-ui.tgz --host '${{ matrix.host }}' --root "$RUNNER_TEMP/npm-install"
       - uses: actions/upload-artifact@v7.0.1
         if: always()
         with:
@@ -81,6 +86,7 @@ jobs:
             ${{ runner.temp }}/compatibility/results-*/**/*.json
             ${{ runner.temp }}/compatibility/results-*/**/*.log
             ${{ runner.temp }}/compatibility/results-*/**/*.png
+            ${{ runner.temp }}/npm-install/evidence/
           if-no-files-found: warn
           retention-days: 7
 
