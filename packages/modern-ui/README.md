@@ -19,7 +19,17 @@ presentation:
   prompt: false    # model-visible guidance
   openui: true     # render openui-lang fences as OpenUI components
   followups: true  # render followups fences as suggestion chips
+jev:               # optional TypeSafe Jev presentation advice tool
+  enabled: true                    # offered only with the presentation prompt on and a key present
+  credential: TYPESAFE_API_KEY     # environment-variable name the DSH credentials service resolves
+  model: jev-latest
+  endpoint: https://api.typesafe.ai/v1/systemone
+  timeout: 4000                    # ms; past it the tool answers that no suggestion is available
 ```
+
+Settings → General has a "Jev presentation advice" row under the presentation switch: it saves the key through the official credentials Remote (`credentials/set`) into the DSH credentials file under the `jev.credential` name, shows only whether a key is configured and from which layer, and offers the `enabled` switch once a key exists. A Host without the credentials Remote shows no row.
+
+With a key, the main agent of each main session gets a `jev_presentation_advice` tool. It is registered in that agent's own tool scope and follows `presentation.prompt`, `jev.enabled` and the key as they change, so it appears and disappears without a restart; subagents join the preset composition rather than the parent's scope and never see it. Nothing calls Jev on its own. When the model calls the tool, the plugin sends the user messages admitted in the turn being processed (at most four, 6,000 characters each) and the model's `content_summary`, a description of the structure of the planned answer of at most 600 characters (a longer one is refused, not cut), to TypeSafe. Jev is asked once per turn: the same summary again repeats the reply, and a different summary after that gets no new judgement. The reply is an ordinary tool result: "plain text" reads as no additional suggestion and any other choice as a partial candidate the model may ignore, replace or combine; the confidence stays in the result's card metadata and is not shown to the model. The tool description says calling it is not a prerequisite for components, and no prompt asks the model to call it. A missing key, an error, an invalid answer, a timeout or a cancelled turn returns "no suggestion available" and never fails a turn.
 
 ## Switch back to the official UI
 

@@ -6,6 +6,7 @@ import { Config as ChatConfig } from '@deepseek-ai/dsh-client-ui-chat'
 import { Config as PickerConfig } from './vendor/model/index.ts'
 import { PRESENTATION_PROMPT } from './vendor/intelligent/presentation-prompt.ts'
 import { apply as installBootStyle } from './host-compat/official-style/index.ts'
+import { installJevTool, JevConfig, type JevSettings } from './jev-tool.ts'
 
 export const Config = z.object({
   ...PickerConfig.dict,
@@ -24,6 +25,8 @@ export const Config = z.object({
     openui: z.boolean().default(true),
     followups: z.boolean().default(true),
   }).default({}).volatile(),
+  // Optional TypeSafe Jev presentation advice the model may consult; inactive until the credential resolves to a key.
+  jev: JevConfig.default({}).volatile(),
 })
 
 type Presentation = { prompt?: boolean }
@@ -34,8 +37,16 @@ function promptEnabled(section: Volatile<Presentation> | Presentation | undefine
   return value?.prompt === true
 }
 
+const JEV_DEFAULTS: JevSettings = JevConfig({})
+
+/** Read the live Jev settings the same way; a missing section keeps the defaults (on, but keyless until configured). */
+function jevSettings(section: Volatile<Partial<JevSettings>> | Partial<JevSettings> | undefined): JevSettings {
+  const value = section !== undefined && 'get' in section && typeof section.get === 'function' ? section.get() : section as Partial<JevSettings> | undefined
+  return { ...JEV_DEFAULTS, ...value }
+}
+
 /** Register only plugin-owned settings and additive guidance through public services. */
-export function apply(ctx: Context, config: { enabled: boolean; presentation?: Volatile<Presentation> | Presentation }): void {
+export function apply(ctx: Context, config: { enabled: boolean; presentation?: Volatile<Presentation> | Presentation; jev?: Volatile<Partial<JevSettings>> | Partial<JevSettings> }): void {
   configureConversation(ctx)
   if (!config.enabled) return
   installBootStyle(ctx)
@@ -46,4 +57,6 @@ export function apply(ctx: Context, config: { enabled: boolean; presentation?: V
     interpolate: false,
     text: () => promptEnabled(config.presentation) ? PRESENTATION_PROMPT : '',
   })))
+  // Jev only advises a model taught the components, so its tool follows the presentation prompt switch.
+  installJevTool(ctx, () => jevSettings(config.jev), () => promptEnabled(config.presentation))
 }
