@@ -8,6 +8,7 @@
 
 - 回答里的交互组件改用 [OpenUI](https://github.com/thesysdev/openui)：模型写 `openui-lang` 代码块，插件用 OpenUI 渲染器边生成边画出卡片、流程图、图表、表格、照片和能自己计算的小工具（滑块、输入框改了数值当场重算，不用再问模型）。组件里的「发给助手」按钮只把内容放进输入框，由你确认后发送。组件需要 Chrome/Edge 111、Safari 16.2、Firefox 121 或更新的浏览器（官方 Desktop 内置的 Electron 满足）。组件库取自 thesysdev/open-intelligent-ui，按 DSH 主题配色，补了流程图组件，去掉了地图、视频和 CDN 脚本。原先借鉴 CopilotKit/OpenIntelligentUI 的 HTML 沙箱组件已删除，旧回答里写成 HTML 的 `openui` 代码块改为按普通代码显示。
 - 「回答可视化组件」开启后追加的提示词从约 8 KB 增加到约 30 KB（约 7,000 个词元）。
+- 组件的圆角和胶囊形徽章与 DSH 界面一致，折线图、面积图画成平滑曲线，柱子顶部为圆角，图表和滑块里的小数不会显示成 0。一小段代码可能展开出几十万个元素、卡住页面，所以组件在求值和绘制时按实际步数设上限，超出后停下并显示源代码；为此构建时给打包进插件的 `@openuidev/lang-core` 1.0.2 的 `@Each` 加了计数（只改插件里的副本，版本不符时构建直接失败）。
 
 ### Fixed
 
