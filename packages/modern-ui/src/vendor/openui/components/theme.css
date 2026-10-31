@@ -72,11 +72,11 @@
   --iui-control-gap: 8px;
   --iui-field-gap: 24px;
   --iui-action-gap: 40px;
-  --iui-radius-sm: 6px;
-  --iui-radius-md: 10px;
-  --iui-radius-lg: 12px;
-  --iui-radius-xl: 14px;
-  --iui-radius-2xl: 20px;
+  --iui-radius-sm: 8px;
+  --iui-radius-md: 12px;
+  --iui-radius-lg: 16px;
+  --iui-radius-xl: 18px;
+  --iui-radius-2xl: 24px;
   --iui-photo-empty: var(--iui-surface);
   --iui-photo-empty-icon: var(--iui-border-strong);
 }

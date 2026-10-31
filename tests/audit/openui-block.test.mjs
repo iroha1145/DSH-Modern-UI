@@ -249,9 +249,17 @@ test('tables keep small numbers visible', () => {
 
 test('a stacked chart draws negative values below zero instead of flattening them', async () => {
   const view = await mount('root = Col([Chart("bar", [{k: "Q1", gain: 100, loss: -40}], "k", ["gain", "loss"], "number", null, true)])')
-  const heights = [...view.host.querySelectorAll('rect[fill]')]
-    .filter(rect => rect.getAttribute('fill').startsWith('var(--iui-chart'))
-    .map(rect => Number(rect.getAttribute('height')))
+  // The outer segment is a path with rounded corners; its height is the span of the y coordinates it visits.
+  const extent = shape => {
+    if (shape.tagName === 'rect') return Number(shape.getAttribute('height'))
+    const ys = [...shape.getAttribute('d').matchAll(/M[-\d.]+,([-\d.]+)|V([-\d.]+)|A(?:[-\d.]+[ ,]){6}([-\d.]+)/g)].map(match =>
+      Number(match[1] ?? match[2] ?? match[3]),
+    )
+    return Math.max(...ys) - Math.min(...ys)
+  }
+  const heights = [...view.host.querySelectorAll('rect[fill], path[fill]')]
+    .filter(shape => shape.getAttribute('fill').startsWith('var(--iui-chart'))
+    .map(extent)
   assert.equal(heights.length, 2)
   assert.ok(
     heights.every(height => height > 0),
