@@ -6,7 +6,8 @@ const VALUE_LIMIT = 300
 export const CONTENT_LIMIT = 128_000
 /** Upper bound on the items one block's @Each loops may expand to, nested loops multiplied. */
 export const EXPANSION_LIMIT = 20_000
-// A loop over a list whose length is unknown before it runs ($variables, function results) counts as this many.
+// A loop over a list whose length the source does not fix (function results, values set at runtime) counts as
+// this many; the block's runtime budget counts what such loops really expand to.
 const UNKNOWN_LENGTH = 100
 
 /**
@@ -49,14 +50,37 @@ export function assistantMessage(request: AssistantRequest): string {
   return text.length > MESSAGE_LIMIT ? `${text.slice(0, MESSAGE_LIMIT - 1)}…` : text
 }
 
-type Node = { readonly k?: unknown; readonly name?: unknown; readonly args?: unknown; readonly els?: unknown; readonly v?: unknown }
+type Node = { readonly [key in 'k' | 'name' | 'args' | 'mappedProps' | 'els' | 'v' | 'n' | 'obj' | 'field' | 'entries']?: unknown }
+type States = Readonly<Record<string, unknown>>
 
 const isAst = (value: unknown): value is Node => value !== null && typeof value === 'object' && typeof (value as Node).k === 'string'
 
-/** The length of a list expression when the source fixes it: a literal array or @Range with literal bounds. */
-function listLength(node: unknown): number {
+/** Follow a $variable to its declared value and a field of a literal object or declared value to the field. */
+function resolve(node: unknown, states: States): unknown {
+  if (!isAst(node)) return node
+  if (node.k === 'StateRef' && typeof node.n === 'string') return states[node.n]
+  if (node.k !== 'Member' || typeof node.field !== 'string') return node
+  const field = node.field
+  const owner = resolve(node.obj, states)
+  if (isAst(owner)) {
+    if (owner.k !== 'Obj' || !Array.isArray(owner.entries)) return node
+    return resolve((owner.entries as [unknown, unknown][]).find(([key]) => key === field)?.[1], states)
+  }
+  return owner !== null && typeof owner === 'object' && !Array.isArray(owner) ? (owner as Record<string, unknown>)[field] : node
+}
+
+/**
+ * The length of a list expression when the source fixes it: a literal array, a $variable's declared array, a
+ * field of either, @Range with literal bounds, or @Sort, @Filter or @Each over one of those.
+ */
+function listLength(expression: unknown, states: States): number {
+  const node = resolve(expression, states)
   if (!isAst(node)) return Array.isArray(node) ? node.length : UNKNOWN_LENGTH
   if (node.k === 'Arr' && Array.isArray(node.els)) return node.els.length
+  // Built-ins the runtime cannot count; none returns more items than its list has.
+  if (node.k === 'Comp' && (node.name === 'Sort' || node.name === 'Filter' || node.name === 'Each') && Array.isArray(node.args)) {
+    return listLength(node.args[0], states)
+  }
   if (node.k === 'Comp' && node.name === 'Range' && Array.isArray(node.args)) {
     const [start, end, step] = (node.args as Node[]).map(arg => (isAst(arg) && arg.k === 'Num' && typeof arg.v === 'number' ? arg.v : undefined))
     if (start !== undefined && end !== undefined) {
@@ -71,9 +95,10 @@ function listLength(node: unknown): number {
  * Estimate how many items a parsed block's @Each loops expand to before anything evaluates, multiplying nested
  * loops. Parsed props keep unevaluated expressions, so the walk sees every loop with its list and template.
  * @param root - The parse result's root element, or any value inside it.
+ * @param states - The parse result's $variable declarations.
  * @returns Estimated expanded items; compare with EXPANSION_LIMIT.
  */
-export function expansionEstimate(root: unknown): number {
+export function expansionEstimate(root: unknown, states: States = {}): number {
   // A statement used in several places is one shared object: every use counts, each is walked once.
   const known = new Map<object, number>()
   const open = new Set<object>()
@@ -86,8 +111,10 @@ export function expansionEstimate(root: unknown): number {
     if (Array.isArray(value)) total = value.reduce((sum: number, item) => sum + walk(item), 0)
     else if (isAst(value) && value.k === 'Comp' && value.name === 'Each' && Array.isArray(value.args)) {
       const [list, , template] = value.args as unknown[]
-      total = walk(list) + listLength(list) * (1 + walk(template))
-    } else total = Object.values(value).reduce((sum: number, item) => sum + walk(item), 0)
+      total = walk(list) + listLength(list, states) * (1 + walk(template))
+      // A call's mappedProps hold the same expressions as its args, so a loop inside one counts once.
+    } else if (isAst(value) && value.k === 'Comp' && value.mappedProps !== undefined) total = walk(value.mappedProps)
+    else total = Object.values(value).reduce((sum: number, item) => sum + walk(item), 0)
     open.delete(value)
     // Saturate so an absurd program cannot overflow into a small number.
     total = Math.min(total, Number.MAX_SAFE_INTEGER)
