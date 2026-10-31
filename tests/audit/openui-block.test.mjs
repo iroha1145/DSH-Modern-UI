@@ -189,6 +189,68 @@ test('literal and bound fields of one Form both reach the proposal after an edit
   await view.unmount()
 })
 
+test('a @ToAssistant after @Set in the same Action proposes the value just set', async () => {
+  const code = '$n = 1\nroot = Form([Input($n, "N", "number"), Button("Set and propose", Action([@Set($n, 10), @ToAssistant("Use these values")]))])'
+  const view = await mount(code)
+  await click(button(view.host, 'Set and propose'))
+  assert.equal(view.host.querySelector('input').value, '10')
+  assert.deepEqual(view.calls.setDraft, ['Use these values\n\n- N: 10'])
+  await view.unmount()
+})
+
+test('a @Reset after @ToAssistant leaves the proposal with the values from before the reset', async () => {
+  const code =
+    '$n = 1\nroot = Form([Input("Alpha", "Project"), Input($n, "N", "number"), Button("Go", Action([@Set($n, 10), @ToAssistant("Use these values"), @Reset($n)]))])'
+  const view = await mount(code)
+  await click(button(view.host, 'Go'))
+  assert.deepEqual(view.calls.setDraft, ['Use these values\n\n- Project: Alpha\n- N: 10'])
+  assert.equal(view.host.querySelectorAll('input')[1].value, '1')
+  await view.unmount()
+})
+
+test('a slider whose bound shrinks below its value moves the value itself, so formulas and the proposal agree', async () => {
+  const code =
+    'root = Form([Input($limit, "Limit", "number"), Slider($n, 0, $limit, 1, "N"), Text("Computed N: " + $n), Button("Go", @ToAssistant("Use these values"))])\n$n = 80\n$limit = 100'
+  // While "$limit = 100" is still arriving the bound reads 1; the value must not be clamped to it.
+  const view = await mount(code.slice(0, -2), { streaming: true, closed: false })
+  assert.equal(view.host.querySelector('input[type="range"]').max, '1')
+  await view.update({ code, streaming: true, closed: true })
+  assert.match(view.host.textContent, /Computed N: 80/)
+  await type(view.host.querySelector('input:not([type="range"])'), '50')
+  assert.equal(view.host.querySelector('input[type="range"]').value, '50')
+  assert.equal(view.host.querySelector('output').textContent, '50')
+  assert.match(view.host.textContent, /Computed N: 50/)
+  await click(button(view.host, 'Go'))
+  assert.deepEqual(view.calls.setDraft, ['Use these values\n\n- Limit: 50\n- N: 50'])
+  await view.unmount()
+})
+
+test('inputs that share a label keep their own values, while inputs bound to one $variable stay in step', async () => {
+  const code =
+    '$shared = "x"\nroot = Col([main, other])\nmain = Form([Row([Text("Min"), Input(1, "Value")]), Row([Text("Max"), Input(10, "Value")]), Input($shared, "A"), Input($shared, "B"), Button("Go", @ToAssistant("Use values"))])\nother = Form([Input(5, "Value"), Button("Other", @ToAssistant("Other values"))])'
+  // Edited while the fence streams: the values must also survive the fence closing.
+  const view = await mount(code, { streaming: true, closed: false })
+  const inputs = () => [...view.host.querySelectorAll('input')]
+  await type(inputs()[1], '20')
+  await type(inputs()[2], 'y')
+  await view.update({ code, streaming: true, closed: true })
+  assert.deepEqual(
+    inputs().map(input => input.value),
+    ['1', '20', 'y', 'y', '5'],
+  )
+  await click(button(view.host, 'Go'))
+  await click(button(view.host, 'Other'))
+  assert.deepEqual(view.calls.setDraft, ['Use values\n\n- Value: 1\n- Value: 20\n- A: y\n- B: y', 'Other values\n\n- Value: 5'])
+  await view.unmount()
+})
+
+test('a slider readout keeps the precision of its step', async () => {
+  const view = await mount('root = Col([Slider(0.001, 0, 1, 0.001, "Rate")])')
+  assert.equal(view.host.querySelector('output').textContent, '0.001')
+  assert.equal(view.host.querySelector('input[type="range"]').getAttribute('aria-valuetext'), '0.001')
+  await view.unmount()
+})
+
 test('a value the reader set while the fence streamed survives the fence closing', async () => {
   const code = '$n = 5\nroot = Col([Slider($n, 0, 100, 1, "N"), Text("value " + $n)])'
   const view = await mount(code, { streaming: true, closed: false })
