@@ -872,13 +872,6 @@
       "adapted": true
     },
     {
-      "source": "packages/client/ui-intelligent-ui/src/client/design-system.ts",
-      "target": "src/vendor/intelligent/client/design-system.ts",
-      "sourceSha256": "4b13e6c7cfeb0092ec5a363025dbe2fdd621d2aba5a59189268fffa0494c61d0",
-      "targetSha256": "4b13e6c7cfeb0092ec5a363025dbe2fdd621d2aba5a59189268fffa0494c61d0",
-      "adapted": false
-    },
-    {
       "source": "packages/client/ui-intelligent-ui/src/client/Followups.module.css",
       "target": "src/vendor/intelligent/client/Followups.module.css",
       "sourceSha256": "0092eab4ef5bc652985599dbcd86a07ab76d1c65b283e3c825b1654368b3985b",
@@ -893,39 +886,11 @@
       "adapted": true
     },
     {
-      "source": "packages/client/ui-intelligent-ui/src/client/frame-content.ts",
-      "target": "src/vendor/intelligent/client/frame-content.ts",
-      "sourceSha256": "dacae4aaee98ff897e32ba06f9ade4f2e4f2da2088ad226ae9249554d743f9e1",
-      "targetSha256": "dacae4aaee98ff897e32ba06f9ade4f2e4f2da2088ad226ae9249554d743f9e1",
-      "adapted": false
-    },
-    {
-      "source": "packages/client/ui-intelligent-ui/src/client/icons.ts",
-      "target": "src/vendor/intelligent/client/icons.ts",
-      "sourceSha256": "bebb4372775907c6c1affff8489ac574b544dff645241fdf8068cd657fae50cc",
-      "targetSha256": "bebb4372775907c6c1affff8489ac574b544dff645241fdf8068cd657fae50cc",
-      "adapted": false
-    },
-    {
-      "source": "packages/client/ui-intelligent-ui/src/client/IntelligentUI.module.css",
-      "target": "src/vendor/intelligent/client/IntelligentUI.module.css",
-      "sourceSha256": "91c83d0da420b3bf17e0125ba6bf8439d614208a8ac7056670c26bcc916c1887",
-      "targetSha256": "91c83d0da420b3bf17e0125ba6bf8439d614208a8ac7056670c26bcc916c1887",
-      "adapted": false
-    },
-    {
-      "source": "packages/client/ui-intelligent-ui/src/client/IntelligentUI.tsx",
-      "target": "src/vendor/intelligent/client/IntelligentUI.tsx",
-      "sourceSha256": "7418af0718b69f36b65f905b2f8539aa573c18974afbf86572ead32128cf8287",
-      "targetSha256": "1bdd2d2f30e2e51d4ab2319aa2a3df95dc8c85d6dcf24be1c137d076253f2e6f",
-      "adapted": true
-    },
-    {
       "source": "packages/client/ui-intelligent-ui/src/client/locales.ts",
       "target": "src/vendor/intelligent/client/locales.ts",
       "sourceSha256": "46b05428e5dd7446004d066cdbc5cc4cd1eabade373b0b6ade4b687048317dc5",
-      "targetSha256": "46b05428e5dd7446004d066cdbc5cc4cd1eabade373b0b6ade4b687048317dc5",
-      "adapted": false
+      "targetSha256": "24bc341f7b1d870d320ab97bb6ef7730c0358a649bf9bf37ae8ef8f95b48d04d",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-intelligent-ui/src/client/parse-followups.ts",
@@ -935,24 +900,10 @@
       "adapted": false
     },
     {
-      "source": "packages/client/ui-intelligent-ui/src/client/sandbox.ts",
-      "target": "src/vendor/intelligent/client/sandbox.ts",
-      "sourceSha256": "e810b8535e13aa32558869869525982d8eb2e24e0fbb28857e5b57e898c63669",
-      "targetSha256": "e810b8535e13aa32558869869525982d8eb2e24e0fbb28857e5b57e898c63669",
-      "adapted": false
-    },
-    {
-      "source": "packages/client/ui-intelligent-ui/src/client/schema.ts",
-      "target": "src/vendor/intelligent/client/schema.ts",
-      "sourceSha256": "86b87911d5632337a87fa1d1d407b9972cefebaae91f83e9b1bd02348b6d3219",
-      "targetSha256": "86b87911d5632337a87fa1d1d407b9972cefebaae91f83e9b1bd02348b6d3219",
-      "adapted": false
-    },
-    {
       "source": "packages/client/ui-intelligent-ui/src/presentation-prompt.ts",
       "target": "src/vendor/intelligent/presentation-prompt.ts",
       "sourceSha256": "7152a0e1a8eb67842eb383f6c9611883d68dc3f02e9c688e323674142ddc6797",
-      "targetSha256": "5e5f1ad000665e561f9ab6a210bdd7edda91a806869156bd430252b6a33277e8",
+      "targetSha256": "25ecd833182a1c7b761e4123a879a23d57390abc0adea33eefdebbed0751e80e",
       "adapted": true
     },
     {
@@ -3634,7 +3585,7 @@
     },
     {
       "target": "src/client.tsx",
-      "targetSha256": "2fe9fd772b4f86059f283049b7b98dd4f7acbe3aa592c5209ed81170b53a25ce",
+      "targetSha256": "b8934697db8f8635abc90b85aff785bfacc087faf1fd1ccf519ef6a3e455d3fa",
       "description": "Original plugin composition, public owner selection and presentation/service registration."
     },
     {
@@ -3649,7 +3600,7 @@
     },
     {
       "target": "src/index.ts",
-      "targetSha256": "06523f408c6ec71acab2f29036c92ebcd2135a25db72c14994f1d639eae07b04",
+      "targetSha256": "b6254846f8265f73b9be1c001ece19c891de3566d41dcdff2dee708dac7d4bba",
       "description": "Original Host manifest/configuration, migration settings and plugin entry wiring."
     },
     {
@@ -3716,6 +3667,26 @@
       "target": "src/vendor/primitives/useDismissBehindModal.ts",
       "targetSha256": "71022c213ff9c1ac9b6003c555ed9d33f18342494fbb05da02dacacb51e1cd00",
       "description": "Closes an open floating surface when an official or Modern modal takes the foreground, read from the shared official modal stack."
+    },
+    {
+      "target": "src/vendor/intelligent/client/OpenUIBlock.tsx",
+      "targetSha256": "51d71e91e7416e79bd978e25a1817da0e0e285b6050c37d2505a2a897af1e320",
+      "description": "Original code-fence presenter that renders openui-lang blocks with @openuidev/react-lang inside answers, routes @ToAssistant through the Session input actions, and keeps unparsable source readable."
+    },
+    {
+      "target": "src/vendor/intelligent/client/OpenUIBlock.module.css",
+      "targetSha256": "63eddbeef2687db5a821c0c142712154f955c8b725ef0be37c66196b7659b507",
+      "description": "Original styles for the OpenUI block frame, placeholder and preserved-source card."
+    },
+    {
+      "target": "src/vendor/intelligent/client/openui-source.ts",
+      "targetSha256": "6bc6b480844b384c0974ffbf9fcc4ae98dddabaf59ccbb6b267901604fdb0848",
+      "description": "Original pure helpers for openui-lang fences: which bodies render, the parse size bound, and the text a @ToAssistant click sends."
+    },
+    {
+      "target": "src/vendor/intelligent/client/openui-budget.ts",
+      "targetSha256": "02f5debc9cbf525accf82155b51dfec1dc6bb480c172c9e46d1013f82ca463a3",
+      "description": "Original per-block step budget for openui-lang blocks: a counted view of the component library and the counters for the build-time patched evaluator of @openuidev/lang-core (loops, built lists and objects, what each loop pass produces), which stop an over-budget evaluation or render in the @openuidev/react-lang runtime."
     }
   ],
   "adapters": [

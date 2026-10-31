@@ -6,7 +6,7 @@ import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
 export interface PresentationSettings {
   /** Append the response-presentation guidance to the system prompt (changes model output). */
   prompt: boolean
-  /** Render `openui` code fences as inline components. */
+  /** Render `openui-lang` code fences (and `openui` fences written in openui-lang) as inline components. */
   openui: boolean
   /** Render `followups` code fences as suggestion chips. */
   followups: boolean
@@ -20,7 +20,7 @@ export const PRESENTATION_LOCALE = 'modern-presentation-settings'
 
 const zh = {
   'settings.presentation.title': '回答可视化组件',
-  'settings.presentation.description': '开启后会向模型追加约 3 KB 提示词，让回答使用卡片、流程图等组件',
+  'settings.presentation.description': '开启后会向模型追加约 30 KB 提示词，让回答使用卡片、流程图等组件',
   'settings.presentation.saveFailed': '保存失败，设置没有改变，请重试',
   'settings.presentation.on': '开启',
   'settings.presentation.off': '关闭',
@@ -28,49 +28,49 @@ const zh = {
 type Dictionary = Record<keyof typeof zh, string>
 const en: Dictionary = {
   'settings.presentation.title': 'Answer visual components',
-  'settings.presentation.description': 'Adds about 3 KB of instructions to the model prompt so answers use cards, diagrams and similar components',
+  'settings.presentation.description': 'Adds about 30 KB of instructions to the model prompt so answers use cards, diagrams and similar components',
   'settings.presentation.saveFailed': 'Could not save; the setting is unchanged. Try again.',
   'settings.presentation.on': 'On',
   'settings.presentation.off': 'Off',
 }
 const ja: Dictionary = {
   'settings.presentation.title': '回答のビジュアルコンポーネント',
-  'settings.presentation.description': 'オンにするとモデルに約 3 KB の指示を追加し、カードや図などで回答します',
+  'settings.presentation.description': 'オンにするとモデルに約 30 KB の指示を追加し、カードや図などで回答します',
   'settings.presentation.saveFailed': '保存できませんでした。設定は変更されていません。もう一度お試しください',
   'settings.presentation.on': 'オン',
   'settings.presentation.off': 'オフ',
 }
 const es: Dictionary = {
   'settings.presentation.title': 'Componentes visuales en respuestas',
-  'settings.presentation.description': 'Añade unos 3 KB de instrucciones al modelo para que responda con tarjetas, diagramas y componentes similares',
+  'settings.presentation.description': 'Añade unos 30 KB de instrucciones al modelo para que responda con tarjetas, diagramas y componentes similares',
   'settings.presentation.saveFailed': 'No se pudo guardar; el ajuste no ha cambiado. Inténtalo de nuevo.',
   'settings.presentation.on': 'Activado',
   'settings.presentation.off': 'Desactivado',
 }
 const fr: Dictionary = {
   'settings.presentation.title': 'Composants visuels des réponses',
-  'settings.presentation.description': 'Ajoute environ 3 Ko d’instructions au modèle pour répondre avec des cartes, des diagrammes et des composants similaires',
+  'settings.presentation.description': 'Ajoute environ 30 Ko d’instructions au modèle pour répondre avec des cartes, des diagrammes et des composants similaires',
   'settings.presentation.saveFailed': 'Échec de l’enregistrement ; le réglage n’a pas changé. Réessayez.',
   'settings.presentation.on': 'Activé',
   'settings.presentation.off': 'Désactivé',
 }
 const de: Dictionary = {
   'settings.presentation.title': 'Visuelle Antwortkomponenten',
-  'settings.presentation.description': 'Fügt dem Modell etwa 3 KB Anweisungen hinzu, damit Antworten Karten, Diagramme und ähnliche Komponenten nutzen',
+  'settings.presentation.description': 'Fügt dem Modell etwa 30 KB Anweisungen hinzu, damit Antworten Karten, Diagramme und ähnliche Komponenten nutzen',
   'settings.presentation.saveFailed': 'Speichern fehlgeschlagen; die Einstellung ist unverändert. Bitte erneut versuchen.',
   'settings.presentation.on': 'An',
   'settings.presentation.off': 'Aus',
 }
 const ru: Dictionary = {
   'settings.presentation.title': 'Визуальные компоненты ответов',
-  'settings.presentation.description': 'Добавляет модели около 3 КБ инструкций, чтобы ответы использовали карточки, схемы и похожие компоненты',
+  'settings.presentation.description': 'Добавляет модели около 30 КБ инструкций, чтобы ответы использовали карточки, схемы и похожие компоненты',
   'settings.presentation.saveFailed': 'Не удалось сохранить; настройка не изменилась. Попробуйте ещё раз.',
   'settings.presentation.on': 'Вкл.',
   'settings.presentation.off': 'Выкл.',
 }
 const pt: Dictionary = {
   'settings.presentation.title': 'Componentes visuais nas respostas',
-  'settings.presentation.description': 'Adiciona cerca de 3 KB de instruções ao modelo para responder com cartões, diagramas e componentes semelhantes',
+  'settings.presentation.description': 'Adiciona cerca de 30 KB de instruções ao modelo para responder com cartões, diagramas e componentes semelhantes',
   'settings.presentation.saveFailed': 'Não foi possível salvar; a configuração não mudou. Tente novamente.',
   'settings.presentation.on': 'Ativado',
   'settings.presentation.off': 'Desativado',

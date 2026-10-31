@@ -1,19 +1,18 @@
+import { execFileSync } from 'node:child_process'
+import path from 'node:path'
 import { describe, expect, test } from 'vitest'
 import { parseFollowups } from '../../packages/modern-ui/src/vendor/intelligent/client/parse-followups.ts'
 import {
+  assistantMessage,
   CONTENT_LIMIT,
-  MAX_FRAGMENTS,
-  MAX_HEIGHT,
-  MIN_HEIGHT,
-  parseContent,
-  partialTitle,
-  reportedHeight,
-  sourceFormat,
-} from '../../packages/modern-ui/src/vendor/intelligent/client/schema.ts'
-import { FRAME_CSP, frameDocument, frameProgram } from '../../packages/modern-ui/src/vendor/intelligent/client/frame-content.ts'
-import { outerDocument } from '../../packages/modern-ui/src/vendor/intelligent/client/sandbox.ts'
+  EXPANSION_LIMIT,
+  expansionEstimate,
+  looksLikeOpenUI,
+} from '../../packages/modern-ui/src/vendor/intelligent/client/openui-source.ts'
+import { PRESENTATION_PROMPT } from '../../packages/modern-ui/src/vendor/intelligent/presentation-prompt.ts'
+import { OPENUI_SYSTEM_PROMPT } from '../../packages/modern-ui/src/vendor/openui/system-prompt.generated.ts'
 
-const fallback = 'A plain explanation of the chart.'
+const root = path.resolve(import.meta.dirname, '../..')
 
 describe('parseFollowups', () => {
   test('keeps questions in authored order without list markers or wrapping quotes', () => {
@@ -29,105 +28,92 @@ describe('parseFollowups', () => {
   })
 })
 
-describe('openui content schema', () => {
-  test('recognizes JSON by its first non-space character', () => {
-    expect(sourceFormat('  {"title":1}')).toBe('json')
-    expect(sourceFormat('\n[1]')).toBe('json')
-    expect(sourceFormat('<div>{}</div>')).toBe('html')
+describe('openui-lang fences', () => {
+  test('recognizes a program by its first assignment, after leading comments and blank lines', () => {
+    expect(looksLikeOpenUI('root = Col([title])')).toBe(true)
+    expect(looksLikeOpenUI('\n  $count = 0\nroot = Col([])')).toBe(true)
+    expect(looksLikeOpenUI('// sizing tool\nroot = Card([])')).toBe(true)
   })
 
-  test('parses an HTML fragment, lifting its title and non-empty scripts out of the markup', () => {
-    const result = parseContent('<title>Sales <b>2026</b></title><div>$&amp;</div><script>draw("$&")</script><script> </script>', 'Untitled')
-    expect(result).toEqual({
-      ok: true,
-      format: 'html',
-      content: { version: 1, title: 'Sales 2026', html: '<div>$&amp;</div>', jsExpressions: ['draw("$&")'] },
-    })
+  test('leaves HTML and JSON visualizations from older answers to the plain code block', () => {
+    expect(looksLikeOpenUI('<section class="ui-card"><h3>Title</h3></section>')).toBe(false)
+    expect(looksLikeOpenUI('{"version": 1, "title": "Chart"}')).toBe(false)
+    expect(looksLikeOpenUI('')).toBe(false)
   })
 
-  test('uses the localized default title when a fragment has none', () => {
-    const result = parseContent('<p>hi</p>', 'Visualization')
-    expect(result.ok && result.content.title).toBe('Visualization')
-  })
-
-  test('rejects text without markup and markup that is only a title', () => {
-    expect(parseContent('just prose', 'T')).toEqual({ ok: false, reason: 'invalid' })
-    expect(parseContent('<title>Only</title>', 'T')).toEqual({ ok: false, reason: 'invalid' })
-  })
-
-  test('rejects oversized sources and too many scripts as tooLarge', () => {
-    expect(parseContent(`<p>${'x'.repeat(CONTENT_LIMIT)}</p>`, 'T')).toEqual({ ok: false, reason: 'tooLarge' })
-    expect(parseContent('<p></p>' + '<script>1</script>'.repeat(MAX_FRAGMENTS + 1), 'T')).toEqual({ ok: false, reason: 'tooLarge' })
-  })
-
-  test('accepts complete JSON content', () => {
-    const result = parseContent(JSON.stringify({ version: 1, title: 'Chart', fallback, html: ['<p>', '</p>'], initialHeight: 300 }), 'T')
-    expect(result.ok && result.format).toBe('json')
-    expect(result.ok && result.content.initialHeight).toBe(300)
-  })
-
-  test.each([
-    ['an array', '[]'],
-    ['malformed JSON', '{"version":1,'],
-    ['an unknown key', JSON.stringify({ version: 1, title: 'C', fallback, html: '<p></p>', onload: 'x' })],
-    ['a null value', JSON.stringify({ version: 1, title: 'C', fallback, html: '<p></p>', css: null })],
-    ['a missing fallback', JSON.stringify({ version: 1, title: 'C', html: '<p></p>' })],
-    ['a blank title', JSON.stringify({ version: 1, title: '   ', fallback, html: '<p></p>' })],
-    ['blank html', JSON.stringify({ version: 1, title: 'C', fallback, html: ['  ', ''] })],
-    ['a wrong version', JSON.stringify({ version: 2, title: 'C', fallback, html: '<p></p>' })],
-    ['an out-of-range height', JSON.stringify({ version: 1, title: 'C', fallback, html: '<p></p>', initialHeight: MAX_HEIGHT + 1 })],
-  ])('rejects JSON with %s', (_name, source) => {
-    expect(parseContent(source, 'T')).toEqual({ ok: false, reason: 'invalid' })
-  })
-
-  test('reads a partial title from streaming HTML and JSON', () => {
-    expect(partialTitle('<title>  Weekly\n  report </title><div')).toBe('Weekly report')
-    expect(partialTitle('{"version":1,"title":"Say \\"hi\\""')).toBe('Say "hi"')
-    expect(partialTitle('<title>Unfinished')).toBeUndefined()
-    expect(partialTitle('{"title":"   "}')).toBeUndefined()
-  })
-
-  test('bounds reported frame heights and ignores non-numbers', () => {
-    expect(reportedHeight(10)).toBe(MIN_HEIGHT)
-    expect(reportedHeight(100.2)).toBe(101)
-    expect(reportedHeight(1e9)).toBe(MAX_HEIGHT)
-    expect(reportedHeight(Number.NaN)).toBeUndefined()
-    expect(reportedHeight('100')).toBeUndefined()
+  test('bounds parsed source at the documented limit', () => {
+    expect(CONTENT_LIMIT).toBe(128_000)
   })
 })
 
-describe('openui sandbox documents', () => {
-  const content = {
-    version: 1 as const,
-    title: 'T</script><script>alert(1)</script>',
-    html: '<p>\u2028</p>',
-    css: '</style></script>',
-    jsExpressions: ['x("$$")'],
-  }
-
-  test('the inner shell carries the deny-by-default policy and no authored markup', () => {
-    const shell = frameDocument()
-    expect(shell).toContain(`content="${FRAME_CSP}"`)
-    for (const directive of ["default-src 'none'", "connect-src 'none'", "frame-src 'none'", "form-action 'none'"]) expect(FRAME_CSP).toContain(directive)
-    expect(shell).not.toContain('<script')
+describe('assistantMessage', () => {
+  test('proposes the message followed by the shown value of every field, skipping empty ones', () => {
+    const message = assistantMessage({
+      message: ' Help me choose a database ',
+      fields: [
+        ['Workload', 'analytics'],
+        ['Notes', ''],
+        ['Team', 5],
+        ['Region', null],
+      ],
+    })
+    expect(message).toBe('Help me choose a database\n\n- Workload: analytics\n- Team: 5')
   })
 
-  test('the frame program serializes authored code as data that cannot close the script element', () => {
-    const program = frameProgram(content, 'token')
-    expect(program).not.toContain('</script>')
-    expect(program).not.toContain('\u2028')
-    expect(program).toContain('\\u003c/style>\\u003c/script>')
-    expect(program).toContain('\\u003cp>\\u2028\\u003c/p>')
-    expect(program).toContain('x(\\"$$\\")')
+  test("appends the step's context and shortens long values", () => {
+    const message = assistantMessage({ message: 'More', fields: [['Notes', 'y'.repeat(400)]], context: { id: 7 } })
+    expect(message).toBe(`More\n\n- Notes: ${'y'.repeat(299)}…\n- context: {"id":7}`)
   })
 
-  test('the outer document nests a scripts-only sandbox and keeps replacement patterns literal', () => {
-    const outer = outerDocument(content, 'abc')
-    expect(outer.match(/<script>/g)).toHaveLength(1)
-    expect(outer).toContain("inner.setAttribute('sandbox','allow-scripts')")
-    expect(outer).toContain("inner.referrerPolicy='no-referrer'")
-    expect(outer).toContain("camera 'none'")
-    expect(outer).toContain('$$')
-    expect(outer).not.toMatch(/allow-same-origin|allow-top-navigation|allow-popups|allow-forms/)
+  test('falls back to the message alone and caps the whole proposal', () => {
+    expect(assistantMessage({ message: 'Plan another day' })).toBe('Plan another day')
+    const fields = Array.from({ length: 40 }, (_, index) => [`f${index}`, 'z'.repeat(200)] as const)
+    const long = assistantMessage({ message: 'x', fields })
+    expect(long.length).toBe(4000)
+    expect(long.endsWith('…')).toBe(true)
+  })
+})
+
+describe('expansionEstimate', () => {
+  const num = (v: number) => ({ k: 'Num', v })
+  const range = (start: number, end: number) => ({ k: 'Comp', name: 'Range', args: [num(start), num(end)] })
+  const each = (list: unknown, template: unknown) => ({ k: 'Comp', name: 'Each', args: [list, { k: 'Str', v: 'i' }, template] })
+  const text = { type: 'element', typeName: 'Text', props: { text: 'x' } }
+
+  test('multiplies nested loops and counts literal and unknown lists', () => {
+    expect(expansionEstimate({ type: 'element', props: { children: each(range(0, 500), each(range(0, 500), text)) } })).toBe(500 * 501)
+    expect(expansionEstimate(each({ k: 'Arr', els: [num(1), num(2), num(3)] }, text))).toBe(3)
+    expect(expansionEstimate(each({ k: 'StateRef', n: '$items' }, text))).toBe(100)
+    expect(EXPANSION_LIMIT).toBe(20_000)
+  })
+
+  test('counts every use of a shared statement and terminates on cycles', () => {
+    const shared = each(range(0, 100), text)
+    expect(expansionEstimate([shared, shared, shared])).toBe(300)
+    const cyclic: Record<string, unknown> = { k: 'Obj' }
+    cyclic.self = cyclic
+    expect(expansionEstimate(cyclic)).toBe(0)
+  })
+})
+
+describe('presentation prompt', () => {
+  test('the generated openui-lang prompt is current and its worked examples parse against the library', () => {
+    // Exits non-zero when an example fails to parse or the committed prompt is stale.
+    expect(() => execFileSync(process.execPath, [path.join(root, 'scripts/generate-openui-prompt.mjs'), '--check'], { cwd: root, stdio: 'pipe' })).not.toThrow()
+  })
+
+  test('teaches openui-lang fences inside Markdown answers rather than whole-response programs', () => {
+    expect(OPENUI_SYSTEM_PROMPT).toContain('fenced code block whose language is openui-lang')
+    expect(OPENUI_SYSTEM_PROMPT).not.toContain('Your ENTIRE response must be valid openui-lang')
+    expect(OPENUI_SYSTEM_PROMPT).toContain('FlowNode(title: string')
+    for (const removed of ['MapMarker', 'YouTube(', 'Celebration(', '@GroupBy', '@MixColor', 'cdn.jsdelivr'])
+      expect(OPENUI_SYSTEM_PROMPT).not.toContain(removed)
+  })
+
+  test('keeps the citation, picture and follow-up rules after the component guidance', () => {
+    expect(PRESENTATION_PROMPT.startsWith(OPENUI_SYSTEM_PROMPT)).toBe(true)
+    for (const rule of ['- Cite externally sourced factual claims', '- Pictures:', '- Follow-up questions:', '```followups'])
+      expect(PRESENTATION_PROMPT).toContain(rule)
+    expect(PRESENTATION_PROMPT).not.toContain('ui-card')
   })
 })

@@ -17,7 +17,7 @@
 
 | 层 | 位置 | 命令 | 内容 | 何时跑 |
 | --- | --- | --- | --- | --- |
-| unit | `tests/unit/*.test.ts` | `npm run test:unit` | 纯函数：openui 内容校验与沙箱文档、markdown 语法、高亮，会话组装器与聊天快照构建器等 | 每次提交，PR 门禁 |
+| unit | `tests/unit/*.test.ts` | `npm run test:unit` | 纯函数：openui-lang 代码块识别与「发给助手」消息拼接、生成的提示词是否最新、markdown 语法、高亮，会话组装器与聊天快照构建器等 | 每次提交，PR 门禁 |
 | audit | `tests/audit/*.test.mjs` | `npx vitest run --project audit` | 先 `npm run build`；打包体积、jsdom 与真实 Chromium 中的交互和布局 | PR 门禁 |
 | compat（单元） | `tests/compat/*.test.mjs` | `npx vitest run --project compat` | 安装器选择、profile 迁移、聊天契约，翻译与 MCP 替代插件的行为基线；先 `npm run build`，需要 `COMPAT_BACKEND_PACKAGE` | PR 门禁 |
 | compat（隔离消费者） | `tests/compat/run.mjs` | `npm run test:compat -- --preview .artifacts/plugin-preview --host <版本> --root <隔离目录>` | 装一套独立的官方宿主，跑 MCP、生命周期、浏览器、升级失败回滚等 9 层 | 改到安装或兼容逻辑时；CI 在手动触发和 `v*` tag 时跑 |
@@ -26,8 +26,9 @@
 
 ## 约束
 
-- 不弱化 `openui` 沙箱（边界见 [SECURITY.md](SECURITY.md)）；不引入对宿主的 monkey patch。
-- `packages/modern-ui/src/vendor/` 只减不增：可以删掉不再需要的拷贝、改为使用官方公开导出，但不新增从官方源码复制来的文件；不删除或简化 `provenance.json`。
+- 不放宽 OpenUI 组件边界（见 [SECURITY.md](SECURITY.md)）；不引入对宿主的 monkey patch。
+- `packages/modern-ui/src/vendor/` 里从官方 DSH 源码复制来的拷贝只减不增：可以删掉不再需要的拷贝、改为使用官方公开导出，但不新增；删掉文件时同步删掉它在 `provenance.json` 里的条目，其余记录不删不简化。第三方上游的拷贝（`vendor/openui/` 的 OpenUI 组件库、厂商标志）各自用 `*-upstream.json` 记录来源与逐文件哈希，改动后同步刷新。
+- 安装依赖用 `npm ci --ignore-scripts`（CI 同样如此）：`@openuidev/lang-core` 的安装脚本默认会发一次匿名安装统计，也可以设 `DO_NOT_TRACK=1` 关掉。改了 `vendor/openui/` 的组件或提示词选项后运行 `npm run prompt:openui`。
 - 用户可见的改动写进 [CHANGELOG.md](CHANGELOG.md) 的 `Unreleased`。
 - 提交信息格式：`feat|fix|docs|chore|test(scope): 中文描述`，一个工作包一个分支。首次格式化提交记在 `.git-blame-ignore-revs`，本地可用 `git config blame.ignoreRevsFile .git-blame-ignore-revs`。
 

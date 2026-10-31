@@ -138,6 +138,24 @@
     "file": "licenses/npm/lexical_utils0.49.0.txt"
   },
   {
+    "name": "@openuidev/lang-core",
+    "version": "1.0.2",
+    "license": "MIT",
+    "file": "licenses/npm/openuidev_lang-core1.0.2.txt"
+  },
+  {
+    "name": "@openuidev/observability",
+    "version": "0.0.4",
+    "license": "MIT",
+    "file": "licenses/npm/openuidev_observability0.0.4.txt"
+  },
+  {
+    "name": "@openuidev/react-lang",
+    "version": "1.0.2",
+    "license": "MIT",
+    "file": "licenses/npm/openuidev_react-lang1.0.2.txt"
+  },
+  {
     "name": "@shikijs/core",
     "version": "4.5.0",
     "license": "MIT",
@@ -208,6 +226,12 @@
     "version": "3.0.0",
     "license": "MIT",
     "file": "licenses/npm/character-entities-legacy3.0.0.txt"
+  },
+  {
+    "name": "ci-info",
+    "version": "4.4.0",
+    "license": "MIT",
+    "file": "licenses/npm/ci-info4.4.0.txt"
   },
   {
     "name": "clsx",
@@ -286,6 +310,12 @@
     "version": "3.1.0",
     "license": "MIT",
     "file": "licenses/npm/longest-streak3.1.0.txt"
+  },
+  {
+    "name": "lucide-react",
+    "version": "0.562.0",
+    "license": "ISC",
+    "file": "licenses/npm/lucide-react0.562.0.txt"
   },
   {
     "name": "markdown-table",
