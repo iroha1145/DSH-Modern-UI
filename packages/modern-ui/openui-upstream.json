@@ -9,8 +9,8 @@
       "file": "dist/index.mjs",
       "sourceSha256": "04f3ec47a49c119d0f65c1963dc17ec7b0f146500a23ba9cb70e0295a998ab17",
       "patch": "scripts/openui-each-counter.mjs",
-      "patchSha256": "b7a974da5d4640e4c4ea6c8d1b513e21e33f1a9a3bded75aa860a630f165577b",
-      "description": "Applied to the bundled copy only, never to node_modules: before the evaluator expands an @Each, starts a pass, builds a list or object literal, reads a field across a list or runs a built-in function over lists, and before it hands back what a pass produced, it asks counters that src/vendor/intelligent/client/openui-budget.ts installs, with the evaluation context, so the block whose Renderer evaluates is charged. A refusal returns an empty value instead of throwing. The build fails when any of the six evaluator sites no longer matches."
+      "patchSha256": "fdfe4488c9444cab524442801a68cb662fed287f611ed90811c88c923a13a1ff",
+      "description": "Applied to the bundled copy only, never to node_modules: before the evaluator expands an @Each, starts a pass, builds a list or object literal, reads a field across a list, runs a built-in function over lists or joins text with +, before it hands back what a pass produced, and before it hands out a component's props (on both returns of evaluateElementProps), it asks counters that src/vendor/intelligent/client/openui-budget.ts installs, with the evaluation context, so the block whose Renderer evaluates is charged; a refusal returns an empty value instead of throwing. The parser reports every node materializeValue and materializeExprInternal build, and the counter stops a parse past its limit. The build fails when any of the eleven sites no longer matches."
     }
   ],
   "runtime": {
