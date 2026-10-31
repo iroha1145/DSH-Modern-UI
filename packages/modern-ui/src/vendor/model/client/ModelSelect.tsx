@@ -241,21 +241,29 @@ export function ModelSelect({
       const rect = (triggerRef.current as HTMLButtonElement).getBoundingClientRect()
       const MARGIN = 12
       const GAP = 8
+      // The fixed card's containing block: the layout viewport the trigger rect is measured in.
+      const viewport = document.documentElement.clientHeight
       const lw = menu.offsetWidth
       // The card's natural height: its laid-out height with the list at full length.
       const lh = menu.offsetHeight - list.clientHeight + list.scrollHeight
+      // The stylesheet caps the card at --picker-cap, so a long catalog renders shorter than lh.
+      const cap = Number.parseFloat(getComputedStyle(menu).getPropertyValue('--picker-cap'))
+      const fit = Number.isNaN(cap) ? lh : Math.min(lh, cap)
       const above = rect.top - GAP - MARGIN
-      const below = window.innerHeight - rect.bottom - GAP - MARGIN
+      const below = viewport - rect.bottom - GAP - MARGIN
       // Open upward like the composer's other menus; flip below only when the
       // card does not fit above and more room waits below.
-      const down = lh > above && below > above
+      const down = fit > above && below > above
       const room = Math.max(down ? below : above, 0)
       let x = rect.right - lw
       if (lw > 0) x = Math.min(Math.max(x, MARGIN), window.innerWidth - lw - MARGIN)
-      const y = down ? rect.bottom + GAP : rect.top - GAP - Math.min(lh, room)
+      // Pin the edge facing the trigger so the card hugs it at whatever height it renders.
+      const edge: CSSProperties = down
+        ? { top: Math.max(rect.bottom + GAP, MARGIN) }
+        : { bottom: Math.max(viewport - rect.top + GAP, MARGIN) }
       setMenuPos(lh > 0
-        ? { left: x, top: Math.max(y, MARGIN), '--picker-room': `${room}px` } as CSSProperties
-        : { left: x, top: y })
+        ? { left: x, ...edge, '--picker-room': `${room}px` } as CSSProperties
+        : { left: x, ...edge })
     }
     place()
     window.addEventListener('scroll', place, true)

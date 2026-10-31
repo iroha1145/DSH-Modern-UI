@@ -194,15 +194,17 @@
 
 /* Portaled to body and placed from the trigger rect by the component (the
    Menu primitive's portal rules), so the sidebar and the columns' overflow
-   clips cannot crop it; z matches the primitive's .portal layer. */
+   clips cannot crop it; z matches the primitive's .portal layer. The
+   component reads --picker-cap to tell how tall the card will render. */
 .menu {
+  --picker-cap: 560px;
   position: fixed;
   z-index: 1100;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   width: min(380px, calc(100vw - 24px));
-  max-height: min(560px, var(--picker-room, calc(100vh - 24px)));
+  max-height: min(var(--picker-cap), var(--picker-room, calc(100vh - 24px)));
   overflow: hidden;
   padding: 4px;
   border: 0;
