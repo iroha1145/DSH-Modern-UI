@@ -25,6 +25,10 @@
 
 能突破上述任何一条的问题都属于安全漏洞。放宽这些限制的改动不会被接受。
 
+## Jev 渲染路由（可选）
+
+只有同时满足两个条件时才会联系 TypeSafe：开启了「回答可视化组件」，且凭据服务能按 `jev.credential`（默认 `TYPESAFE_API_KEY`）解析出密钥。这时每条新的用户消息会把主会话（不含子代理）最近四条用户和助手的文字（每条最多 6,000 字）发到 `jev.endpoint`（默认 `https://api.typesafe.ai/v1/systemone`），不发送系统提示词、工具输出和附件。密钥只在宿主进程内用于请求头，不写入配置、日志或浏览器。Jev 的回答必须是预设的选项之一，否则丢弃；它只变成一行提示，不能执行任何操作。
+
 ## 供应链
 
 npm 包带 [provenance](https://docs.npmjs.com/generating-provenance-statements) 发布。一键安装器核验官方 `@deepseek-ai/dsh` 依赖闭包中每个包的 npm `integrity` 与文件字节，详见 [docs/install.md](docs/install.md)。

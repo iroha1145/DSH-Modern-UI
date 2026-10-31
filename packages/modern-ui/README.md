@@ -19,7 +19,15 @@ presentation:
   prompt: false    # model-visible guidance
   openui: true     # render openui-lang fences as OpenUI components
   followups: true  # render followups fences as suggestion chips
+jev:               # optional TypeSafe Jev presentation routing
+  enabled: true                    # active only with the presentation prompt on and a key present
+  credential: TYPESAFE_API_KEY     # environment-variable name the DSH credentials service resolves
+  model: jev-latest
+  endpoint: https://api.typesafe.ai/v1/systemone
+  timeout: 4000                    # ms; past it the turn goes ahead without a hint
 ```
+
+With a key, each new user message in a main session (not subagents) sends the last four user/assistant texts, at most 6,000 characters each, to TypeSafe. Jev's choice reaches the model as a one-line runtime-context hint; the system prompt does not change, so prompt caches stay valid. A missing key, an error, an invalid answer or a timeout adds no hint and never fails a turn.
 
 ## Switch back to the official UI
 

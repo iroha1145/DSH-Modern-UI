@@ -56,6 +56,8 @@ While Modern UI is on, Desktop's first-run onboarding is recorded as skipped. Na
 
 "Answer visual components" does not change the model prompt by default. Turning it on under Settings → General adds about 30 KB (roughly 7,000 tokens) of instructions so answers use cards, diagrams and similar components. The components need Chrome/Edge 111, Safari 16.2, Firefox 121 or newer.
 
+Optional: with [TypeSafe](https://typesafe.ai) Jev access, put the key in the environment or DSH's `.env` as `TYPESAFE_API_KEY` and turn on "Answer visual components". Each new message then asks Jev for the best presentation (text, table, cards, steps, a chart, a flowchart, a drawing or a calculator), and the answer model receives that choice as a one-line hint. Without a key, or when Jev times out or fails, no hint is added and everything works as before.
+
 ## Optional: isolated one-step install
 
 For machines without DSH, or when Modern UI should use its own program and data directories. Download `installer.zip` from [Releases](https://github.com/iroha1145/DSH-Modern-UI/releases), extract it and enter `plugin-preview`:

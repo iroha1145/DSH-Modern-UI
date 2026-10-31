@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- 可选的 TypeSafe Jev 渲染路由：配置 `TYPESAFE_API_KEY` 并开启「回答可视化组件」后，每条新消息先请 Jev 选出最适合的呈现方式，作为一行提示交给回答模型；系统提示词不变，不影响缓存。没有密钥、超时或出错时不加提示，回合照常进行。
+
 ### Changed
 
 - 回答里的交互组件改用 [OpenUI](https://github.com/thesysdev/openui)：模型写 `openui-lang` 代码块，插件用 OpenUI 渲染器边生成边画出卡片、流程图、图表、表格、照片和能自己计算的小工具（滑块、输入框改了数值当场重算，不用再问模型）。组件里的「发给助手」按钮只把内容放进输入框，由你确认后发送。组件需要 Chrome/Edge 111、Safari 16.2、Firefox 121 或更新的浏览器（官方 Desktop 内置的 Electron 满足）。组件库取自 thesysdev/open-intelligent-ui，按 DSH 主题配色，补了流程图组件，去掉了地图、视频和 CDN 脚本。原先借鉴 CopilotKit/OpenIntelligentUI 的 HTML 沙箱组件已删除，旧回答里写成 HTML 的 `openui` 代码块改为按普通代码显示。

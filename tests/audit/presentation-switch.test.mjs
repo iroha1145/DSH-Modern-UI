@@ -38,7 +38,7 @@ function sectionsFor(config) {
   }
   const ctx = {
     inject: (deps, callback) => {
-      if (deps.includes('systemPrompt')) callback(scope)
+      if (deps.every(dep => dep === 'systemPrompt')) callback(scope)
     },
     on: () => () => {},
   }
@@ -77,7 +77,7 @@ test('a live switch change takes effect at the next assembly without remounting'
   host.apply(
     {
       inject: (deps, callback) => {
-        if (deps.includes('systemPrompt')) callback(scope)
+        if (deps.every(dep => dep === 'systemPrompt')) callback(scope)
       },
       on: () => () => {},
     },

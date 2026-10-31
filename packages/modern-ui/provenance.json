@@ -3600,7 +3600,7 @@
     },
     {
       "target": "src/index.ts",
-      "targetSha256": "b6254846f8265f73b9be1c001ece19c891de3566d41dcdff2dee708dac7d4bba",
+      "targetSha256": "9f55957507ade23d645ab8eda226672b049d53af3113da8e09eff467af9de522",
       "description": "Original Host manifest/configuration, migration settings and plugin entry wiring."
     },
     {
@@ -3682,6 +3682,11 @@
       "target": "src/vendor/intelligent/client/openui-source.ts",
       "targetSha256": "751ac3038c5c7ea1361efb990e6cfb0a4647c7b01a8136fb6b065dcd486dfacc",
       "description": "Original pure helpers for openui-lang fences: which bodies render, the parse size bound, and the text a @ToAssistant click sends."
+    },
+    {
+      "target": "src/jev-routing.ts",
+      "targetSha256": "4ce981a2918cdd3b2e864f1dbd229e2b1d7650ed3744511ff84794a4834a29a6",
+      "description": "Original optional TypeSafe Jev presentation routing: one System One choice per user message, delivered as a runtime-context hint through the public system-prompt assembly; no hint and no failure without a key or on error."
     }
   ],
   "adapters": [
