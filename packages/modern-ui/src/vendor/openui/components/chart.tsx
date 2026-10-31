@@ -1,7 +1,7 @@
 import { defineComponent } from "@openuidev/react-lang";
 import { useId, useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import { z } from "zod/v4";
-import { bar, curve, makeFormat, stepDigits, type Format } from "./chart-math";
+import { bar, curve, makeFormat, polyline, stepDigits, type Format } from "./chart-math";
 
 type Row = Record<string, unknown>;
 type Spec = {
@@ -141,9 +141,12 @@ function Cartesian({ spec, width }: { spec: Spec; width: number }) {
           series.map((s, si) => {
             const top = (i: number) => (stacked ? spans[i][si][1] : num(rows[i][s]));
             const base = (i: number) => (stacked ? spans[i][si][0] : 0);
-            const line = curve(rows.map((_, i) => [xAt(i), y(top(i))] as const));
+            // Stacked layers keep straight edges: two separately smoothed boundaries can cross and give a layer
+            // negative thickness, while straight ones keep every layer between its neighbours.
+            const draw = stacked ? polyline : curve;
+            const line = draw(rows.map((_, i) => [xAt(i), y(top(i))] as const));
             // The lower edge retraces the series below (or the baseline) backwards, so stacked areas meet exactly.
-            const under = curve(rows.map((_, i) => [xAt(i), y(base(i))] as const).reverse()).replace(/^M/, "L");
+            const under = draw(rows.map((_, i) => [xAt(i), y(base(i))] as const).reverse()).replace(/^M/, "L");
             return (
               <g key={s}>
                 {type === "area" && rows.length > 1 && <path d={`${line}${under}Z`} fill={`url(#${gradient}-${si})`} />}
@@ -195,6 +198,9 @@ function Scatter({ spec, width }: { spec: Spec; width: number }) {
   const px = (v: number) => pad.left + ((v - xa.lo) / (xa.hi - xa.lo)) * w;
   const py = (v: number) => pad.top + h - ((v - ya.lo) / (ya.hi - ya.lo)) * h;
   const every = Math.max(1, Math.ceil((xa.ticks.length * 44) / w));
+  // The x axis is a plain number axis: the chart's format (currency, percent) describes the series values.
+  const xFormat = makeFormat("number", undefined);
+  const xDigits = stepDigits(xa.ticks[1] - xa.ticks[0]);
   const tip = hover && rows[hover.i];
   return (
     <div className="iui-chart-plot" style={{ height }}>
@@ -205,7 +211,7 @@ function Scatter({ spec, width }: { spec: Spec; width: number }) {
             <text x={pad.left - 10} y={py(t) + 4} textAnchor="end" className="iui-chart-tick">{format(t, true, yDigits)}</text>
           </g>
         ))}
-        {xa.ticks.map((t, k) => (k % every === 0 ? <text key={`x${t}`} x={px(t)} y={height - 6} textAnchor="middle" className="iui-chart-tick">{Number(t.toFixed(6)).toLocaleString("en-US", { notation: Math.abs(t) >= 1e4 ? "compact" : "standard" })}</text> : null))}
+        {xa.ticks.map((t, k) => (k % every === 0 ? <text key={`x${t}`} x={px(t)} y={height - 6} textAnchor="middle" className="iui-chart-tick">{xFormat(t, true, xDigits)}</text> : null))}
         {series.map((s, si) =>
           rows.map((r, i) => (
             <circle key={`${si}-${i}`} cx={px(num(r[x]))} cy={py(num(r[s]))} r={hover?.i === i && hover.si === si ? 6.5 : 5} fill={seriesColor(si)} fillOpacity={0.78} stroke="var(--iui-canvas)" strokeWidth={1.5} onPointerEnter={() => setHover({ i, si })} />
@@ -215,7 +221,7 @@ function Scatter({ spec, width }: { spec: Spec; width: number }) {
       {tip && hover && (
         <div className="iui-chart-tooltip" style={{ left: Math.min(Math.max(px(num(tip[x])), 70), width - 70), top: Math.max(0, py(num(tip[series[hover.si]])) - 70) }}>
           <strong>{name ? String(tip[name]) : series[hover.si]}</strong>
-          <span>{x} <b>{num(tip[x]).toLocaleString("en-US", { maximumFractionDigits: 2 })}</b></span>
+          <span>{x} <b>{xFormat(num(tip[x]))}</b></span>
           <span><i style={{ background: seriesColor(hover.si) }} />{series[hover.si]} <b>{format(num(tip[series[hover.si]]))}</b></span>
         </div>
       )}

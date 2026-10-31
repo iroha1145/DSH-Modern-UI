@@ -444,6 +444,38 @@ test('a stacked chart draws negative values below zero instead of flattening the
   await view.unmount()
 })
 
+test('a stacked area keeps a zero layer at zero thickness, while a single line stays smooth', async () => {
+  const view = await mount(
+    'root = Col([Chart("area", [{x:"A", a:0, b:0}, {x:"B", a:10, b:0}, {x:"C", a:20, b:20}], "x", ["a","b"], "number", null, true), Chart("line", [{x:"A", v:1}, {x:"B", v:3}, {x:"C", v:2}], "x", ["v"])])',
+  )
+  const [stacked, single] = view.host.querySelectorAll('.iui-chart-plot svg')
+  const fills = [...stacked.querySelectorAll('path[fill^="url("]')].map(path => path.getAttribute('d'))
+  assert.equal(fills.length, 2)
+  assert.ok(
+    fills.every(d => !d.includes('C')),
+    'stacked layers use straight edges',
+  )
+  // Layer b is 0 at A and B: its upper edge and its lower edge (layer a's top) visit the same points there.
+  const points = d => [...d.matchAll(/[ML]([-\d.]+),([-\d.]+)/g)].map(match => [Number(match[1]), Number(match[2])])
+  const b = points(fills[1])
+  const [upper, lower] = [b.slice(0, 3), b.slice(3).reverse()]
+  assert.deepEqual(upper.slice(0, 2), lower.slice(0, 2))
+  assert.ok(single.querySelector('path[fill="none"]').getAttribute('d').includes('C'), 'a single line is still a curve')
+  await view.unmount()
+})
+
+test('scatter x ticks show small decimals instead of zeros', async () => {
+  const view = await mount('root = Col([Chart("scatter", [{name:"A", x:0.0001, y:1}, {name:"B", x:0.0002, y:2}], "x", ["y"], "number")])')
+  const ticks = [...view.host.querySelectorAll('.iui-chart-tick')].map(tick => tick.textContent)
+  const xTicks = ticks.slice(-Math.floor(ticks.length / 2))
+  assert.ok(
+    xTicks.some(text => /^0\.000\d/.test(text)),
+    `x ticks ${xTicks}`,
+  )
+  assert.ok(xTicks.filter(text => text === '0').length <= 1, `x ticks ${xTicks}`)
+  await view.unmount()
+})
+
 test('an HtmlView frame allows the data: images its inner policy promises', async () => {
   const view = await mount('root = Col([HtmlView("<img src=\'data:image/gif;base64,R0lGODlhAQABAAAAACw=\'>", 80)])')
   const outer = view.host.querySelector('iframe').getAttribute('srcdoc')

@@ -26,6 +26,11 @@ export function stepDigits(step: number) {
   return Math.max(0, -power + (Math.abs(lead - Math.round(lead)) > 1e-9 ? 1 : 0));
 }
 
+/** A path of straight segments through the points. */
+export function polyline(points: readonly (readonly [number, number])[]) {
+  return points.map(([px, py], i) => `${i ? "L" : "M"}${px.toFixed(1)},${py.toFixed(1)}`).join("");
+}
+
 /** A path through the points that bends smoothly but never overshoots them (Steffen's monotone cubic). */
 export function curve(points: readonly (readonly [number, number])[]) {
   const at = ([px, py]: readonly [number, number]) => `${px.toFixed(1)},${py.toFixed(1)}`;
