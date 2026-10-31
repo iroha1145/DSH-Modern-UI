@@ -3675,7 +3675,7 @@
     },
     {
       "target": "src/vendor/intelligent/client/OpenUIBlock.module.css",
-      "targetSha256": "e86c800a7c1d811b2ef5d3547f9e6ea7e39e9a029693e2073b708ea60e0be7db",
+      "targetSha256": "f91d45281d9edbfdde0d24da1819f206060dcbd65b0c20f84bb80cd1af7bc898",
       "description": "Original styles for the OpenUI block frame, placeholder, source toggle and preserved-source card."
     },
     {

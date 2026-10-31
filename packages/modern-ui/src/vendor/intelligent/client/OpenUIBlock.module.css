@@ -1,7 +1,7 @@
 .block { position: relative; min-width: 0; max-width: 100%; margin: 16px 0; }
 .stage { position: relative; min-width: 0; }
 .stage > :global(.iui-root) { min-width: 0; color: var(--ink); font-size: 14px; line-height: 1.55; }
-.actions { position: absolute; top: -10px; right: 0; display: flex; gap: 4px; opacity: 0; pointer-events: none; transition: opacity 120ms ease; }
+.actions { position: absolute; top: 6px; right: 6px; z-index: 1; display: flex; gap: 4px; opacity: 0; pointer-events: none; transition: opacity 120ms ease; }
 @media (hover: none) { .actions { position: static; justify-content: flex-end; margin-top: 6px; opacity: 1; pointer-events: auto; } .actions button { min-height: 36px; } }
 @media (hover: hover) { .stage:hover .actions { opacity: 1; pointer-events: auto; } }
 .actions:focus-within { opacity: 1; pointer-events: auto; }
