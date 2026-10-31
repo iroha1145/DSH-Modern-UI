@@ -11,7 +11,7 @@ import { FieldRegistry, FieldRegistryContext } from '../../openui/components/fie
 import { webUrl } from '../../openui/components/style.ts'
 import { UI_TEXT, UiTextContext, type UiText } from '../../openui/components/ui-text.ts'
 import { assistantMessage, CONTENT_LIMIT, EXPANSION_LIMIT, expansionEstimate } from './openui-source.ts'
-import { budgeted, ExpansionBudget } from './openui-budget.ts'
+import { budgeted, ExpansionBudget, ParseLimitError } from './openui-budget.ts'
 import './locales.ts'
 import css from './OpenUIBlock.module.css'
 
@@ -23,6 +23,16 @@ type Notice = { key: 'proposed' | 'insertRejected' | 'copiedText' | 'copyFailed'
 // The block judges the source it is showing now with the same library the Renderer uses; the Renderer's own
 // parse result arrives a commit later and would describe the previous source.
 const parser = createParser(library.toJSONSchema(), library.root)
+
+/** The parse result, or null when the source inlines more nodes than one parse may build. */
+function parseWithin(code: string) {
+  try {
+    return parser.parse(code)
+  } catch (error) {
+    if (error instanceof ParseLimitError) return null
+    throw error
+  }
+}
 
 /** A render-time failure inside the components keeps the answer readable: the block shows its source instead. */
 class Boundary extends Component<{ fallback: ReactNode; retryKey: unknown; children: ReactNode }, { failed: boolean }> {
@@ -58,7 +68,7 @@ export function OpenUIBlock(props: BlockProps) {
   const [notice, setNotice] = useState<Notice | null>(null)
   const fields = useMemo(() => new FieldRegistry(), [])
   const text = useMemo(() => Object.fromEntries(Object.keys(UI_TEXT).map(key => [key, t(key as keyof UiText)])) as UiText, [t])
-  const parsed = useMemo(() => (code.length > CONTENT_LIMIT ? null : parser.parse(code)), [code])
+  const parsed = useMemo(() => (code.length > CONTENT_LIMIT ? null : parseWithin(code)), [code])
   const oversized = useMemo(() => parsed === null || expansionEstimate(parsed.root, parsed.stateDeclarations) > EXPANSION_LIMIT, [parsed])
   // The estimate cannot know lengths computed at runtime; the Renderer counts real steps against this budget.
   const [budget] = useState(() => new ExpansionBudget())

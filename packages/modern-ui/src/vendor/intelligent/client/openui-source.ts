@@ -75,7 +75,10 @@ export function assistantMessage(request: AssistantRequest): string {
 type Node = { readonly [key in 'k' | 'name' | 'args' | 'mappedProps' | 'els' | 'v' | 'n' | 'obj' | 'field' | 'entries']?: unknown }
 type States = Readonly<Record<string, unknown>>
 
-const isAst = (value: unknown): value is Node => value !== null && typeof value === 'object' && typeof (value as Node).k === 'string'
+// lang-core's own node kinds: data such as {k: "Q1", a: 10} is a value, as lang-core reads it.
+const KINDS = new Set(['Comp', 'Ref', 'StateRef', 'RuntimeRef', 'BinOp', 'UnaryOp', 'Ternary', 'Member', 'Index', 'Assign', 'Str', 'Num', 'Bool', 'Null', 'Arr', 'Obj', 'Ph'])
+const isAst = (value: unknown): value is Node =>
+  value !== null && typeof value === 'object' && !Array.isArray(value) && KINDS.has((value as Node).k as string)
 
 /** Follow a $variable to its declared value and a field of a literal object or declared value to the field. */
 function resolve(node: unknown, states: States): unknown {

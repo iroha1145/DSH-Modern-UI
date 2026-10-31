@@ -7,7 +7,7 @@ const root = path.resolve(import.meta.dirname, '../..')
 const langCore = readFileSync(path.join(root, 'node_modules/@openuidev/lang-core/dist/index.mjs'), 'utf8')
 
 describe('lang-core expansion counter patch', () => {
-  test('counts loops, built lists and objects, and pass results of the pinned lang-core, and exports the setter', () => {
+  test('counts loops, built lists, objects and text, pass results, component props and parsed nodes of the pinned lang-core', () => {
     expect(JSON.parse(readFileSync(path.join(root, 'node_modules/@openuidev/lang-core/package.json'), 'utf8')).version).toBe(LANG_CORE_VERSION)
     const patched = countEach(langCore)
     for (const { replace } of EDITS) expect(patched).toContain(replace)
@@ -19,13 +19,25 @@ describe('lang-core expansion counter patch', () => {
       'built(node.entries.length',
       'built(obj.length',
       'built(__dshListItems',
+      'text(texts[0].length + texts[1].length',
+      'drawn(el.props, evalCtx.ctx, true)',
+      'drawn(evaluated, evalCtx.ctx, false)',
+      'parsed(ctx.dshNodes',
     ])
       expect(patched).toContain(`__dshCounters?.${counter}`)
     expect(patched).toMatch(/export function __dshSetCounters\(counters\)/)
   })
 
   test('fails instead of skipping when any counted source changed', () => {
-    for (const { find } of EDITS) expect(() => countEach(langCore.replace(find, find.replace('(', '( ')))).toThrow(/no longer matches/)
+    for (const { find } of EDITS)
+      expect(() =>
+        countEach(
+          langCore.replace(
+            find,
+            find.replace(/\S/, char => `${char} `),
+          ),
+        ),
+      ).toThrow(/no longer matches/)
     expect(() => countEach(langCore + EDITS[2].find)).toThrow(/no longer matches/)
     expect(() => countEach(countEach(langCore))).toThrow(/no longer matches/)
   })

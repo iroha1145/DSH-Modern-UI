@@ -66,7 +66,7 @@ const result = await build({
   tsconfigRaw: {},
   stdin: {
     contents:
-      "export { OpenUIBlock } from './vendor/intelligent/client/OpenUIBlock.tsx'; export { numberText } from './vendor/openui/components/table.tsx'; export { evaluate } from '@openuidev/lang-core'; export { Renderer } from '@openuidev/react-lang'; export { library } from './vendor/openui/library.ts'; export { budgeted, ExpansionBudget } from './vendor/intelligent/client/openui-budget.ts'",
+      "export { OpenUIBlock } from './vendor/intelligent/client/OpenUIBlock.tsx'; export { numberText } from './vendor/openui/components/table.tsx'; export { evaluate } from '@openuidev/lang-core'; export { Renderer } from '@openuidev/react-lang'; export { library } from './vendor/openui/library.ts'; export { budgeted, ExpansionBudget } from './vendor/intelligent/client/openui-budget.ts'; export { createParser } from '@openuidev/react-lang'; export { expansionEstimate } from './vendor/intelligent/client/openui-source.ts'",
     resolveDir: source,
     loader: 'tsx',
   },
@@ -101,7 +101,7 @@ const result = await build({
 const loaded = new Module(path.join(source, 'openui-block.test.cjs'))
 loaded.paths = Module._nodeModulePaths(repo)
 loaded._compile(result.outputFiles[0].text, loaded.id)
-const { OpenUIBlock, numberText, evaluate, Renderer, library, budgeted, ExpansionBudget } = loaded.exports
+const { OpenUIBlock, numberText, evaluate, Renderer, library, budgeted, ExpansionBudget, createParser, expansionEstimate } = loaded.exports
 
 /** Mount one block with a recording composer; `update` re-renders it with new stream state. */
 async function mount(code, { streaming = false, closed = true, composer = '' } = {}) {
@@ -552,6 +552,71 @@ test('an @Set that runs past the budget in a click shows the source without an u
     process.off('unhandledRejection', record)
   }
   assert.deepEqual(rejections, [])
+})
+
+// Loops and data the earlier counters missed (Gemini audit of v0.1.1, items 1.1 to 1.3).
+const tableRows = Array(150).fill('["a", "b", "c"]').join(', ')
+const repeat = (count, item) => Array(count).fill(item).join(', ')
+
+test('a loop inside a ternary, &&, an index or a function argument is charged by the data its passes draw', async () => {
+  for (const loop of [
+    'true ? @Each(@Range(0, 150), "i", Table(["A", "B", "C"], $rows)) : []',
+    'true && @Each(@Range(0, 150), "i", Table(["A", "B", "C"], $rows))',
+    '[@Each(@Range(0, 150), "i", Table(["A", "B", "C"], $rows))][0]',
+    '@Reverse(@Each(@Range(0, 150), "i", Table(["A", "B", "C"], $rows)))',
+  ]) {
+    const view = await mount(`$rows = [${tableRows}]\nroot = Col(${loop})`)
+    assert.equal(view.block().dataset.state, 'tooLarge', loop)
+    assert.equal(view.host.querySelectorAll('tr').length, 0, loop)
+    await view.unmount()
+  }
+})
+
+test('data rows with a k field are counted like any other data', async () => {
+  const points = count => repeat(count, '{k: "Q1", a: 10, b: 20, c: 30, d: 40}')
+  const one = await mount(`$pts = [${points(150)}]\nroot = Col([Chart("bar", $pts, "k", ["a", "b", "c", "d"])])`)
+  assert.equal(one.block().dataset.state, 'complete')
+  await one.unmount()
+  const looped = await mount(`$pts = [${points(150)}]\nroot = Col(@Each(@Range(0, 150), "i", Chart("bar", $pts, "k", ["a", "b", "c", "d"])))`)
+  assert.equal(looped.block().dataset.state, 'tooLarge')
+  await looped.unmount()
+  const parser = createParser(library.toJSONSchema(), library.root)
+  const parsed = parser.parse(`$d = {k: "any", items: [${zeros(200)}]}\nroot = Col(@Each($d.items, "i", @Each($d.items, "j", "x")))`)
+  assert.equal(expansionEstimate(parsed.root, parsed.stateDeclarations), 200 * 201)
+})
+
+test('statements a program repeats by reference are charged by what they draw, and a parse stops at its node limit', async () => {
+  const ten = item => repeat(10, item)
+  const dag = levels => {
+    const names = 'abcdefg'.slice(0, levels)
+    return [`a = [${ten('"x"')}]`, ...[...names.slice(1)].map((name, i) => `${name} = [${ten(names[i])}]`)]
+  }
+  const raw = await mount(`${dag(5).join('\n')}\nroot = Col(e)`)
+  assert.equal(raw.block().dataset.state, 'tooLarge')
+  assert.ok(raw.host.textContent.length < 2000)
+  await raw.unmount()
+  const tables = await mount(`$rows = [${tableRows}]\nt = Table(["A", "B", "C"], $rows)\nr1 = [${ten('t')}]\nr2 = [${repeat(15, 'r1')}]\nroot = Col(r2)`)
+  assert.equal(tables.block().dataset.state, 'tooLarge')
+  await tables.unmount()
+  // A million nodes after inlining, though only their count is drawn.
+  const counted = await mount(`${dag(6).join('\n')}\nroot = Col([Text("" + @Count(f))])`)
+  assert.equal(counted.block().dataset.state, 'tooLarge')
+  await counted.unmount()
+  const parser = createParser(library.toJSONSchema(), library.root)
+  assert.throws(() => parser.parse(`${dag(7).join('\n')}\nroot = Col(g)`), /expand past/)
+})
+
+test('text a program doubles is charged by its length', async () => {
+  const doubled = Array.from({ length: 12 }, (_, i) => `s${i + 1} = s${i} + s${i}`).join('\n')
+  const joined = await mount(`s0 = "${'x'.repeat(1000)}"\n${doubled}\nroot = Col([Text(s12)])`)
+  assert.equal(joined.block().dataset.state, 'tooLarge')
+  assert.ok(joined.host.textContent.length < 5000)
+  await joined.unmount()
+  const replaced = Array.from({ length: 8 }, (_, i) => `s${i + 1} = @Replace(s${i}, "x", "xx")`).join('\n')
+  const grown = await mount(`s0 = "${'x'.repeat(40_000)}"\n${replaced}\nroot = Col([Text(s8)])`)
+  assert.equal(grown.block().dataset.state, 'tooLarge')
+  assert.ok(grown.host.textContent.length < 50_000)
+  await grown.unmount()
 })
 
 test('a block over budget while it streams gets a fresh attempt when its fence closes', async () => {
