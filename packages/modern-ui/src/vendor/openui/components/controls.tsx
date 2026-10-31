@@ -7,7 +7,7 @@ import {
   useStateField,
   useTriggerAction,
 } from "@openuidev/react-lang";
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import { z } from "zod/v4";
 import { useField, useFieldName } from "./fields";
 import { Glyph } from "./glyph";
@@ -27,9 +27,18 @@ function useRunAction() {
 }
 
 
-const numberText = (value: unknown) => {
-  if (typeof value !== "number" || !Number.isFinite(value)) return "";
-  return value.toLocaleString("en-US", { maximumFractionDigits: 2 });
+// Decimal places a number is written with, e.g. 0.25 has 2 and 1e-7 has 7.
+const decimals = (value: number) => {
+  const [digits = "", exponent = "0"] = String(value).split("e");
+  return Math.max(0, (digits.split(".")[1]?.length ?? 0) - Number(exponent));
+};
+
+/** A slider value with at least two decimals or as many as its step and minimum use, never a non-zero value as 0. */
+const numberText = (value: number, step: number, min: number) => {
+  if (!Number.isFinite(value)) return "";
+  const places = Math.min(20, Math.max(2, decimals(step), decimals(min)));
+  const text = value.toLocaleString("en-US", { maximumFractionDigits: places });
+  return value !== 0 && /^-?0$/.test(text) ? value.toLocaleString("en-US", { maximumSignificantDigits: 2 }) : text;
 };
 
 function Field({ label, children: content }: { label?: string; children: ReactNode }) {
@@ -297,14 +306,43 @@ export const Slider = defineComponent({
   component: function SliderView({ props, statementId }) {
     const text = useUiText();
     const field = useField(props.label, statementId, props.value);
+    const streaming = useIsStreaming();
     const min = Number.isFinite(props.min) ? props.min : 0;
     const max = Number.isFinite(props.max) && props.max > min ? props.max : min + 100;
     const step = props.step && props.step > 0 ? props.step : 1;
     const raw = typeof field.value === "number" ? field.value : Number(field.value);
     const value = Number.isFinite(raw) ? Math.min(max, Math.max(min, raw)) : min;
+    // The stored value is the intended one clamped to the current bounds, so formulas and @ToAssistant use
+    // the value the slider shows. The intended value is the last one anyone but this clamping chose (the
+    // default, a drag, @Set, another control): narrowing a bound clamps it, widening it again returns toward
+    // it, so typing a bound digit by digit (100, 5, 50) does not leave the value at 5. Not while streaming,
+    // when a bound may be half-written, nor in the commit that ends it, before the renderer applies the final
+    // $variable defaults (a value that does not exist yet would also override its declared default). At most
+    // one write per task, so two sliders with disjoint bounds on one $variable cannot correct each other forever.
+    const [settled, setSettled] = useState(false);
+    useEffect(() => {
+      setSettled(!streaming);
+    }, [streaming]);
+    const intended = useRef(Number.NaN);
+    // The stored value as this slider last saw or wrote it; anything else is a new choice.
+    const seen = useRef(Number.NaN);
+    const clamping = useRef(false);
+    useLayoutEffect(() => {
+      if (!settled || streaming || !Number.isFinite(raw)) return;
+      if (raw !== seen.current) intended.current = seen.current = raw;
+      const target = Math.min(max, Math.max(min, intended.current));
+      if (target === raw || clamping.current) return;
+      clamping.current = true;
+      queueMicrotask(() => {
+        clamping.current = false;
+      });
+      seen.current = target;
+      field.setValue(target);
+    });
     const unit = props.unit ?? "";
     const prefix = /^[$€£¥₹]/.test(unit);
-    const readout = prefix ? `${unit}${numberText(value)}` : `${numberText(value)}${unit}`;
+    const shown = numberText(value, step, min);
+    const readout = prefix ? `${unit}${shown}` : `${shown}${unit}`;
     const marks = (props.marks ?? []).filter((m) => m && Number.isFinite(m.value) && m.value >= min && m.value <= max);
     const id = useId();
     return (
@@ -446,7 +484,7 @@ export const Timer = defineComponent({
   description: "Countdown with start, pause and reset. It counts the bound seconds down to 0, so other statements can react, e.g. $left == 0.",
   component: function TimerView({ props, statementId }) {
     const text = useUiText();
-    const field = useStateField(useFieldName(props.label, statementId), props.seconds);
+    const field = useStateField(useFieldName(statementId), props.seconds);
     const streaming = useIsStreaming();
     const raw = typeof field.value === "number" ? field.value : Number(field.value);
     const left = Number.isFinite(raw) ? Math.max(0, Math.floor(raw)) : 0;
