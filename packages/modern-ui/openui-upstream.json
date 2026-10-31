@@ -220,12 +220,12 @@
       "source": "src/lib/prompt-options.ts",
       "target": "src/vendor/openui/prompt-options.ts",
       "sourceSha256": "af940aab9435ee2a5400f965e8d5f3d7a188d56987c7260082df738bb24e2eb2",
-      "targetSha256": "7dae742c68cd7fdbb5567a8c8395863c266d84b539863968f9f1dc88ca3d5f57",
+      "targetSha256": "7d6cd3758450f0e63d64788eaa4f58b599a22be26d78f8864b605f2d669b3272",
       "adapted": true
     },
     {
       "target": "src/vendor/openui/system-prompt.generated.ts",
-      "targetSha256": "f723fbb7283ccaa5c3dcd881f7b822d1b26b5d07c829f5812f02f86b2b4d88ae",
+      "targetSha256": "bad0d9cc5eebdfd3a971ad30c08178e12b2d3ff53c2b4d34916db537287dd8ea",
       "authored": true
     }
   ]

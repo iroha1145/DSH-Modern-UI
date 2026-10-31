@@ -9,9 +9,8 @@ import type { PromptOptions } from "@openuidev/react-lang";
 const PREAMBLE = `Rich components in this DSH web interface (users may call them OpenUI, openui or 可视化):
 - Besides Markdown, an answer can contain blocks of openui-lang, a declarative UI language. A block is a fenced code block whose language is openui-lang. The interface renders it as live UI inside the answer, progressively while it streams, in the chat's own font and colors.
 - Each block is a complete, independent program: its first line is root = Col(...), and its names and $variables belong to that block only. Write each block once; keep it under about 6 KB.
-- Use blocks for the structured parts of substantive answers (explanations, analyses, comparisons, recommendations, plans, research summaries): option cards, comparisons, architecture or process diagrams, numbered steps, key numbers, charts, tables and small working tools. Use one to three blocks where they genuinely organize the content, and keep the reasoning and conclusions in the Markdown around them.
-- Keep simple facts, short replies, code, commands, file contents and writing as plain Markdown, and respect requests for text only.
-- This description is complete: do not read DSH source code to learn the format, and do not create files, scripts, previews, screenshots or tests for it.`;
+- Prefer showing to telling. In substantive answers (explanations, analyses, comparisons, recommendations, plans, research summaries, popular science), reach for a block whenever the content has a shape a reader takes in faster by looking: options, comparisons, architectures or processes, mechanisms, steps or timelines, key numbers and trends, tables, real things with a recognizable look, or a quantity worth adjusting in a small working tool. A long answer can carry a block for each of its parts; keep the reasoning and conclusions in the Markdown around them.
+- Keep simple facts, short replies, code, commands, file contents and writing as plain Markdown, and respect requests for text only.- This description is complete: do not read DSH source code to learn the format, and do not create files, scripts, previews, screenshots or tests for it.`;
 
 const exampleDiagram = `root = Col([diagram])
 diagram = Flow([client, a1, gateway, a2, cluster, a3, db], "Request path")
@@ -39,6 +38,17 @@ gb = $users * $kb * 30 / 1000000
 stats = Row([Col([Caption("Per month"), Title(@Format(gb, "number", 1) + " GB", "xl")], 1), Spacer(), Col([Caption("Per year"), Title(@Format(gb * 12, "number", 0) + " GB", "xl")], 1)])
 chart = Chart("bar", @Each(@Range(1, 7), "m", {month: "M" + m, gb: @Round(gb * m, 1)}), "month", ["gb"])`;
 
+/**
+ * Replaces the upstream statement order, which puts every data value last: in an answer block that leaves each
+ * section empty until the whole block has streamed. scripts/generate-openui-prompt.mjs swaps it in.
+ */
+export const streamingOrder = `**Recommended statement order for optimal streaming:** write a block section by section, so each part is finished while the next one streams.
+1. \`root = Col(...)\` — UI shell appears immediately
+2. $variable declarations — state ready for bindings
+3. Then each child of root in reading order: its component, followed right away by the rows, points, items and texts it alone uses. Data several parts share goes just before the first part that uses it.
+
+Do not save all data values for the end: a section whose data comes last stays empty until the whole block has arrived.`;
+
 /** Worked examples, checked against the library by scripts/generate-openui-prompt.mjs. */
 export const examples: Record<string, string> = { exampleDiagram, exampleOptions, exampleTool };
 
@@ -54,7 +64,7 @@ const rules = [
   "Derive rows once in a statement with @Each(list, \"x\", {...}), then reuse them in @Each, Table, Chart, @Sum(rows.field) and @Join. @Each(@Range(0, n), \"i\", ...) builds a series.",
   "@Random gives a new value on every evaluation: call it inside @Set, so a click draws once and the block stays still.",
   "Format money, percentages and big numbers with @Format, counts with @Plural and dates with @FormatDate. Read a number input through @Default and @Clamp with a sensible minimum, so 0 or empty cannot zero out the block.",
-  "Write the visible text in the user's language. Clearly label illustrative or simulated numbers. Use SearchImage or Image only when the answer centers on a specific real subject with a recognizable look; never for abstract topics or code.",
+  "Write the visible text in the user's language. Clearly label illustrative or simulated numbers. Give real subjects with a recognizable look (people, places, buildings, artworks, species, products, devices, dishes) a SearchImage, for example one per option card or per stop on a route; for abstract topics and code, a Flow, Chart or Svg drawing explains better than a photo.",
   "Keep code, commands, citation markers and source links in the Markdown around a block, not inside it.",
 ];
 
