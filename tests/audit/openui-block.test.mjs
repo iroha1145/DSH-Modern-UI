@@ -66,7 +66,7 @@ const result = await build({
   tsconfigRaw: {},
   stdin: {
     contents:
-      "export { OpenUIBlock } from './vendor/intelligent/client/OpenUIBlock.tsx'; export { numberText } from './vendor/openui/components/table.tsx'; export { evaluate } from '@openuidev/lang-core'; export { Renderer } from '@openuidev/react-lang'; export { library } from './vendor/openui/library.ts'; export { budgeted, ExpansionBudget } from './vendor/intelligent/client/openui-budget.ts'",
+      "export { OpenUIBlock } from './vendor/intelligent/client/OpenUIBlock.tsx'; export { numberText } from './vendor/openui/components/table.tsx'; export { evaluate } from '@openuidev/lang-core'; export { Renderer } from '@openuidev/react-lang'; export { library } from './vendor/openui/library.ts'; export { budgeted, ExpansionBudget } from './vendor/intelligent/client/openui-budget.ts'; export { createParser } from '@openuidev/react-lang'; export { expansionEstimate } from './vendor/intelligent/client/openui-source.ts'",
     resolveDir: source,
     loader: 'tsx',
   },
@@ -101,7 +101,7 @@ const result = await build({
 const loaded = new Module(path.join(source, 'openui-block.test.cjs'))
 loaded.paths = Module._nodeModulePaths(repo)
 loaded._compile(result.outputFiles[0].text, loaded.id)
-const { OpenUIBlock, numberText, evaluate, Renderer, library, budgeted, ExpansionBudget } = loaded.exports
+const { OpenUIBlock, numberText, evaluate, Renderer, library, budgeted, ExpansionBudget, createParser, expansionEstimate } = loaded.exports
 
 /** Mount one block with a recording composer; `update` re-renders it with new stream state. */
 async function mount(code, { streaming = false, closed = true, composer = '' } = {}) {
@@ -296,6 +296,58 @@ test('a Select or RadioGroup whose options lose its value is cleared everywhere 
   assert.match(view.host.textContent, /Picked: \[\]/)
   await click(button(view.host, 'Go'))
   assert.deepEqual(view.calls.setDraft, ['Use values'])
+  await view.unmount()
+})
+
+test('a slider with no value (null, or cleared by a number input on the same $variable) stores the minimum it shows', async () => {
+  const code =
+    '$a = null\n$c = 5\nroot = Form([Slider($a, 0, 10, 1, "A"), Text("a=[" + $a + "]"), Input($c, "C", "number"), Slider($c, 2, 10, 1, "CS"), Text("c=[" + $c + "]"), Button("Go", @ToAssistant("Go"))])'
+  const view = await mount(code)
+  assert.match(view.host.textContent, /a=\[0\]/)
+  await type(view.host.querySelector('input:not([type="range"])'), '')
+  assert.deepEqual(
+    [...view.host.querySelectorAll('input[type="range"]')].map(input => input.value),
+    ['0', '2'],
+  )
+  assert.match(view.host.textContent, /c=\[2\]/)
+  await click(button(view.host, 'Go'))
+  assert.deepEqual(view.calls.setDraft, ['Go\n\n- A: 0\n- C: 2\n- CS: 2'])
+  await view.unmount()
+})
+
+test('a slider whose bound another slider moves in the same commit follows the second change too', async () => {
+  const code =
+    '$tier = 1\n$qty = 100\nroot = Form([Slider($qty, 0, $tier * 10, 1, "Qty"), Slider($tier, 2, 5, 1, "Tier"), Text("qty=" + $qty + " tier=" + $tier), Button("Go", @ToAssistant("Go"))])'
+  const view = await mount(code)
+  assert.match(view.host.textContent, /qty=20 tier=2/)
+  assert.equal(view.host.querySelector('input[type="range"]').value, '20')
+  await click(button(view.host, 'Go'))
+  assert.deepEqual(view.calls.setDraft, ['Go\n\n- Qty: 20\n- Tier: 2'])
+  await view.unmount()
+})
+
+test('controls an earlier @Set mounts are normalised before the @ToAssistant in the same Action reads them', async () => {
+  const code =
+    '$mode = "basic"\n$limit = 80\n$plan = "invalid"\nroot = Form([Button("Pro", Action([@Set($mode, "pro"), @ToAssistant("Apply")])), $mode == "pro" ? Col([Slider($limit, 0, 50, 1, "ProLimit"), Select($plan, ["basic", "pro"], "Plan")]) : Text("basic")])'
+  const view = await mount(code)
+  await click(button(view.host, 'Pro'))
+  assert.equal(view.host.querySelector('input[type="range"]').value, '50')
+  assert.equal(view.host.querySelector('select').value, '')
+  assert.deepEqual(view.calls.setDraft, ['Apply\n\n- ProLimit: 50'])
+  await view.unmount()
+})
+
+test('a number field with a literal default stays empty once cleared, and a lone comma is not 0', async () => {
+  const view = await mount('root = Form([Input(10, "Count", "number"), Input(7, "Other", "number"), Button("Go", @ToAssistant("Go"))])')
+  const [count, other] = view.host.querySelectorAll('input')
+  await type(count, '')
+  await act(async () => {
+    count.dispatchEvent(new dom.window.FocusEvent('focusout', { bubbles: true }))
+  })
+  assert.equal(count.value, '')
+  await type(other, ',')
+  await click(button(view.host, 'Go'))
+  assert.deepEqual(view.calls.setDraft, ['Go'])
   await view.unmount()
 })
 
@@ -502,6 +554,71 @@ test('an @Set that runs past the budget in a click shows the source without an u
   assert.deepEqual(rejections, [])
 })
 
+// Loops and data the earlier counters missed (Gemini audit of v0.1.1, items 1.1 to 1.3).
+const tableRows = Array(150).fill('["a", "b", "c"]').join(', ')
+const repeat = (count, item) => Array(count).fill(item).join(', ')
+
+test('a loop inside a ternary, &&, an index or a function argument is charged by the data its passes draw', async () => {
+  for (const loop of [
+    'true ? @Each(@Range(0, 150), "i", Table(["A", "B", "C"], $rows)) : []',
+    'true && @Each(@Range(0, 150), "i", Table(["A", "B", "C"], $rows))',
+    '[@Each(@Range(0, 150), "i", Table(["A", "B", "C"], $rows))][0]',
+    '@Reverse(@Each(@Range(0, 150), "i", Table(["A", "B", "C"], $rows)))',
+  ]) {
+    const view = await mount(`$rows = [${tableRows}]\nroot = Col(${loop})`)
+    assert.equal(view.block().dataset.state, 'tooLarge', loop)
+    assert.equal(view.host.querySelectorAll('tr').length, 0, loop)
+    await view.unmount()
+  }
+})
+
+test('data rows with a k field are counted like any other data', async () => {
+  const points = count => repeat(count, '{k: "Q1", a: 10, b: 20, c: 30, d: 40}')
+  const one = await mount(`$pts = [${points(150)}]\nroot = Col([Chart("bar", $pts, "k", ["a", "b", "c", "d"])])`)
+  assert.equal(one.block().dataset.state, 'complete')
+  await one.unmount()
+  const looped = await mount(`$pts = [${points(150)}]\nroot = Col(@Each(@Range(0, 150), "i", Chart("bar", $pts, "k", ["a", "b", "c", "d"])))`)
+  assert.equal(looped.block().dataset.state, 'tooLarge')
+  await looped.unmount()
+  const parser = createParser(library.toJSONSchema(), library.root)
+  const parsed = parser.parse(`$d = {k: "any", items: [${zeros(200)}]}\nroot = Col(@Each($d.items, "i", @Each($d.items, "j", "x")))`)
+  assert.equal(expansionEstimate(parsed.root, parsed.stateDeclarations), 200 * 201)
+})
+
+test('statements a program repeats by reference are charged by what they draw, and a parse stops at its node limit', async () => {
+  const ten = item => repeat(10, item)
+  const dag = levels => {
+    const names = 'abcdefg'.slice(0, levels)
+    return [`a = [${ten('"x"')}]`, ...[...names.slice(1)].map((name, i) => `${name} = [${ten(names[i])}]`)]
+  }
+  const raw = await mount(`${dag(5).join('\n')}\nroot = Col(e)`)
+  assert.equal(raw.block().dataset.state, 'tooLarge')
+  assert.ok(raw.host.textContent.length < 2000)
+  await raw.unmount()
+  const tables = await mount(`$rows = [${tableRows}]\nt = Table(["A", "B", "C"], $rows)\nr1 = [${ten('t')}]\nr2 = [${repeat(15, 'r1')}]\nroot = Col(r2)`)
+  assert.equal(tables.block().dataset.state, 'tooLarge')
+  await tables.unmount()
+  // A million nodes after inlining, though only their count is drawn.
+  const counted = await mount(`${dag(6).join('\n')}\nroot = Col([Text("" + @Count(f))])`)
+  assert.equal(counted.block().dataset.state, 'tooLarge')
+  await counted.unmount()
+  const parser = createParser(library.toJSONSchema(), library.root)
+  assert.throws(() => parser.parse(`${dag(7).join('\n')}\nroot = Col(g)`), /expand past/)
+})
+
+test('text a program doubles is charged by its length', async () => {
+  const doubled = Array.from({ length: 12 }, (_, i) => `s${i + 1} = s${i} + s${i}`).join('\n')
+  const joined = await mount(`s0 = "${'x'.repeat(1000)}"\n${doubled}\nroot = Col([Text(s12)])`)
+  assert.equal(joined.block().dataset.state, 'tooLarge')
+  assert.ok(joined.host.textContent.length < 5000)
+  await joined.unmount()
+  const replaced = Array.from({ length: 8 }, (_, i) => `s${i + 1} = @Replace(s${i}, "x", "xx")`).join('\n')
+  const grown = await mount(`s0 = "${'x'.repeat(40_000)}"\n${replaced}\nroot = Col([Text(s8)])`)
+  assert.equal(grown.block().dataset.state, 'tooLarge')
+  assert.ok(grown.host.textContent.length < 50_000)
+  await grown.unmount()
+})
+
 test('a block over budget while it streams gets a fresh attempt when its fence closes', async () => {
   const view = await mount('root = Col(@Each(@Range(0, 200 + 0), "i", @Each(@Range(0, 200 + 0), "j", Text("x"))))', { streaming: true, closed: false })
   assert.equal(view.block().dataset.state, 'tooLarge')
@@ -588,6 +705,74 @@ test('scatter x ticks show small decimals instead of zeros', async () => {
   await view.unmount()
 })
 
+test('charts survive coincident scatter ticks, values below 1e-20 and a scatter without a number series', async () => {
+  const view = await mount(
+    'root = Col([Chart("scatter", [{x:100, y:1}, {x:100.00000000000002, y:2}], "x", ["y"]), Chart("line", [{p:"a", v:0}, {p:"b", v:1e-25}], "p", ["v"]), Chart("scatter", [{x:10, y:"20"}], "x")])',
+  )
+  assert.equal(view.block().dataset.state, 'complete')
+  assert.equal(view.host.querySelectorAll('.iui-chart-plot svg').length, 3)
+  assert.ok(!view.host.innerHTML.includes('NaN'), 'no NaN coordinates')
+  assert.ok(!view.host.innerHTML.includes('Infinity'), 'no infinite coordinates')
+  await view.unmount()
+})
+
+test('a stacked bar rounds the outer segment of its upward and of its downward stack', async () => {
+  const view = await mount('root = Col([Chart("bar", [{q: "Q1", gain: 100, loss: -40, flat: 0}], "q", ["gain", "loss", "flat"], "number", null, true)])')
+  const rounded = [...view.host.querySelectorAll('path[fill^="var(--iui-chart"]')].map(path => path.getAttribute('fill'))
+  assert.deepEqual(rounded, ['var(--iui-chart-1)', 'var(--iui-chart-2)'])
+  await view.unmount()
+})
+
+test('a popover with a component trigger nests no button and stays open while its own content scrolls', async () => {
+  const view = await mount('root = Col([Popover(Button("Open"), [Text("detail")]), Popover([Badge("info")], [Text("more")])])')
+  assert.equal(view.host.querySelector('button button'), null)
+  const trigger = view.host.querySelectorAll('[role="button"].iui-popover-trigger')[1]
+  await click(trigger)
+  const panel = () => document.querySelector('.iui-popover')
+  assert.ok(panel(), 'opens')
+  await act(async () => {
+    panel().dispatchEvent(new dom.window.Event('scroll'))
+  })
+  assert.ok(panel(), 'scrolling inside the panel keeps it open')
+  await act(async () => {
+    document.dispatchEvent(new dom.window.Event('scroll'))
+  })
+  assert.equal(panel(), null, 'scrolling the page closes it')
+  await view.unmount()
+})
+
+test('an HtmlView stops growing with viewport-sized content, keeps its page across a theme switch, and resets on new HTML', async () => {
+  const view = await mount('root = Col([HtmlView("<div style=\'min-height:100vh\'>x</div>")])')
+  const frame = () => view.host.querySelector('iframe')
+  const box = () => view.host.querySelector('.iui-html-view')
+  const token = JSON.parse(/token=("[0-9a-f]{32}")/.exec(frame().getAttribute('srcdoc'))[1])
+  const report = async height => {
+    await act(async () => {
+      dom.window.dispatchEvent(
+        new dom.window.MessageEvent('message', { data: { type: 'dsh:openui-html-view:v1', token, height }, source: frame().contentWindow }),
+      )
+    })
+  }
+  for (const height of [376, 392, 408, 424, 440]) await report(height)
+  assert.equal(box().style.height, '408px')
+  const before = frame().getAttribute('srcdoc')
+  await act(async () => {
+    box().style.colorScheme = 'dark'
+    view.host.setAttribute('data-theme', 'dark')
+    await new Promise(resolve => setTimeout(resolve, 0))
+  })
+  assert.equal(frame().getAttribute('srcdoc'), before, 'the page is not rebuilt for a theme switch')
+  await act(async () => {
+    dom.window.dispatchEvent(
+      new dom.window.MessageEvent('message', { data: { type: 'dsh:openui-html-view:v1', token, state: 'failed' }, source: frame().contentWindow }),
+    )
+  })
+  assert.equal(frame(), null)
+  await view.update({ code: 'root = Col([HtmlView("<p>new</p>")])', streaming: false, closed: true })
+  assert.ok(frame(), 'new HTML clears the stopped state')
+  assert.equal(box().style.height, '360px')
+  await view.unmount()
+})
 test('an HtmlView frame allows the data: images its inner policy promises', async () => {
   const view = await mount('root = Col([HtmlView("<img src=\'data:image/gif;base64,R0lGODlhAQABAAAAACw=\'>", 80)])')
   const outer = view.host.querySelector('iframe').getAttribute('srcdoc')

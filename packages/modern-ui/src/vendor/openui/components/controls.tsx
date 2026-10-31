@@ -7,9 +7,9 @@ import {
   useStateField,
   useTriggerAction,
 } from "@openuidev/react-lang";
-import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
+import { useContext, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import { z } from "zod/v4";
-import { useField, useFieldName } from "./fields";
+import { FieldRegistryContext, useField, useFieldName } from "./fields";
 import { Glyph } from "./glyph";
 import { bg, children, color, onColor, cx, option, radius, radiusSchema, space, textOf, toOption, type Option } from "./style";
 import { useUiText } from "./ui-text";
@@ -56,11 +56,13 @@ const rangeValue = (value: number, min: number, max: number, step: number) => {
 /**
  * False while the block streams and in the commit that ends it, before the renderer applies the final $variable
  * defaults: a control normalising its value then would act on a half-written bound or option list, or write a
- * value that does not exist yet over its declared default.
+ * value that does not exist yet over its declared default. A control that mounts while a @ToAssistant reads the
+ * fields (an earlier @Set in its Action showed it) starts settled, so it normalises before it is read.
  */
 function useSettled() {
   const streaming = useIsStreaming();
-  const [settled, setSettled] = useState(false);
+  const registry = useContext(FieldRegistryContext);
+  const [settled, setSettled] = useState(() => registry?.settled === true);
   useEffect(() => {
     setSettled(!streaming);
   }, [streaming]);
@@ -230,9 +232,11 @@ export const Input = defineComponent({
             const text = event.target.value;
             if (!numeric) return field.setValue(text);
             setDraft(text);
-            const parsed = Number(text.replace(/,/g, ""));
-            if (text.trim() === "") field.setValue(null as unknown as number);
-            else if (Number.isFinite(parsed)) field.setValue(parsed);
+            const plain = text.replace(/,/g, "").trim();
+            // Cleared (or only separators): a $variable becomes null; a literal field stores "", since an empty
+            // stored value would show its default again.
+            if (plain === "") field.setValue((field.isReactive ? null : "") as unknown as number);
+            else if (Number.isFinite(Number(plain))) field.setValue(Number(plain));
           }}
           onBlur={() => setDraft(null)}
         />
@@ -351,28 +355,36 @@ export const Slider = defineComponent({
     const min = Number.isFinite(props.min) ? props.min : 0;
     const max = Number.isFinite(props.max) && props.max > min ? props.max : min + 100;
     const step = props.step && props.step > 0 ? props.step : 1;
-    const raw = typeof field.value === "number" ? field.value : Number(field.value);
-    // What the native range shows: the browser clamps and snaps whatever value it is given.
+    // An empty value (null, "", a number field cleared) is no number, not 0.
+    const stored = field.value as unknown;
+    const raw = typeof stored === "number" ? stored : typeof stored === "string" && stored.trim() !== "" ? Number(stored) : Number.NaN;
+    // What the native range shows: the browser clamps and snaps whatever value it is given, and shows min for none.
     const value = Number.isFinite(raw) ? rangeValue(raw, min, max, step) : min;
-    // The stored value is the intended one clamped to the current bounds and snapped to the step, so formulas
-    // and @ToAssistant use the value the slider shows. The intended value is the last one anyone but this
-    // normalisation chose (the default, a drag, @Set, another control): narrowing a bound or coarsening the step
-    // moves the stored value, undoing it returns toward the intended one, so typing a bound digit by digit
-    // (100, 5, 50) does not leave the value at 5. Only once settled (see useSettled), and at most one write per
-    // task, so two sliders with disjoint bounds on one $variable cannot correct each other forever.
+    // The stored value is the intended one clamped to the current bounds and snapped to the step, or min when
+    // there is none, so formulas and @ToAssistant use the value the slider shows. The intended value is the last
+    // one anyone but this normalisation chose (the default, a drag, @Set, another control): narrowing a bound or
+    // coarsening the step moves the stored value, undoing it returns toward the intended one, so typing a bound
+    // digit by digit (100, 5, 50) does not leave the value at 5. Only once settled (see useSettled). Within one
+    // task a slider writes again only for new bounds (another slider in the same commit moved them), at most a
+    // few times, so sliders with disjoint or self-referencing bounds on one $variable cannot loop.
     const intended = useRef(Number.NaN);
     // The stored value as this slider last saw or wrote it; anything else is a new choice.
     const seen = useRef(Number.NaN);
-    const clamping = useRef(false);
+    // This task's writes: how many, and the bounds of the last.
+    const writes = useRef<{ count: number; bounds: string } | null>(null);
     useLayoutEffect(() => {
-      if (!settled || !Number.isFinite(raw)) return;
-      if (raw !== seen.current) intended.current = seen.current = raw;
-      const target = rangeValue(intended.current, min, max, step);
-      if (target === raw || clamping.current) return;
-      clamping.current = true;
-      queueMicrotask(() => {
-        clamping.current = false;
-      });
+      if (!settled) return;
+      if (!Object.is(raw, seen.current)) intended.current = seen.current = raw;
+      const target = rangeValue(Number.isFinite(intended.current) ? intended.current : min, min, max, step);
+      if (target === raw) return;
+      const bounds = `${min} ${max} ${step}`;
+      const last = writes.current;
+      if (last !== null && (last.bounds === bounds || last.count >= 4)) return;
+      if (last === null)
+        queueMicrotask(() => {
+          writes.current = null;
+        });
+      writes.current = { count: (last?.count ?? 0) + 1, bounds };
       seen.current = target;
       field.setValue(target);
     });

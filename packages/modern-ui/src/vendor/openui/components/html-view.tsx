@@ -1,5 +1,5 @@
 import { defineComponent, useIsStreaming } from "@openuidev/react-lang";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod/v4";
 import { useColorScheme } from "./scheme";
 import { useUiText } from "./ui-text";
@@ -38,6 +38,9 @@ const data = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c").
 // best effort: a script that builds a fresh frame can still reach them.
 const NO_WEBRTC = `<script>(function(){for(const k of ["RTCPeerConnection","webkitRTCPeerConnection","RTCDataChannel","RTCRtpSender","RTCRtpReceiver","RTCIceTransport"]){try{Object.defineProperty(window,k,{value:undefined,writable:false,configurable:false})}catch(e){}}})()</script>`;
 
+// Applies a new palette sent through the outer frame, so a theme switch restyles the page instead of reloading it.
+const THEMER = `<script>addEventListener("message",function(e){if(e.source!==parent)return;var d=e.data;if(!d||d.type!=="${KIND}"||!d.palette)return;var s=document.documentElement.style;["fg","bg","muted","line","accent"].forEach(function(k){if(typeof d.palette[k]==="string")s.setProperty("--"+k,d.palette[k])});if(d.scheme==="light"||d.scheme==="dark")s.colorScheme=d.scheme})</script>`;
+
 // Reports the content height to the outer frame, which forwards it.
 const REPORTER = `<script>(function(){var last=0;function send(){var h=Math.ceil(document.documentElement.getBoundingClientRect().height);if(Math.abs(h-last)>1){last=h;parent.postMessage({type:"${KIND}",height:h},"*")}}addEventListener("load",send);new ResizeObserver(send).observe(document.documentElement);send()})()</script>`;
 
@@ -46,7 +49,7 @@ type Palette = { fg: string; bg: string; muted: string; line: string; accent: st
 function innerDocument(html: string, scheme: "light" | "dark", palette: Palette) {
   const vars = `--fg:${palette.fg};--bg:${palette.bg};--muted:${palette.muted};--line:${palette.line};--accent:${palette.accent}`;
   // The policy comes first, so it covers everything in the model's markup.
-  return `<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${INNER_CSP}"><meta name="viewport" content="width=device-width,initial-scale=1"><style>:root{color-scheme:${scheme};${vars}}html,body{margin:0;background:transparent;color:var(--fg)}body{font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}</style>${NO_WEBRTC}${REPORTER}${html}`;
+  return `<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${INNER_CSP}"><meta name="viewport" content="width=device-width,initial-scale=1"><style>:root{color-scheme:${scheme};${vars}}html,body{margin:0;background:transparent;color:var(--fg)}body{font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}</style>${NO_WEBRTC}${THEMER}${REPORTER}${html}`;
 }
 
 function outerDocument(inner: string, token: string, title: string) {
@@ -60,8 +63,12 @@ frame.title=${data(title)};
 let loads=0;
 frame.addEventListener('load',()=>{if(++loads>1)parent.postMessage({type:kind,token,state:'failed'},'*');});
 addEventListener('message',event=>{
-  if(event.source!==frame.contentWindow)return;
   const d=event.data;
+  if(event.source===parent){
+    if(d&&d.type===kind&&d.token===token&&d.palette)frame.contentWindow&&frame.contentWindow.postMessage({type:kind,palette:d.palette,scheme:d.scheme},'*');
+    return;
+  }
+  if(event.source!==frame.contentWindow)return;
   if(!d||d.type!==kind||typeof d.height!=='number'||!Number.isFinite(d.height))return;
   parent.postMessage({type:kind,token,height:d.height},'*');
 });
@@ -120,7 +127,26 @@ export const HtmlView = defineComponent({
     useEffect(() => {
       setPalette(readPalette(box.current));
     }, [scheme]);
-    const srcDoc = useMemo(() => (palette ? outerDocument(innerDocument(html, scheme, palette), token, title) : null), [html, scheme, palette, token, title]);
+    // The page is built with the palette at hand when its HTML arrives; later theme switches are posted to it,
+    // because rebuilding the document would reload the page and lose what the reader did there.
+    const theme = useRef({ scheme, palette });
+    theme.current = { scheme, palette };
+    const ready = palette !== null;
+    const srcDoc = useMemo(
+      () => (ready && theme.current.palette ? outerDocument(innerDocument(html, theme.current.scheme, theme.current.palette), token, title) : null),
+      [html, ready, token, title],
+    );
+    useEffect(() => {
+      if (palette) frame.current?.contentWindow?.postMessage({ type: KIND, token, palette, scheme }, "*");
+    }, [palette, scheme, token]);
+    // Content that sizes itself to the viewport (100vh) grows with every resize; three same-sized growths right
+    // after a resize mark it, and the view stops growing instead of climbing to the maximum.
+    const growth = useRef({ height: AUTO_START, at: 0, delta: 0, streak: 0, frozen: false });
+    useLayoutEffect(() => {
+      setFailed(false);
+      setMeasured(null);
+      growth.current = { height: AUTO_START, at: 0, delta: 0, streak: 0, frozen: false };
+    }, [html]);
 
     useEffect(() => {
       const onMessage = (event: MessageEvent) => {
@@ -128,7 +154,23 @@ export const HtmlView = defineComponent({
         const message = event.data as { type?: unknown; token?: unknown; height?: unknown; state?: unknown };
         if (message?.type !== KIND || message.token !== token) return;
         if (message.state === "failed") setFailed(true);
-        else if (!fixed && typeof message.height === "number" && Number.isFinite(message.height)) setMeasured(Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, Math.ceil(message.height))));
+        else if (!fixed && typeof message.height === "number" && Number.isFinite(message.height)) {
+          const next = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, Math.ceil(message.height)));
+          const g = growth.current;
+          if (next > g.height) {
+            if (g.frozen) return;
+            const now = performance.now();
+            g.streak = now - g.at < 250 && Math.abs(next - g.height - g.delta) <= 1 ? g.streak + 1 : 0;
+            if (g.streak >= 3) {
+              g.frozen = true;
+              return;
+            }
+            g.delta = next - g.height;
+            g.at = now;
+          }
+          g.height = next;
+          setMeasured(next);
+        }
       };
       window.addEventListener("message", onMessage);
       return () => window.removeEventListener("message", onMessage);

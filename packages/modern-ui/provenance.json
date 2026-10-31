@@ -2205,7 +2205,7 @@
       "source": "packages/client/ui-tool/src/client/locale.ts",
       "target": "src/vendor/tool/client/locale.ts",
       "sourceSha256": "eb9b8f7ac08faedf7647b5dd64e8d30be6e34d9bddf25895b131faa177e1e3aa",
-      "targetSha256": "7c92b4561870c92a0d1473e2bb38c93787fb02c6f643f6f444fadbffaf22a73b",
+      "targetSha256": "a146ed267ab2d131cdeb59ff55c9658e1cd813cded472fea662e0268bb46d785",
       "adapted": true
     },
     {
@@ -2394,7 +2394,7 @@
       "source": "packages/client/ui-tool/src/client/tool/models/tool-call-model.ts",
       "target": "src/vendor/tool/client/tool/models/tool-call-model.ts",
       "sourceSha256": "1c9d44c2a2da9953edd922e21a9987995356dfc7fb8f3f066938e779a7927384",
-      "targetSha256": "09212e1361908d04c1fb97aca5a92e18c1b1c20c9003b72c0509d774ab0df2a6",
+      "targetSha256": "cc7f8adb6fd218b184c96a95669717561e3d4f23bb097b36557919d2804c04ba",
       "adapted": true
     },
     {
@@ -2429,7 +2429,7 @@
       "source": "packages/client/ui-tool/src/client/tool/toolviews/GenericToolCard.tsx",
       "target": "src/vendor/tool/client/tool/toolviews/GenericToolCard.tsx",
       "sourceSha256": "3e1025120be63b2ebb4ec62d84fa2cfaf24d41340f4edf8aaf0c5b34127cab9a",
-      "targetSha256": "20d042eaec6abe82add6413855438beca559cc643c7468469e9710a78bc1167e",
+      "targetSha256": "b206043d96d78cb2f3daf75561004fd16112bbd7e7bdbb73a4038c9e757c1e01",
       "adapted": true
     },
     {
@@ -3670,7 +3670,7 @@
     },
     {
       "target": "src/vendor/intelligent/client/OpenUIBlock.tsx",
-      "targetSha256": "51d71e91e7416e79bd978e25a1817da0e0e285b6050c37d2505a2a897af1e320",
+      "targetSha256": "1c345f0be1fb1a75904284e85688c4d347e3de645d2b289e019a4bec671de7ac",
       "description": "Original code-fence presenter that renders openui-lang blocks with @openuidev/react-lang inside answers, routes @ToAssistant through the Session input actions, and keeps unparsable source readable."
     },
     {
@@ -3680,17 +3680,22 @@
     },
     {
       "target": "src/vendor/intelligent/client/openui-source.ts",
-      "targetSha256": "ec9377e9356b203a4bce7f0b809b2d8b3c5fd96bc312bc776a5afe5ec691c622",
+      "targetSha256": "ef56c495fa9a44377faa6f7a300b7b002435b56038910e7b5b82704c647a8724",
       "description": "Original pure helpers for openui-lang fences: which bodies render, whether a reply holds a complete fence, the parse size bound, and the text a @ToAssistant click sends."
     },
     {
       "target": "src/jev-tool.ts",
-      "targetSha256": "3d4bc1e4d33eab77c88b5752ae77cacfe3510785454b53513625dfe921575bf7",
+      "targetSha256": "d935f3464c950a34b31b5e39bb88ca1080ca7b9483dad3eaf39d4e2d616b392c",
       "description": "Original optional TypeSafe Jev presentation advice tool: registered only in main agents' own tool scopes while the presentation prompt, jev.enabled and a resolvable key allow it; on a model call it sends the user messages of the turn being processed plus the model's structure summary (at most 600 characters) as one System One choice per turn, and returns an ordinary, ignorable tool result; a missing key, errors and cancellation return \"no suggestion\" and never fail a turn."
     },
     {
+      "target": "src/jev-tool-card.ts",
+      "targetSha256": "b0d53d87f10cac9b141a8d69b96865b42a0db5250baeeba668cb6cee20afdf82",
+      "description": "Original Tool-row copy for jev_presentation_advice in the eight interface languages: its title and the outcome label read from the tool's result metadata (choice or status); the recorded confidence is deliberately not shown."
+    },
+    {
       "target": "src/jev-settings-state.ts",
-      "targetSha256": "e4cc67fcfc01ec90c3069e4546a140ea38b8771f55b27ed4755c4c66ff73fccb",
+      "targetSha256": "407a9e5a85a28b5e2ab9779de32673b57533409f77ac5e3f24174f428da255d8",
       "description": "Original state for the Jev settings row: the jev.enabled switch through the Modern UI config form and the TypeSafe key through the official credentials Remote, which never returns the value."
     },
     {
@@ -3705,8 +3710,8 @@
     },
     {
       "target": "src/vendor/intelligent/client/openui-budget.ts",
-      "targetSha256": "02f5debc9cbf525accf82155b51dfec1dc6bb480c172c9e46d1013f82ca463a3",
-      "description": "Original per-block step budget for openui-lang blocks: a counted view of the component library and the counters for the build-time patched evaluator of @openuidev/lang-core (loops, built lists and objects, what each loop pass produces), which stop an over-budget evaluation or render in the @openuidev/react-lang runtime."
+      "targetSha256": "e18a5651edac7f34cc73e04cfc4ebaa35e5ab4ef5d6eecad2de6aadb7ca00823",
+      "description": "Original per-block step budget for openui-lang blocks: a counted view of the component library, the counters for the build-time patched evaluator and parser of @openuidev/lang-core (loops, built lists, objects and text, what each loop pass produces, component props, parsed nodes) and the parse limit, which stop an over-budget parse, evaluation or render in the @openuidev/react-lang runtime."
     }
   ],
   "adapters": [
@@ -3985,7 +3990,7 @@
     },
     {
       "target": "src/tool-owner.ts",
-      "targetSha256": "68282d2b1b5a3f5f284c530935d5a418b4a6357616b4c12ac4680b7f020be792",
+      "targetSha256": "18c43219ddf82a7cfc57be43d7691974d6cac2dcfb80aff1ca1bffb60baa50b8",
       "sources": [
         {
           "source": "packages/client/ui-tool/src/client/apply.ts",

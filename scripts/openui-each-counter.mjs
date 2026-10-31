@@ -1,6 +1,7 @@
 // Build-time patch of @openuidev/lang-core: the evaluator asks counters the plugin installs before it expands a
-// loop, builds a list or object, or hands back what a loop pass produced, so a block's step budget also covers
-// work that never reaches plugin code. Only the bundled copy changes; node_modules stays as installed.
+// loop, builds a list, object or text, hands back what a loop pass produced, or hands out a component's props,
+// and the parser reports every node it builds, so a block's budget also covers work that never reaches plugin
+// code. Only the bundled copy changes; node_modules stays as installed.
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
@@ -60,6 +61,37 @@ export const EDITS = [
 \t\t\t\treturn builtin.fn(builtinArgs);
 `,
   },
+  {
+    // Joining text: a chain of s = s + s doubles its length at every step.
+    find: '\t\t\t\t\tif (typeof left === "string" || typeof right === "string") return String(left ?? "") + String(right ?? "");\n',
+    replace: `\t\t\t\t\tif (typeof left === "string" || typeof right === "string") {
+\t\t\t\t\t\tconst texts = [String(left ?? ""), String(right ?? "")];
+\t\t\t\t\t\treturn __dshCounters?.text(texts[0].length + texts[1].length, context) === false ? "" : texts[0] + texts[1];
+\t\t\t\t\t}
+`,
+  },
+  {
+    // A component the parser fixed entirely is returned as is, and so are the components inside it.
+    find: 'function evaluateElementProps(el, evalCtx) {\n\tif (el.hasDynamicProps === false) return el;\n',
+    replace:
+      'function evaluateElementProps(el, evalCtx) {\n\tif (el.hasDynamicProps === false) return __dshCounters?.drawn(el.props, evalCtx.ctx, true) === false ? null : el;\n',
+  },
+  {
+    // A component's resolved props, which it draws (table rows, chart points, raw text); components among them are
+    // resolved, and charged, on their own.
+    find: '\treturn {\n\t\t...el,\n\t\tprops: evaluated\n\t};\n}\n/** Evaluate `root`',
+    replace:
+      '\tif (__dshCounters?.drawn(evaluated, evalCtx.ctx, false) === false) return null;\n\treturn {\n\t\t...el,\n\t\tprops: evaluated\n\t};\n}\n/** Evaluate `root`',
+  },
+  {
+    // Every node the parser builds, with a reference inlined at each use: a few short statements can nest millions.
+    find: 'function materializeExprInternal(node, ctx, scopedRefs) {\n',
+    replace: 'function materializeExprInternal(node, ctx, scopedRefs) {\n\t__dshCounters?.parsed(ctx.dshNodes = (ctx.dshNodes ?? 0) + 1);\n',
+  },
+  {
+    find: 'function materializeValue(node, ctx) {\n',
+    replace: 'function materializeValue(node, ctx) {\n\t__dshCounters?.parsed(ctx.dshNodes = (ctx.dshNodes ?? 0) + 1);\n',
+  },
 ]
 const SETTER = '__dshSetCounters'
 
@@ -84,7 +116,7 @@ function __dshListItems(args) {
 \tfor (const key in args) if (Array.isArray(args[key])) items += args[key].length;
 \treturn items;
 }
-/** Added by DSH Modern UI: each(items, context), built(items, context) and result(value, context) answer false to refuse. */
+/** Added by DSH Modern UI: each, built, text, result and drawn answer false to refuse; parsed(nodes) throws to stop a parse. */
 export function ${SETTER}(counters) {
 \t__dshCounters = counters;
 }

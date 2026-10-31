@@ -10,6 +10,7 @@ import type { ToolArgs, ToolCallBlock, ToolResultNode } from '@deepseek-ai/dsh-c
 import type { LocaleKeysOf } from '@deepseek-ai/dsh-client-ui-slots'
 import { abbreviateHomePath, isAbsoluteWorkspacePath, relativizeToCwd } from '@deepseek-ai/dsh-util-workspace-path'
 import { recordedAbsolutePath } from './recorded-path.ts'
+import { JEV_TOOL_NAME, jevOutcomeKey, type JevOutcomeKey } from '../../../../../jev-tool-card.ts'
 
 export type { ToolCallBlock } from '@deepseek-ai/dsh-client-ui-chat/client'
 
@@ -120,6 +121,12 @@ const TOOL_TITLE_KEYS: Record<string, ToolTitleKey> = {
   team_task_update: 'tool.title.updateTeamTask',
   team_task_list: 'tool.title.listTeamTasks',
   wait_agent: 'tool.title.waitAgent',
+  [JEV_TOOL_NAME]: 'tool.title.jevAdvice',
+}
+
+/** Tool-owned outcome labels read from a settled result's metadata; shown beside the argument summary. */
+const RESULT_OUTCOMES: Record<string, (meta: unknown) => JevOutcomeKey | undefined> = {
+  [JEV_TOOL_NAME]: jevOutcomeKey,
 }
 
 /**
@@ -160,6 +167,8 @@ export interface ToolRowModel {
   errorSummary: string | null
   /** Structured Auto-review denial identity; null for every ordinary result. */
   autoReviewDenial: AutoReviewDenial | null
+  /** Tool-owned outcome label of a successful settled call, read from its metadata; null otherwise. */
+  outcomeKey: JevOutcomeKey | null
   state: ToolRowState
 }
 
@@ -335,6 +344,7 @@ export function toolRowModel(toolName: string, block: ToolCallBlock, cwd?: strin
     output,
     errorSummary,
     autoReviewDenial: deriveAutoReviewDenial(block),
+    outcomeKey: done && !block.isError ? RESULT_OUTCOMES[toolName]?.(block.meta) ?? null : null,
     state,
   }
 }

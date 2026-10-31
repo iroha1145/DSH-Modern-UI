@@ -12,6 +12,8 @@ type Entry = { form: string | undefined; label: string; read: () => unknown };
  */
 export class FieldRegistry {
   private readonly entries = new Map<string, Entry>();
+  /** Set once a @ToAssistant reads the fields: controls mounting from then on need not wait to settle. */
+  settled = false;
 
   set(key: string, entry: Entry): void {
     this.entries.set(key, entry);
@@ -30,6 +32,7 @@ export class FieldRegistry {
    * @returns Label and value pairs.
    */
   read(form: string | undefined): [string, unknown][] {
+    this.settled = true;
     flushSync(() => {});
     return [...this.entries.values()].filter((entry) => entry.form === form).map((entry) => [entry.label, entry.read()]);
   }
