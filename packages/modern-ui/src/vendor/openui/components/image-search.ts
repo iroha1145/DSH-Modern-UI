@@ -35,6 +35,8 @@ async function query(host: string, params: Record<string, string>): Promise<Page
 }
 
 const https = (url: string) => (url.startsWith("//") ? `https:${url}` : url);
+/** Only https photo addresses, never logos, maps or diagrams. */
+const usable = (url: string | null): url is string => !!url && url.startsWith("https://") && !SKIP.test(url);
 const fileKey = (url: string) => decodeURIComponent(url.split("?")[0].split("/").slice(-1)[0]).replace(/^\d+px-/, "");
 
 /** The article titled like the query: its lead image, then up to two more photos. */
@@ -48,11 +50,11 @@ async function articlePhotos(title: string): Promise<string[]> {
   const photos: string[] = [];
   // A lead image can be a logo or a map (an SVG rendered as PNG); those are not photos.
   const lead = summary?.thumbnail?.source ? https(summary.thumbnail.source) : null;
-  if (lead && !SKIP.test(lead)) photos.push(lead);
+  if (usable(lead)) photos.push(lead);
   for (const item of media?.items ?? []) {
     if (item.type !== "image" || !item.srcset?.length) continue;
     const url = https(item.srcset[0].src);
-    if (SKIP.test(url)) continue;
+    if (!usable(url)) continue;
     if (!photos.some((p) => fileKey(p) === fileKey(url))) photos.push(url);
     if (photos.length >= 3) break;
   }
@@ -66,7 +68,7 @@ const words = (text: string) => text.toLowerCase().split(/[^\p{L}\p{N}]+/u).filt
 async function searchPhotos(q: string): Promise<string[]> {
   const images: string[] = [];
   const add = (url: string | undefined) => {
-    if (url && url.startsWith("https://") && !SKIP.test(url) && !images.includes(url)) images.push(url);
+    if (url && usable(url) && !images.includes(url)) images.push(url);
   };
   const wanted = new Set(words(q));
   const articles = await query(wikiHost(q), { generator: "search", gsrsearch: q, gsrlimit: "6", prop: "pageimages", piprop: "thumbnail", pithumbsize: String(WIDTH) });

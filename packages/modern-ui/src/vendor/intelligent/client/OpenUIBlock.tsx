@@ -1,5 +1,5 @@
 /** An assistant openui-lang block rendered as live components inside the answer, progressively while it streams. */
-import { Component, useCallback, useMemo, useState, type ReactNode } from 'react'
+import { Component, useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
 import { BuiltinActionType, Renderer, type ActionEvent } from '@openuidev/react-lang'
 import type { ParseResult } from '@openuidev/lang-core'
 import { CodeBlock, TextShimmer } from '@iroha1145/dsh-modern-ui/primitives'
@@ -29,11 +29,13 @@ class Boundary extends Component<{ fallback: ReactNode; children: ReactNode }, {
  * Render an openui-lang fence as components. While the fence streams the program renders as far as it has
  * arrived; once it closes, inputs and buttons work while the rest of the answer may still stream. A block
  * that never produces a root keeps its source readable.
+ * Buttons never send on their own: a @ToAssistant click puts its message in the composer for the reader to
+ * read and send, because a button's label need not match what it sends. A copy shows what was copied.
  * @param props - Fence source and stream state, the Session's input actions, the palette, and localized copy.
  * @returns The rendered block, a placeholder, or the preserved source.
  */
 export function OpenUIBlock(props: BlockProps) {
-  const { code, streaming, closed, settled, labels, t, useTheme, inputActions, useInput, useSession, useAccess } = props
+  const { code, streaming, closed, labels, t, useTheme, inputActions, useInput, useSession, useAccess } = props
   const scheme = useTheme(snapshot => snapshot.active.colorScheme)
   const busy = useInput(input => input.phase === 'adjudicating' || input.phase === 'submitting')
   const composerFree = useInput(input => input.phase === 'plain' && input.draft.trim() === '' && input.attachmentIds.length === 0)
@@ -41,32 +43,41 @@ export function OpenUIBlock(props: BlockProps) {
     || (session.subagent.address.mode === 'continuable' && session.subagent.parentAvailable === true)))
   const allowed = useAccess('session/prompt')
   const [result, setResult] = useState<ParseResult | null>(null)
+  const [renderErrors, setRenderErrors] = useState(0)
   const [source, setSource] = useState(false)
-  const [insertionRejected, setInsertionRejected] = useState(false)
+  const [notice, setNotice] = useState<{ key: 'proposed' | 'insertRejected' | 'copiedText' | 'copyFailed'; detail?: string } | null>(null)
+  // The renderer reports its whole state on every change; a click reads the latest copy.
+  const state = useRef<Record<string, unknown> | undefined>(undefined)
   const text = useMemo(() => Object.fromEntries(Object.keys(UI_TEXT).map(key => [key, t(key as keyof UiText)])) as UiText, [t])
   // Inputs stay disabled only while this fence itself is still arriving.
   const arriving = streaming && !closed
-  const stopped = !streaming && !settled && !closed
+  // The answer ended (normally or stopped) without closing this fence.
+  const unfinished = !streaming && !closed
 
-  const ask = useCallback((message: string): void => {
+  const propose = useCallback((message: string): void => {
     if (message === '' || busy || !writable || !allowed) return
-    setInsertionRejected(false)
-    if (!composerFree) {
-      // The editor may reject an insertion if its state changed since this render.
-      setInsertionRejected(!inputActions.insertText(message, inputActions.captureInsertion()))
+    if (composerFree) {
+      inputActions.setDraft(message)
+      setNotice({ key: 'proposed' })
       return
     }
-    inputActions.setDraft(message)
-    inputActions.submit()
+    // The editor may reject an insertion if its state changed since this render.
+    setNotice({ key: inputActions.insertText(message, inputActions.captureInsertion()) ? 'proposed' : 'insertRejected' })
   }, [busy, writable, allowed, composerFree, inputActions])
 
   const onAction = useCallback((event: ActionEvent): void => {
-    if (event.type === BuiltinActionType.ContinueConversation) ask(assistantMessage(event))
-    else if (event.type === BuiltinActionType.OpenUrl) {
+    if (event.type === BuiltinActionType.ContinueConversation) {
+      propose(assistantMessage({ message: event.humanFriendlyMessage, formName: event.formName, state: state.current ?? event.formState, context: event.params.context }))
+    } else if (event.type === BuiltinActionType.OpenUrl) {
       const href = webUrl(event.params.url)
       if (href !== null) window.open(href, '_blank', 'noopener,noreferrer')
-    } else void runLibraryAction(event)
-  }, [ask])
+    } else {
+      const copied = typeof event.params.text === 'string' ? event.params.text : ''
+      void runLibraryAction(event)?.then(ok => {
+        setNotice(ok ? { key: 'copiedText', detail: copied.length > 200 ? `${copied.slice(0, 199)}…` : copied } : { key: 'copyFailed' })
+      })
+    }
+  }, [propose])
 
   const preserved = (status: 'invalid' | 'incomplete') => <section className={css.card} data-openui-block data-state={status}>
     <div className={css.toolbar}><strong className={css.title}>{t('title')}</strong></div>
@@ -76,8 +87,8 @@ export function OpenUIBlock(props: BlockProps) {
 
   if (code.length > CONTENT_LIMIT) return preserved('invalid')
   const rendered = result?.root !== null && result?.root !== undefined
-  if (!rendered && (closed || stopped) && (result !== null || code.trim() === '')) return preserved(stopped ? 'incomplete' : 'invalid')
-  const issues = !arriving && rendered && (result.meta.errors.length > 0 || stopped)
+  if (!rendered && (closed || unfinished) && (result !== null || code.trim() === '')) return preserved(closed ? 'invalid' : 'incomplete')
+  const issues = !arriving && rendered && (unfinished || result.meta.errors.length > 0 || result.meta.unresolved.length > 0 || renderErrors > 0)
   const toggle = <button type="button" onClick={() => { setSource(value => !value) }} aria-expanded={source}>
     {t(source ? 'hideSource' : 'source')}
   </button>
@@ -89,14 +100,18 @@ export function OpenUIBlock(props: BlockProps) {
       <Boundary key={closed ? 'closed' : 'open'} fallback={preserved('invalid')}>
         <UiTextContext.Provider value={text}>
           <div className="iui-root" data-theme={scheme}>
-            <Renderer library={library} response={code} isStreaming={arriving} onAction={onAction} onParseResult={setResult} />
+            <Renderer library={library} response={code} isStreaming={arriving} onAction={onAction} onParseResult={setResult}
+              onStateUpdate={(next) => { state.current = next }} onError={(errors) => { setRenderErrors(errors.length) }} />
           </div>
         </UiTextContext.Provider>
       </Boundary>
       {rendered && !arriving && <div className={css.actions}>{toggle}</div>}
     </div>
-    {issues && <p className={css.status} role="status"><span>{t(stopped ? 'incomplete' : 'partial')}</span></p>}
-    {insertionRejected && <p className={css.status} role="status">{t('insertRejected')}</p>}
+    {issues && <p className={css.status} role="status"><span>{t(unfinished ? 'incomplete' : 'partial')}</span></p>}
+    {notice !== null && <p className={css.status} role="status">
+      <span>{t(notice.key)}</span>
+      {notice.detail !== undefined && <code className={css.copied}>{notice.detail}</code>}
+    </p>}
     {source && <CodeBlock code={code} lang="openui-lang" {...labels} />}
   </section>
 }

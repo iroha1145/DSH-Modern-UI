@@ -8,7 +8,7 @@
     "lucide-react": "0.562.0",
     "zod": "4.6.7"
   },
-  "adaptation": "The OpenUI component library, generic @functions and prompt guidance of the Open Intelligent UI demo, rendered by @openuidev/react-lang inside DSH answers. Theme tokens are scoped to the rendered block and follow the DSH palette; weights use 400/500/600 and quotes have no side rule. The street map, YouTube, confetti, dashboard-data and color functions are omitted, consumer-only helpers are filtered from the prompt, icons resolve through lucide-react exports instead of dynamic imports, SearchImage queries Wikipedia and Wikimedia Commons from the browser instead of demo server routes, HtmlView runs in two nested sandboxes with no network, interface words come from the block's dictionaries, and the prompt options teach openui-lang fences inside Markdown answers. Flow diagram components, the browser image search, the interface-word context and the generated prompt are original to DSH. No Next.js app, demo server route, OpenUI Cloud gateway or autofix client is distributed.",
+  "adaptation": "The OpenUI component library, generic @functions and prompt guidance of the Open Intelligent UI demo, rendered by @openuidev/react-lang inside DSH answers. Theme tokens are scoped to the rendered block and follow the DSH palette; weights use 400/500/600 and quotes have no side rule. The street map, YouTube, confetti, dashboard-data and color functions are omitted, consumer-only helpers are filtered from the prompt, icons resolve through lucide-react exports instead of dynamic imports, SearchImage runs the demo server routes' Wikipedia and Wikimedia Commons lookups from the browser, HtmlView runs in two nested sandboxes without network access (WebRTC constructors are removed as a best effort), pixel lengths are capped, interface words come from the block's dictionaries, and the prompt options teach openui-lang fences inside Markdown answers. Flow diagram components, the interface-word context and the generated prompt are original to DSH. No Next.js app, demo server route, OpenUI Cloud gateway or autofix client is distributed.",
   "files": [
     {
       "source": "src/lib/actions.ts",
@@ -28,7 +28,7 @@
       "source": "src/lib/components/components.css",
       "target": "src/vendor/openui/components/components.css",
       "sourceSha256": "8af6f161130ee3f70b0be7afd6b523a2a09eeb6b3c5a87d10f73a3c143789e04",
-      "targetSha256": "dac9b18dbca30d07b2ffe2ea3eac412100620d958fcb9b50c030461e6d199a08",
+      "targetSha256": "7d0deaacc10a96e43873eb05cbf3a1ce66aca764de8ac71467f42ee1a7197f82",
       "adapted": true
     },
     {
@@ -61,13 +61,22 @@
       "source": "src/lib/components/html-view.tsx",
       "target": "src/vendor/openui/components/html-view.tsx",
       "sourceSha256": "39bc4730a8fd87dacbde2f3b16ec13d1882f1e085f511a9b0dbe3b3a4167cecf",
-      "targetSha256": "a471400831f09dc03226e8c25cd8c5dd3abb07480de9888353ec1978e0586aef",
+      "targetSha256": "5fa7f680a9dc76cab57279fa31ce12efa6005a3729648aaff1afb78153a16fe1",
       "adapted": true
     },
     {
+      "sources": [
+        "src/app/api/wiki/route.ts",
+        "src/app/api/image-search/route.ts"
+      ],
       "target": "src/vendor/openui/components/image-search.ts",
-      "targetSha256": "c31854fc7300db7ac602d6df1b1f1958149e59e22d9a620bf3ec350743ff301b",
-      "authored": true
+      "sourceSha256": [
+        "2cf071b7731695e6591516f1f0054df1e701839b0fcf00af488e9f15a802344f",
+        "3a95c62da12b67d07514c79900168bda27f602239787f09e81022205a53a84f5"
+      ],
+      "targetSha256": "a72d8ced7e2cd2f23bd8820d8940a0269a5a7f4434596dd50ddb5b1eb98159cc",
+      "adapted": true,
+      "note": "The demo server routes ported to browser fetches against the same fixed hosts."
     },
     {
       "source": "src/lib/components/layout.tsx",
@@ -101,8 +110,8 @@
       "source": "src/lib/components/style.ts",
       "target": "src/vendor/openui/components/style.ts",
       "sourceSha256": "422f53214a21f66a0a2bd4844fb9cdf5ec238a428681994569cf76340a54da1d",
-      "targetSha256": "422f53214a21f66a0a2bd4844fb9cdf5ec238a428681994569cf76340a54da1d",
-      "adapted": false
+      "targetSha256": "0a1194ebc4a95c93c41144a3315bcb5a1555777a0feb01c6cba1b99dd6bbd8f4",
+      "adapted": true
     },
     {
       "source": "src/lib/components/svg.tsx",
@@ -129,7 +138,7 @@
       "source": "src/lib/components/theme.css",
       "target": "src/vendor/openui/components/theme.css",
       "sourceSha256": "ed324d7b3238bf2692caf3a5f805d24f259ded61dbbfdf175b353da6a284efde",
-      "targetSha256": "8c463e8c74be8b8ab0a442852d40372e026cef63167ee3a7ee61a46f9326ecda",
+      "targetSha256": "fb5bf8f114e24e8f7af29a55592504cc43b676573c5c0c5f11de03d71c61807b",
       "adapted": true
     },
     {
@@ -190,12 +199,12 @@
       "source": "src/lib/prompt-options.ts",
       "target": "src/vendor/openui/prompt-options.ts",
       "sourceSha256": "af940aab9435ee2a5400f965e8d5f3d7a188d56987c7260082df738bb24e2eb2",
-      "targetSha256": "cb69bd851a1ec17643b6f78a704b588cfae0cf9fdacb1b16601fc087d1bffbbe",
+      "targetSha256": "7dae742c68cd7fdbb5567a8c8395863c266d84b539863968f9f1dc88ca3d5f57",
       "adapted": true
     },
     {
       "target": "src/vendor/openui/system-prompt.generated.ts",
-      "targetSha256": "dca4fead65f4d4946152814537145be65a264376c1090e7f63fe7093d5df73a5",
+      "targetSha256": "e8590944605a68626aeb57b0d4aceb6cd6f0755e88b7372d7e30e461d606f5f4",
       "authored": true
     }
   ]

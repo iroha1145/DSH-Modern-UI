@@ -13,6 +13,6 @@
 ## 约束自查
 
 - [ ] 没有放宽 OpenUI 组件边界（见 [SECURITY.md](../SECURITY.md)）
-- [ ] 没有新增 `packages/modern-ui/src/vendor/` 文件，没有删改 `provenance.json` 的既有记录
+- [ ] 没有新增从官方源码复制的 vendor 文件；`provenance.json` 只删了已删文件的条目；第三方拷贝的 `*-upstream.json` 已同步
 - [ ] 没有对官方宿主做 monkey patch
 - [ ] 用户可见的改动已写进 [CHANGELOG.md](../CHANGELOG.md) 的 `Unreleased`

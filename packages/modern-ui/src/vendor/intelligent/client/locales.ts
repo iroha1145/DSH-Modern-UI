@@ -3,6 +3,9 @@
 /** zh dictionary. */
 export const zh = {
   insertRejected: '未能插入问题，草稿已保留。请稍后重试。',
+  proposed: '已放进输入框，确认后按发送',
+  copiedText: '已复制：',
+  copyFailed: '复制失败',
   related: '相关问题',
   title: '交互组件',
   preparing: '正在生成组件…',
@@ -43,6 +46,9 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 /** en dictionary. */
 export const en = {
   insertRejected: 'The question could not be inserted. Your draft is unchanged; try again shortly.',
+  proposed: 'Added to the message box; review it, then send',
+  copiedText: 'Copied:',
+  copyFailed: 'Copy failed',
   related: 'Related',
   title: 'Interactive component',
   preparing: 'Generating component…',
@@ -74,6 +80,9 @@ export const en = {
 /** ja dictionary. */
 export const ja = {
   insertRejected: '質問を挿入できませんでした。下書きは保持されています。少し待って再試行してください。',
+  proposed: '入力欄に入れました。確認してから送信してください',
+  copiedText: 'コピーしました：',
+  copyFailed: 'コピーできませんでした',
   related: '関連する質問',
   title: '対話型コンポーネント',
   preparing: 'コンポーネントを生成中…',
@@ -105,6 +114,9 @@ export const ja = {
 /** de dictionary. */
 export const de = {
   insertRejected: 'Die Frage konnte nicht eingefügt werden. Ihr Entwurf bleibt erhalten. Versuchen Sie es gleich noch einmal.',
+  proposed: 'Ins Eingabefeld übernommen; prüfen und dann senden',
+  copiedText: 'Kopiert:',
+  copyFailed: 'Kopieren fehlgeschlagen',
   related: 'Verwandte Fragen',
   title: 'Interaktive Komponente',
   preparing: 'Komponente wird erstellt …',
@@ -136,6 +148,9 @@ export const de = {
 /** es dictionary. */
 export const es = {
   insertRejected: 'No se pudo insertar la pregunta. El borrador no ha cambiado. Inténtalo de nuevo en un momento.',
+  proposed: 'Añadido al cuadro de mensaje; revísalo y envíalo',
+  copiedText: 'Copiado:',
+  copyFailed: 'No se pudo copiar',
   related: 'Preguntas relacionadas',
   title: 'Componente interactivo',
   preparing: 'Generando componente…',
@@ -167,6 +182,9 @@ export const es = {
 /** fr dictionary. */
 export const fr = {
   insertRejected: 'La question n’a pas pu être insérée. Votre brouillon est conservé. Réessayez dans un instant.',
+  proposed: 'Ajouté à la zone de message ; vérifiez puis envoyez',
+  copiedText: 'Copié :',
+  copyFailed: 'Échec de la copie',
   related: 'Questions associées',
   title: 'Composant interactif',
   preparing: 'Génération du composant…',
@@ -198,6 +216,9 @@ export const fr = {
 /** ru dictionary. */
 export const ru = {
   insertRejected: 'Не удалось вставить вопрос. Черновик сохранён. Повторите попытку чуть позже.',
+  proposed: 'Добавлено в поле ввода; проверьте и отправьте',
+  copiedText: 'Скопировано:',
+  copyFailed: 'Не удалось скопировать',
   related: 'Похожие вопросы',
   title: 'Интерактивный компонент',
   preparing: 'Создаётся компонент…',
@@ -229,6 +250,9 @@ export const ru = {
 /** pt dictionary. */
 export const pt = {
   insertRejected: 'Não foi possível inserir a pergunta. O rascunho foi preservado. Tente novamente em instantes.',
+  proposed: 'Adicionado à caixa de mensagem; revise e envie',
+  copiedText: 'Copiado:',
+  copyFailed: 'Falha ao copiar',
   related: 'Perguntas relacionadas',
   title: 'Componente interativo',
   preparing: 'Gerando componente…',

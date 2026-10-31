@@ -41,17 +41,30 @@ describe('openui-lang fences', () => {
 })
 
 describe('assistantMessage', () => {
-  test('sends the authored message followed by entered form values and bound variables', () => {
+  const field = (value: unknown) => ({ value, componentType: 'Input' })
+
+  test("proposes the message, the button's own Form fields and the block's bound variables", () => {
     const message = assistantMessage({
-      humanFriendlyMessage: ' Help me choose a database ',
-      formState: { form1: { Workload: { value: 'analytics', componentType: 'Select' }, Notes: { value: '' } }, $users: 5000, $empty: null },
+      message: ' Help me choose a database ',
+      formName: 'form1',
+      state: { form1: { Workload: field('analytics'), Notes: field('') }, form2: { Other: field('x') }, Loose: field('y'), $users: 5000, $empty: null },
     })
     expect(message).toBe('Help me choose a database\n\n- Workload: analytics\n- users: 5000')
   })
 
-  test('falls back to the message alone and caps long payloads', () => {
-    expect(assistantMessage({ humanFriendlyMessage: 'Plan another day', formState: undefined })).toBe('Plan another day')
-    const long = assistantMessage({ humanFriendlyMessage: 'x', formState: { $notes: 'y'.repeat(5000) } })
+  test('labels loose fields by name when the button sits outside any Form', () => {
+    expect(assistantMessage({ message: 'Tailor it', state: { Workload: field('analytics'), $team: 5 } })).toBe('Tailor it\n\n- Workload: analytics\n- team: 5')
+  })
+
+  test("appends the step's context and shortens long values", () => {
+    const message = assistantMessage({ message: 'More', state: { $notes: 'y'.repeat(400) }, context: { id: 7 } })
+    expect(message).toBe(`More\n\n- notes: ${'y'.repeat(299)}…\n- context: {"id":7}`)
+  })
+
+  test('falls back to the message alone and caps the whole proposal', () => {
+    expect(assistantMessage({ message: 'Plan another day' })).toBe('Plan another day')
+    const state = Object.fromEntries(Array.from({ length: 40 }, (_, index) => [`$v${index}`, 'z'.repeat(200)]))
+    const long = assistantMessage({ message: 'x', state })
     expect(long.length).toBe(4000)
     expect(long.endsWith('…')).toBe(true)
   })

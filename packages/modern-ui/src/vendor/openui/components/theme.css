@@ -81,6 +81,9 @@
   --iui-photo-empty-icon: var(--iui-border-strong);
 }
 
+/* A popover portal is its own scope root; it adds no box of its own. */
+.iui-portal { display: contents; }
+
 .iui-root[data-theme="dark"] {
   color-scheme: dark;
   --iui-shadow: 0 4px 20px rgb(0 0 0 / 35%);

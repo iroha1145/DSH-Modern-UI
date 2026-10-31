@@ -28,7 +28,8 @@ kafka = Card([Row([Icon("activity"), Title("Kafka", "sm")], 2), Text("A replayab
 rabbit = Card([Row([Icon("git-branch"), Title("RabbitMQ", "sm")], 2), Text("Flexible routing for task queues.", "sm"), Row([Badge("Rich routing", "info"), Badge("No replay", "warning")], 1, null, null, true)])
 sqs = Card([Row([Icon("cloud"), Title("SQS", "sm")], 2), Text("Managed queue with nothing to run.", "sm"), Row([Badge("Zero ops", "success"), Badge("AWS only", "warning")], 1, null, null, true)])`;
 
-const exampleTool = `root = Card([title, Grid([users, size], 2, 200, 4), stats, chart])
+const exampleTool = `root = Col([card])
+card = Card([title, Grid([users, size], 2, 200, 4), stats, chart])
 $users = 20000
 $kb = 40
 title = Title("Monthly storage estimate", "md")
@@ -47,7 +48,7 @@ const rules = [
   "Pick the medium that shows the idea: Flow for architectures, request paths, pipelines and processes; Table for comparisons across several attributes; Chart for numbers across time or categories; List with numbers or a timeline for ordered steps; Svg drawings for geometry, layouts and mechanisms; HtmlView only for a game or animation that needs a loop.",
   "In a Flow, every FlowNode has a short title and at most one short detail line; join rows with FlowArrow and name the call, data or condition on the arrow; put parallel nodes in a FlowRow and a host, container or trust zone in a FlowGroup.",
   "Make a block a working tool when the request involves numbers, choices, lists or steps to explore (an estimate, a sizing calculator, a checklist, a step-through): keep inputs and lists in $variables, compute everything shown from them with expressions and @functions, and change them with @Set. It must work without another message.",
-  "Use @ToAssistant only for what the block cannot compute: a Form's submit Button, or a follow-up request. Its message is short and first person, like the user typing it; the form values travel with it, so never repeat them in the message.",
+  "Use @ToAssistant only for what the block cannot compute: a Form's submit Button, or a follow-up request. The interface puts its message in the reader's message box to review and send, with the form values appended, so keep it short and first person, like the user typing it, and never repeat the values in it.",
   "$variable defaults are literals (numbers, strings, lists, objects), never expressions or @calls. Edit lists with @Append, @Remove, @RemoveAt and @Update; track selections with @Toggle and @Includes.",
   "cond ? a : b also picks between components; there is no @If. Use only the listed @functions; you cannot define your own.",
   "Derive rows once in a statement with @Each(list, \"x\", {...}), then reuse them in @Each, Table, Chart, @Sum(rows.field) and @Join. @Each(@Range(0, n), \"i\", ...) builds a series.",

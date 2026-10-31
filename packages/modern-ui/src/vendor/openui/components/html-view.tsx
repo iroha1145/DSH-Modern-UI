@@ -33,6 +33,10 @@ const COLOR = /^(#[0-9a-f]{3,8}|(rgb|rgba|hsl|hsla|oklch|oklab|lab|lch|color)\([
 
 const data = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
 
+// CSP has no directive for WebRTC, so its constructors are removed before authored code runs. This is
+// best effort: a script that builds a fresh frame can still reach them.
+const NO_WEBRTC = `<script>(function(){for(const k of ["RTCPeerConnection","webkitRTCPeerConnection","RTCDataChannel","RTCRtpSender","RTCRtpReceiver","RTCIceTransport"]){try{Object.defineProperty(window,k,{value:undefined,writable:false,configurable:false})}catch(e){}}})()</script>`;
+
 // Reports the content height to the outer frame, which forwards it.
 const REPORTER = `<script>(function(){var last=0;function send(){var h=Math.ceil(document.documentElement.getBoundingClientRect().height);if(Math.abs(h-last)>1){last=h;parent.postMessage({type:"${KIND}",height:h},"*")}}addEventListener("load",send);new ResizeObserver(send).observe(document.documentElement);send()})()</script>`;
 
@@ -41,7 +45,7 @@ type Palette = { fg: string; bg: string; muted: string; line: string; accent: st
 function innerDocument(html: string, scheme: "light" | "dark", palette: Palette) {
   const vars = `--fg:${palette.fg};--bg:${palette.bg};--muted:${palette.muted};--line:${palette.line};--accent:${palette.accent}`;
   // The policy comes first, so it covers everything in the model's markup.
-  return `<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${INNER_CSP}"><meta name="viewport" content="width=device-width,initial-scale=1"><style>:root{color-scheme:${scheme};${vars}}html,body{margin:0;background:transparent;color:var(--fg)}body{font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}</style>${REPORTER}${html}`;
+  return `<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${INNER_CSP}"><meta name="viewport" content="width=device-width,initial-scale=1"><style>:root{color-scheme:${scheme};${vars}}html,body{margin:0;background:transparent;color:var(--fg)}body{font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}</style>${NO_WEBRTC}${REPORTER}${html}`;
 }
 
 function outerDocument(inner: string, token: string, title: string) {
@@ -69,18 +73,25 @@ document.body.appendChild(frame);
 const newToken = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
 
 function readPalette(element: HTMLElement | null): Palette {
-  const style = element ? getComputedStyle(element) : null;
+  // Tokens such as --iui-border-strong are color-mix() expressions; a probe's computed color resolves them.
+  const probe = element ? element.appendChild(document.createElement("span")) : null;
   const pick = (name: string, fallback: string) => {
-    const value = style?.getPropertyValue(name).trim() ?? "";
+    if (!probe) return fallback;
+    probe.style.color = `var(${name})`;
+    const value = getComputedStyle(probe).color.trim();
     return COLOR.test(value) ? value : fallback;
   };
-  return {
-    fg: pick("--iui-ink", "#171717"),
-    bg: pick("--iui-canvas", "#ffffff"),
-    muted: pick("--iui-muted", "#5b5b5b"),
-    line: pick("--iui-border-strong", "#d9d9d9"),
-    accent: pick("--iui-chart-1", "#0285ff"),
-  };
+  try {
+    return {
+      fg: pick("--iui-ink", "#171717"),
+      bg: pick("--iui-canvas", "#ffffff"),
+      muted: pick("--iui-muted", "#5b5b5b"),
+      line: pick("--iui-border-strong", "#d9d9d9"),
+      accent: pick("--iui-chart-1", "#0285ff"),
+    };
+  } finally {
+    probe?.remove();
+  }
 }
 
 export const HtmlView = defineComponent({
@@ -91,7 +102,7 @@ export const HtmlView = defineComponent({
     title: z.string().optional(),
   }),
   description:
-    "Sandboxed HTML page with inline JS, for a game, canvas or animation the other components cannot express. No network, libraries, external fonts or images (inline SVG and data: URLs only). Colors: CSS variables --fg, --muted, --line, --bg and --accent. Fits its content unless height is set.",
+    "Sandboxed HTML page with inline JS, for a game, canvas or animation the other components cannot express. No network, libraries, external fonts or images (inline SVG and data: URLs only). Colors: CSS variables --fg, --muted, --line, --bg and --accent. Build the page with DOM methods; navigating or document.write ends the view. Fits its content unless height is set.",
   component: function HtmlViewView({ props }) {
     const text = useUiText();
     const streaming = useIsStreaming();

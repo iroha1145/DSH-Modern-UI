@@ -889,7 +889,7 @@
       "source": "packages/client/ui-intelligent-ui/src/client/locales.ts",
       "target": "src/vendor/intelligent/client/locales.ts",
       "sourceSha256": "46b05428e5dd7446004d066cdbc5cc4cd1eabade373b0b6ade4b687048317dc5",
-      "targetSha256": "89a09322271e81b45622998b3ccf8642316cc0a815abc3efd53fc28a5e678822",
+      "targetSha256": "f47865ea51c16411a6f0b6599144d903c9628ae84ee141d314cd28d93789476b",
       "adapted": true
     },
     {
@@ -3670,17 +3670,17 @@
     },
     {
       "target": "src/vendor/intelligent/client/OpenUIBlock.tsx",
-      "targetSha256": "4140fd2527dff499aeaf83fc1aaeea245f4dd4c885bec08667a8c0b0231fb048",
+      "targetSha256": "946a504eb6b125779df7eec523a1cd36ffac78acce08587b1c3532d894a17f89",
       "description": "Original code-fence presenter that renders openui-lang blocks with @openuidev/react-lang inside answers, routes @ToAssistant through the Session input actions, and keeps unparsable source readable."
     },
     {
       "target": "src/vendor/intelligent/client/OpenUIBlock.module.css",
-      "targetSha256": "f91d45281d9edbfdde0d24da1819f206060dcbd65b0c20f84bb80cd1af7bc898",
+      "targetSha256": "d1bd7b8ef74dde17b0e7b8c4510ba642db096f0dc97ed0a299141d8cc6b5fafb",
       "description": "Original styles for the OpenUI block frame, placeholder, source toggle and preserved-source card."
     },
     {
       "target": "src/vendor/intelligent/client/openui-source.ts",
-      "targetSha256": "d04241724b4164d1d2b2e234499d6aae1d902d3adcc369c8b1811d20c460c4c6",
+      "targetSha256": "135b07e6188cdcb3dc689b987283698e09830134efd6b5d1c4b9bad42687356e",
       "description": "Original pure helpers for openui-lang fences: which bodies render, the parse size bound, and the text a @ToAssistant click sends."
     }
   ],

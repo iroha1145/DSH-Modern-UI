@@ -107,11 +107,19 @@ export function onColor(background: unknown): CSSProperties {
 /** Spacing in 4px steps. */
 export const space = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? `${Math.max(0, value) * 4}px` : undefined);
 
+// Pixel lengths stay within a few screens, so one block cannot grow to an absurd height or width.
+const MAX_PX = 4000;
+const px = (value: number) => `${Math.min(MAX_PX, Math.max(0, value))}px`;
+
 export function size(value: unknown): string | undefined {
-  if (typeof value === "number" && Number.isFinite(value)) return `${Math.max(0, value)}px`;
+  if (typeof value === "number" && Number.isFinite(value)) return px(value);
   if (typeof value !== "string") return undefined;
-  if (/^\d+(\.\d+)?$/.test(value.trim())) return `${value.trim()}px`;
-  return /^\d+(\.\d+)?(px|%|em|rem|vh|vw|fr)$|^auto$/.test(value.trim()) ? value.trim() : undefined;
+  if (/^\d+(\.\d+)?$/.test(value.trim())) return px(Number(value.trim()));
+  const unit = /^(\d+(?:\.\d+)?)px$/.exec(value.trim());
+  if (unit) return px(Number(unit[1]));
+  const relative = /^(\d+(?:\.\d+)?)(%|em|rem|vh|vw|fr)$/.exec(value.trim());
+  if (relative) return Number(relative[1]) <= 300 ? value.trim() : undefined;
+  return value.trim() === "auto" ? "auto" : undefined;
 }
 
 const RADIUS: Record<string, string> = {
