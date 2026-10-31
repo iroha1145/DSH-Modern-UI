@@ -3685,8 +3685,8 @@
     },
     {
       "target": "src/jev-routing.ts",
-      "targetSha256": "6de582988bdcc9defaab50eb4c376ad808b35a91c21e5511a427065ceee6ee70",
-      "description": "Original optional TypeSafe Jev presentation routing: one System One choice per user message, delivered as a runtime-context hint through the public system-prompt assembly; no hint and no failure without a key or on error."
+      "targetSha256": "64513fb96e4b6637922cef83950809297b1ac1dd614fcdea720d38930245754b",
+      "description": "Original optional TypeSafe Jev presentation routing: one System One choice per user message; a confident visual choice becomes an optional runtime-context note through the public system-prompt assembly, while plain-text or unsure choices, a missing key and errors add nothing and never fail a turn."
     },
     {
       "target": "src/jev-settings-state.ts",

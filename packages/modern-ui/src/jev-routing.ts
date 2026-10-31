@@ -1,7 +1,8 @@
 /**
- * Optional presentation routing through TypeSafe's Jev: once per user message, Jev picks how the answer is best
- * presented (plain text, a table, a chart, a diagram, a calculator…) and the answer model receives that choice
- * as a one-line runtime-context hint. The system prompt itself never changes, so provider prompt caches stay
+ * Optional presentation routing through TypeSafe's Jev: once per user message, Jev guesses how the answer is best
+ * presented (plain text, a table, a chart, a diagram, a calculator…). Jev reads only the user's words, before any
+ * tool runs, so its guess may only add an idea: a confident visual suggestion reaches the answer model as an
+ * optional one-line runtime-context note, and "plain text" or an unsure guess reaches it not at all. The system prompt itself never changes, so provider prompt caches stay
  * valid. Without a configured key, or when Jev is slow, unreachable or answers something invalid, no hint is
  * added and the turn runs exactly as it would without Jev; routing never fails a turn.
  */
@@ -20,9 +21,11 @@ export const JevConfig = z.object({
   endpoint: z.string().default('https://api.typesafe.ai/v1/systemone'),
   /** Milliseconds to wait for a decision before the turn goes ahead without one. */
   timeout: z.natural().default(4000),
+  /** Suggestions Jev is less sure of than this are not passed on. */
+  minConfidence: z.number().min(0).max(1).default(0.6),
 })
 
-export type JevSettings = { enabled: boolean; credential: string; model: string; endpoint: string; timeout: number }
+export type JevSettings = { enabled: boolean; credential: string; model: string; endpoint: string; timeout: number; minConfidence: number }
 
 /** The presentations Jev chooses between, described for Jev; each maps to OpenUI components in the hint. */
 export const PRESENTATIONS = {
@@ -42,19 +45,19 @@ export const PRESENTATIONS = {
 
 export type Presentation = keyof typeof PRESENTATIONS
 
-const HINTS: Record<Presentation, string> = {
-  text: 'answer in Markdown without an openui-lang block, unless the user asked for a visual',
-  table: 'use one openui-lang block with a Table for the comparison or records',
-  cards: 'use one openui-lang block with Card items in a Grid for the options',
-  steps: 'use one openui-lang block with a numbered List (timeline when there are dates) for the steps',
-  bar_chart: 'use one openui-lang block with a bar Chart',
-  line_chart: 'use one openui-lang block with a line or area Chart',
-  scatter_plot: 'use one openui-lang block with a scatter Chart',
-  part_to_whole: 'use one openui-lang block with a pie or donut Chart',
-  flowchart: 'use one openui-lang block with Flow, FlowNode and FlowArrow',
-  diagram: 'use one openui-lang block with an Svg drawing',
-  calculator: 'use one openui-lang block as a working tool: inputs in $variables, results computed with @functions',
-  several_visuals: 'use openui-lang blocks that combine the fitting visual forms, such as a Grid of Cards with Charts, or one block per sample',
+/** What a suggested visual would be built from; "text" is never passed on, so it has no entry. */
+const FORMS: Record<Exclude<Presentation, 'text'>, string> = {
+  table: 'a Table for the comparison or records',
+  cards: 'Card items in a Grid for the options',
+  steps: 'a numbered List for the steps, a timeline when there are dates',
+  bar_chart: 'a bar Chart',
+  line_chart: 'a line or area Chart',
+  scatter_plot: 'a scatter Chart',
+  part_to_whole: 'a pie or donut Chart',
+  flowchart: 'a Flow of FlowNode and FlowArrow',
+  diagram: 'an Svg drawing',
+  calculator: 'a working tool, inputs in $variables and results computed with @functions',
+  several_visuals: 'several visual forms together, such as a Grid of Cards with Charts, or one block per sample',
 }
 
 const INSTRUCTIONS =
@@ -93,12 +96,16 @@ export function decisionFromResponse(raw: unknown): Decision | undefined {
 }
 
 /**
- * The runtime-context line the answer model receives for one decision.
+ * The runtime-context note the answer model receives for one decision, if any. The note only offers an idea the
+ * model may take or leave once it knows the content; it never asks for plain text, so it cannot hold back a
+ * component the answer would otherwise use.
  * @param decision - A validated decision.
- * @returns One short line.
+ * @param minConfidence - Decisions below this confidence are not passed on.
+ * @returns One short line, or undefined for "plain text" and unsure decisions.
  */
-export function routingHint(decision: Decision): string {
-  return `Presentation suggested for the latest user message by a routing model (confidence ${decision.confidence.toFixed(2)}; it may be wrong; the user's explicit wishes win): ${decision.presentation} — ${HINTS[decision.presentation]}.`
+export function routingHint(decision: Decision, minConfidence: number): string | undefined {
+  if (decision.presentation === 'text' || decision.confidence < minConfidence) return undefined
+  return `Optional suggestion from a routing model that read only the user's latest message, before any tool ran (confidence ${decision.confidence.toFixed(2)}, ${decision.presentation}): an openui-lang block with ${FORMS[decision.presentation]} might suit this answer. Use it if what you end up writing fits; otherwise ignore it. The user's request and the content decide.`
 }
 
 type Block = { readonly type?: unknown; readonly text?: unknown }
@@ -260,7 +267,8 @@ export function installJevRouting(ctx: Context, settings: () => JevSettings, pro
       if (context.agent === undefined || !promptEnabled()) return assembly
       const pending = claimed.get(context.agent)?.messages ?? []
       const decision = await router.decide(context.agent.session as unknown as RoutedSession, context.signal, pending)
-      if (decision !== undefined) assembly.contexts.push({ name: HINT_CONTEXT, text: routingHint(decision), interpolate: false })
+      const note = decision === undefined ? undefined : routingHint(decision, settings().minConfidence)
+      if (note !== undefined) assembly.contexts.push({ name: HINT_CONTEXT, text: note, interpolate: false })
       return assembly
     })
   })

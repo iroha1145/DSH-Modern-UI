@@ -25,11 +25,12 @@ jev:               # optional TypeSafe Jev presentation routing
   model: jev-latest
   endpoint: https://api.typesafe.ai/v1/systemone
   timeout: 4000                    # ms; past it the turn goes ahead without a hint
+  minConfidence: 0.6               # visual suggestions below this confidence are not passed on
 ```
 
 Settings → General has a "Jev presentation routing" row under the presentation switch: it saves the key through the official credentials Remote (`credentials/set`) into the DSH credentials file under the `jev.credential` name, shows only whether a key is configured and from which layer, and offers the `enabled` switch once a key exists. A Host without the credentials Remote shows no row.
 
-With a key, each new user message in a main session (not subagents) sends the last four user/assistant texts, at most 6,000 characters each, to TypeSafe. Jev's choice reaches the model as a one-line runtime-context hint; the system prompt does not change, so prompt caches stay valid. A missing key, an error, an invalid answer or a timeout adds no hint and never fails a turn.
+With a key, each new user message in a main session (not subagents) sends the last four user/assistant texts, at most 6,000 characters each, to TypeSafe. Jev reads only the user's words, before any tool runs, so its choice is advisory: a visual suggestion at or above `minConfidence` reaches the model as an optional one-line runtime-context note (use it if the content fits, otherwise ignore it), and a "plain text" or less confident choice is not passed on at all, so Jev can add an idea but never hold back a component. The system prompt does not change, so prompt caches stay valid. A missing key, an error, an invalid answer or a timeout adds no hint and never fails a turn.
 
 ## Switch back to the official UI
 

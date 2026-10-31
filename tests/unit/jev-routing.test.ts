@@ -16,6 +16,7 @@ const settings = (patch: Partial<JevSettings> = {}): JevSettings => ({
   model: 'jev-latest',
   endpoint: 'http://127.0.0.1:9/v1/systemone',
   timeout: 200,
+  minConfidence: 0.6,
   ...patch,
 })
 
@@ -75,21 +76,24 @@ describe('decisionFromResponse', () => {
 })
 
 describe('routingHint', () => {
-  test('names the presentation and the components, and lets the user win', () => {
-    expect(routingHint({ presentation: 'flowchart', confidence: 0.9 })).toContain('flowchart — use one openui-lang block with Flow, FlowNode and FlowArrow')
-    expect(routingHint({ presentation: 'text', confidence: 0.9 })).toContain(
-      'answer in Markdown without an openui-lang block, unless the user asked for a visual',
-    )
-    expect(routingHint({ presentation: 'table', confidence: 0.9 })).toContain("the user's explicit wishes win")
-    expect(routingHint({ presentation: 'several_visuals', confidence: 0.4 })).toContain('several_visuals — use openui-lang blocks that combine')
+  test('a visual suggestion is optional and names what it would be built from', () => {
+    const note = routingHint({ presentation: 'flowchart', confidence: 0.9 }, 0.6)
+    expect(note).toContain('Optional suggestion from a routing model that read only the user')
+    expect(note).toContain('(confidence 0.90, flowchart): an openui-lang block with a Flow of FlowNode and FlowArrow might suit this answer')
+    expect(note).toContain('otherwise ignore it')
+    // Nothing in the note tells the model what not to do.
+    for (const presentation of Object.keys(PRESENTATIONS).filter(key => key !== 'text')) {
+      const text = routingHint({ presentation, confidence: 1 } as never, 0.6) ?? ''
+      expect(text).toMatch(/an openui-lang block with \S/)
+      expect(text).not.toMatch(/without|do not|don't|must/i)
+    }
   })
 
-  test('carries the confidence, so a weak suggestion reads as one', () => {
-    expect(routingHint({ presentation: 'text', confidence: 0.4123 })).toContain('(confidence 0.41; it may be wrong;')
-  })
-
-  test('covers every presentation offered to Jev', () => {
-    for (const presentation of Object.keys(PRESENTATIONS)) expect(routingHint({ presentation, confidence: 1 } as never)).toMatch(/— \S/)
+  test('plain text and unsure guesses are not passed on, so Jev can never hold back a component', () => {
+    expect(routingHint({ presentation: 'text', confidence: 0.99 }, 0.6)).toBeUndefined()
+    expect(routingHint({ presentation: 'table', confidence: 0.59 }, 0.6)).toBeUndefined()
+    expect(routingHint({ presentation: 'table', confidence: 0.6 }, 0.6)).toBeDefined()
+    expect(routingHint({ presentation: 'table', confidence: 0.4 }, 0)).toBeDefined()
   })
 })
 
@@ -293,11 +297,33 @@ describe('installJevRouting', () => {
     const agent = { session: session([user('u1', 'estimate monthly storage for 20k users')]) }
     const on = await assemble(agent)
     expect(on.contexts).toEqual([
-      { name: 'modern-ui:presentation-route', text: expect.stringContaining('calculator — use one openui-lang block as a working tool'), interpolate: false },
+      {
+        name: 'modern-ui:presentation-route',
+        text: expect.stringContaining('(confidence 0.80, calculator): an openui-lang block with a working tool'),
+        interpolate: false,
+      },
     ])
     prompt = false
     expect((await assemble(agent)).contexts).toEqual([])
     expect((await assemble(undefined)).contexts).toEqual([])
+  })
+
+  test('a "plain text" or unsure answer from Jev leaves the model to its own judgement', async () => {
+    let reply = answer('text', { confidence: 0.95, probabilities: { text: 0.95 } })
+    const recorded = jev(() => json(reply))
+    globalThis.fetch = recorded.fetch
+    const { ctx, assemble } = host('k')
+    installJevRouting(
+      ctx as never,
+      () => settings(),
+      () => true,
+    )
+    const agent = { session: session([user('u1', 'summarize these three papers')]) }
+    expect((await assemble(agent)).contexts).toEqual([])
+    reply = answer('table', { confidence: 0.45, probabilities: { table: 0.45 } })
+    agent.session.entries.push(assistant('done'), user('u2', 'and the next one'))
+    expect((await assemble(agent)).contexts).toEqual([])
+    expect(recorded.calls).toHaveLength(2)
   })
 
   test('routes on the message the inbox just claimed, before the Host admits it', async () => {
