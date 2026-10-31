@@ -312,23 +312,32 @@ export const Slider = defineComponent({
     const step = props.step && props.step > 0 ? props.step : 1;
     const raw = typeof field.value === "number" ? field.value : Number(field.value);
     const value = Number.isFinite(raw) ? Math.min(max, Math.max(min, raw)) : min;
-    // A value outside the bounds (a bound in state moved, or another control set it) is stored clamped, so
-    // formulas and @ToAssistant use the value the slider shows. Not while streaming, when a bound may be
-    // half-written, nor in the commit that ends it, before the renderer applies the final $variable defaults
-    // (a value that does not exist yet would also override its declared default). At most once per task, so
-    // two sliders with disjoint bounds on one $variable cannot correct each other forever.
+    // The stored value is the intended one clamped to the current bounds, so formulas and @ToAssistant use
+    // the value the slider shows. The intended value is the last one anyone but this clamping chose (the
+    // default, a drag, @Set, another control): narrowing a bound clamps it, widening it again returns toward
+    // it, so typing a bound digit by digit (100, 5, 50) does not leave the value at 5. Not while streaming,
+    // when a bound may be half-written, nor in the commit that ends it, before the renderer applies the final
+    // $variable defaults (a value that does not exist yet would also override its declared default). At most
+    // one write per task, so two sliders with disjoint bounds on one $variable cannot correct each other forever.
     const [settled, setSettled] = useState(false);
     useEffect(() => {
       setSettled(!streaming);
     }, [streaming]);
+    const intended = useRef(Number.NaN);
+    // The stored value as this slider last saw or wrote it; anything else is a new choice.
+    const seen = useRef(Number.NaN);
     const clamping = useRef(false);
     useLayoutEffect(() => {
-      if (!settled || streaming || !Number.isFinite(raw) || value === raw || clamping.current) return;
+      if (!settled || streaming || !Number.isFinite(raw)) return;
+      if (raw !== seen.current) intended.current = seen.current = raw;
+      const target = Math.min(max, Math.max(min, intended.current));
+      if (target === raw || clamping.current) return;
       clamping.current = true;
       queueMicrotask(() => {
         clamping.current = false;
       });
-      field.setValue(value);
+      seen.current = target;
+      field.setValue(target);
     });
     const unit = props.unit ?? "";
     const prefix = /^[$€£¥₹]/.test(unit);

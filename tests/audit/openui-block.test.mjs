@@ -225,6 +225,32 @@ test('a slider whose bound shrinks below its value moves the value itself, so fo
   await view.unmount()
 })
 
+test('a slider keeps the value the reader chose while a bound is typed digit by digit', async () => {
+  const code =
+    '$n = 80\n$limit = 100\nroot = Form([Input($limit, "Limit", "number"), Slider($n, 0, $limit, 1, "N"), Text("Computed N: " + $n), Button("Go", @ToAssistant("Use these values"))])'
+  const view = await mount(code)
+  const limit = view.host.querySelector('input:not([type="range"])')
+  const range = () => view.host.querySelector('input[type="range"]')
+  const shows = n => {
+    assert.equal(range().value, String(n))
+    assert.equal(view.host.querySelector('output').textContent, String(n))
+    assert.match(view.host.textContent, new RegExp(`Computed N: ${n}(?!\\d)`))
+  }
+  // Each keystroke updates $limit: 100 → empty → 5 → 50.
+  for (const keys of ['', '5', '50']) await type(limit, keys)
+  shows(50)
+  await click(button(view.host, 'Go'))
+  assert.deepEqual(view.calls.setDraft, ['Use these values\n\n- Limit: 50\n- N: 50'])
+  for (const keys of ['5', '100']) await type(limit, keys)
+  shows(80)
+  // A drag while the bound is narrow is the new choice.
+  await type(limit, '50')
+  await type(range(), '30')
+  await type(limit, '100')
+  shows(30)
+  await view.unmount()
+})
+
 test('inputs that share a label keep their own values, while inputs bound to one $variable stay in step', async () => {
   const code =
     '$shared = "x"\nroot = Col([main, other])\nmain = Form([Row([Text("Min"), Input(1, "Value")]), Row([Text("Max"), Input(10, "Value")]), Input($shared, "A"), Input($shared, "B"), Button("Go", @ToAssistant("Use values"))])\nother = Form([Input(5, "Value"), Button("Other", @ToAssistant("Other values"))])'
