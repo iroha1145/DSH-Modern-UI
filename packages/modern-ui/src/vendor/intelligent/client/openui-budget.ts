@@ -1,10 +1,18 @@
 /** A per-block budget on how far an openui-lang program expands, counted while the Renderer evaluates and draws it. */
+import { __dshSetEachCounter } from '@openuidev/lang-core'
 import type { Library } from '@openuidev/react-lang'
+
+declare module '@openuidev/lang-core' {
+  /** Added to the bundled copy by scripts/openui-each-counter.mjs: the counter sees each @Each list length. */
+  export function __dshSetEachCounter(
+    counter: ((items: number, context: { readonly functions?: Readonly<Record<string, { readonly fn?: unknown } | undefined>> }) => void) | null,
+  ): void
+}
 
 /**
  * Steps one evaluation and render of a block may take. Looking up a component (once or twice while evaluating
- * it, once more to draw it) and calling an @function count one step; drawing a component and each item of a
- * list a function returns, which can drive one more loop pass, count about five, so about 20,000 fit.
+ * it, once more to draw it) and calling an @function count one step; each @Each pass, each item of a list a
+ * function returns and each component drawn count about five, so about 20,000 fit, fewer when they combine.
  */
 export const STEP_LIMIT = 100_000
 // On top of the lookup that precedes every draw.
@@ -69,14 +77,15 @@ export class ExpansionBudget {
 }
 
 const over = () => new Error('openui-lang block is over its expansion budget')
+// A view's functions reach every evaluation context its Renderer builds, so they name the block evaluating.
+const owners = new WeakMap<object, ExpansionBudget>()
 
 /**
  * The library as one block's Renderer sees it: the same components and functions, with every component lookup and
- * draw, @function call and returned list item counted. These are the runtime's only calls into plugin code while it
- * expands @Each, so a loop whose bounds come from variables, state or function results is still counted. Over
- * budget, a function call or a component's evaluation throws, which the runtime catches and which abandons the
- * expansion in progress, and a component draws nothing: a throw while drawing would make React 18 still render,
- * and log, every sibling.
+ * draw, @function call and returned list item counted; the patched @Each counts its own passes against the same
+ * budget. Over budget, a function call or a component's evaluation throws, which the runtime catches and which
+ * abandons the expansion in progress, and a component draws nothing: a throw while drawing would make React 18
+ * still render, and log, every sibling.
  * @param library - The shared component library.
  * @param budget - The block's budget.
  * @returns A view of `library` to pass to that block's Renderer, created once per block.
@@ -87,12 +96,12 @@ export function budgeted<L extends Library>(library: L, budget: ExpansionBudget)
       name,
       {
         ...definition,
-        fn: (args: Record<string, unknown>) => {
+        fn: owned(budget, (args: Record<string, unknown>) => {
           if (!budget.step()) throw over()
           const result: unknown = definition.fn(args)
           if (Array.isArray(result) && !budget.step(result.length * ITEM_STEPS)) throw over()
           return result
-        },
+        }),
       },
     ]),
   )
@@ -124,3 +133,35 @@ export function budgeted<L extends Library>(library: L, budget: ExpansionBudget)
     },
   }
 }
+
+function owned<F extends object>(budget: ExpansionBudget, fn: F): F {
+  owners.set(fn, budget)
+  return fn
+}
+
+// Evaluations no block claims, outside any block's Renderer, still stop within one synchronous run.
+let unclaimed = 0
+
+// Every @Each, whatever its list and body, charges the block whose Renderer built the evaluation context, which
+// holds even when React interleaves the renders of several blocks. Throwing makes lang-core abandon the loop,
+// like an over-budget function call.
+__dshSetEachCounter((items, context) => {
+  if (items === 0) return
+  const steps = items * ITEM_STEPS
+  let budget: ExpansionBudget | undefined
+  for (const name in context.functions) {
+    budget = owners.get(context.functions[name]?.fn as object)
+    break
+  }
+  if (budget !== undefined) {
+    if (!budget.step(steps)) throw over()
+    return
+  }
+  if (unclaimed === 0) {
+    queueMicrotask(() => {
+      unclaimed = 0
+    })
+  }
+  unclaimed += steps
+  if (unclaimed > STEP_LIMIT) throw over()
+})

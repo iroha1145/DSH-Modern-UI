@@ -3,6 +3,7 @@ import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { buildQuotesTypes } from './build-quotes-types.mjs'
+import { eachCounterPlugin } from './openui-each-counter.mjs'
 import { defaultHostVersion, hostRange, platformPeers, runtimeVersions, supportedHostVersions, getHostCompatibility } from './distribution/compatibility.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -144,6 +145,7 @@ const client = await build({
   loader: { '.png': 'dataurl', '.svg': 'dataurl', '.webp': 'dataurl' },
   plugins: [
     stylePlugin,
+    eachCounterPlugin(),
     {
       name: 'shared-runtime-boundary',
       setup(builder) {
