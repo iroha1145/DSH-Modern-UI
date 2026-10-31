@@ -123,14 +123,21 @@ function Cartesian({ spec, width }: { spec: Spec; width: number }) {
         {type === "bar" &&
           rows.map((row, i) => {
             const inner = Math.min(band * 0.7, 72 * Math.max(1, stacked ? 1 : series.length));
-            if (stacked)
+            if (stacked) {
+              // The outermost non-zero segment of the upward and of the downward stack gets the rounded end.
+              const ends = { up: -1, down: -1 };
+              spans[i].forEach(([from, to], si) => {
+                if (to > from) ends.up = si;
+                else if (to < from) ends.down = si;
+              });
               return series.map((s, si) => {
                 const [from, to] = spans[i][si];
                 const top = y(Math.max(from, to));
                 const bottom = y(Math.min(from, to));
                 const tall = Math.max(0, bottom - top);
-                return si === series.length - 1 ? <path key={`${i}-${s}`} d={bar(xAt(i) - inner / 2, top, inner, tall, to >= from)} fill={seriesColor(si)} /> : <rect key={`${i}-${s}`} x={xAt(i) - inner / 2} y={top} width={inner} height={tall} fill={seriesColor(si)} />;
+                return si === ends.up || si === ends.down ? <path key={`${i}-${s}`} d={bar(xAt(i) - inner / 2, top, inner, tall, si === ends.up)} fill={seriesColor(si)} /> : <rect key={`${i}-${s}`} x={xAt(i) - inner / 2} y={top} width={inner} height={tall} fill={seriesColor(si)} />;
               });
+            }
             const each = inner / series.length;
             return series.map((s, si) => {
               const v = num(row[s]);
@@ -165,7 +172,7 @@ function Cartesian({ spec, width }: { spec: Spec; width: number }) {
             <span key={s}>
               <i style={{ background: seriesColor(si) }} />
               {series.length > 1 ? `${s} ` : ""}
-              <b>{format(num(tip[s]))}</b>
+              <b>{format(num(tip[s]), false, digits)}</b>
             </span>
           ))}
         </div>
@@ -175,9 +182,13 @@ function Cartesian({ spec, width }: { spec: Spec; width: number }) {
 }
 
 function axis(values: number[], zero: boolean) {
-  const min = Math.min(...values, ...(zero ? [0] : []));
-  const max = Math.max(...values, ...(zero ? [0] : []));
-  const step = niceStep((max - min || Math.abs(max) || 1) / 5);
+  // No values (a scatter without a number series) still gives a finite axis.
+  const list = [...values, ...(zero || values.length === 0 ? [0] : [])];
+  const min = Math.min(...list);
+  const max = Math.max(...list);
+  // Values that differ only by rounding count as one value, so no tick step is lost below the float precision.
+  const span = max - min > Math.abs(max) * 1e-12 ? max - min : 0;
+  const step = niceStep((span || Math.abs(max) || 1) / 5);
   const lo = Math.floor(min / step) * step;
   const hi = Math.max(lo + step, Math.ceil(max / step) * step);
   return { lo, hi, ticks: Array.from({ length: Math.round((hi - lo) / step) + 1 }, (_, k) => lo + k * step) };
@@ -221,8 +232,8 @@ function Scatter({ spec, width }: { spec: Spec; width: number }) {
       {tip && hover && (
         <div className="iui-chart-tooltip" style={{ left: Math.min(Math.max(px(num(tip[x])), 70), width - 70), top: Math.max(0, py(num(tip[series[hover.si]])) - 70) }}>
           <strong>{name ? String(tip[name]) : series[hover.si]}</strong>
-          <span>{x} <b>{xFormat(num(tip[x]))}</b></span>
-          <span><i style={{ background: seriesColor(hover.si) }} />{series[hover.si]} <b>{format(num(tip[series[hover.si]]))}</b></span>
+          <span>{x} <b>{xFormat(num(tip[x]), false, xDigits)}</b></span>
+          <span><i style={{ background: seriesColor(hover.si) }} />{series[hover.si]} <b>{format(num(tip[series[hover.si]]), false, yDigits)}</b></span>
         </div>
       )}
     </div>

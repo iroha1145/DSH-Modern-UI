@@ -5,14 +5,16 @@ export type Format = (value: number, compact?: boolean, digits?: number) => stri
 
 export function makeFormat(kind: string | undefined, currency: string | undefined): Format {
   const code = typeof currency === "string" && /^[A-Za-z]{3}$/.test(currency) ? currency.toUpperCase() : "USD";
-  // Axis ticks are compact ("$2B") and carry as many decimals as their step needs ("0.0005"); tooltips keep two
-  // decimals ("$1.24B"), or three significant digits below 1, so a small non-zero value never reads as 0.
+  // Axis ticks are compact ("$2B") and carry as many decimals as their step needs ("0.0005"); tooltips keep at
+  // least two decimals and the axis step's precision ("$1.24B", "1.0005"), or three significant digits below 1,
+  // so a small non-zero value never reads as 0. Intl accepts at most 20 fraction digits.
   return (value, compact, digits) => {
     const big = Math.abs(value) >= (compact ? 1000 : 1e6);
-    const tiny = digits === undefined && value !== 0 && Math.abs(value) < 1;
+    const tiny = (digits === undefined || !compact) && value !== 0 && Math.abs(value) < 1;
+    const places = Math.min(20, compact ? (digits ?? 2) : Math.max(2, digits ?? 2));
     const fraction: Intl.NumberFormatOptions = tiny
       ? { maximumSignificantDigits: 3 }
-      : { minimumFractionDigits: 0, maximumFractionDigits: big ? (compact ? 1 : 2) : (digits ?? 2) };
+      : { minimumFractionDigits: 0, maximumFractionDigits: big ? (compact ? 1 : 2) : places };
     if (kind === "percent") return `${value.toLocaleString("en-US", { ...fraction, useGrouping: false })}%`;
     const options: Intl.NumberFormatOptions = { ...fraction, ...(big ? { notation: "compact" } : {}) };
     return value.toLocaleString("en-US", kind === "currency" ? { ...options, style: "currency", currency: code } : options);
@@ -21,9 +23,11 @@ export function makeFormat(kind: string | undefined, currency: string | undefine
 
 /** Decimals that tell neighbouring ticks apart: 0 for a step of 1000, 1 for 2.5, 4 for 0.0005. */
 export function stepDigits(step: number) {
+  // Coincident ticks (a step lost to rounding) or a missing step need no decimals; Intl allows at most 20.
+  if (!Number.isFinite(step) || step <= 0) return 0;
   const power = Math.floor(Math.log10(step));
   const lead = step / 10 ** power;
-  return Math.max(0, -power + (Math.abs(lead - Math.round(lead)) > 1e-9 ? 1 : 0));
+  return Math.min(20, Math.max(0, -power + (Math.abs(lead - Math.round(lead)) > 1e-9 ? 1 : 0)));
 }
 
 /** A path of straight segments through the points. */
