@@ -81,10 +81,10 @@ const PARAMETERS = {
   additionalProperties: false,
 }
 
-/** How a call ended; the model reads only `advice`, the rest is for the card and for debugging. */
+/** How a call ended; the model reads only `advice`. The card shows the status and choice; confidence is for debugging. */
 export type AdviceStatus = 'suggestion' | 'no_suggestion' | 'repeated' | 'already_consulted' | 'unavailable' | 'not_sent'
 
-/** The tool's canonical value. Confidence is kept for the card only; it is never part of the advice text. */
+/** The tool's canonical value. Confidence stays in the result metadata; neither the advice text nor the card shows it. */
 export interface Advice {
   readonly status: AdviceStatus
   readonly advice: string
@@ -205,6 +205,9 @@ export interface AdvisorDeps {
   readonly warn: (message: string) => void
 }
 
+/** No key, a key no request header can carry, or a usable key. */
+export type KeyState = 'none' | 'unusable' | 'ready'
+
 /** The parts of a live session the advisor reads. */
 export interface AdvisedSession {
   readonly id: string
@@ -238,12 +241,17 @@ export class PresentationAdvisor {
     return settings.enabled && this.promptEnabled() && isCredentialRefName(settings.credential)
   }
 
-  /** Whether the configured credential currently resolves to a key; never rejects. */
-  async hasKey(): Promise<boolean> {
+  /**
+   * Whether the configured credential resolves to a key a request header can carry. A key with spaces, line
+   * breaks or other characters could never be sent, so it counts as unusable rather than present.
+   * @returns The key's state; never rejects.
+   */
+  async keyState(): Promise<KeyState> {
     try {
-      return (await this.key()) !== undefined
+      const key = await this.key()
+      return key === undefined ? 'none' : HEADER_SAFE.test(key) ? 'ready' : 'unusable'
     } catch {
-      return false
+      return 'none'
     }
   }
 
@@ -391,7 +399,7 @@ export function installJevTool(ctx: Context, settings: () => JevSettings, prompt
     })
     const definition = jevToolDefinition(advisor)
     const fibers = new Map<Agent, Fiber>()
-    let keyPresent = false
+    let keyState: KeyState = 'none'
     let generation = 0
 
     const drop = (agent: Agent) => {
@@ -404,7 +412,7 @@ export function installJevTool(ctx: Context, settings: () => JevSettings, prompt
     }
     const isMain = (agent: Agent) => agent.session.header.origin !== 'subagent' && scope.agents.roots().includes(agent)
     const reconcile = (agent: Agent): Fiber | undefined => {
-      if (!(keyPresent && advisor.allowed() && isMain(agent))) {
+      if (!(keyState === 'ready' && advisor.allowed() && isMain(agent))) {
         drop(agent)
         return undefined
       }
@@ -427,9 +435,13 @@ export function installJevTool(ctx: Context, settings: () => JevSettings, prompt
     }
     const refreshKey = async () => {
       const current = ++generation
-      const present = await advisor.hasKey()
+      const next = await advisor.keyState()
       if (current !== generation) return
-      keyPresent = present
+      // The Settings row refuses such keys, but one from the environment or a .env file only shows up here.
+      if (next === 'unusable' && keyState !== 'unusable') {
+        scope.logger.warn('jev: the TypeSafe key contains spaces, line breaks or other characters a request header cannot carry; the tool stays hidden until the key is replaced')
+      }
+      keyState = next
       reconcileAll()
     }
 

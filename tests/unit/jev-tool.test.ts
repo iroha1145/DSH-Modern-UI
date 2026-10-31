@@ -508,6 +508,32 @@ describe('installJevTool', () => {
     expect(main.state.disposals).toBe(1)
   })
 
+  test('a key a request header cannot carry keeps the tool hidden and is reported once, without the key', async () => {
+    const env = host('Bearer sk-secret')
+    const main = env.main()
+    await env.install()
+    expect(main.state.live).toBeUndefined()
+    expect(env.scope.logger.warn).toHaveBeenCalledTimes(1)
+    const [message] = env.scope.logger.warn.mock.calls[0] as [string]
+    expect(message).toContain('cannot carry')
+    expect(message).not.toMatch(/sk-secret|Bearer/)
+    // The same unusable key again is not reported twice.
+    await env.keyUpdated()
+    expect(env.scope.logger.warn).toHaveBeenCalledTimes(1)
+    env.state.key = 'sk-тест'
+    await env.keyUpdated()
+    expect(main.state.live).toBeUndefined()
+    expect(env.scope.logger.warn).toHaveBeenCalledTimes(1)
+    env.state.key = 'sk-good'
+    await env.keyUpdated()
+    expect(main.state.live?.name).toBe(JEV_TOOL)
+    // Broken again after a usable key: hidden again and reported again.
+    env.state.key = 'sk-bad key'
+    await env.keyUpdated()
+    expect(main.state.live).toBeUndefined()
+    expect(env.scope.logger.warn).toHaveBeenCalledTimes(2)
+  })
+
   test('switching Jev or the presentation prompt off removes the tool; switching back restores it', async () => {
     const env = host('test-key')
     const main = env.main()
