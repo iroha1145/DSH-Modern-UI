@@ -312,6 +312,65 @@ test('nested loops past the expansion budget are never evaluated', async () => {
   await view.unmount()
 })
 
+// Loops whose lengths the source does not fix pass the estimate; the runtime budget stops them while they expand.
+const zeros = count => Array(count).fill(0).join(', ')
+const texts = view => view.host.querySelectorAll('.iui-text').length
+
+test('loops sized by arithmetic stop expanding at the budget instead of drawing 250,000 nodes', async () => {
+  const view = await mount('root = Col(@Each(@Range(0, 500 + 0), "i", @Each(@Range(0, 500 + 0), "j", Text("x"))))')
+  assert.equal(view.block().dataset.state, 'tooLarge')
+  assert.equal(view.host.querySelector('.iui-root'), null)
+  await view.unmount()
+})
+
+test('loops sized by a $variable stop at the budget', async () => {
+  const view = await mount('$x = 500\nroot = Col(@Each(@Range(0, $x), "i", @Each(@Range(0, $x), "j", Text("x"))))')
+  assert.equal(view.block().dataset.state, 'tooLarge')
+  assert.equal(texts(view), 0)
+  await view.unmount()
+})
+
+test('a slider that lengthens nested loops re-renders within the budget and stops past it', async () => {
+  const view = await mount('$n = 3\nroot = Col([Slider($n, 1, 500, 1, "N"), Col(@Each(@Range(0, $n), "i", Row(@Each(@Range(0, $n), "j", Text("c")))))])')
+  for (const n of [12, 40, 12, 40]) {
+    await type(view.host.querySelector('input[type="range"]'), String(n))
+    assert.equal(view.block().dataset.state, 'complete')
+    assert.equal(texts(view), n * n)
+  }
+  await type(view.host.querySelector('input[type="range"]'), '500')
+  assert.equal(view.block().dataset.state, 'tooLarge')
+  assert.equal(texts(view), 0)
+  await view.unmount()
+})
+
+test('components looped over lists the estimate cannot measure stop at the budget', async () => {
+  const view = await mount(`$a = [${zeros(200)}]\nroot = Col(@Each(true ? $a : [], "i", @Each(true ? $a : [], "j", Text("x"))))`)
+  assert.equal(view.block().dataset.state, 'tooLarge')
+  assert.equal(texts(view), 0)
+  await view.unmount()
+})
+
+test('a declared list, or one a click copies into a $variable, is measured at its real length', async () => {
+  const declared = await mount(`$a = [${zeros(200)}]\nroot = Col(@Each($a, "i", @Each($a, "j", "x")))`)
+  assert.equal(declared.block().dataset.state, 'tooLarge')
+  await declared.unmount()
+  const copied = await mount(`$a = [${zeros(200)}]\n$b = []\nroot = Col([Button("Fill", @Set($b, $a)), Col(@Each($b, "i", @Each($b, "j", "x")))])`)
+  assert.equal(copied.block().dataset.state, 'complete')
+  await click(button(copied.host, 'Fill'))
+  assert.equal(copied.block().dataset.state, 'tooLarge')
+  assert.ok(copied.host.textContent.length < 2000)
+  await copied.unmount()
+})
+
+test('a block over budget while it streams gets a fresh attempt when its fence closes', async () => {
+  const view = await mount('root = Col(@Each(@Range(0, 200 + 0), "i", @Each(@Range(0, 200 + 0), "j", Text("x"))))', { streaming: true, closed: false })
+  assert.equal(view.block().dataset.state, 'tooLarge')
+  await view.update({ code: 'root = Col(@Each(@Range(0, 2 + 0), "i", Text("small")))', streaming: true, closed: true })
+  assert.equal(view.block().dataset.state, 'complete')
+  assert.equal(texts(view), 2)
+  await view.unmount()
+})
+
 test('an Image whose address fails shows a placeholder and never searches with its alt text', async () => {
   fetches = []
   const view = await mount('root = Col([Image("https://example.invalid/private.png", "INTERNAL_TEST_caption")])')

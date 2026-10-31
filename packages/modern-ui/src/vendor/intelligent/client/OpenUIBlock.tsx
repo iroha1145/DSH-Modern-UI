@@ -1,5 +1,5 @@
 /** An assistant openui-lang block rendered as live components inside the answer, progressively while it streams. */
-import { Component, useCallback, useMemo, useState, type ReactNode } from 'react'
+import { Component, useCallback, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { BuiltinActionType, createParser, Renderer, type ActionEvent } from '@openuidev/react-lang'
 import { CodeBlock, TextShimmer } from '@iroha1145/dsh-modern-ui/primitives'
 import type { HostObservable, InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
@@ -11,6 +11,7 @@ import { FieldRegistry, FieldRegistryContext } from '../../openui/components/fie
 import { webUrl } from '../../openui/components/style.ts'
 import { UI_TEXT, UiTextContext, type UiText } from '../../openui/components/ui-text.ts'
 import { assistantMessage, CONTENT_LIMIT, EXPANSION_LIMIT, expansionEstimate } from './openui-source.ts'
+import { budgeted, ExpansionBudget } from './openui-budget.ts'
 import './locales.ts'
 import css from './OpenUIBlock.module.css'
 
@@ -37,8 +38,8 @@ class Boundary extends Component<{ fallback: ReactNode; retryKey: unknown; child
 /**
  * Render an openui-lang fence as components. While the fence streams the program renders as far as it has
  * arrived; once it closes, inputs and buttons work while the rest of the answer may still stream. A block
- * that never produces a root keeps its source readable, and one whose loops would expand past the budget is
- * never evaluated.
+ * that never produces a root keeps its source readable, one whose loops would expand past the budget is
+ * never evaluated, and one that runs past its step budget while evaluating or drawing stops and shows its source.
  * Buttons never send on their own: a @ToAssistant click puts its message, with what the reader sees in the
  * inputs, in the composer for the reader to read and send, because a button's label need not match what it
  * sends. A copy shows what was copied.
@@ -58,7 +59,25 @@ export function OpenUIBlock(props: BlockProps) {
   const fields = useMemo(() => new FieldRegistry(), [])
   const text = useMemo(() => Object.fromEntries(Object.keys(UI_TEXT).map(key => [key, t(key as keyof UiText)])) as UiText, [t])
   const parsed = useMemo(() => (code.length > CONTENT_LIMIT ? null : parser.parse(code)), [code])
-  const oversized = useMemo(() => parsed === null || expansionEstimate(parsed.root) > EXPANSION_LIMIT, [parsed])
+  const oversized = useMemo(() => parsed === null || expansionEstimate(parsed.root, parsed.stateDeclarations) > EXPANSION_LIMIT, [parsed])
+  // The estimate cannot know lengths computed at runtime; the Renderer counts real steps against this budget.
+  const [budget] = useState(() => new ExpansionBudget())
+  const counted = useMemo(() => budgeted(library, budget), [budget])
+  const overBudget = useSyncExternalStore(budget.subscribe, budget.exceeded, budget.exceeded)
+  // Like a render failure, a block over budget gets one fresh attempt once its fence closes.
+  const attempt = useRef(closed)
+  useLayoutEffect(() => {
+    if (attempt.current === closed) return
+    attempt.current = closed
+    budget.reset()
+  }, [budget, closed])
+  // A click or an input can put a longer list in a $variable: judge the loops again with the values the
+  // Renderer will read, unwrapped from input fields like its own reads, before it evaluates them.
+  const onStateUpdate = useCallback((state: Record<string, unknown>): void => {
+    const values = Object.fromEntries(Object.entries(state).map(([name, value]) =>
+      [name, value !== null && typeof value === 'object' && !Array.isArray(value) && 'value' in value ? value.value : value]))
+    if (parsed !== null && expansionEstimate(parsed.root, values) > EXPANSION_LIMIT) budget.exceed()
+  }, [parsed, budget])
   // Inputs stay disabled only while this fence itself is still arriving.
   const arriving = streaming && !closed
   // The answer ended (normally or stopped) without closing this fence.
@@ -95,7 +114,7 @@ export function OpenUIBlock(props: BlockProps) {
     <CodeBlock code={code} lang="openui-lang" {...labels} />
   </section>
 
-  if (oversized || parsed === null) return preserved('tooLarge')
+  if (oversized || overBudget || parsed === null) return preserved('tooLarge')
   const rendered = parsed.root !== null
   if (!rendered && (closed || unfinished)) return preserved(closed ? 'invalid' : 'incomplete')
   const { errors, unresolved, incomplete } = parsed.meta
@@ -108,8 +127,8 @@ export function OpenUIBlock(props: BlockProps) {
         <UiTextContext.Provider value={text}>
           <FieldRegistryContext.Provider value={fields}>
             <div className="iui-root" data-theme={scheme}>
-              <Renderer library={library} response={code} isStreaming={arriving} onAction={onAction}
-                onError={(found) => { setRenderErrors(found.length) }} />
+              <Renderer library={counted} response={code} isStreaming={arriving} onAction={onAction}
+                onStateUpdate={onStateUpdate} onError={(found) => { setRenderErrors(found.length) }} />
             </div>
           </FieldRegistryContext.Provider>
         </UiTextContext.Provider>
