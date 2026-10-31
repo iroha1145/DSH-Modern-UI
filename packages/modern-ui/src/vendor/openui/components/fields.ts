@@ -1,5 +1,6 @@
 import { isReactiveAssign, useFormName, useGetFieldValue, useStateField } from "@openuidev/react-lang";
 import { createContext, useContext, useEffect, useId, useRef } from "react";
+import { flushSync } from "react-dom";
 
 type Entry = { form: string | undefined; label: string; read: () => unknown };
 
@@ -21,11 +22,15 @@ export class FieldRegistry {
   }
 
   /**
-   * The current values of one Form's inputs, or of the inputs outside any Form, in mount order.
+   * The current values of one Form's inputs, or of the inputs outside any Form, in mount order. Called from an
+   * action step, outside rendering: it first renders what earlier steps changed, so controls that normalise
+   * their value under new props (a slider whose bound an @Set narrowed, a Select whose options lost its value)
+   * have stored the value they show before it is read.
    * @param form - The Form name of the clicked button, if any.
    * @returns Label and value pairs.
    */
   read(form: string | undefined): [string, unknown][] {
+    flushSync(() => {});
     return [...this.entries.values()].filter((entry) => entry.form === form).map((entry) => [entry.label, entry.read()]);
   }
 }
