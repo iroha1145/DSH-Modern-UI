@@ -2,6 +2,17 @@
   "repository": "https://github.com/thesysdev/open-intelligent-ui",
   "commit": "16ef26475999e3a021a50b1607a03717c0721255",
   "license": "MIT",
+  "runtimePatches": [
+    {
+      "package": "@openuidev/lang-core",
+      "version": "1.0.2",
+      "file": "dist/index.mjs",
+      "sourceSha256": "04f3ec47a49c119d0f65c1963dc17ec7b0f146500a23ba9cb70e0295a998ab17",
+      "patch": "scripts/openui-each-counter.mjs",
+      "patchSha256": "b87765db32c1a1cac1c32c635fa19a104de0af2ff765277fa5dcb364963a008d",
+      "description": "Applied to the bundled copy only, never to node_modules: the lazy @Each evaluation calls a counter that src/vendor/intelligent/client/openui-budget.ts installs, with each list length and the evaluation context, so the block whose Renderer evaluates the loop is charged and an over-budget loop is abandoned. The build fails when the evaluator no longer matches."
+    }
+  ],
   "runtime": {
     "@openuidev/react-lang": "1.0.2",
     "@openuidev/lang-core": "1.0.2",

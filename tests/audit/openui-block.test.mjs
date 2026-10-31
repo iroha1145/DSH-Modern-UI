@@ -8,6 +8,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { build } from 'esbuild'
 import { JSDOM } from 'jsdom'
+import { eachCounterPlugin } from '../../scripts/openui-each-counter.mjs'
 
 const repo = fileURLToPath(new URL('../../', import.meta.url))
 const require = createRequire(import.meta.url)
@@ -64,7 +65,8 @@ const result = await build({
   absWorkingDir: repo,
   tsconfigRaw: {},
   stdin: {
-    contents: "export { OpenUIBlock } from './vendor/intelligent/client/OpenUIBlock.tsx'; export { numberText } from './vendor/openui/components/table.tsx'",
+    contents:
+      "export { OpenUIBlock } from './vendor/intelligent/client/OpenUIBlock.tsx'; export { numberText } from './vendor/openui/components/table.tsx'; export { evaluate } from '@openuidev/lang-core'",
     resolveDir: source,
     loader: 'tsx',
   },
@@ -75,12 +77,14 @@ const result = await build({
   jsx: 'automatic',
   define: { 'process.env.NODE_ENV': '"production"' },
   plugins: [
+    // The OpenUI runtime is bundled with the same @Each patch as the plugin build.
+    eachCounterPlugin(),
     {
       name: 'test-resources',
       setup(builder) {
         builder.onResolve({ filter: /@iroha1145\/dsh-modern-ui\/primitives$/ }, () => ({ path: 'primitives', namespace: 'stub' }))
         builder.onResolve({ filter: /\.css$/ }, args => ({ path: args.path, namespace: 'style' }))
-        builder.onResolve({ filter: /^[^./]/ }, args => ({ path: args.path, external: true }))
+        builder.onResolve({ filter: /^[^./]/ }, args => (args.path.startsWith('@openuidev/') ? undefined : { path: args.path, external: true }))
         builder.onLoad({ filter: /.*/, namespace: 'stub' }, () => ({
           contents:
             "const React = require('react'); export const CodeBlock = ({code}) => React.createElement('pre', {'data-source': true}, code); export const TextShimmer = ({children}) => React.createElement('span', null, children)",
@@ -97,7 +101,7 @@ const result = await build({
 const loaded = new Module(path.join(source, 'openui-block.test.cjs'))
 loaded.paths = Module._nodeModulePaths(repo)
 loaded._compile(result.outputFiles[0].text, loaded.id)
-const { OpenUIBlock, numberText } = loaded.exports
+const { OpenUIBlock, numberText, evaluate } = loaded.exports
 
 /** Mount one block with a recording composer; `update` re-renders it with new stream state. */
 async function mount(code, { streaming = false, closed = true, composer = '' } = {}) {
@@ -272,6 +276,30 @@ test('a declared list, or one a click copies into a $variable, is measured at it
   assert.equal(copied.block().dataset.state, 'tooLarge')
   assert.ok(copied.host.textContent.length < 2000)
   await copied.unmount()
+})
+
+test('text looped over a loop variable stops at the budget', { timeout: 10_000 }, async () => {
+  // Neither the source nor a function fixes the inner list, and the body never calls plugin code: only the
+  // runtime's own @Each can count it.
+  const view = await mount(`$a = [${zeros(200)}]\nxs = @Each(@Range(0, 150), "k", $a)\nroot = Col(@Each(xs, "r", @Each(r, "c", "x")))`)
+  assert.equal(view.block().dataset.state, 'tooLarge')
+  assert.ok(view.host.textContent.length < 2000)
+  await view.unmount()
+})
+
+test('an @Each no block claims still stops within one synchronous run', () => {
+  const each = count => ({
+    k: 'Comp',
+    name: 'Each',
+    args: [
+      { k: 'Arr', els: Array(count).fill({ k: 'Num', v: 0 }) },
+      { k: 'Str', v: 'i' },
+      { k: 'Str', v: 'x' },
+    ],
+  })
+  const context = { getState: () => undefined, resolveRef: () => undefined }
+  assert.equal(evaluate(each(100), context).length, 100)
+  assert.throws(() => evaluate(each(30_000), context), /expansion budget/)
 })
 
 test('a block over budget while it streams gets a fresh attempt when its fence closes', async () => {
