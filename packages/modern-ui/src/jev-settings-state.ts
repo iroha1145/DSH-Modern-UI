@@ -30,6 +30,8 @@ export interface JevCredentials {
 export const DEFAULT_CREDENTIAL = 'TYPESAFE_API_KEY'
 // The credentials service's reference grammar; the Host never resolves any other name.
 const REF_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/
+// What the Host can send as a bearer token (HEADER_SAFE in src/jev-tool.ts): visible ASCII, no spaces or line breaks.
+const HEADER_SAFE = /^[\x21-\x7e]+$/
 
 /** Everything the row renders. */
 export interface JevRowState {
@@ -43,8 +45,8 @@ export interface JevRowState {
   writable: boolean
   /** A key write is in flight. */
   busy: boolean
-  /** Outcome of the latest key write, or of the latest switch write when it failed. */
-  notice: 'saved' | 'removed' | 'writeFailed' | 'switchFailed' | null
+  /** Outcome of the latest key write, or of the latest switch write when it failed; `keyInvalid` means nothing was sent. */
+  notice: 'saved' | 'removed' | 'writeFailed' | 'switchFailed' | 'keyInvalid' | null
 }
 
 /** The row's live state and its actions. */
@@ -85,16 +87,30 @@ export function trackJev(form: JevForm, credentials: JevCredentials): JevState {
   const update = (patch: Partial<JevRowState>) => { state.set({ ...state.getSnapshot(), ...patch }) }
 
   let reads = 0
-  const describe = async () => {
+  let newest: Promise<void> = Promise.resolve()
+  const describe = (): Promise<void> => {
     const read = ++reads
-    const ref = state.getSnapshot().ref
-    if (ref === null) { update({ configured: false, source: undefined, writable: false }); return }
-    const response = await credentials.describe([ref]).catch(() => undefined)
-    // Only the latest read applies: an older answer, or one for a reference since replaced, may describe a state
-    // a save has already changed.
-    if (read !== reads || response?.ok !== true || state.getSnapshot().ref !== ref) return
-    const view = response.value[ref]
-    update({ configured: view?.configured ?? false, source: view?.source, writable: view?.writable ?? true })
+    const run = (async () => {
+      const ref = state.getSnapshot().ref
+      if (ref === null) { update({ configured: false, source: undefined, writable: false }); return }
+      const response = await credentials.describe([ref]).catch(() => undefined)
+      // Only the latest read applies: an older answer, or one for a reference since replaced, may describe a state
+      // a save has already changed.
+      if (read !== reads || response?.ok !== true || state.getSnapshot().ref !== ref) return
+      const view = response.value[ref]
+      update({ configured: view?.configured ?? false, source: view?.source, writable: view?.writable ?? true })
+    })()
+    newest = run
+    return run
+  }
+  /** Read, then wait for whichever read is newest when that one settles: a newer read drops this one's answer. */
+  const described = async () => {
+    let current = describe()
+    while (true) {
+      await current
+      if (current === newest) return
+      current = newest
+    }
   }
 
   const sync = () => {
@@ -123,7 +139,8 @@ export function trackJev(form: JevForm, credentials: JevCredentials): JevState {
     // The configured badge alone cannot tell a refused write from an accepted one when a key already existed.
     const response = await write(ref).catch(() => undefined)
     const ok = response?.ok === true
-    await describe()
+    // The Host's change event starts its own read, which supersedes this one; report only once the row shows the result.
+    await described()
     update({ busy: false, notice: ok ? done : 'writeFailed' })
     return ok
   }
@@ -131,7 +148,16 @@ export function trackJev(form: JevForm, credentials: JevCredentials): JevState {
   return {
     state,
     setEnabled,
-    saveKey: value => value.trim() === '' ? Promise.resolve(false) : writeKey(ref => credentials.set(ref, value.trim()), 'saved'),
+    saveKey: (value) => {
+      const key = value.trim()
+      if (key === '') return Promise.resolve(false)
+      // The Host could never send such a key, so it is refused here instead of stored and silently unused.
+      if (!HEADER_SAFE.test(key)) {
+        if (!state.getSnapshot().busy) update({ notice: 'keyInvalid' })
+        return Promise.resolve(false)
+      }
+      return writeKey(ref => credentials.set(ref, key), 'saved')
+    },
     removeKey: () => writeKey(ref => credentials.unset(ref), 'removed'),
     refresh: (ref) => { if (ref === state.getSnapshot().ref) void describe() },
     dispose: (() => {
@@ -162,6 +188,7 @@ const zh = {
   'settings.jev.removed': '密钥已移除',
   'settings.jev.writeFailed': '没有保存成功，请重试',
   'settings.jev.switchFailed': '开关保存失败，设置没有改变，请重试',
+  'settings.jev.keyInvalid': '密钥里有空格、换行或非 ASCII 字符，没有保存。只粘贴密钥本身，不要带「Bearer」。',
 }
 type Dictionary = Record<keyof typeof zh, string>
 const en: Dictionary = {
@@ -181,6 +208,7 @@ const en: Dictionary = {
   'settings.jev.removed': 'Key removed',
   'settings.jev.writeFailed': 'Could not save. Try again.',
   'settings.jev.switchFailed': 'Could not save the switch; the setting is unchanged. Try again.',
+  'settings.jev.keyInvalid': 'Not saved: the key contains spaces, line breaks or non-ASCII characters. Paste only the key itself, without "Bearer".',
 }
 const ja: Dictionary = {
   'settings.jev.title': 'Jev による表示方法の助言',
@@ -199,6 +227,7 @@ const ja: Dictionary = {
   'settings.jev.removed': 'キーを削除しました',
   'settings.jev.writeFailed': '保存できませんでした。もう一度お試しください',
   'settings.jev.switchFailed': 'スイッチを保存できませんでした。設定は変更されていません。もう一度お試しください',
+  'settings.jev.keyInvalid': '保存していません。キーに空白・改行・ASCII 以外の文字が含まれています。「Bearer」を付けず、キーだけを貼り付けてください。',
 }
 const es: Dictionary = {
   'settings.jev.title': 'Consejo de presentación de Jev',
@@ -217,6 +246,7 @@ const es: Dictionary = {
   'settings.jev.removed': 'Clave quitada',
   'settings.jev.writeFailed': 'No se pudo guardar. Inténtalo de nuevo.',
   'settings.jev.switchFailed': 'No se pudo guardar el interruptor; el ajuste no ha cambiado. Inténtalo de nuevo.',
+  'settings.jev.keyInvalid': 'No se guardó: la clave contiene espacios, saltos de línea o caracteres no ASCII. Pega solo la clave, sin «Bearer».',
 }
 const fr: Dictionary = {
   'settings.jev.title': 'Conseil de présentation par Jev',
@@ -235,6 +265,7 @@ const fr: Dictionary = {
   'settings.jev.removed': 'Clé supprimée',
   'settings.jev.writeFailed': 'Échec de l’enregistrement. Réessayez.',
   'settings.jev.switchFailed': 'Échec de l’enregistrement de l’interrupteur ; le réglage n’a pas changé. Réessayez.',
+  'settings.jev.keyInvalid': 'Non enregistrée : la clé contient des espaces, des retours à la ligne ou des caractères non ASCII. Collez seulement la clé, sans « Bearer ».',
 }
 const de: Dictionary = {
   'settings.jev.title': 'Darstellungsrat von Jev',
@@ -253,6 +284,7 @@ const de: Dictionary = {
   'settings.jev.removed': 'Schlüssel entfernt',
   'settings.jev.writeFailed': 'Speichern fehlgeschlagen. Bitte erneut versuchen.',
   'settings.jev.switchFailed': 'Schalter nicht gespeichert; die Einstellung ist unverändert. Bitte erneut versuchen.',
+  'settings.jev.keyInvalid': 'Nicht gespeichert: Der Schlüssel enthält Leerzeichen, Zeilenumbrüche oder Nicht-ASCII-Zeichen. Nur den Schlüssel selbst einfügen, ohne „Bearer“.',
 }
 const ru: Dictionary = {
   'settings.jev.title': 'Советы Jev по виду ответа',
@@ -271,6 +303,7 @@ const ru: Dictionary = {
   'settings.jev.removed': 'Ключ удалён',
   'settings.jev.writeFailed': 'Не удалось сохранить. Попробуйте ещё раз.',
   'settings.jev.switchFailed': 'Не удалось сохранить переключатель; настройка не изменилась. Попробуйте ещё раз.',
+  'settings.jev.keyInvalid': 'Не сохранено: в ключе есть пробелы, переносы строк или символы не из ASCII. Вставьте только сам ключ, без «Bearer».',
 }
 const pt: Dictionary = {
   'settings.jev.title': 'Conselho de apresentação do Jev',
@@ -289,6 +322,7 @@ const pt: Dictionary = {
   'settings.jev.removed': 'Chave removida',
   'settings.jev.writeFailed': 'Não foi possível salvar. Tente novamente.',
   'settings.jev.switchFailed': 'Não foi possível salvar o interruptor; a configuração não mudou. Tente novamente.',
+  'settings.jev.keyInvalid': 'Não salvo: a chave contém espaços, quebras de linha ou caracteres não ASCII. Cole apenas a chave, sem «Bearer».',
 }
 /** Row copy in the eight interface languages. */
 export const jevLocale = { zh, en, ja, es, fr, de, ru, pt }

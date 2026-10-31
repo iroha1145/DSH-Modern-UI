@@ -11,6 +11,7 @@ import { ToolCallTree } from './vendor/tool/client/tool/ToolCallTree.tsx'
 import { CONVERSATION_NS as NS } from './vendor/tool/client/locale.ts'
 import * as locale from './vendor/tool/client/dictionaries.ts'
 import * as chatLocale from './vendor/chat/client/locale.ts'
+import { jevToolLocale } from './jev-tool-card.ts'
 import { bashToolviewSample } from './vendor/tool/client/tool/toolviews/bash-sample.tsx'
 import { readToolview } from './vendor/tool/client/tool/toolviews/read-row.tsx'
 import { readImageToolview } from './vendor/tool/client/tool/toolviews/read-image-row.tsx'
@@ -29,6 +30,7 @@ export function apply(ctx: Context): void {
     ...locale[language],
     'codeBlock.collapse': chatLocale[language]['codeBlock.collapse'],
     'codeBlock.expand': chatLocale[language]['codeBlock.expand'],
+    ...jevToolLocale[language],
   })
   const dictionaries = { zh: dictionary('zh'), en: dictionary('en'), ja: dictionary('ja'), es: dictionary('es'),
     fr: dictionary('fr'), de: dictionary('de'), ru: dictionary('ru'), pt: dictionary('pt') }

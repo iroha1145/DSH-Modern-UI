@@ -90,6 +90,53 @@ describe('trackJev', () => {
     expect(credentials.set).toHaveBeenCalledTimes(1)
   })
 
+  test('a key a request header cannot carry is refused before anything is stored', async () => {
+    const { form } = hostForm()
+    const { credentials, stored } = hostCredentials()
+    const state = trackJev(form, credentials)
+    await settled()
+    for (const value of ['Bearer sk-test', 'sk-te st', 'sk-тест', 'sk-test\nsecond']) {
+      expect(await state.saveKey(value)).toBe(false)
+      expect(state.state.getSnapshot()).toMatchObject({ configured: false, busy: false, notice: 'keyInvalid' })
+    }
+    expect(credentials.set).not.toHaveBeenCalled()
+    expect(stored).toEqual({})
+    // A valid key afterwards saves as usual and clears the notice.
+    expect(await state.saveKey('sk-test')).toBe(true)
+    expect(state.state.getSnapshot()).toMatchObject({ configured: true, notice: 'saved' })
+  })
+
+  test('a save is not reported until the read issued after the Host change event has answered', async () => {
+    const { form } = hostForm()
+    const answers: ((view: CredentialView) => void)[] = []
+    const credentials: JevCredentials = {
+      describe: vi.fn(
+        (refs: string[]) =>
+          new Promise(resolve => {
+            answers.push(view => resolve({ ok: true as const, value: { [refs[0]]: view } }))
+          }),
+      ),
+      set: vi.fn(async () => ({ ok: true as const, value: undefined })),
+      unset: vi.fn(async () => ({ ok: true as const, value: undefined })),
+    }
+    const state = trackJev(form, credentials)
+    answers[0]({ configured: false, writable: true })
+    await settled()
+    const saving = state.saveKey('sk-test')
+    await settled()
+    // The save's own read, then the read the Host's credentials/reference-updated event starts.
+    expect(answers).toHaveLength(2)
+    state.refresh('TYPESAFE_API_KEY')
+    answers[1]({ configured: true, source: 'file', writable: true })
+    await settled()
+    // The save's read was superseded, so its answer is dropped; the row keeps waiting rather than reporting
+    // "saved" next to a badge that still says no key is configured.
+    expect(state.state.getSnapshot()).toMatchObject({ busy: true, notice: null })
+    answers[2]({ configured: true, source: 'file', writable: true })
+    expect(await saving).toBe(true)
+    expect(state.state.getSnapshot()).toMatchObject({ busy: false, configured: true, source: 'file', notice: 'saved' })
+  })
+
   test('a refused write reads as a failure even when a key was already configured', async () => {
     const { form } = hostForm()
     const { credentials, refuseWrites } = hostCredentials({ TYPESAFE_API_KEY: { configured: true, source: 'file', writable: true } })

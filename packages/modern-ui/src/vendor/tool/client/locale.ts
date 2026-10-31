@@ -3,6 +3,7 @@
 export const CONVERSATION_NS = 'modern-tool'
 
 import type * as dictionaries from './dictionaries.ts'
+import type { jevToolLocale } from '../../../jev-tool-card.ts'
 declare module '@deepseek-ai/dsh-client-ui-slots' {
-  interface LocaleNamespaceMap { 'modern-tool': keyof typeof dictionaries.zh | 'codeBlock.collapse' | 'codeBlock.expand' }
+  interface LocaleNamespaceMap { 'modern-tool': keyof typeof dictionaries.zh | 'codeBlock.collapse' | 'codeBlock.expand' | keyof typeof jevToolLocale.zh }
 }
