@@ -81,6 +81,11 @@ describe('routingHint', () => {
       'answer in Markdown without an openui-lang block, unless the user asked for a visual',
     )
     expect(routingHint({ presentation: 'table', confidence: 0.9 })).toContain("the user's explicit wishes win")
+    expect(routingHint({ presentation: 'several_visuals', confidence: 0.4 })).toContain('several_visuals — use openui-lang blocks that combine')
+  })
+
+  test('carries the confidence, so a weak suggestion reads as one', () => {
+    expect(routingHint({ presentation: 'text', confidence: 0.4123 })).toContain('(confidence 0.41; it may be wrong;')
   })
 
   test('covers every presentation offered to Jev', () => {
@@ -147,7 +152,10 @@ describe('PresentationRouter', () => {
     expect(calls[0].url).toBe('http://127.0.0.1:9/v1/systemone')
     expect((calls[0].init.headers as Record<string, string>).authorization).toBe('Bearer test-key')
     expect(calls[0].body).toMatchObject({ model: 'jev-latest', state: { conversation: [{ role: 'user', content: 'compare redis and memcached' }] } })
-    expect(Object.keys((calls[0].body.questions as { presentation: { criteria: object } }).presentation.criteria)).toEqual(Object.keys(PRESENTATIONS))
+    const question = (calls[0].body.questions as { presentation: { criteria: object; instructions: string } }).presentation
+    expect(Object.keys(question.criteria)).toEqual(Object.keys(PRESENTATIONS))
+    // A request for visuals of no named kind must not fall back to plain text.
+    expect(question.instructions).toContain('or several_visuals when they want more than one; never text')
     live.entries.push(assistant('done'), user('u2', 'now draw the request path'))
     await router.decide(live)
     expect(calls).toHaveLength(2)

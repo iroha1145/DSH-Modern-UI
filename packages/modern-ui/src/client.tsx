@@ -38,6 +38,7 @@ import { installFileDrag } from './file-drag.ts'
 import { installQuotes } from './quotes.ts'
 import { installPresentationParity } from './presentation-parity.ts'
 import { installPresentationSettings } from './presentation-settings.tsx'
+import { installJevSettings } from './jev-settings.tsx'
 import { installPluginDocuments } from './plugin-documents/index.tsx'
 import { installOfficialControls } from './official-controls.ts'
 import { installCommunityMarkdown } from './community-markdown.ts'
@@ -126,6 +127,8 @@ function installPresentation(ctx: Context): void {
   // Code-fence presenters beside the standard CodeBlock (priority 100, registered by the chat entry).
   // Each follows its `presentation` switch: a fence whose presenter is off renders as plain code.
   const presentation = installPresentationSettings(ctx)
+  // The optional Jev row needs the credentials Remote; without it the row is simply absent.
+  ctx.inject(['remote.credentials'], scope => { installJevSettings(scope, presentation) })
   ctx.slots.inject('conversation.chat.message.code', () => {
     const presenters = {
       openui: () => ctx.slots.register({

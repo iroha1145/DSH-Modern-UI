@@ -3585,7 +3585,7 @@
     },
     {
       "target": "src/client.tsx",
-      "targetSha256": "b8934697db8f8635abc90b85aff785bfacc087faf1fd1ccf519ef6a3e455d3fa",
+      "targetSha256": "5213756cdbfe403c57c4f6158b8862191942e922bbca376d9defa3e742b784ce",
       "description": "Original plugin composition, public owner selection and presentation/service registration."
     },
     {
@@ -3685,8 +3685,23 @@
     },
     {
       "target": "src/jev-routing.ts",
-      "targetSha256": "4ce981a2918cdd3b2e864f1dbd229e2b1d7650ed3744511ff84794a4834a29a6",
+      "targetSha256": "323d3398d6736e606011f336d001653386a4b91306031f6320242f1f623b6798",
       "description": "Original optional TypeSafe Jev presentation routing: one System One choice per user message, delivered as a runtime-context hint through the public system-prompt assembly; no hint and no failure without a key or on error."
+    },
+    {
+      "target": "src/jev-settings-state.ts",
+      "targetSha256": "e26e7a3fc5083250bc4ecbd1479d7c10262b8e66e19084f1d72d71df32a56b79",
+      "description": "Original state for the Jev settings row: the jev.enabled switch through the Modern UI config form and the TypeSafe key through the official credentials Remote, which never returns the value."
+    },
+    {
+      "target": "src/jev-settings.tsx",
+      "targetSha256": "505e8ff0677a47d1df6d9b4b45b046837c3cc58b1e3a23b814a9d7c7c7cd5f32",
+      "description": "Original Settings → General row for the optional Jev routing: what it does, a write-only key field built from the official SettingsSecretField, and the switch once a key exists."
+    },
+    {
+      "target": "src/jev-settings.module.css",
+      "targetSha256": "cbcc052cdc0ab83cf9b46d21f7fab4b28c5e5e1279acc11d2575892eecf89d61",
+      "description": "Original styles for the Jev settings row, matching the Modern preference rows."
     }
   ],
   "adapters": [
