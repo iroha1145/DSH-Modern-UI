@@ -1,4 +1,4 @@
-/** Settings row for the optional Jev presentation routing, under the answer visual components switch. */
+/** Settings row for the optional Jev presentation advice tool, under the answer visual components switch. */
 import { useState } from 'react'
 import type { Context } from '@deepseek-ai/cordis'
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'

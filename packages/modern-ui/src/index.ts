@@ -6,7 +6,7 @@ import { Config as ChatConfig } from '@deepseek-ai/dsh-client-ui-chat'
 import { Config as PickerConfig } from './vendor/model/index.ts'
 import { PRESENTATION_PROMPT } from './vendor/intelligent/presentation-prompt.ts'
 import { apply as installBootStyle } from './host-compat/official-style/index.ts'
-import { installJevRouting, JevConfig, type JevSettings } from './jev-routing.ts'
+import { installJevTool, JevConfig, type JevSettings } from './jev-tool.ts'
 
 export const Config = z.object({
   ...PickerConfig.dict,
@@ -25,7 +25,7 @@ export const Config = z.object({
     openui: z.boolean().default(true),
     followups: z.boolean().default(true),
   }).default({}).volatile(),
-  // Optional TypeSafe Jev presentation routing; inactive until the credential resolves to a key.
+  // Optional TypeSafe Jev presentation advice the model may consult; inactive until the credential resolves to a key.
   jev: JevConfig.default({}).volatile(),
 })
 
@@ -57,6 +57,6 @@ export function apply(ctx: Context, config: { enabled: boolean; presentation?: V
     interpolate: false,
     text: () => promptEnabled(config.presentation) ? PRESENTATION_PROMPT : '',
   })))
-  // Jev only refines how a taught model presents its answer, so it follows the presentation prompt switch.
-  installJevRouting(ctx, () => jevSettings(config.jev), () => promptEnabled(config.presentation))
+  // Jev only advises a model taught the components, so its tool follows the presentation prompt switch.
+  installJevTool(ctx, () => jevSettings(config.jev), () => promptEnabled(config.presentation))
 }

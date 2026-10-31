@@ -3,7 +3,7 @@ import { createSnapshotStore, type ObservableSnapshot } from '@deepseek-ai/dsh-c
 import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
 
-/** The `jev` section fields the row reads (see JevConfig in src/jev-routing.ts). */
+/** The `jev` section fields the row reads (see JevConfig in src/jev-tool.ts). */
 export interface JevSection {
   enabled?: unknown
   credential?: unknown
@@ -146,8 +146,8 @@ export function trackJev(form: JevForm, credentials: JevCredentials): JevState {
 export const JEV_LOCALE = 'modern-jev-settings'
 
 const zh = {
-  'settings.jev.title': 'Jev 渲染路由',
-  'settings.jev.description': '可选。填入 TypeSafe 的密钥后，每条新消息会先请 Jev 判断回答适合用文字、表格、图表还是流程图展示，再交给模型参考。没有密钥时不会联系 TypeSafe。',
+  'settings.jev.title': 'Jev 呈现建议',
+  'settings.jev.description': '可选。填入 TypeSafe 的密钥后，模型回答前可以请 Jev 参谋一下，用文字、表格、图表还是流程图来展示。Jev 只看到这一轮的请求和模型写的一小段内容结构概述；问不问、采不采纳都由模型决定。没有密钥时不会联系 TypeSafe。',
   'settings.jev.site': 'TypeSafe 官网',
   'settings.jev.needsPrompt': '要先打开上面的「回答可视化组件」才会生效。',
   'settings.jev.enable': '使用 Jev',
@@ -165,8 +165,8 @@ const zh = {
 }
 type Dictionary = Record<keyof typeof zh, string>
 const en: Dictionary = {
-  'settings.jev.title': 'Jev presentation routing',
-  'settings.jev.description': 'Optional. With a TypeSafe key, each new message first asks Jev whether the answer is best shown as text, a table, a chart or a flowchart, and the model gets that as a suggestion. Without a key, TypeSafe is never contacted.',
+  'settings.jev.title': 'Jev presentation advice',
+  'settings.jev.description': "Optional. With a TypeSafe key, the model may ask Jev before answering whether text, a table, a chart or a flowchart would present the answer well. Jev sees only this turn's request and the model's short outline of the content's structure; whether to ask, and whether to follow the advice, is up to the model. Without a key, TypeSafe is never contacted.",
   'settings.jev.site': 'TypeSafe website',
   'settings.jev.needsPrompt': 'Takes effect only while "Answer visual components" above is on.',
   'settings.jev.enable': 'Use Jev',
@@ -183,8 +183,8 @@ const en: Dictionary = {
   'settings.jev.switchFailed': 'Could not save the switch; the setting is unchanged. Try again.',
 }
 const ja: Dictionary = {
-  'settings.jev.title': 'Jev による表示方法の選択',
-  'settings.jev.description': '任意。TypeSafe のキーを入れると、新しいメッセージごとに回答をテキスト・表・グラフ・フローチャートのどれで見せるかを Jev が判断し、モデルに参考として渡します。キーがなければ TypeSafe には接続しません。',
+  'settings.jev.title': 'Jev による表示方法の助言',
+  'settings.jev.description': '任意。TypeSafe のキーを入れると、モデルは回答の前に、テキスト・表・グラフ・フローチャートのどれで見せるとよいかを Jev に相談できます。Jev が見るのは今回のリクエストと、モデルが書いた内容の構成の短い説明だけです。相談するか、助言に従うかはモデルが決めます。キーがなければ TypeSafe には接続しません。',
   'settings.jev.site': 'TypeSafe のサイト',
   'settings.jev.needsPrompt': '上の「回答のビジュアルコンポーネント」がオンのときだけ有効です。',
   'settings.jev.enable': 'Jev を使う',
@@ -201,8 +201,8 @@ const ja: Dictionary = {
   'settings.jev.switchFailed': 'スイッチを保存できませんでした。設定は変更されていません。もう一度お試しください',
 }
 const es: Dictionary = {
-  'settings.jev.title': 'Enrutado de presentación con Jev',
-  'settings.jev.description': 'Opcional. Con una clave de TypeSafe, cada mensaje nuevo pregunta primero a Jev si conviene mostrar la respuesta como texto, tabla, gráfico o diagrama de flujo, y el modelo lo recibe como sugerencia. Sin clave no se contacta con TypeSafe.',
+  'settings.jev.title': 'Consejo de presentación de Jev',
+  'settings.jev.description': 'Opcional. Con una clave de TypeSafe, el modelo puede consultar a Jev antes de responder si conviene presentar la respuesta como texto, tabla, gráfico o diagrama de flujo. Jev solo ve la petición de este turno y un breve resumen de la estructura del contenido escrito por el modelo; el modelo decide si consulta y si sigue el consejo. Sin clave no se contacta con TypeSafe.',
   'settings.jev.site': 'Sitio de TypeSafe',
   'settings.jev.needsPrompt': 'Solo tiene efecto con «Componentes visuales en respuestas» activado.',
   'settings.jev.enable': 'Usar Jev',
@@ -219,8 +219,8 @@ const es: Dictionary = {
   'settings.jev.switchFailed': 'No se pudo guardar el interruptor; el ajuste no ha cambiado. Inténtalo de nuevo.',
 }
 const fr: Dictionary = {
-  'settings.jev.title': 'Choix de présentation par Jev',
-  'settings.jev.description': 'Facultatif. Avec une clé TypeSafe, chaque nouveau message demande d’abord à Jev si la réponse se présente mieux en texte, tableau, graphique ou organigramme ; le modèle reçoit ce choix comme suggestion. Sans clé, TypeSafe n’est jamais contacté.',
+  'settings.jev.title': 'Conseil de présentation par Jev',
+  'settings.jev.description': 'Facultatif. Avec une clé TypeSafe, le modèle peut demander à Jev, avant de répondre, si un texte, un tableau, un graphique ou un organigramme présenterait bien la réponse. Jev ne voit que la demande de ce tour et un court résumé de la structure du contenu rédigé par le modèle ; c’est le modèle qui décide de consulter Jev et de suivre ou non son avis. Sans clé, TypeSafe n’est jamais contacté.',
   'settings.jev.site': 'Site de TypeSafe',
   'settings.jev.needsPrompt': 'Ne s’applique que si « Composants visuels des réponses » est activé.',
   'settings.jev.enable': 'Utiliser Jev',
@@ -237,8 +237,8 @@ const fr: Dictionary = {
   'settings.jev.switchFailed': 'Échec de l’enregistrement de l’interrupteur ; le réglage n’a pas changé. Réessayez.',
 }
 const de: Dictionary = {
-  'settings.jev.title': 'Darstellungswahl mit Jev',
-  'settings.jev.description': 'Optional. Mit einem TypeSafe-Schlüssel fragt jede neue Nachricht zuerst Jev, ob die Antwort am besten als Text, Tabelle, Diagramm oder Flussdiagramm erscheint; das Modell erhält das als Vorschlag. Ohne Schlüssel wird TypeSafe nie kontaktiert.',
+  'settings.jev.title': 'Darstellungsrat von Jev',
+  'settings.jev.description': 'Optional. Mit einem TypeSafe-Schlüssel kann das Modell vor der Antwort Jev fragen, ob Text, Tabelle, Diagramm oder Flussdiagramm die Antwort gut darstellt. Jev sieht nur die Anfrage dieses Durchgangs und eine kurze Beschreibung der Inhaltsstruktur vom Modell; ob es fragt und dem Rat folgt, entscheidet das Modell. Ohne Schlüssel wird TypeSafe nie kontaktiert.',
   'settings.jev.site': 'TypeSafe-Website',
   'settings.jev.needsPrompt': 'Wirkt nur, solange „Visuelle Antwortkomponenten“ oben an ist.',
   'settings.jev.enable': 'Jev verwenden',
@@ -255,8 +255,8 @@ const de: Dictionary = {
   'settings.jev.switchFailed': 'Schalter nicht gespeichert; die Einstellung ist unverändert. Bitte erneut versuchen.',
 }
 const ru: Dictionary = {
-  'settings.jev.title': 'Выбор вида ответа через Jev',
-  'settings.jev.description': 'Необязательно. С ключом TypeSafe каждое новое сообщение сначала спрашивает Jev, как лучше показать ответ: текстом, таблицей, графиком или схемой, и модель получает это как подсказку. Без ключа к TypeSafe нет обращений.',
+  'settings.jev.title': 'Советы Jev по виду ответа',
+  'settings.jev.description': 'Необязательно. С ключом TypeSafe модель может перед ответом спросить Jev, как лучше его показать: текстом, таблицей, графиком или схемой. Jev видит только запрос этого хода и краткое описание структуры содержимого от модели; спрашивать ли и следовать ли совету, решает модель. Без ключа к TypeSafe нет обращений.',
   'settings.jev.site': 'Сайт TypeSafe',
   'settings.jev.needsPrompt': 'Работает, только когда выше включены «Визуальные компоненты ответов».',
   'settings.jev.enable': 'Использовать Jev',
@@ -273,8 +273,8 @@ const ru: Dictionary = {
   'settings.jev.switchFailed': 'Не удалось сохранить переключатель; настройка не изменилась. Попробуйте ещё раз.',
 }
 const pt: Dictionary = {
-  'settings.jev.title': 'Escolha de apresentação com Jev',
-  'settings.jev.description': 'Opcional. Com uma chave da TypeSafe, cada mensagem nova pergunta primeiro ao Jev se a resposta fica melhor como texto, tabela, gráfico ou fluxograma, e o modelo recebe isso como sugestão. Sem chave, a TypeSafe nunca é contatada.',
+  'settings.jev.title': 'Conselho de apresentação do Jev',
+  'settings.jev.description': 'Opcional. Com uma chave da TypeSafe, o modelo pode consultar o Jev antes de responder se a resposta fica melhor como texto, tabela, gráfico ou fluxograma. O Jev só vê o pedido desta rodada e um breve resumo da estrutura do conteúdo escrito pelo modelo; consultar e seguir o conselho fica a critério do modelo. Sem chave, a TypeSafe nunca é contatada.',
   'settings.jev.site': 'Site da TypeSafe',
   'settings.jev.needsPrompt': 'Só funciona com «Componentes visuais nas respostas» ativado.',
   'settings.jev.enable': 'Usar Jev',

@@ -3600,7 +3600,7 @@
     },
     {
       "target": "src/index.ts",
-      "targetSha256": "9f55957507ade23d645ab8eda226672b049d53af3113da8e09eff467af9de522",
+      "targetSha256": "1d110feafcfed6af1b951b8089d285e28a209388c9e531282524af1e22a93adb",
       "description": "Original Host manifest/configuration, migration settings and plugin entry wiring."
     },
     {
@@ -3684,19 +3684,19 @@
       "description": "Original pure helpers for openui-lang fences: which bodies render, the parse size bound, and the text a @ToAssistant click sends."
     },
     {
-      "target": "src/jev-routing.ts",
-      "targetSha256": "64513fb96e4b6637922cef83950809297b1ac1dd614fcdea720d38930245754b",
-      "description": "Original optional TypeSafe Jev presentation routing: one System One choice per user message; a confident visual choice becomes an optional runtime-context note through the public system-prompt assembly, while plain-text or unsure choices, a missing key and errors add nothing and never fail a turn."
+      "target": "src/jev-tool.ts",
+      "targetSha256": "4a2ab0db8550028e94aa3a47769e57ff47f684824f3312f373010f1b029eca03",
+      "description": "Original optional TypeSafe Jev presentation advice tool: registered only in main agents' own tool scopes while the presentation prompt, jev.enabled and a resolvable key allow it; on a model call it sends the user messages of the turn being processed plus the model's structure summary (at most 600 characters) as one System One choice per turn, and returns an ordinary, ignorable tool result; a missing key, errors and cancellation return \"no suggestion\" and never fail a turn."
     },
     {
       "target": "src/jev-settings-state.ts",
-      "targetSha256": "7b9fe98f9561c7b0823a792574f5ce5249e8420306cfeb9405d2d22ace4d39ac",
+      "targetSha256": "e4cc67fcfc01ec90c3069e4546a140ea38b8771f55b27ed4755c4c66ff73fccb",
       "description": "Original state for the Jev settings row: the jev.enabled switch through the Modern UI config form and the TypeSafe key through the official credentials Remote, which never returns the value."
     },
     {
       "target": "src/jev-settings.tsx",
-      "targetSha256": "505e8ff0677a47d1df6d9b4b45b046837c3cc58b1e3a23b814a9d7c7c7cd5f32",
-      "description": "Original Settings → General row for the optional Jev routing: what it does, a write-only key field built from the official SettingsSecretField, and the switch once a key exists."
+      "targetSha256": "b912e9d19fb9ca48d52496886e33ad1b97a09e5c534aaaaa94b682ddfcf279ca",
+      "description": "Original Settings → General row for the optional Jev presentation advice tool: what it does, a write-only key field built from the official SettingsSecretField, and the switch once a key exists."
     },
     {
       "target": "src/jev-settings.module.css",
