@@ -54,7 +54,6 @@ export function OpenUIBlock(props: BlockProps) {
     || (session.subagent.address.mode === 'continuable' && session.subagent.parentAvailable === true)))
   const allowed = useAccess('session/prompt')
   const [renderErrors, setRenderErrors] = useState(0)
-  const [source, setSource] = useState(false)
   const [notice, setNotice] = useState<Notice | null>(null)
   const fields = useMemo(() => new FieldRegistry(), [])
   const text = useMemo(() => Object.fromEntries(Object.keys(UI_TEXT).map(key => [key, t(key as keyof UiText)])) as UiText, [t])
@@ -101,9 +100,6 @@ export function OpenUIBlock(props: BlockProps) {
   if (!rendered && (closed || unfinished)) return preserved(closed ? 'invalid' : 'incomplete')
   const { errors, unresolved, incomplete } = parsed.meta
   const issues = !arriving && rendered && (unfinished || incomplete || errors.length > 0 || unresolved.length > 0 || renderErrors > 0)
-  const toggle = <button type="button" onClick={() => { setSource(value => !value) }} aria-expanded={source}>
-    {t(source ? 'hideSource' : 'source')}
-  </button>
 
   return <section className={css.block} data-openui-block data-state={arriving ? 'streaming' : issues ? 'partial' : 'complete'}>
     {!rendered && <div className={css.placeholder} role="status"><TextShimmer active>{t('preparing')}</TextShimmer></div>}
@@ -118,13 +114,11 @@ export function OpenUIBlock(props: BlockProps) {
           </FieldRegistryContext.Provider>
         </UiTextContext.Provider>
       </Boundary>
-      {rendered && !arriving && <div className={css.actions}>{toggle}</div>}
     </div>
     {issues && <p className={css.status} role="status"><span>{t(unfinished || incomplete ? 'incomplete' : 'partial')}</span></p>}
     {notice !== null && <p className={css.status} role="status">
       <span>{t(notice.key)}</span>
       {notice.detail !== undefined && <code className={css.copied}>{notice.detail}</code>}
     </p>}
-    {source && <CodeBlock code={code} lang="openui-lang" {...labels} />}
   </section>
 }
