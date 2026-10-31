@@ -8,20 +8,20 @@
     "lucide-react": "0.562.0",
     "zod": "4.6.7"
   },
-  "adaptation": "The OpenUI component library, generic @functions and prompt guidance of the Open Intelligent UI demo, rendered by @openuidev/react-lang inside DSH answers. Theme tokens are scoped to the rendered block and follow the DSH palette; weights use 400/500/600 and quotes have no side rule. The street map, YouTube, confetti, dashboard-data and color functions are omitted, consumer-only helpers are filtered from the prompt, icons resolve through lucide-react exports instead of dynamic imports, SearchImage runs the demo server routes' Wikipedia and Wikimedia Commons lookups from the browser, HtmlView runs in two nested sandboxes without network access (WebRTC constructors are removed as a best effort), pixel lengths are capped, interface words come from the block's dictionaries, and the prompt options teach openui-lang fences inside Markdown answers. Flow diagram components, the interface-word context and the generated prompt are original to DSH. No Next.js app, demo server route, OpenUI Cloud gateway or autofix client is distributed.",
+  "adaptation": "The OpenUI component library, generic @functions and prompt guidance of the Open Intelligent UI demo, rendered by @openuidev/react-lang inside DSH answers. Theme tokens are scoped to the rendered block and follow the DSH palette; weights use 400/500/600 and quotes have no side rule. The street map, YouTube, confetti, dashboard-data and color functions are omitted, consumer-only helpers are filtered from the prompt, icons resolve through lucide-react exports instead of dynamic imports, SearchImage runs the demo server routes' Wikipedia and Wikimedia Commons lookups from the browser, HtmlView runs in two nested sandboxes without network access (WebRTC constructors are removed as a best effort), pixel lengths and @Range are capped, an Image whose address fails no longer searches by its alt text, table numbers keep small values, stacked charts stack negative values downward, Code copies through the shared clipboard fallback, inputs record their shown values in a field registry (components/fields.ts, which also holds the upstream useFieldName helper) for @ToAssistant, interface words come from the block's dictionaries, and the prompt options teach openui-lang fences inside Markdown answers. Flow diagram components, the interface-word context and the generated prompt are original to DSH. No Next.js app, demo server route, OpenUI Cloud gateway or autofix client is distributed.",
   "files": [
     {
       "source": "src/lib/actions.ts",
       "target": "src/vendor/openui/actions.ts",
       "sourceSha256": "ef3eb0b2f4f5ac1eeac8ad8f89452c33b73351708ebffb0b827fa25ea5c46f0c",
-      "targetSha256": "ef3eb0b2f4f5ac1eeac8ad8f89452c33b73351708ebffb0b827fa25ea5c46f0c",
-      "adapted": false
+      "targetSha256": "61d97f7d2eaa564cd49b3fb1d341df00a0e5fbe06757f55411ce30df69e58e01",
+      "adapted": true
     },
     {
       "source": "src/lib/components/chart.tsx",
       "target": "src/vendor/openui/components/chart.tsx",
       "sourceSha256": "61a270bc9aa80ead37631c90ea525052f60482ff904544b7d32cbd2d0e60bef3",
-      "targetSha256": "360342c2f030cc63eb594096bec06756ae3e93c8fe35b6a15027e8000053fb5c",
+      "targetSha256": "f49e8def4685fc5451a447c7a307fc155fedb45bee0b534bc81be5ff09e0f109",
       "adapted": true
     },
     {
@@ -35,15 +35,20 @@
       "source": "src/lib/components/controls.tsx",
       "target": "src/vendor/openui/components/controls.tsx",
       "sourceSha256": "3a372d84ff59b02136eb1c78d72080b6b7ce41387b55bd455b8e757095414762",
-      "targetSha256": "aef3cfec3b044a78ba5df1b428307a3c8b4f7f349399a790a73c3327b78d996f",
+      "targetSha256": "a51b1b194aba587f7f7dbb330b5bbe1ffb1abfa2655ecfeef0c6b6029b5891ce",
       "adapted": true
     },
     {
       "source": "src/lib/components/extra.tsx",
       "target": "src/vendor/openui/components/extra.tsx",
       "sourceSha256": "586d1a898eb6405fea4fab136b3ca0a4db626b559a17ee9125b4232de312ae1d",
-      "targetSha256": "2dbbb6caf6eb20209bbb219e23f99198ef8c40d128e5ecc9db85ec07c73031e5",
+      "targetSha256": "41e2a68204ccd8fc6441a946881fcb6c0751c19b312ef6daebc9d078e563df0d",
       "adapted": true
+    },
+    {
+      "target": "src/vendor/openui/components/fields.ts",
+      "targetSha256": "2a95b78cccb298fc3c06953e263734516b2caa8998e302b9ea8eec457431457c",
+      "authored": true
     },
     {
       "target": "src/vendor/openui/components/flow.tsx",
@@ -61,7 +66,7 @@
       "source": "src/lib/components/html-view.tsx",
       "target": "src/vendor/openui/components/html-view.tsx",
       "sourceSha256": "39bc4730a8fd87dacbde2f3b16ec13d1882f1e085f511a9b0dbe3b3a4167cecf",
-      "targetSha256": "5fa7f680a9dc76cab57279fa31ce12efa6005a3729648aaff1afb78153a16fe1",
+      "targetSha256": "8cb74e04f71389bd99ac3aa9832a20c07842e0199eca1a5dafc3dd4a310889dd",
       "adapted": true
     },
     {
@@ -96,7 +101,7 @@
       "source": "src/lib/components/media.tsx",
       "target": "src/vendor/openui/components/media.tsx",
       "sourceSha256": "608fb3de0d72fc8c87ac594bfd505121b443449f4dfd8800dd4ca34425b93dac",
-      "targetSha256": "6fb9fafa08294bee041dc175676b787d7c273f2fa5fb2cd2d7ee3995c4427f4e",
+      "targetSha256": "27281445ca89a812f46430d1e88186b21c305533d3366e74168122c68587d7fd",
       "adapted": true
     },
     {
@@ -124,7 +129,7 @@
       "source": "src/lib/components/table.tsx",
       "target": "src/vendor/openui/components/table.tsx",
       "sourceSha256": "d6713d6f0330c760d5c5feb491b4a7bc79a205b15961e9ef8673c0a90e90e492",
-      "targetSha256": "5fb7e08751030e9a61a7c5515d719baaf0a4aeb8a398ef78d46150d083f2680b",
+      "targetSha256": "c44e6c8e066301e291d41561c40cee8d96578f9593f355d52c919bd18d876c3b",
       "adapted": true
     },
     {
@@ -164,8 +169,8 @@
       "source": "src/lib/functions/lists.ts",
       "target": "src/vendor/openui/functions/lists.ts",
       "sourceSha256": "59f44d73b9afbd14227d269cea1eb8cf91984701ce3b86a52c0fce6a44d5a6a2",
-      "targetSha256": "59f44d73b9afbd14227d269cea1eb8cf91984701ce3b86a52c0fce6a44d5a6a2",
-      "adapted": false
+      "targetSha256": "ee39751e4b320bf35685c77f871a5e77522e41729c4fe1d36419896515a1c537",
+      "adapted": true
     },
     {
       "source": "src/lib/functions/numbers.ts",
@@ -204,7 +209,7 @@
     },
     {
       "target": "src/vendor/openui/system-prompt.generated.ts",
-      "targetSha256": "e8590944605a68626aeb57b0d4aceb6cd6f0755e88b7372d7e30e461d606f5f4",
+      "targetSha256": "f723fbb7283ccaa5c3dcd881f7b822d1b26b5d07c829f5812f02f86b2b4d88ae",
       "authored": true
     }
   ]

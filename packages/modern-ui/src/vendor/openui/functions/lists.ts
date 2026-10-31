@@ -142,15 +142,18 @@ export const Reverse = defineFunction({
   fn: ({ list }) => [...list].reverse(),
 });
 
+// A series a block can show; longer ranges usually come from a slider pushed far and would stall the page.
+const RANGE_LIMIT = 1000;
+
 export const Range = defineFunction({
   name: "Range",
-  description: "Numbers from start up to end (not included) by step (default 1), e.g. @Range(0, 3) is [0, 1, 2]",
+  description: "Numbers from start up to end (not included) by step (default 1), at most 1000, e.g. @Range(0, 3) is [0, 1, 2]",
   params: z.object({ start: z.number(), end: z.number(), step: z.number().optional() }),
   returns: z.array(z.number()),
   fn: ({ start, end, step = 1 }) => {
     if (step === 0 || !Number.isFinite(step)) throw new Error("step must be a non-zero number");
     const count = Math.max(0, Math.ceil((end - start) / step));
-    if (count > MAX_ITEMS) throw new Error(`more than ${MAX_ITEMS} items`);
+    if (count > RANGE_LIMIT) throw new Error(`more than ${RANGE_LIMIT} items`);
     const whole = Number.isInteger(start) && Number.isInteger(step);
     // Rounding keeps fractional steps clean: 0.1 * 3 is 0.30000000000000004
     return Array.from({ length: count }, (_, i) => (whole ? start + i * step : Number((start + i * step).toPrecision(12))));

@@ -6,6 +6,18 @@ import { cx } from "./style";
 const NUMERIC = /^[-+−]?[$€£¥₹]?\s?\d[\d,]*(\.\d+)?\s?(%|[kKmMbB]|bn)?$/;
 const isElement = (value: unknown) => !!value && typeof value === "object" && (value as { type?: unknown }).type === "element";
 
+/**
+ * A number cell without hiding small values: integers get separators, values of 1 or more keep up to four
+ * decimals, smaller ones four significant digits, and tiny ones scientific notation.
+ */
+export function numberText(value: number): string {
+  if (!Number.isFinite(value) || Number.isInteger(value)) return value.toLocaleString("en-US");
+  const abs = Math.abs(value);
+  if (abs < 1e-4) return value.toExponential(2);
+  if (abs < 1) return value.toLocaleString("en-US", { maximumSignificantDigits: 4 });
+  return value.toLocaleString("en-US", { maximumFractionDigits: 4 });
+}
+
 export const Table = defineComponent({
   name: "Table",
   props: z.object({
@@ -22,7 +34,7 @@ export const Table = defineComponent({
       return cells.length > 0 && cells.every((v) => typeof v === "number" || (typeof v === "string" && NUMERIC.test(v.trim())));
     });
     const cell = (value: unknown) =>
-      isElement(value) ? renderNode(value) : typeof value === "number" ? value.toLocaleString("en-US", { maximumFractionDigits: 2 }) : inline(String(value ?? ""));
+      isElement(value) ? renderNode(value) : typeof value === "number" ? numberText(value) : inline(String(value ?? ""));
     return (
       <div className="iui-table-scroll">
         <table className="iui-table">

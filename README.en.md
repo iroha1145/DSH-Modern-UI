@@ -54,7 +54,7 @@ While Modern UI is on, Desktop's first-run onboarding is recorded as skipped. Na
 - Model picker cards with reasoning effort settings.
 - 8 interface languages and several light and dark themes.
 
-"Answer visual components" does not change the model prompt by default. Turning it on under Settings → General adds about 30 KB (roughly 7,000 tokens) of instructions so answers use cards, diagrams and similar components.
+"Answer visual components" does not change the model prompt by default. Turning it on under Settings → General adds about 30 KB (roughly 7,000 tokens) of instructions so answers use cards, diagrams and similar components. The components need Chrome/Edge 111, Safari 16.2, Firefox 121 or newer.
 
 ## Optional: isolated one-step install
 

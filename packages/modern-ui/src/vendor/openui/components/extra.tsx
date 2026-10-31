@@ -5,6 +5,7 @@ import { Check, ChevronLeft, ChevronRight, Copy } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { z } from "zod/v4";
+import { copy as copyText } from "../actions";
 import { inline } from "./markdown";
 import { children, cx } from "./style";
 import { useUiText } from "./ui-text";
@@ -132,8 +133,10 @@ export const Code = defineComponent({
     const text = useUiText();
     const [copied, setCopied] = useState(false);
     const code = str(props.code);
+    // The shared copy falls back to a selection where the Clipboard API is missing (plain-HTTP LAN pages).
     const copy = () =>
-      void navigator.clipboard?.writeText(code).then(() => {
+      void copyText(code).then((ok) => {
+        if (!ok) return;
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       });

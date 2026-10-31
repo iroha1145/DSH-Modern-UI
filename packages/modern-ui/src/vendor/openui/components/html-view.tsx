@@ -21,7 +21,8 @@ const INNER_CSP = [
   "form-action 'none'",
   "base-uri 'none'",
 ].join("; ");
-const OUTER_CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; frame-src 'none'; child-src 'none'; form-action 'none'; base-uri 'none'";
+// The inner srcdoc frame inherits this policy on top of its own, so it allows the same non-network sources.
+const OUTER_CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; font-src data:; frame-src 'none'; child-src 'none'; form-action 'none'; base-uri 'none'";
 const DENIED =
   "accelerometer 'none'; autoplay 'none'; camera 'none'; clipboard-read 'none'; clipboard-write 'none'; display-capture 'none'; fullscreen 'none'; geolocation 'none'; gyroscope 'none'; microphone 'none'; midi 'none'; payment 'none'; usb 'none'; xr-spatial-tracking 'none'";
 

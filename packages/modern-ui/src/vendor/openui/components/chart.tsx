@@ -71,11 +71,17 @@ function Cartesian({ spec, width }: { spec: Spec; width: number }) {
   const [hover, setHover] = useState<number | null>(null);
   const { rows, series, type, height, format, x } = spec;
   const stacked = spec.stacked && type !== "line";
-  const tops = rows.map((row) => {
-    let total = 0;
-    return series.map((s) => (total += Math.max(0, num(row[s]))));
+  // Each stacked segment spans [from, to]: positive values stack upward from 0, negative values downward.
+  const spans = rows.map((row) => {
+    let up = 0;
+    let down = 0;
+    return series.map((s) => {
+      const v = num(row[s]);
+      if (v >= 0) return [up, (up += v)] as const;
+      return [down, (down += v)] as const;
+    });
   });
-  const values = stacked ? tops.map((t) => t[t.length - 1] ?? 0) : rows.flatMap((row) => series.map((s) => num(row[s])));
+  const values = stacked ? spans.flatMap((row) => row.map(([, to]) => to)) : rows.flatMap((row) => series.map((s) => num(row[s])));
   const step = niceStep((Math.max(0, ...values) - Math.min(0, ...values)) / 5);
   const lo = Math.floor(Math.min(0, ...values) / step) * step;
   const hi = Math.max(lo + step, Math.ceil(Math.max(0, ...values) / step) * step);
@@ -129,9 +135,10 @@ function Cartesian({ spec, width }: { spec: Spec; width: number }) {
             const inner = Math.min(band * 0.7, 72 * Math.max(1, stacked ? 1 : series.length));
             if (stacked)
               return series.map((s, si) => {
-                const top = y(tops[i][si]);
-                const base = y(tops[i][si - 1] ?? 0);
-                return <rect key={`${i}-${s}`} x={xAt(i) - inner / 2} y={top} width={inner} height={Math.max(0, base - top)} fill={seriesColor(si)} rx={si === series.length - 1 ? 4 : 0} />;
+                const [from, to] = spans[i][si];
+                const top = y(Math.max(from, to));
+                const bottom = y(Math.min(from, to));
+                return <rect key={`${i}-${s}`} x={xAt(i) - inner / 2} y={top} width={inner} height={Math.max(0, bottom - top)} fill={seriesColor(si)} rx={si === series.length - 1 ? 4 : 0} />;
               });
             const each = inner / series.length;
             return series.map((s, si) => {
@@ -141,8 +148,8 @@ function Cartesian({ spec, width }: { spec: Spec; width: number }) {
           })}
         {(type === "line" || type === "area") &&
           series.map((s, si) => {
-            const top = (i: number) => (stacked ? tops[i][si] : num(rows[i][s]));
-            const base = (i: number) => (stacked ? (tops[i][si - 1] ?? 0) : 0);
+            const top = (i: number) => (stacked ? spans[i][si][1] : num(rows[i][s]));
+            const base = (i: number) => (stacked ? spans[i][si][0] : 0);
             const points = rows.map((_, i) => `${xAt(i).toFixed(1)},${y(top(i)).toFixed(1)}`);
             const under = rows.map((_, i) => `${xAt(i).toFixed(1)},${y(base(i)).toFixed(1)}`).reverse();
             return (

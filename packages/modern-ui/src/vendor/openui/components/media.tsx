@@ -42,15 +42,16 @@ function useImageSearch(query: string | null): string[] | undefined {
   return query && result?.query === query ? result.images : undefined;
 }
 
-type PhotoProps = { query: string; src?: string | null; aspectRatio?: number | null; radius?: unknown; fit?: string | null };
+// Only SearchImage searches: an Image whose address fails keeps its alt text private and shows a placeholder.
+type PhotoProps = { query: string; src?: string | null; search: boolean; aspectRatio?: number | null; radius?: unknown; fit?: string | null };
 
-/** A photo from src, or, without one or when it fails, the best search result for query. */
+/** A photo from src; with search, the best result for query when there is no src or it fails. */
 function Photo(props: PhotoProps) {
   const alt = typeof props.query === "string" ? props.query.trim() : "";
   const src = webUrl(props.src);
   const [failed, setFailed] = useState<string[]>([]);
   const [loaded, setLoaded] = useState<string | null>(null);
-  const needSearch = (!src || failed.includes(src)) && alt.length > 2;
+  const needSearch = props.search && (!src || failed.includes(src)) && alt.length > 2;
   const found = useImageSearch(needSearch ? alt : null);
   const current = [src, ...(found ?? [])].find((url): url is string => !!url && !failed.includes(url));
   const settled = !current && (!needSearch || found !== undefined);
@@ -86,12 +87,12 @@ export const SearchImage = defineComponent({
   props: z.object({ query: z.string(), aspectRatio: z.number().optional(), radius: radiusSchema.optional(), fit }),
   description:
     'A real photo the interface finds on Wikipedia and Wikimedia Commons for query; it needs no URL and no tool. Name the exact subject in 2 to 4 words: "Golden Gate Bridge", "Raspberry Pi 5", "Ada Lovelace". Only for a real person, place, product, species or object with a recognizable look.',
-  component: ({ props }) => <Photo {...props} />,
+  component: ({ props }) => <Photo {...props} search />,
 });
 
 export const Image = defineComponent({
   name: "Image",
   props: z.object({ src: z.string(), alt: z.string(), aspectRatio: z.number().optional(), radius: radiusSchema.optional(), fit }),
-  description: "Photo from a URL the user or a tool gave; if it fails, a photo is found for alt.",
-  component: ({ props }) => <Photo query={props.alt} src={props.src} aspectRatio={props.aspectRatio} radius={props.radius} fit={props.fit} />,
+  description: "Photo from a URL the user or a tool gave; if it fails, a placeholder shows instead.",
+  component: ({ props }) => <Photo query={props.alt} src={props.src} search={false} aspectRatio={props.aspectRatio} radius={props.radius} fit={props.fit} />,
 });

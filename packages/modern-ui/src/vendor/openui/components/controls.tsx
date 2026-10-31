@@ -9,6 +9,7 @@ import {
 } from "@openuidev/react-lang";
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import { z } from "zod/v4";
+import { useField, useFieldName } from "./fields";
 import { Glyph } from "./glyph";
 import { bg, children, color, onColor, cx, option, radius, radiusSchema, space, textOf, toOption, type Option } from "./style";
 import { useUiText } from "./ui-text";
@@ -25,11 +26,6 @@ function useRunAction() {
   };
 }
 
-/** The state key of a control: its label, its statement name, or a generated id. */
-function useFieldName(label: unknown, statementId?: string) {
-  const id = useId();
-  return (typeof label === "string" && label) || statementId || id;
-}
 
 const numberText = (value: unknown) => {
   if (typeof value !== "number" || !Number.isFinite(value)) return "";
@@ -169,7 +165,7 @@ export const Input = defineComponent({
   }),
   description: "Text or number field; a number field stores numbers.",
   component: function InputView({ props, statementId }) {
-    const field = useStateField(useFieldName(props.label, statementId), props.value);
+    const field = useField(props.label, statementId, props.value);
     const numeric = props.type === "number";
     // A number field shows what is typed ("1." or "-") until it parses.
     const [draft, setDraft] = useState<string | null>(null);
@@ -208,7 +204,7 @@ export const TextArea = defineComponent({
   }),
   description: "",
   component: ({ props, statementId }) => {
-    const field = useStateField(useFieldName(props.label, statementId), props.value);
+    const field = useField(props.label, statementId, props.value);
     return (
       <Field label={props.label}>
         <textarea
@@ -238,7 +234,7 @@ export const Select = defineComponent({
   description: "Dropdown, for long option lists.",
   component: function SelectView({ props, statementId }) {
     const text = useUiText();
-    const field = useStateField(useFieldName(props.label, statementId), props.value);
+    const field = useField(props.label, statementId, props.value);
     const choices = optionList(props.options);
     const value = field.value == null ? "" : String(field.value);
     return (
@@ -265,7 +261,7 @@ export const SegmentedControl = defineComponent({
   props: z.object({ value: reactive(z.string()), options, block: z.boolean().optional() }),
   description: "2 to 4 short choices in a row.",
   component: function SegmentedView({ props, statementId }) {
-    const field = useStateField(useFieldName(undefined, statementId), props.value);
+    const field = useField(undefined, statementId, props.value);
     const value = field.value == null ? "" : String(field.value);
     return (
       <div className={cx("iui-segmented", props.block && "iui-block")} role="radiogroup">
@@ -300,7 +296,7 @@ export const Slider = defineComponent({
   description: 'Shows label and value; unit like "%" or "$" formats the value.',
   component: function SliderView({ props, statementId }) {
     const text = useUiText();
-    const field = useStateField(useFieldName(props.label, statementId), props.value);
+    const field = useField(props.label, statementId, props.value);
     const min = Number.isFinite(props.min) ? props.min : 0;
     const max = Number.isFinite(props.max) && props.max > min ? props.max : min + 100;
     const step = props.step && props.step > 0 ? props.step : 1;
@@ -353,7 +349,7 @@ export const Checkbox = defineComponent({
   props: z.object({ checked: reactive(z.boolean()), label: z.string(), lineThrough: z.boolean().optional() }),
   description: "lineThrough strikes the label when checked, for to-do lists.",
   component: ({ props, statementId }) => {
-    const field = useStateField(useFieldName(props.label, statementId), props.checked);
+    const field = useField(props.label, statementId, props.checked);
     const checked = field.value === true;
     return (
       <label className={cx("iui-check", checked && props.lineThrough && "is-done")}>
@@ -379,7 +375,7 @@ export const RadioGroup = defineComponent({
   }),
   description: "pills for short choices; cards for choices that need a description line.",
   component: function RadioGroupView({ props, statementId }) {
-    const field = useStateField(useFieldName(props.label, statementId), props.value);
+    const field = useField(props.label, statementId, props.value);
     const name = useId();
     const value = field.value == null ? "" : String(field.value);
     const variant = props.variant ?? "list";
@@ -415,7 +411,7 @@ export const DatePicker = defineComponent({
   description: 'Dates are "YYYY-MM-DD".',
   component: function DatePickerView({ props, statementId }) {
     const text = useUiText();
-    const field = useStateField(useFieldName(props.label, statementId), props.value);
+    const field = useField(props.label, statementId, props.value);
     const value = typeof field.value === "string" && DATE.test(field.value) ? field.value : "";
     return (
       <Field label={props.label}>

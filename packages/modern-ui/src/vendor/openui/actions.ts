@@ -9,7 +9,7 @@ export const CopyToClipboard = defineAction({
 
 export const actions = [CopyToClipboard];
 
-async function copy(text: string): Promise<boolean> {
+export async function copy(text: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(text);
     return true;

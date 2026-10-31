@@ -81,6 +81,7 @@ const pure = new Set([
   '@deepseek-ai/dsh-token-meter/client',
   '@deepseek-ai/dsh-llm/assistant-stream',
 ])
+const openuiTargets = { chrome: 111 << 16, safari: (16 << 16) | (2 << 8), firefox: 121 << 16 }
 const stylePlugin = {
   name: 'modern-ui-owned-resources',
   setup(builder) {
@@ -100,11 +101,15 @@ const stylePlugin = {
         const mime = relative.endsWith('.woff2') ? 'font/woff2' : relative.endsWith('.woff') ? 'font/woff' : 'font/ttf'
         source = source.replace(match[0], `url(data:${mime};base64,${bytes.toString('base64')})`)
       }
+      const filename = path.relative(pkg, args.path).replaceAll('\\', '/')
       const result = transform({
-        filename: path.relative(pkg, args.path).replaceAll('\\', '/'),
+        filename,
         code: Buffer.from(source),
         minify: true,
         cssModules: args.path.endsWith('.module.css'),
+        // The OpenUI component styles are written with nesting; flatten it for the oldest browsers their
+        // color-mix() and :has() already require (Chrome 111, Safari 16.2, Firefox 121).
+        targets: filename.startsWith('src/vendor/openui/') ? openuiTargets : undefined,
       })
       const text = result.code.toString()
       if (args.namespace === 'inline-css') return { contents: `export default ${JSON.stringify(text)}`, loader: 'js' }
