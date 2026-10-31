@@ -299,6 +299,58 @@ test('a Select or RadioGroup whose options lose its value is cleared everywhere 
   await view.unmount()
 })
 
+test('a slider with no value (null, or cleared by a number input on the same $variable) stores the minimum it shows', async () => {
+  const code =
+    '$a = null\n$c = 5\nroot = Form([Slider($a, 0, 10, 1, "A"), Text("a=[" + $a + "]"), Input($c, "C", "number"), Slider($c, 2, 10, 1, "CS"), Text("c=[" + $c + "]"), Button("Go", @ToAssistant("Go"))])'
+  const view = await mount(code)
+  assert.match(view.host.textContent, /a=\[0\]/)
+  await type(view.host.querySelector('input:not([type="range"])'), '')
+  assert.deepEqual(
+    [...view.host.querySelectorAll('input[type="range"]')].map(input => input.value),
+    ['0', '2'],
+  )
+  assert.match(view.host.textContent, /c=\[2\]/)
+  await click(button(view.host, 'Go'))
+  assert.deepEqual(view.calls.setDraft, ['Go\n\n- A: 0\n- C: 2\n- CS: 2'])
+  await view.unmount()
+})
+
+test('a slider whose bound another slider moves in the same commit follows the second change too', async () => {
+  const code =
+    '$tier = 1\n$qty = 100\nroot = Form([Slider($qty, 0, $tier * 10, 1, "Qty"), Slider($tier, 2, 5, 1, "Tier"), Text("qty=" + $qty + " tier=" + $tier), Button("Go", @ToAssistant("Go"))])'
+  const view = await mount(code)
+  assert.match(view.host.textContent, /qty=20 tier=2/)
+  assert.equal(view.host.querySelector('input[type="range"]').value, '20')
+  await click(button(view.host, 'Go'))
+  assert.deepEqual(view.calls.setDraft, ['Go\n\n- Qty: 20\n- Tier: 2'])
+  await view.unmount()
+})
+
+test('controls an earlier @Set mounts are normalised before the @ToAssistant in the same Action reads them', async () => {
+  const code =
+    '$mode = "basic"\n$limit = 80\n$plan = "invalid"\nroot = Form([Button("Pro", Action([@Set($mode, "pro"), @ToAssistant("Apply")])), $mode == "pro" ? Col([Slider($limit, 0, 50, 1, "ProLimit"), Select($plan, ["basic", "pro"], "Plan")]) : Text("basic")])'
+  const view = await mount(code)
+  await click(button(view.host, 'Pro'))
+  assert.equal(view.host.querySelector('input[type="range"]').value, '50')
+  assert.equal(view.host.querySelector('select').value, '')
+  assert.deepEqual(view.calls.setDraft, ['Apply\n\n- ProLimit: 50'])
+  await view.unmount()
+})
+
+test('a number field with a literal default stays empty once cleared, and a lone comma is not 0', async () => {
+  const view = await mount('root = Form([Input(10, "Count", "number"), Input(7, "Other", "number"), Button("Go", @ToAssistant("Go"))])')
+  const [count, other] = view.host.querySelectorAll('input')
+  await type(count, '')
+  await act(async () => {
+    count.dispatchEvent(new dom.window.FocusEvent('focusout', { bubbles: true }))
+  })
+  assert.equal(count.value, '')
+  await type(other, ',')
+  await click(button(view.host, 'Go'))
+  assert.deepEqual(view.calls.setDraft, ['Go'])
+  await view.unmount()
+})
+
 test('inputs that share a label keep their own values, while inputs bound to one $variable stay in step', async () => {
   const code =
     '$shared = "x"\nroot = Col([main, other])\nmain = Form([Row([Text("Min"), Input(1, "Value")]), Row([Text("Max"), Input(10, "Value")]), Input($shared, "A"), Input($shared, "B"), Button("Go", @ToAssistant("Use values"))])\nother = Form([Input(5, "Value"), Button("Other", @ToAssistant("Other values"))])'
