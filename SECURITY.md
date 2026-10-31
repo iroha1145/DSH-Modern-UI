@@ -10,17 +10,19 @@
 
 本插件只替换和扩展官方 DSH 的 Web 前端，不修改官方后端、官方 JS、前端 dist 或原生模块。官方宿主自身的问题请报告给 DeepSeek Harness 上游。
 
-## `openui` 沙箱边界
+## OpenUI 组件边界
 
-模型可以在回答里写 `openui` 代码块，插件会把其中的 HTML / CSS / JavaScript 渲染成交互式组件。这是**不可信内容**，按以下边界隔离：
+模型可以在回答里写 `openui-lang` 代码块（旧写法 `openui` 代码块里如果是 openui-lang 也算），插件用 [OpenUI](https://github.com/thesysdev/openui) 的渲染器把它画成交互组件。这是**不可信内容**，按以下边界处理：
 
-- 两层嵌套 iframe，均只有 `sandbox="allow-scripts"`（没有 `allow-same-origin`、`allow-top-navigation`、`allow-popups`、`allow-forms`），运行在不透明源中，读不到 DSH 页面的 DOM、Cookie、存储或 API 凭据。
-- 内层文档的 CSP 为 `default-src 'none'`，禁止网络请求、外部脚本与样式、字体、表单提交、嵌套 frame、插件和 worker；图片只允许 `data:`。
-- 权限策略拒绝摄像头、麦克风、剪贴板、地理位置、全屏、支付等全部能力。
-- 与宿主之间只通过带每次挂载随机 token 的 `postMessage` 交换四种消息：就绪、出错、高度（限制在 24–2400 px）和打开链接。链接只接受 `http(s)`、不含用户名密码、长度不超过 2048，并且由宿主再次确认后才打开。
-- 内容总长不超过 128,000 字符，未完成的流式内容不会执行。
+- openui-lang 是声明式语言，只能调用插件注册的组件、内置函数和动作，不能写脚本，也不能插入任意 HTML。组件直接画在 DSH 页面里。
+- 模型给的颜色、尺寸等样式值会先过滤：带 `url(`、`var(`、`expression(`、`@import`、分号或尖括号的值一律丢弃，所以样式不能加载资源。SVG 的路径、坐标和变换只接受数字与固定格式。
+- 链接只接受 `http(s)` 地址，在新标签页打开并带 `noopener noreferrer`，和回答正文里的 Markdown 链接一样直接打开。
+- 会让浏览器连外网的组件只有三个：`Image` 按模型给的 `http(s)` 地址加载图片（和 Markdown 图片相同）；`SearchImage` 从浏览器查询维基百科和维基共享资源的公开接口，只用它们返回的 `https` 图片地址；`Link` 和 `@OpenUrl` 由读者点击后打开。地图、视频、CDN 脚本这类组件没有收进来。
+- `HtmlView` 是唯一能运行脚本的组件：两层嵌套 iframe，均只有 `sandbox="allow-scripts"`（没有 `allow-same-origin`、`allow-top-navigation`、`allow-popups`、`allow-forms`），运行在不透明源中，读不到 DSH 页面的 DOM、Cookie、存储或 API 凭据。内层 CSP 为 `default-src 'none'`，不允许任何网络请求；外层 CSP 的 `frame-src 'none'` 让内层无法跳转到任何地址，内层一旦发生跳转就会被移除。权限策略拒绝摄像头、麦克风、剪贴板、地理位置、全屏、支付等能力。与宿主之间只用带每次挂载随机 token 的 `postMessage` 传高度（限制在 80–2400 px）和跳转失败两种消息。
+- 「发给助手」按钮（`@ToAssistant`）只把文字放进输入框发送，和读者自己输入一样受会话权限约束，不会绕过确认直接执行工具。
+- 代码块超过 128,000 字符时不解析，只显示源代码。
 
-能突破上述任何一条的问题都属于安全漏洞。降低这些限制的改动不会被接受。
+能突破上述任何一条的问题都属于安全漏洞。放宽这些限制的改动不会被接受。
 
 ## 供应链
 

@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- 回答里的交互组件改用 [OpenUI](https://github.com/thesysdev/openui)：模型写 `openui-lang` 代码块，插件用 OpenUI 渲染器边生成边画出卡片、流程图、图表、表格、照片和能自己计算的小工具（滑块、输入框改了数值当场重算，不用再问模型）。组件库取自 thesysdev/open-intelligent-ui，按 DSH 主题配色，补了流程图组件，去掉了地图、视频和 CDN 脚本。原先借鉴 CopilotKit/OpenIntelligentUI 的 HTML 沙箱组件已删除，旧回答里写成 HTML 的 `openui` 代码块改为按普通代码显示。
+- 「回答可视化组件」开启后追加的提示词从约 8 KB 增加到约 30 KB（约 7,000 个词元）。
+
 ### Fixed
 
 - 输入框的模型选择卡片在模型很多、窗口又够高时会飘到页面上方，和按钮之间留出一大段空白：卡片最高 560 像素，定位却按列表完全展开的高度算。现在向上展开时按底边贴住按钮，判断往上还是往下展开也改用封顶后的高度。

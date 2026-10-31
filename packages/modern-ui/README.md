@@ -12,12 +12,12 @@ Then refresh the browser. `dsh plugin` forwards to pnpm, so `pnpm` must be on PA
 
 ## Model-visible behavior
 
-Modern UI does not change the model prompt by default. It renders `openui` and `followups` code fences a model already wrote. Turning on **Settings → General → Answer visual components** appends about 3 KB of presentation guidance to the system prompt. The same switches live in the entry config:
+Modern UI does not change the model prompt by default. It renders `openui-lang` (OpenUI) and `followups` code fences a model already wrote. Turning on **Settings → General → Answer visual components** appends about 30 KB (roughly 7,000 tokens) of presentation guidance to the system prompt. The same switches live in the entry config:
 
 ```yaml
 presentation:
   prompt: false    # model-visible guidance
-  openui: true     # render openui fences as sandboxed components
+  openui: true     # render openui-lang fences as OpenUI components
   followups: true  # render followups fences as suggestion chips
 ```
 

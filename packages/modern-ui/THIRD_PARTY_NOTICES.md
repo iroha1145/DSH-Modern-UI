@@ -12,11 +12,11 @@ The README reader retains read-only utilities from `packages/util/plugin-detail/
 
 The complete license is retained in [LICENSE](LICENSE) and [licenses/DeepSeek-Harness-host.txt](licenses/DeepSeek-Harness-host.txt). Official Host session, remote, command and model-selection execution services remain supplied by the consuming Host. React, React DOM and Cordis are external to the browser artifact. Public slot registrations select or adapt the documented UI surfaces; official package files, module tables and prototypes are not modified. The reversible adapter for `dsh-better-sidebar` 0.28.0 observes its preview markup without copying its viewer, editor or controller. These notices do not claim that the migration is functionally complete.
 
-## OpenIntelligentUI and Lucide
+## Open Intelligent UI, OpenUI and Lucide
 
-The HTML visualization parser, frame design system and native nested sandbox renderer in `src/vendor/intelligent/client` adapt the completed-content presentation approach of CopilotKit/OpenIntelligentUI. The reviewed revision and original paths are recorded in [open-intelligent-ui-upstream.json](open-intelligent-ui-upstream.json). OpenIntelligentUI is Copyright (c) Atai Barkai, under MIT; see [licenses/OpenIntelligentUI-MIT.txt](licenses/OpenIntelligentUI-MIT.txt).
+The answer component library in `src/vendor/openui` (components, styles, generic functions and prompt guidance) adapts thesysdev/open-intelligent-ui. The reviewed revision, original paths, per-file digests and the adaptations are recorded in [openui-upstream.json](openui-upstream.json). Open Intelligent UI is Copyright (c) 2026 Thesys Inc., under MIT; see [licenses/OpenIntelligentUI-thesys-MIT.txt](licenses/OpenIntelligentUI-thesys-MIT.txt). The diagram components, browser image search, interface-word context and the DSH block renderer in `src/vendor/intelligent/client/OpenUIBlock.tsx` are original.
 
-The renderer contains a subset of geometry from `lucide-static` 1.52.0. Lucide is Copyright (c) 2026 Lucide Icons and Contributors, under ISC; Feather-derived icons are Copyright (c) 2013-present Cole Bemis, under MIT. Both notices are retained in [licenses/Lucide-ISC.txt](licenses/Lucide-ISC.txt). No CopilotKit runtime, upstream Python backend, Next.js, JetBrains Websandbox or host-capability RPC bridge is distributed here.
+The browser build embeds the OpenUI runtime `@openuidev/react-lang` and `@openuidev/lang-core` 1.0.2 (MIT, Thesys Inc.), Zod 4 for component schemas, and `lucide-react` 0.562.0 for icons. Lucide is Copyright (c) 2026 Lucide Icons and Contributors, under ISC; Feather-derived icons are Copyright (c) 2013-present Cole Bemis, under MIT. Both notices are retained in [licenses/Lucide-ISC.txt](licenses/Lucide-ISC.txt), and each package's own license text is collected under `licenses/npm/`. No Next.js app, demo server route, OpenUI Cloud gateway, autofix client or CopilotKit code is distributed here.
 
 ## Vendor marks and Simple Icons
 

@@ -50,11 +50,11 @@ While Modern UI is on, Desktop's first-run onboarding is recorded as skipped. Na
 
 - Conversation: collapsible reasoning groups, message timeline navigation, collapsible code blocks and Markdown previews.
 - Input: quote selected text, paste or drop images at full quality, command and file reference chips.
-- Cards: Intelligent UI (`openui` interactive components, `followups` suggestions), a sub-agent team view, tool call cards.
+- Cards: interactive components built on [OpenUI](https://github.com/thesysdev/openui) (`openui-lang` fences: cards, diagrams, charts, tables and small working tools), `followups` suggestions, a sub-agent team view, tool call cards.
 - Model picker cards with reasoning effort settings.
 - 8 interface languages and several light and dark themes.
 
-"Answer visual components" does not change the model prompt by default. Turning it on under Settings → General adds about 3 KB of instructions so answers use cards, diagrams and similar components.
+"Answer visual components" does not change the model prompt by default. Turning it on under Settings → General adds about 30 KB (roughly 7,000 tokens) of instructions so answers use cards, diagrams and similar components.
 
 ## Optional: isolated one-step install
 

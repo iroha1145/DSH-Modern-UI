@@ -53,7 +53,7 @@ flowchart LR
 3. Chat owner 保留消息、推理分组、运行状态行、时间轴、代码折叠、引用、工具过程及 steering；新增选择文字引用进入原输入队列。
 4. 模型选择器渲染标准 `conversation.input.model.label`，官方与第三方标签直接贡献。设置页通过 `settings.models.provider-card` 添加目录模型推理声明，支持 API 值、Off、继承列表和 revision 冲突。
 5. Tool owner 提供 generic/MCP/自动拒绝 fallback 与标准详情、图片等子槽，保留第三方具体工具视图优先级；工具执行器仍为官方。
-6. Intelligent UI、Followups、编队、翻译和多语言保留。OpenUI 在原 sandbox 内展示；翻译继续使用官方 Remote/Controller，不承诺把原私有 reasoning children 的所有第三方贡献自动透传。
+6. 回答组件、Followups、编队、翻译和多语言保留。回答组件用 OpenUI 渲染器（`@openuidev/react-lang`）把 `openui-lang` 代码块画成页面内组件，只有 `HtmlView` 在两层无网络沙箱里运行脚本；翻译继续使用官方 Remote/Controller，不承诺把原私有 reasoning children 的所有第三方贡献自动透传。
 7. 文件 Markdown、Plan、提问和预设指南使用可折叠代码块。提问与预设通过公开 face/store 替换展示，控制器不复制。`dsh-better-sidebar@0.28.0` 的编辑器由限定 DOM 适配增加折叠，并保留社区编辑、复制、导航和自有渲染。
 8. Installed 与 Discover 恢复本地化长文档、README、仓库回退、相对图片和重试，使用独立受鉴权 Host 路由与官方库存；插件启停/安装仍交由官方管理器。
 9. 主题通过公开 override layer，官方控件与菜单通过限定到 rc.4 的样式适配；启动和失败页通过公开 `webserver/index-inject` 注入样式。样式和监听器随 owner 卸载释放。

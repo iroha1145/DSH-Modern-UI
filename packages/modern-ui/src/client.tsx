@@ -3,7 +3,8 @@ import type {} from './contracts.ts'
 import { installThemeStyles } from './vendor/theme/client/styles.ts'
 import { installIconSprite } from './vendor/theme/client/icon-sprite.ts'
 import * as chatLocale from './vendor/chat/client/locale.ts'
-import { IntelligentUI, type ThemeInjected } from './vendor/intelligent/client/IntelligentUI.tsx'
+import { OpenUIBlock, type ThemeInjected } from './vendor/intelligent/client/OpenUIBlock.tsx'
+import { looksLikeOpenUI } from './vendor/intelligent/client/openui-source.ts'
 import { Followups } from './vendor/intelligent/client/Followups.tsx'
 import * as intelligentLocale from './vendor/intelligent/client/locales.ts'
 import * as modelLocale from './vendor/model/client/locales.ts'
@@ -129,12 +130,17 @@ function installPresentation(ctx: Context): void {
     const presenters = {
       openui: () => ctx.slots.register({
         name: 'conversation.chat.message.code', locale: 'modern-intelligent', priority: 0,
-        select: owner => owner.lang?.trim().toLowerCase() === 'openui' ? {} : null,
+        // `openui-lang` is the taught fence; a plain `openui` fence counts when its body reads as openui-lang,
+        // so HTML visualizations in older answers stay readable code.
+        select: (owner) => {
+          const lang = owner.lang?.trim().toLowerCase()
+          return lang === 'openui-lang' || (lang === 'openui' && looksLikeOpenUI(owner.code)) ? {} : null
+        },
         inject: (): ThemeInjected => ({ hooks: { theme: {
           getSnapshot: () => ctx.theme.getTheme(),
           subscribe: listener => ctx.on('theme/change', listener),
         } } }),
-      }, IntelligentUI),
+      }, OpenUIBlock),
       followups: () => ctx.slots.register({
         name: 'conversation.chat.message.code', locale: 'modern-intelligent', priority: 0,
         select: owner => owner.lang?.trim().toLowerCase() === 'followups' ? {} : null,
