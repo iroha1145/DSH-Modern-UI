@@ -66,7 +66,7 @@ const result = await build({
   tsconfigRaw: {},
   stdin: {
     contents:
-      "export { OpenUIBlock } from './vendor/intelligent/client/OpenUIBlock.tsx'; export { numberText } from './vendor/openui/components/table.tsx'; export { evaluate } from '@openuidev/lang-core'",
+      "export { OpenUIBlock } from './vendor/intelligent/client/OpenUIBlock.tsx'; export { numberText } from './vendor/openui/components/table.tsx'; export { evaluate } from '@openuidev/lang-core'; export { Renderer } from '@openuidev/react-lang'; export { library } from './vendor/openui/library.ts'; export { budgeted, ExpansionBudget } from './vendor/intelligent/client/openui-budget.ts'",
     resolveDir: source,
     loader: 'tsx',
   },
@@ -101,7 +101,7 @@ const result = await build({
 const loaded = new Module(path.join(source, 'openui-block.test.cjs'))
 loaded.paths = Module._nodeModulePaths(repo)
 loaded._compile(result.outputFiles[0].text, loaded.id)
-const { OpenUIBlock, numberText, evaluate } = loaded.exports
+const { OpenUIBlock, numberText, evaluate, Renderer, library, budgeted, ExpansionBudget } = loaded.exports
 
 /** Mount one block with a recording composer; `update` re-renders it with new stream state. */
 async function mount(code, { streaming = false, closed = true, composer = '' } = {}) {
@@ -255,6 +255,50 @@ test('a slider keeps the value the reader chose while a bound is typed digit by 
   await view.unmount()
 })
 
+test('a slider whose step is bound to state snaps its value to the step, and returns when the step does', async () => {
+  const code =
+    '$n = 2\n$step = 1\nroot = Form([Input($step, "Step", "number"), Slider($n, 0, 100, $step, "N"), Text("Computed N: " + $n), Button("Go", @ToAssistant("Use values"))])'
+  const view = await mount(code)
+  const step = view.host.querySelector('input:not([type="range"])')
+  const shows = n => {
+    assert.equal(view.host.querySelector('input[type="range"]').value, String(n))
+    assert.equal(view.host.querySelector('output').textContent, String(n))
+    assert.match(view.host.textContent, new RegExp(`Computed N: ${n}(?!\\d)`))
+  }
+  await type(step, '5')
+  shows(0)
+  await click(button(view.host, 'Go'))
+  assert.deepEqual(view.calls.setDraft, ['Use values\n\n- Step: 5\n- N: 0'])
+  await type(step, '1')
+  shows(2)
+  await view.unmount()
+})
+
+test('a @ToAssistant after an @Set that narrows a slider bound proposes the value the slider shows', async () => {
+  const code =
+    '$n = 80\n$limit = 100\nroot = Form([Input($limit, "Limit", "number"), Slider($n, 0, $limit, 1, "N"), Text("Computed N: " + $n), Button("Narrow and propose", Action([@Set($limit, 50), @ToAssistant("Use values")]))])'
+  const view = await mount(code)
+  await click(button(view.host, 'Narrow and propose'))
+  assert.equal(view.host.querySelector('input[type="range"]').value, '50')
+  assert.match(view.host.textContent, /Computed N: 50/)
+  assert.deepEqual(view.calls.setDraft, ['Use values\n\n- Limit: 50\n- N: 50'])
+  await view.unmount()
+})
+
+test('a Select or RadioGroup whose options lose its value is cleared everywhere instead of showing another option', async () => {
+  const code =
+    '$opts = ["A", "B"]\n$v = "B"\n$w = "B"\nroot = Form([Select($v, $opts, "Choice"), Text("Selected: [" + $v + "]"), RadioGroup($w, $opts, "Pick"), Text("Picked: [" + $w + "]"), Button("Only A", @Set($opts, ["A"])), Button("Go", @ToAssistant("Use values"))])'
+  const view = await mount(code)
+  await click(button(view.host, 'Only A'))
+  assert.equal(view.host.querySelector('select').value, '')
+  assert.match(view.host.textContent, /Selected: \[\]/)
+  assert.equal(view.host.querySelector('input[type="radio"]:checked'), null)
+  assert.match(view.host.textContent, /Picked: \[\]/)
+  await click(button(view.host, 'Go'))
+  assert.deepEqual(view.calls.setDraft, ['Use values'])
+  await view.unmount()
+})
+
 test('inputs that share a label keep their own values, while inputs bound to one $variable stay in step', async () => {
   const code =
     '$shared = "x"\nroot = Col([main, other])\nmain = Form([Row([Text("Min"), Input(1, "Value")]), Row([Text("Max"), Input(10, "Value")]), Input($shared, "A"), Input($shared, "B"), Button("Go", @ToAssistant("Use values"))])\nother = Form([Input(5, "Value"), Button("Other", @ToAssistant("Other values"))])'
@@ -387,7 +431,75 @@ test('an @Each no block claims still stops within one synchronous run', () => {
   })
   const context = { getState: () => undefined, resolveRef: () => undefined }
   assert.equal(evaluate(each(100), context).length, 100)
-  assert.throws(() => evaluate(each(30_000), context), /expansion budget/)
+  assert.deepEqual(evaluate(each(30_000), context), [])
+})
+
+// A pass that returns a list multiplies its width by the loop; the evaluator charges what each pass produces.
+const strings = count => Array(count).fill('"x"').join(', ')
+
+test('a loop whose passes return wider lists is charged in proportion to their width', async () => {
+  const steps = async width => {
+    const budget = new ExpansionBudget()
+    let total = 0
+    const step = budget.step.bind(budget)
+    budget.step = (count = 1) => {
+      total += count
+      return step(count)
+    }
+    const root = createRoot(document.createElement('div'))
+    const response = `root = Col(@Each(@Range(0, 150), "i", [${strings(width)}]))`
+    await act(async () => {
+      root.render(React.createElement(Renderer, { library: budgeted(library, budget), response, isStreaming: false }))
+    })
+    await act(async () => root.unmount())
+    return total
+  }
+  const [one, twenty, forty] = [await steps(1), await steps(20), await steps(40)]
+  assert.ok(twenty - one >= 19 * 150 * 5 && forty - twenty >= 20 * 150 * 5, `steps ${one}, ${twenty}, ${forty}`)
+  const view = await mount(`root = Col(@Each(@Range(0, 150), "i", [${strings(150)}]))`)
+  assert.equal(view.block().dataset.state, 'tooLarge')
+  assert.ok(view.host.textContent.length < 2000)
+  await view.unmount()
+})
+
+test('a list a pass returns by reference, raw or inside a component, is charged by its width', async () => {
+  const rows = Array(150).fill('["a", "b", "c"]').join(', ')
+  for (const code of [
+    `$a = [${strings(150)}]\nroot = Col(@Each(@Range(0, 150), "i", $a))`,
+    `$a = [${strings(150)}]\nroot = Col(@Each(@Range(0, 150), "i", Col($a)))`,
+    `$rows = [${rows}]\nroot = Col(@Each(@Range(0, 150), "i", Table(["A", "B", "C"], $rows)))`,
+  ]) {
+    const view = await mount(code)
+    assert.equal(view.block().dataset.state, 'tooLarge', code.slice(-60))
+    await view.unmount()
+  }
+})
+
+test('lists a loop builds but never draws are still charged', async () => {
+  const view = await mount(`root = Col(@Each(@Range(0, 1000), "i", Text(@Count([${strings(150)}]))))`)
+  assert.equal(view.block().dataset.state, 'tooLarge')
+  await view.unmount()
+})
+
+test('an @Set that runs past the budget in a click shows the source without an unhandled rejection', async () => {
+  const rejections = []
+  const record = reason => rejections.push(reason)
+  process.on('unhandledRejection', record)
+  try {
+    const view = await mount(
+      `$a = [${zeros(200)}]\n$b = []\nroot = Col([Button("Fill", Action([@Set($b, @Each(true ? $a : [], "i", @Each(true ? $a : [], "j", 1)))])), Text("rows " + @Count($b))])`,
+    )
+    assert.equal(view.block().dataset.state, 'complete')
+    await click(button(view.host, 'Fill'))
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 0))
+    })
+    assert.equal(view.block().dataset.state, 'tooLarge')
+    await view.unmount()
+  } finally {
+    process.off('unhandledRejection', record)
+  }
+  assert.deepEqual(rejections, [])
 })
 
 test('a block over budget while it streams gets a fresh attempt when its fence closes', async () => {
@@ -441,6 +553,38 @@ test('a stacked chart draws negative values below zero instead of flattening the
     `segment heights ${heights}`,
   )
   assert.ok(Math.abs(heights[0] / heights[1] - 2.5) < 0.05, `gain/loss ratio ${heights}`)
+  await view.unmount()
+})
+
+test('a stacked area keeps a zero layer at zero thickness, while a single line stays smooth', async () => {
+  const view = await mount(
+    'root = Col([Chart("area", [{x:"A", a:0, b:0}, {x:"B", a:10, b:0}, {x:"C", a:20, b:20}], "x", ["a","b"], "number", null, true), Chart("line", [{x:"A", v:1}, {x:"B", v:3}, {x:"C", v:2}], "x", ["v"])])',
+  )
+  const [stacked, single] = view.host.querySelectorAll('.iui-chart-plot svg')
+  const fills = [...stacked.querySelectorAll('path[fill^="url("]')].map(path => path.getAttribute('d'))
+  assert.equal(fills.length, 2)
+  assert.ok(
+    fills.every(d => !d.includes('C')),
+    'stacked layers use straight edges',
+  )
+  // Layer b is 0 at A and B: its upper edge and its lower edge (layer a's top) visit the same points there.
+  const points = d => [...d.matchAll(/[ML]([-\d.]+),([-\d.]+)/g)].map(match => [Number(match[1]), Number(match[2])])
+  const b = points(fills[1])
+  const [upper, lower] = [b.slice(0, 3), b.slice(3).reverse()]
+  assert.deepEqual(upper.slice(0, 2), lower.slice(0, 2))
+  assert.ok(single.querySelector('path[fill="none"]').getAttribute('d').includes('C'), 'a single line is still a curve')
+  await view.unmount()
+})
+
+test('scatter x ticks show small decimals instead of zeros', async () => {
+  const view = await mount('root = Col([Chart("scatter", [{name:"A", x:0.0001, y:1}, {name:"B", x:0.0002, y:2}], "x", ["y"], "number")])')
+  const ticks = [...view.host.querySelectorAll('.iui-chart-tick')].map(tick => tick.textContent)
+  const xTicks = ticks.slice(-Math.floor(ticks.length / 2))
+  assert.ok(
+    xTicks.some(text => /^0\.000\d/.test(text)),
+    `x ticks ${xTicks}`,
+  )
+  assert.ok(xTicks.filter(text => text === '0').length <= 1, `x ticks ${xTicks}`)
   await view.unmount()
 })
 

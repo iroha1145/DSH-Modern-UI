@@ -1,18 +1,24 @@
 /** A per-block budget on how far an openui-lang program expands, counted while the Renderer evaluates and draws it. */
-import { __dshSetEachCounter } from '@openuidev/lang-core'
+import { __dshSetCounters } from '@openuidev/lang-core'
 import type { Library } from '@openuidev/react-lang'
 
+type EvaluationContext = { readonly functions?: Readonly<Record<string, { readonly fn?: unknown } | undefined>> }
 declare module '@openuidev/lang-core' {
-  /** Added to the bundled copy by scripts/openui-each-counter.mjs: the counter sees each @Each list length. */
-  export function __dshSetEachCounter(
-    counter: ((items: number, context: { readonly functions?: Readonly<Record<string, { readonly fn?: unknown } | undefined>> }) => void) | null,
+  /** Added to the bundled copy by scripts/openui-each-counter.mjs; a counter answering false refuses the work. */
+  export function __dshSetCounters(
+    counters: {
+      each(items: number, context: EvaluationContext): boolean
+      built(items: number, context: EvaluationContext): boolean
+      result(value: unknown, context: EvaluationContext): boolean
+    } | null,
   ): void
 }
 
 /**
  * Steps one evaluation and render of a block may take. Looking up a component (once or twice while evaluating
- * it, once more to draw it) and calling an @function count one step; each @Each pass, each item of a list a
- * function returns and each component drawn count about five, so about 20,000 fit, fewer when they combine.
+ * it, once more to draw it), calling a function, each item of the lists it is given and each item of a list or
+ * object the evaluator builds count one step; each @Each pass, each value a pass produces, each item of a list a
+ * function returns and each component drawn count about five, so about 20,000 of those fit, fewer when they combine.
  */
 export const STEP_LIMIT = 100_000
 // On top of the lookup that precedes every draw.
@@ -97,7 +103,8 @@ export function budgeted<L extends Library>(library: L, budget: ExpansionBudget)
       {
         ...definition,
         fn: owned(budget, (args: Record<string, unknown>) => {
-          if (!budget.step()) throw over()
+          // A function walks the lists it is given, like the built-in ones the patched evaluator charges.
+          if (!budget.step(1 + Object.values(args).reduce((items: number, arg) => items + (Array.isArray(arg) ? arg.length : 0), 0))) throw over()
           const result: unknown = definition.fn(args)
           if (Array.isArray(result) && !budget.step(result.length * ITEM_STEPS)) throw over()
           return result
@@ -142,26 +149,52 @@ function owned<F extends object>(budget: ExpansionBudget, fn: F): F {
 // Evaluations no block claims, outside any block's Renderer, still stop within one synchronous run.
 let unclaimed = 0
 
-// Every @Each, whatever its list and body, charges the block whose Renderer built the evaluation context, which
-// holds even when React interleaves the renders of several blocks. Throwing makes lang-core abandon the loop,
-// like an over-budget function call.
-__dshSetEachCounter((items, context) => {
-  if (items === 0) return
-  const steps = items * ITEM_STEPS
+/** Charge the block whose Renderer built `context`, or the unclaimed run; false once over budget. */
+function charge(context: EvaluationContext, steps: number): boolean {
   let budget: ExpansionBudget | undefined
   for (const name in context.functions) {
     budget = owners.get(context.functions[name]?.fn as object)
     break
   }
-  if (budget !== undefined) {
-    if (!budget.step(steps)) throw over()
-    return
-  }
-  if (unclaimed === 0) {
+  if (budget !== undefined) return steps === 0 ? !budget.exceeded() : budget.step(steps)
+  if (steps > 0 && unclaimed === 0) {
     queueMicrotask(() => {
       unclaimed = 0
     })
   }
   unclaimed += steps
-  if (unclaimed > STEP_LIMIT) throw over()
+  return unclaimed <= STEP_LIMIT
+}
+
+const OUTPUT_LIMIT = Math.ceil(STEP_LIMIT / ITEM_STEPS) + 1
+
+/**
+ * How much one loop pass produced, up to OUTPUT_LIMIT: every text, number or flag, and every list, reached
+ * through lists, plain objects and the props of components, which draw them (raw text, table rows, chart points).
+ */
+function output(value: unknown): number {
+  let count = 0
+  const stack = [value]
+  while (stack.length > 0 && count < OUTPUT_LIMIT) {
+    const next = stack.pop()
+    if (typeof next === 'string' || typeof next === 'number' || typeof next === 'boolean') count += 1
+    else if (Array.isArray(next)) {
+      count += 1
+      for (const item of next) stack.push(item)
+    } else if (next !== null && typeof next === 'object' && typeof (next as { k?: unknown }).k !== 'string') {
+      // A component's own fields name it; only its props are drawn. Unevaluated expressions are never drawn.
+      const fields = (next as { type?: unknown; props?: unknown }).type === 'element' ? (next as { props?: object }).props : next
+      if (fields) for (const item of Object.values(fields)) stack.push(item)
+    }
+  }
+  return count
+}
+
+// The evaluator asks before it expands a loop, builds a list or object, or hands back what a pass produced. The
+// block whose Renderer built the evaluation context pays, which holds even when React interleaves the renders of
+// several blocks. A refusal makes the evaluator return an empty value, so nothing throws out of a click handler.
+__dshSetCounters({
+  each: (items, context) => charge(context, items * ITEM_STEPS),
+  built: (items, context) => items === 0 || charge(context, items),
+  result: (value, context) => charge(context, output(value) * ITEM_STEPS),
 })

@@ -41,6 +41,44 @@ const numberText = (value: number, step: number, min: number) => {
   return value !== 0 && /^-?0$/.test(text) ? value.toLocaleString("en-US", { maximumSignificantDigits: 2 }) : text;
 };
 
+/**
+ * The value a range input keeps, as browsers sanitize it: clamped to the bounds, then the nearest min + k·step
+ * (a tie goes up), never past max.
+ */
+const rangeValue = (value: number, min: number, max: number, step: number) => {
+  const places = Math.min(20, Math.max(decimals(step), decimals(min)));
+  const at = (k: number) => Number((min + k * step).toFixed(places));
+  // The small allowance keeps float noise (0.15 / 0.1 = 1.4999…) from moving a value off its step.
+  const k = Math.round((Math.min(max, Math.max(min, value)) - min) / step + 1e-9);
+  return at(k) > max ? at(Math.floor((max - min) / step + 1e-9)) : at(k);
+};
+
+/**
+ * False while the block streams and in the commit that ends it, before the renderer applies the final $variable
+ * defaults: a control normalising its value then would act on a half-written bound or option list, or write a
+ * value that does not exist yet over its declared default.
+ */
+function useSettled() {
+  const streaming = useIsStreaming();
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    setSettled(!streaming);
+  }, [streaming]);
+  return settled && !streaming;
+}
+
+/**
+ * Clears a choice control whose value is no longer among its options (an @Set replaced them), so formulas and
+ * @ToAssistant agree with the empty selection it shows instead of keeping a value no option displays.
+ */
+function useClearMissingChoice(field: { value: unknown; setValue: (value: string) => void }, values: string[]) {
+  const settled = useSettled();
+  const value = field.value == null ? "" : String(field.value);
+  useLayoutEffect(() => {
+    if (settled && value !== "" && !values.includes(value)) field.setValue("");
+  });
+}
+
 function Field({ label, children: content }: { label?: string; children: ReactNode }) {
   if (!label) return <>{content}</>;
   return (
@@ -245,6 +283,7 @@ export const Select = defineComponent({
     const text = useUiText();
     const field = useField(props.label, statementId, props.value);
     const choices = optionList(props.options);
+    useClearMissingChoice(field, choices.map((o) => o.value));
     const value = field.value == null ? "" : String(field.value);
     return (
       <Field label={props.label}>
@@ -271,10 +310,12 @@ export const SegmentedControl = defineComponent({
   description: "2 to 4 short choices in a row.",
   component: function SegmentedView({ props, statementId }) {
     const field = useField(undefined, statementId, props.value);
+    const choices = optionList(props.options);
+    useClearMissingChoice(field, choices.map((o) => o.value));
     const value = field.value == null ? "" : String(field.value);
     return (
       <div className={cx("iui-segmented", props.block && "iui-block")} role="radiogroup">
-        {optionList(props.options).map((o, i) => (
+        {choices.map((o, i) => (
           <button
             key={`${o.value}-${i}`}
             type="button"
@@ -306,31 +347,27 @@ export const Slider = defineComponent({
   component: function SliderView({ props, statementId }) {
     const text = useUiText();
     const field = useField(props.label, statementId, props.value);
-    const streaming = useIsStreaming();
+    const settled = useSettled();
     const min = Number.isFinite(props.min) ? props.min : 0;
     const max = Number.isFinite(props.max) && props.max > min ? props.max : min + 100;
     const step = props.step && props.step > 0 ? props.step : 1;
     const raw = typeof field.value === "number" ? field.value : Number(field.value);
-    const value = Number.isFinite(raw) ? Math.min(max, Math.max(min, raw)) : min;
-    // The stored value is the intended one clamped to the current bounds, so formulas and @ToAssistant use
-    // the value the slider shows. The intended value is the last one anyone but this clamping chose (the
-    // default, a drag, @Set, another control): narrowing a bound clamps it, widening it again returns toward
-    // it, so typing a bound digit by digit (100, 5, 50) does not leave the value at 5. Not while streaming,
-    // when a bound may be half-written, nor in the commit that ends it, before the renderer applies the final
-    // $variable defaults (a value that does not exist yet would also override its declared default). At most
-    // one write per task, so two sliders with disjoint bounds on one $variable cannot correct each other forever.
-    const [settled, setSettled] = useState(false);
-    useEffect(() => {
-      setSettled(!streaming);
-    }, [streaming]);
+    // What the native range shows: the browser clamps and snaps whatever value it is given.
+    const value = Number.isFinite(raw) ? rangeValue(raw, min, max, step) : min;
+    // The stored value is the intended one clamped to the current bounds and snapped to the step, so formulas
+    // and @ToAssistant use the value the slider shows. The intended value is the last one anyone but this
+    // normalisation chose (the default, a drag, @Set, another control): narrowing a bound or coarsening the step
+    // moves the stored value, undoing it returns toward the intended one, so typing a bound digit by digit
+    // (100, 5, 50) does not leave the value at 5. Only once settled (see useSettled), and at most one write per
+    // task, so two sliders with disjoint bounds on one $variable cannot correct each other forever.
     const intended = useRef(Number.NaN);
     // The stored value as this slider last saw or wrote it; anything else is a new choice.
     const seen = useRef(Number.NaN);
     const clamping = useRef(false);
     useLayoutEffect(() => {
-      if (!settled || streaming || !Number.isFinite(raw)) return;
+      if (!settled || !Number.isFinite(raw)) return;
       if (raw !== seen.current) intended.current = seen.current = raw;
-      const target = Math.min(max, Math.max(min, intended.current));
+      const target = rangeValue(intended.current, min, max, step);
       if (target === raw || clamping.current) return;
       clamping.current = true;
       queueMicrotask(() => {
@@ -415,13 +452,15 @@ export const RadioGroup = defineComponent({
   component: function RadioGroupView({ props, statementId }) {
     const field = useField(props.label, statementId, props.value);
     const name = useId();
+    const choices = choiceList(props.options);
+    useClearMissingChoice(field, choices.map((o) => o.value));
     const value = field.value == null ? "" : String(field.value);
     const variant = props.variant ?? "list";
     return (
       <fieldset className={cx("iui-radio-group", `iui-radio-${variant}`)}>
         {props.label ? <legend className="iui-label">{props.label}</legend> : null}
         <div>
-          {choiceList(props.options).map((o, i) => (
+          {choices.map((o, i) => (
             <label key={`${o.value}-${i}`} className={cx(variant === "list" ? "iui-check" : "iui-choice", o.value === value && "is-selected")}>
               <input type="radio" name={name} checked={o.value === value} onChange={() => field.setValue(o.value)} />
               <span className="iui-choice-text">

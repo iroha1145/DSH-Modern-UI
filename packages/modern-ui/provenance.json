@@ -3705,8 +3705,8 @@
     },
     {
       "target": "src/vendor/intelligent/client/openui-budget.ts",
-      "targetSha256": "045a8ee91f40619058598fb4e75e22b3ef988d9c5b201756a94d660e92e4f7a4",
-      "description": "Original per-block step budget for openui-lang blocks: a counted view of the component library and the counter for the build-time patched @Each of @openuidev/lang-core, which stop an over-budget evaluation or render in the @openuidev/react-lang runtime."
+      "targetSha256": "02f5debc9cbf525accf82155b51dfec1dc6bb480c172c9e46d1013f82ca463a3",
+      "description": "Original per-block step budget for openui-lang blocks: a counted view of the component library and the counters for the build-time patched evaluator of @openuidev/lang-core (loops, built lists and objects, what each loop pass produces), which stop an over-budget evaluation or render in the @openuidev/react-lang runtime."
     }
   ],
   "adapters": [
