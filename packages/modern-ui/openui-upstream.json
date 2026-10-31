@@ -9,8 +9,8 @@
       "file": "dist/index.mjs",
       "sourceSha256": "04f3ec47a49c119d0f65c1963dc17ec7b0f146500a23ba9cb70e0295a998ab17",
       "patch": "scripts/openui-each-counter.mjs",
-      "patchSha256": "b87765db32c1a1cac1c32c635fa19a104de0af2ff765277fa5dcb364963a008d",
-      "description": "Applied to the bundled copy only, never to node_modules: the lazy @Each evaluation calls a counter that src/vendor/intelligent/client/openui-budget.ts installs, with each list length and the evaluation context, so the block whose Renderer evaluates the loop is charged and an over-budget loop is abandoned. The build fails when the evaluator no longer matches."
+      "patchSha256": "b7a974da5d4640e4c4ea6c8d1b513e21e33f1a9a3bded75aa860a630f165577b",
+      "description": "Applied to the bundled copy only, never to node_modules: before the evaluator expands an @Each, starts a pass, builds a list or object literal, reads a field across a list or runs a built-in function over lists, and before it hands back what a pass produced, it asks counters that src/vendor/intelligent/client/openui-budget.ts installs, with the evaluation context, so the block whose Renderer evaluates is charged. A refusal returns an empty value instead of throwing. The build fails when any of the six evaluator sites no longer matches."
     }
   ],
   "runtime": {
