@@ -1,5 +1,6 @@
 import type { ChatNode } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { AssistantBlock } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import { hasOpenUIFence } from '../../../intelligent/client/openui-source.ts'
 import { hasAssistantReplyContent } from './assistant-content.ts'
 
 /** Current process range and finalized answer boundary derived from one Turn. */
@@ -48,9 +49,19 @@ export function isClosingReply(blocks: readonly AssistantBlock[]): boolean {
 }
 
 /**
+ * Whether a Step's reply carries rendered OpenUI components. A model asked to answer in stages writes a visualization,
+ * then calls Tools before the next one, so the earlier segment shares its Step with a Tool call.
+ * @param blocks - the Step's Assistant blocks.
+ * @returns whether a text block holds a complete openui-lang fence.
+ */
+export function hasVisualReply(blocks: readonly AssistantBlock[]): boolean {
+  return blocks.some(block => block.kind === 'text' && hasOpenUIFence(block.text))
+}
+
+/**
  * Whether an Assistant Step's reply belongs to the Turn's answer and stays outside the folded process: the answer
- * Step, or a later closing reply. Rows are classified by Step, not anchor, because a streamed reply anchors at its
- * first visible chunk, before its final message.
+ * Step, a later closing reply, or any Step whose reply carries a visualization. Rows are classified by Step, not
+ * anchor, because a streamed reply anchors at its first visible chunk, before its final message.
  * @param spec - the Turn's process specification.
  * @param data - the Step's Assistant data.
  * @returns whether the Step's reply row is part of the answer.
@@ -60,7 +71,9 @@ export function isAnswerStep(
   data: { readonly step: number; readonly blocks: readonly AssistantBlock[] },
 ): boolean {
   return spec.answerStep !== null
-    && (data.step === spec.answerStep || (data.step > spec.answerStep && isClosingReply(data.blocks)))
+    && (data.step === spec.answerStep
+      || (data.step > spec.answerStep && isClosingReply(data.blocks))
+      || hasVisualReply(data.blocks))
 }
 
 /**

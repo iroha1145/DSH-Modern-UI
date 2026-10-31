@@ -20,6 +20,28 @@ export function looksLikeOpenUI(code: string): boolean {
   return /^\s*(?:\/\/[^\n]*\n\s*)*\$?[A-Za-z_][\w]*\s*=/.test(code)
 }
 
+/**
+ * Whether Markdown text holds a closed fence the presenter renders as components: `openui-lang`, or `openui` whose
+ * body reads as openui-lang. A fence still streaming, or a fence name mentioned inside prose, does not count.
+ * @param text - Assistant reply text.
+ * @returns True when a complete openui-lang fence is present.
+ */
+export function hasOpenUIFence(text: string): boolean {
+  const lines = text.split(/\r?\n/)
+  for (let index = 0; index < lines.length; index++) {
+    const open = /^ {0,3}(`{3,}|~{3,})[ \t]*([^\s`]*)/.exec(lines[index])
+    if (open === null) continue
+    const [, marker, info] = open
+    const close = new RegExp(`^ {0,3}${marker[0] === '`' ? '`' : '~'}{${marker.length},}[ \\t]*$`)
+    const end = lines.findIndex((line, at) => at > index && close.test(line))
+    if (end < 0) return false
+    const lang = info.toLowerCase()
+    if (lang === 'openui-lang' || (lang === 'openui' && looksLikeOpenUI(lines.slice(index + 1, end).join('\n')))) return true
+    index = end
+  }
+  return false
+}
+
 /** What a @ToAssistant click carries. */
 export interface AssistantRequest {
   readonly message: string

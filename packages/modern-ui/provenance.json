@@ -210,14 +210,14 @@
       "source": "packages/client/ui-chat/src/client/contract/turn-process.ts",
       "target": "src/vendor/chat/client/contract/turn-process.ts",
       "sourceSha256": "dce44841b376607f143df8c990b4f9e54579655a2d6adc8fead2fe7112efe7ef",
-      "targetSha256": "b10fc3428ac45fdd30c9fc2237cf0ec3ea50dc9f7f0e64dbe59380a671ed8a43",
+      "targetSha256": "b919a9cb72c2e4841fa4ce6b9ea1b2d4a5e9ba9db490aecd6e3d2b58c7b9aeac",
       "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/locale.ts",
       "target": "src/vendor/chat/client/locale.ts",
       "sourceSha256": "9df06d01dba1aaa060c6f42b1b473d6fbe33a8a9e703ab69121568478e2dd1b0",
-      "targetSha256": "974a01a5ac44a0627ac7b296db179b3ce92df7c38126faa6b8f795258f8c8611",
+      "targetSha256": "5b4f2b439b3ee6f9d4dfcb66d272372ca7554ad7c7076ff6765407995fbb0dc0",
       "adapted": true
     },
     {
@@ -903,7 +903,7 @@
       "source": "packages/client/ui-intelligent-ui/src/presentation-prompt.ts",
       "target": "src/vendor/intelligent/presentation-prompt.ts",
       "sourceSha256": "7152a0e1a8eb67842eb383f6c9611883d68dc3f02e9c688e323674142ddc6797",
-      "targetSha256": "25ecd833182a1c7b761e4123a879a23d57390abc0adea33eefdebbed0751e80e",
+      "targetSha256": "887dcdf13d737103ca2da39a751fff761679e77afa054430a6efeab2265bb9b6",
       "adapted": true
     },
     {
@@ -3680,12 +3680,12 @@
     },
     {
       "target": "src/vendor/intelligent/client/openui-source.ts",
-      "targetSha256": "6bc6b480844b384c0974ffbf9fcc4ae98dddabaf59ccbb6b267901604fdb0848",
-      "description": "Original pure helpers for openui-lang fences: which bodies render, the parse size bound, and the text a @ToAssistant click sends."
+      "targetSha256": "ec9377e9356b203a4bce7f0b809b2d8b3c5fd96bc312bc776a5afe5ec691c622",
+      "description": "Original pure helpers for openui-lang fences: which bodies render, whether a reply holds a complete fence, the parse size bound, and the text a @ToAssistant click sends."
     },
     {
       "target": "src/jev-tool.ts",
-      "targetSha256": "4a2ab0db8550028e94aa3a47769e57ff47f684824f3312f373010f1b029eca03",
+      "targetSha256": "3d4bc1e4d33eab77c88b5752ae77cacfe3510785454b53513625dfe921575bf7",
       "description": "Original optional TypeSafe Jev presentation advice tool: registered only in main agents' own tool scopes while the presentation prompt, jev.enabled and a resolvable key allow it; on a model call it sends the user messages of the turn being processed plus the model's structure summary (at most 600 characters) as one System One choice per turn, and returns an ordinary, ignorable tool result; a missing key, errors and cancellation return \"no suggestion\" and never fail a turn."
     },
     {

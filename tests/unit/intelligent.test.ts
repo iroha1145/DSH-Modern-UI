@@ -112,8 +112,14 @@ describe('presentation prompt', () => {
 
   test('keeps the citation, picture and follow-up rules after the component guidance', () => {
     expect(PRESENTATION_PROMPT.startsWith(OPENUI_SYSTEM_PROMPT)).toBe(true)
-    for (const rule of ['- Cite externally sourced factual claims', '- Pictures:', '- Follow-up questions:', '```followups'])
+    for (const rule of ['- Staged answers:', '- Cite externally sourced factual claims', '- Pictures:', '- Follow-up questions:', '```followups'])
       expect(PRESENTATION_PROMPT).toContain(rule)
     expect(PRESENTATION_PROMPT).not.toContain('ui-card')
+  })
+
+  test('prefers components and streams each block section by section', () => {
+    expect(OPENUI_SYSTEM_PROMPT).toContain('Prefer showing to telling.')
+    expect(OPENUI_SYSTEM_PROMPT).toContain('write a block section by section')
+    expect(OPENUI_SYSTEM_PROMPT).not.toContain('Data values — leaf content last')
   })
 })

@@ -128,6 +128,7 @@ describe('advice wording', () => {
     expect(definition.description).toContain('Calling it is not a prerequisite for using OpenUI components or for answering')
     expect(definition.description).toContain('answering without consulting Jev is a normal outcome')
     expect(definition.description).toContain('it does not see sources, files or tool results')
+    expect(definition.description).toContain("your own reading of the material and the user's wishes decides")
     expect(definition.description).not.toMatch(/\bmust\b|before answering/i)
     expect(definition.parameters).toEqual({
       type: 'object',
