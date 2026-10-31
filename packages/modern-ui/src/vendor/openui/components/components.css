@@ -77,7 +77,7 @@
   .iui-link { color: inherit; text-decoration: underline; text-decoration-color: var(--iui-border-strong); text-underline-offset: 3px; }
   .iui-link:hover { text-decoration-color: currentColor; }
   .iui-link-arrow { display: inline; width: 0.85em; height: 0.85em; margin-left: 2px; vertical-align: -0.05em; }
-  .iui-badge { display: inline-flex; align-items: center; align-self: flex-start; gap: 5px; width: fit-content; max-width: 100%; min-height: 26px; padding: 3px 10px; border-radius: 999px; background: var(--iui-badge-neutral-soft); color: var(--iui-ink); font-size: 13px; line-height: 18px; font-weight: 500; white-space: nowrap; }
+  .iui-badge { display: inline-flex; align-items: center; align-self: flex-start; gap: 5px; width: fit-content; max-width: 100%; min-height: 26px; padding: 3px 10px; border-radius: 999px; corner-shape: round; background: var(--iui-badge-neutral-soft); color: var(--iui-ink); font-size: 13px; line-height: 18px; font-weight: 500; white-space: nowrap; }
   .iui-badge > svg { flex: none; margin-left: -2px; }
   .iui-row > .iui-badge { align-self: center; flex: none; }
   /* Badges stay calm: info is the neutral grey pill, and the other tones are soft tints with same-hue text. */
@@ -98,10 +98,10 @@
   .iui-list-wide > li { grid-template-columns: 76px minmax(0, 1fr); column-gap: 16px; }
   .iui-list-rich { padding-bottom: 4px; }
   .iui-list-marker { display: flex; align-items: center; justify-content: center; height: 1.55em; color: var(--iui-muted); }
-  .iui-list-bullet .iui-list-marker:empty::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--iui-faint); }
-  .iui-list-number .iui-list-marker:not(.iui-list-marker-text) { align-self: start; width: 24px; height: 24px; border-radius: 50%; background: var(--iui-ink); color: var(--iui-on-ink); font-size: 13px; line-height: 1; font-variant-numeric: tabular-nums; }
+  .iui-list-bullet .iui-list-marker:empty::before { content: ""; width: 5px; height: 5px; border-radius: 50%; corner-shape: round; background: var(--iui-faint); }
+  .iui-list-number .iui-list-marker:not(.iui-list-marker-text) { align-self: start; width: 24px; height: 24px; border-radius: 50%; corner-shape: round; background: var(--iui-ink); color: var(--iui-on-ink); font-size: 13px; line-height: 1; font-variant-numeric: tabular-nums; }
   /* Short custom markers ("1", "2", "A") read as steps: white numerals on an ink chip. */
-  .iui-list-marker-chip > span { display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: var(--iui-ink); color: var(--iui-on-ink); font-size: 12px; line-height: 1; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .iui-list-marker-chip > span { display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; corner-shape: round; background: var(--iui-ink); color: var(--iui-on-ink); font-size: 12px; line-height: 1; font-weight: 500; font-variant-numeric: tabular-nums; }
   .iui-list:has(.iui-list-marker-chip):not(.iui-list-wide) > li { grid-template-columns: 24px minmax(0, 1fr); column-gap: 12px; }
   .iui-list-marker-text { justify-content: flex-start; color: var(--iui-muted); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .iui-list-rich .iui-list-title { font-weight: 500; }
@@ -114,7 +114,7 @@
   .iui-timeline.iui-list-wide > li:not(:last-child)::after { left: auto; right: calc(100% - 76px - 8px); }
   .iui-timeline.iui-list-none:not(.iui-list-wide) > li::after { content: none; }
   .iui-timeline.iui-list-bullet .iui-list-marker:empty::before { width: 9px; height: 9px; background: var(--iui-canvas); box-shadow: inset 0 0 0 2px var(--iui-ink); }
-  .iui-timeline.iui-list-wide .iui-list-marker-text::after { content: ""; position: absolute; left: calc(76px + 4px); top: 0.55em; width: 9px; height: 9px; border-radius: 50%; background: var(--iui-canvas); box-shadow: inset 0 0 0 2px var(--iui-ink); }
+  .iui-timeline.iui-list-wide .iui-list-marker-text::after { content: ""; position: absolute; left: calc(76px + 4px); top: 0.55em; width: 9px; height: 9px; border-radius: 50%; corner-shape: round; background: var(--iui-canvas); box-shadow: inset 0 0 0 2px var(--iui-ink); }
   .iui-timeline.iui-list-wide > li { grid-template-columns: 76px minmax(0, 1fr); column-gap: 24px; }
 
   /* Markdown prose */
@@ -140,7 +140,7 @@
   .iui-md-h3, .iui-md-h4 { font-size: 16px; line-height: 1.4; }
 
   /* Buttons */
-  .iui-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; align-self: flex-start; flex: none; min-height: 36px; padding: 8px 16px; border: 1px solid transparent; border-radius: 999px; font-size: 14px; line-height: 1.2; font-weight: 500; white-space: nowrap; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
+  .iui-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; align-self: flex-start; flex: none; min-height: 36px; padding: 8px 16px; border: 1px solid transparent; border-radius: 999px; corner-shape: round; font-size: 14px; line-height: 1.2; font-weight: 500; white-space: nowrap; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
   .iui-row > .iui-button { align-self: center; }
   .iui-button-sm { min-height: 32px; padding: 6px 12px; font-size: 13px; }
   .iui-button-lg { min-height: 44px; padding: 10px 20px; font-size: 15px; }
@@ -159,7 +159,7 @@
   :is(.iui-button-outline, .iui-button-soft, .iui-button-ghost).iui-button-success { color: var(--iui-success); }
   .iui-button:disabled { opacity: .4; cursor: not-allowed; }
   .iui-block { width: 100%; align-self: stretch; }
-  .iui-icon-button { display: grid; place-items: center; flex: none; width: 34px; height: 34px; border: 1px solid var(--iui-border); border-radius: 50%; background: var(--iui-canvas); color: var(--iui-ink); cursor: pointer; transition: background .15s; }
+  .iui-icon-button { display: grid; place-items: center; flex: none; width: 34px; height: 34px; border: 1px solid var(--iui-border); border-radius: 50%; corner-shape: round; background: var(--iui-canvas); color: var(--iui-ink); cursor: pointer; transition: background .15s; }
   .iui-icon-button-ghost { border-color: transparent; background: transparent; color: var(--iui-muted); }
   .iui-icon-button-solid { border-color: var(--iui-ink); background: var(--iui-ink); color: var(--iui-on-ink); }
   .iui-icon-button:not(:disabled):hover { background: var(--iui-hover); color: var(--iui-ink); }
@@ -186,7 +186,7 @@
   .iui-pressable .iui-text[style*="line-through"] { color: var(--iui-muted); }
   /* Rows in a list keep still: the wash alone shows hover and press. */
   .iui-pressable:has(> .iui-row):not([aria-disabled="true"]):is(:hover, :active) { transform: none; }
-  .iui-pressable.is-selected:not(:has(> .iui-row))::before { content: ""; position: absolute; top: 8px; right: 8px; z-index: 1; width: 18px; height: 18px; border-radius: 50%; background: var(--iui-ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 6.2l2.3 2.3 4.7-5'/%3E%3C/svg%3E") center / 12px no-repeat; }
+  .iui-pressable.is-selected:not(:has(> .iui-row))::before { content: ""; position: absolute; top: 8px; right: 8px; z-index: 1; width: 18px; height: 18px; border-radius: 50%; corner-shape: round; background: var(--iui-ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 6.2l2.3 2.3 4.7-5'/%3E%3C/svg%3E") center / 12px no-repeat; }
   &[data-theme="dark"] .iui-pressable.is-selected:not(:has(> .iui-row))::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23171717' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 6.2l2.3 2.3 4.7-5'/%3E%3C/svg%3E"); }
   .iui-pressable[aria-disabled="true"] { cursor: default; }
   .iui-pressable:focus-visible { outline: 2px solid var(--iui-focus); outline-offset: 2px; }
@@ -201,9 +201,9 @@
   &[data-theme="dark"] .iui-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ababab' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E"); }
   .iui-date::-webkit-calendar-picker-indicator { opacity: .55; cursor: pointer; }
 
-  .iui-segmented { display: inline-flex; align-self: flex-start; gap: 2px; max-width: 100%; padding: 3px; overflow-x: auto; border-radius: 999px; background: var(--iui-surface); scrollbar-width: none; }
+  .iui-segmented { display: inline-flex; align-self: flex-start; gap: 2px; max-width: 100%; padding: 3px; overflow-x: auto; border-radius: 999px; corner-shape: round; background: var(--iui-surface); scrollbar-width: none; }
   .iui-segmented.iui-block { display: flex; }
-  .iui-segmented > button { flex: 1 0 auto; padding: 6px 14px; border: 0; border-radius: 999px; background: transparent; color: var(--iui-muted); font-size: 13px; line-height: 1.4; white-space: nowrap; cursor: pointer; transition: background .2s, color .2s; }
+  .iui-segmented > button { flex: 1 0 auto; padding: 6px 14px; border: 0; border-radius: 999px; corner-shape: round; background: transparent; color: var(--iui-muted); font-size: 13px; line-height: 1.4; white-space: nowrap; cursor: pointer; transition: background .2s, color .2s; }
   .iui-segmented > button:hover:not(.is-selected) { color: var(--iui-ink); }
   .iui-segmented > button.is-selected { background: var(--iui-canvas); color: var(--iui-ink); font-weight: 500; box-shadow: var(--iui-shadow-sm), 0 0 0 1px var(--iui-border); }
   &[data-theme="dark"] .iui-segmented > button.is-selected { background: var(--iui-surface-strong); }
@@ -220,10 +220,10 @@
   .iui-slider-head > label { color: var(--iui-ink); overflow-wrap: anywhere; }
   .iui-slider-head > output { color: var(--iui-ink); font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .iui-range { appearance: none; -webkit-appearance: none; display: block; width: 100%; min-width: 0; height: 40px; margin: 0; padding: 0; border: 0; background: transparent; cursor: pointer; }
-  .iui-range::-webkit-slider-runnable-track { height: 24px; border: 3px solid transparent; border-radius: 999px; background: var(--iui-range-track); }
-  .iui-range::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 18px; height: 18px; margin: 0; border: 0; border-radius: 50%; background: var(--iui-range-thumb); }
-  .iui-range::-moz-range-track { height: 24px; border-radius: 999px; background: var(--iui-range-track); }
-  .iui-range::-moz-range-thumb { width: 18px; height: 18px; border: 0; border-radius: 50%; background: var(--iui-range-thumb); }
+  .iui-range::-webkit-slider-runnable-track { height: 24px; border: 3px solid transparent; border-radius: 999px; corner-shape: round; background: var(--iui-range-track); }
+  .iui-range::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 18px; height: 18px; margin: 0; border: 0; border-radius: 50%; corner-shape: round; background: var(--iui-range-thumb); }
+  .iui-range::-moz-range-track { height: 24px; border-radius: 999px; corner-shape: round; background: var(--iui-range-track); }
+  .iui-range::-moz-range-thumb { width: 18px; height: 18px; border: 0; border-radius: 50%; corner-shape: round; background: var(--iui-range-thumb); }
   .iui-range::-moz-range-progress { background: transparent; }
   .iui-range:focus-visible { outline: 2px solid var(--iui-focus); outline-offset: 2px; border-radius: 12px; }
   .iui-slider-marks { position: relative; height: 18px; margin-top: -2px; color: var(--iui-muted); font-size: 11px; line-height: 18px; }
@@ -242,11 +242,11 @@
   /* Short choices are pills; explanatory choices are quiet cards */
   .iui-radio-pills > div { flex-direction: row; flex-wrap: wrap; gap: var(--iui-control-gap); }
   .iui-radio-cards > div { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: var(--iui-control-gap); }
-  .iui-choice { position: relative; display: flex; align-items: center; min-height: 42px; padding: 9px 16px; border: 1px solid var(--iui-border); border-radius: 999px; background: transparent; color: var(--iui-ink); font-size: 15px; line-height: 22px; cursor: pointer; transition: background .15s, border-color .15s; }
+  .iui-choice { position: relative; display: flex; align-items: center; min-height: 42px; padding: 9px 16px; border: 1px solid var(--iui-border); border-radius: 999px; corner-shape: round; background: transparent; color: var(--iui-ink); font-size: 15px; line-height: 22px; cursor: pointer; transition: background .15s, border-color .15s; }
   .iui-choice > input { position: absolute; opacity: 0; width: 1px; height: 1px; }
   .iui-choice:hover { background: var(--iui-hover); }
   .iui-radio-pills .iui-choice.is-selected { border-color: var(--iui-ink); background: var(--iui-ink); color: var(--iui-on-ink); }
-  .iui-radio-cards .iui-choice { align-items: flex-start; padding: 14px 16px; border-radius: 14px; }
+  .iui-radio-cards .iui-choice { align-items: flex-start; padding: 14px 16px; border-radius: var(--iui-radius-xl); corner-shape: superellipse(1.5); }
   .iui-radio-cards .iui-choice.is-selected { border-color: var(--iui-ink); background: var(--iui-pressed); box-shadow: inset 0 0 0 1px var(--iui-ink); }
   .iui-radio-cards .iui-choice > .iui-choice-text > span:first-child { font-weight: 500; }
   .iui-choice-description { color: var(--iui-muted); font-size: 14px; line-height: 21px; }
@@ -262,7 +262,7 @@
   .iui-image-empty { width: 26px; height: 26px; color: var(--iui-photo-empty-icon); }
 
   /* A framed table: 14px corners, a surface header row, hover rows. */
-  .iui-table-scroll { width: 100%; min-width: 0; overflow-x: auto; border: 1px solid var(--iui-border); border-radius: 14px; }
+  .iui-table-scroll { width: 100%; min-width: 0; overflow-x: auto; border: 1px solid var(--iui-border); border-radius: var(--iui-radius-xl); }
   .iui-table { width: 100%; border-collapse: collapse; font-size: 14px; line-height: 1.5; }
   .iui-table th, .iui-table td { padding: 13px 16px; border-bottom: 1px solid var(--iui-border); text-align: left; vertical-align: middle; }
   .iui-table th { padding-block: 11px; background: var(--iui-surface); color: var(--iui-ink); font-size: 13px; font-weight: 500; white-space: nowrap; }
@@ -283,7 +283,7 @@
   .iui-chart-tooltip > strong { font-weight: 600; }
   .iui-chart-tooltip > span { display: flex; align-items: center; gap: 6px; color: var(--iui-muted); }
   .iui-chart-tooltip b { margin-left: auto; padding-left: 8px; color: var(--iui-ink); font-weight: 500; font-variant-numeric: tabular-nums; }
-  .iui-chart-tooltip i, .iui-chart-legend i, .iui-pie-legend i { flex: none; width: 8px; height: 8px; border-radius: 50%; }
+  .iui-chart-tooltip i, .iui-chart-legend i, .iui-pie-legend i { flex: none; width: 8px; height: 8px; border-radius: 50%; corner-shape: round; }
   .iui-chart-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; color: var(--iui-muted); font-size: 12px; }
   .iui-chart-legend > span { display: inline-flex; align-items: center; gap: 7px; }
   .iui-pie { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; }
@@ -306,7 +306,7 @@
   .iui-carousel-track::-webkit-scrollbar { display: none; }
   .iui-carousel-item { flex: none; max-width: 85%; min-width: 0; scroll-snap-align: start; display: flex; flex-direction: column; }
   .iui-carousel-item > .iui-card, .iui-carousel-item > .iui-pressable { height: 100%; }
-  .iui-carousel-nav { position: absolute; top: 50%; z-index: 2; display: grid; place-items: center; width: 34px; height: 34px; margin-top: -17px; border: 1px solid var(--iui-border); border-radius: 50%; background: var(--iui-canvas); color: var(--iui-ink); box-shadow: 0 1px 3px rgb(0 0 0 / 14%); cursor: pointer; }
+  .iui-carousel-nav { position: absolute; top: 50%; z-index: 2; display: grid; place-items: center; width: 34px; height: 34px; margin-top: -17px; border: 1px solid var(--iui-border); border-radius: 50%; corner-shape: round; background: var(--iui-canvas); color: var(--iui-ink); box-shadow: 0 1px 3px rgb(0 0 0 / 14%); cursor: pointer; }
   /* Same frosted glass as the map controls, since these sit over photos. */
   .iui-carousel-nav { border-color: transparent; background: var(--iui-glass); backdrop-filter: blur(12px) saturate(1.4); box-shadow: inset 0 0 0 1px var(--iui-glass-ring), 0 2px 12px rgb(0 0 0 / 8%); transition: background-color 120ms ease-out, box-shadow 120ms ease-out, opacity 120ms ease-out; }
   .iui-carousel-nav:hover { background: var(--iui-glass-hover); }
@@ -322,7 +322,7 @@
 
   .iui-codeblock { min-width: 0; overflow: hidden; border: 1px solid var(--iui-border); border-radius: var(--iui-radius-lg); background: var(--iui-surface); }
   .iui-codeblock-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px 6px 14px; border-bottom: 1px solid var(--iui-border); color: var(--iui-muted); font-size: 12px; }
-  .iui-codeblock-head button { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border: 0; border-radius: 6px; background: none; color: inherit; font: inherit; cursor: pointer; }
+  .iui-codeblock-head button { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border: 0; border-radius: var(--iui-radius-sm); background: none; color: inherit; font: inherit; cursor: pointer; }
   .iui-codeblock-head button:hover { background: var(--iui-hover); color: var(--iui-ink); }
   .iui-codeblock pre { margin: 0; padding: 14px 16px; overflow-x: auto; font: 13px/1.6 var(--iui-mono); }
 
@@ -350,7 +350,7 @@
   /* Diagram (DSH): centered top-down nodes, arrows, side-by-side rows and dashed boundaries. */
   .iui-diagram { display: flex; flex-direction: column; align-items: center; width: 100%; min-width: 0; margin: 0; }
   .iui-diagram-caption { align-self: flex-start; margin-bottom: var(--iui-space-group); color: var(--iui-muted); font-size: 12px; line-height: 1.5; font-weight: 500; }
-  .iui-diagram-node { display: flex; align-items: flex-start; gap: 10px; width: fit-content; min-width: min(100%, 160px); max-width: min(100%, 360px); padding: 10px 14px; border: 1px solid var(--iui-border-strong); border-radius: var(--iui-radius-md); background: var(--iui-canvas); }
+  .iui-diagram-node { display: flex; align-items: flex-start; gap: 10px; width: fit-content; min-width: min(100%, 160px); max-width: min(100%, 360px); padding: 10px 14px; border: 1px solid var(--iui-border-strong); border-radius: var(--iui-radius-lg); background: var(--iui-canvas); }
   .iui-diagram-icon { flex: none; margin-top: 1px; color: var(--iui-muted); }
   .iui-diagram-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .iui-diagram-text > strong { color: var(--iui-ink); font-size: 14px; line-height: 20px; font-weight: 500; overflow-wrap: anywhere; }
@@ -367,7 +367,7 @@
   .iui-diagram-arrow > span { max-width: 320px; color: var(--iui-muted); font-size: 12px; line-height: 16px; text-align: center; }
   .iui-diagram-row { display: flex; flex-wrap: wrap; justify-content: center; align-items: stretch; gap: var(--iui-space-group); width: 100%; }
   .iui-diagram-row > .iui-diagram-node { flex: 1 1 150px; max-width: 280px; }
-  .iui-diagram-group { display: flex; flex-direction: column; width: 100%; padding: 12px 14px 14px; border: 1px dashed var(--iui-border-strong); border-radius: var(--iui-radius-lg); }
+  .iui-diagram-group { display: flex; flex-direction: column; width: 100%; padding: 12px 14px 14px; border: 1px dashed var(--iui-border-strong); border-radius: var(--iui-radius-xl); }
   .iui-diagram-group-title { margin-bottom: 10px; color: var(--iui-muted); font-size: 12px; line-height: 16px; font-weight: 500; }
   .iui-diagram-group-body { display: flex; flex-direction: column; align-items: center; }
   .iui-diagram-group.is-row > .iui-diagram-group-body { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: stretch; gap: var(--iui-space-group); }

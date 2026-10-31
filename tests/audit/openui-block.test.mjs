@@ -8,6 +8,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { build } from 'esbuild'
 import { JSDOM } from 'jsdom'
+import { eachCounterPlugin } from '../../scripts/openui-each-counter.mjs'
 
 const repo = fileURLToPath(new URL('../../', import.meta.url))
 const require = createRequire(import.meta.url)
@@ -64,7 +65,8 @@ const result = await build({
   absWorkingDir: repo,
   tsconfigRaw: {},
   stdin: {
-    contents: "export { OpenUIBlock } from './vendor/intelligent/client/OpenUIBlock.tsx'; export { numberText } from './vendor/openui/components/table.tsx'",
+    contents:
+      "export { OpenUIBlock } from './vendor/intelligent/client/OpenUIBlock.tsx'; export { numberText } from './vendor/openui/components/table.tsx'; export { evaluate } from '@openuidev/lang-core'",
     resolveDir: source,
     loader: 'tsx',
   },
@@ -75,12 +77,14 @@ const result = await build({
   jsx: 'automatic',
   define: { 'process.env.NODE_ENV': '"production"' },
   plugins: [
+    // The OpenUI runtime is bundled with the same @Each patch as the plugin build.
+    eachCounterPlugin(),
     {
       name: 'test-resources',
       setup(builder) {
         builder.onResolve({ filter: /@iroha1145\/dsh-modern-ui\/primitives$/ }, () => ({ path: 'primitives', namespace: 'stub' }))
         builder.onResolve({ filter: /\.css$/ }, args => ({ path: args.path, namespace: 'style' }))
-        builder.onResolve({ filter: /^[^./]/ }, args => ({ path: args.path, external: true }))
+        builder.onResolve({ filter: /^[^./]/ }, args => (args.path.startsWith('@openuidev/') ? undefined : { path: args.path, external: true }))
         builder.onLoad({ filter: /.*/, namespace: 'stub' }, () => ({
           contents:
             "const React = require('react'); export const CodeBlock = ({code}) => React.createElement('pre', {'data-source': true}, code); export const TextShimmer = ({children}) => React.createElement('span', null, children)",
@@ -97,7 +101,7 @@ const result = await build({
 const loaded = new Module(path.join(source, 'openui-block.test.cjs'))
 loaded.paths = Module._nodeModulePaths(repo)
 loaded._compile(result.outputFiles[0].text, loaded.id)
-const { OpenUIBlock, numberText } = loaded.exports
+const { OpenUIBlock, numberText, evaluate } = loaded.exports
 
 /** Mount one block with a recording composer; `update` re-renders it with new stream state. */
 async function mount(code, { streaming = false, closed = true, composer = '' } = {}) {
@@ -189,6 +193,94 @@ test('literal and bound fields of one Form both reach the proposal after an edit
   await view.unmount()
 })
 
+test('a @ToAssistant after @Set in the same Action proposes the value just set', async () => {
+  const code = '$n = 1\nroot = Form([Input($n, "N", "number"), Button("Set and propose", Action([@Set($n, 10), @ToAssistant("Use these values")]))])'
+  const view = await mount(code)
+  await click(button(view.host, 'Set and propose'))
+  assert.equal(view.host.querySelector('input').value, '10')
+  assert.deepEqual(view.calls.setDraft, ['Use these values\n\n- N: 10'])
+  await view.unmount()
+})
+
+test('a @Reset after @ToAssistant leaves the proposal with the values from before the reset', async () => {
+  const code =
+    '$n = 1\nroot = Form([Input("Alpha", "Project"), Input($n, "N", "number"), Button("Go", Action([@Set($n, 10), @ToAssistant("Use these values"), @Reset($n)]))])'
+  const view = await mount(code)
+  await click(button(view.host, 'Go'))
+  assert.deepEqual(view.calls.setDraft, ['Use these values\n\n- Project: Alpha\n- N: 10'])
+  assert.equal(view.host.querySelectorAll('input')[1].value, '1')
+  await view.unmount()
+})
+
+test('a slider whose bound shrinks below its value moves the value itself, so formulas and the proposal agree', async () => {
+  const code =
+    'root = Form([Input($limit, "Limit", "number"), Slider($n, 0, $limit, 1, "N"), Text("Computed N: " + $n), Button("Go", @ToAssistant("Use these values"))])\n$n = 80\n$limit = 100'
+  // While "$limit = 100" is still arriving the bound reads 1; the value must not be clamped to it.
+  const view = await mount(code.slice(0, -2), { streaming: true, closed: false })
+  assert.equal(view.host.querySelector('input[type="range"]').max, '1')
+  await view.update({ code, streaming: true, closed: true })
+  assert.match(view.host.textContent, /Computed N: 80/)
+  await type(view.host.querySelector('input:not([type="range"])'), '50')
+  assert.equal(view.host.querySelector('input[type="range"]').value, '50')
+  assert.equal(view.host.querySelector('output').textContent, '50')
+  assert.match(view.host.textContent, /Computed N: 50/)
+  await click(button(view.host, 'Go'))
+  assert.deepEqual(view.calls.setDraft, ['Use these values\n\n- Limit: 50\n- N: 50'])
+  await view.unmount()
+})
+
+test('a slider keeps the value the reader chose while a bound is typed digit by digit', async () => {
+  const code =
+    '$n = 80\n$limit = 100\nroot = Form([Input($limit, "Limit", "number"), Slider($n, 0, $limit, 1, "N"), Text("Computed N: " + $n), Button("Go", @ToAssistant("Use these values"))])'
+  const view = await mount(code)
+  const limit = view.host.querySelector('input:not([type="range"])')
+  const range = () => view.host.querySelector('input[type="range"]')
+  const shows = n => {
+    assert.equal(range().value, String(n))
+    assert.equal(view.host.querySelector('output').textContent, String(n))
+    assert.match(view.host.textContent, new RegExp(`Computed N: ${n}(?!\\d)`))
+  }
+  // Each keystroke updates $limit: 100 → empty → 5 → 50.
+  for (const keys of ['', '5', '50']) await type(limit, keys)
+  shows(50)
+  await click(button(view.host, 'Go'))
+  assert.deepEqual(view.calls.setDraft, ['Use these values\n\n- Limit: 50\n- N: 50'])
+  for (const keys of ['5', '100']) await type(limit, keys)
+  shows(80)
+  // A drag while the bound is narrow is the new choice.
+  await type(limit, '50')
+  await type(range(), '30')
+  await type(limit, '100')
+  shows(30)
+  await view.unmount()
+})
+
+test('inputs that share a label keep their own values, while inputs bound to one $variable stay in step', async () => {
+  const code =
+    '$shared = "x"\nroot = Col([main, other])\nmain = Form([Row([Text("Min"), Input(1, "Value")]), Row([Text("Max"), Input(10, "Value")]), Input($shared, "A"), Input($shared, "B"), Button("Go", @ToAssistant("Use values"))])\nother = Form([Input(5, "Value"), Button("Other", @ToAssistant("Other values"))])'
+  // Edited while the fence streams: the values must also survive the fence closing.
+  const view = await mount(code, { streaming: true, closed: false })
+  const inputs = () => [...view.host.querySelectorAll('input')]
+  await type(inputs()[1], '20')
+  await type(inputs()[2], 'y')
+  await view.update({ code, streaming: true, closed: true })
+  assert.deepEqual(
+    inputs().map(input => input.value),
+    ['1', '20', 'y', 'y', '5'],
+  )
+  await click(button(view.host, 'Go'))
+  await click(button(view.host, 'Other'))
+  assert.deepEqual(view.calls.setDraft, ['Use values\n\n- Value: 1\n- Value: 20\n- A: y\n- B: y', 'Other values\n\n- Value: 5'])
+  await view.unmount()
+})
+
+test('a slider readout keeps the precision of its step', async () => {
+  const view = await mount('root = Col([Slider(0.001, 0, 1, 0.001, "Rate")])')
+  assert.equal(view.host.querySelector('output').textContent, '0.001')
+  assert.equal(view.host.querySelector('input[type="range"]').getAttribute('aria-valuetext'), '0.001')
+  await view.unmount()
+})
+
 test('a value the reader set while the fence streamed survives the fence closing', async () => {
   const code = '$n = 5\nroot = Col([Slider($n, 0, 100, 1, "N"), Text("value " + $n)])'
   const view = await mount(code, { streaming: true, closed: false })
@@ -224,6 +316,89 @@ test('nested loops past the expansion budget are never evaluated', async () => {
   await view.unmount()
 })
 
+// Loops whose lengths the source does not fix pass the estimate; the runtime budget stops them while they expand.
+const zeros = count => Array(count).fill(0).join(', ')
+const texts = view => view.host.querySelectorAll('.iui-text').length
+
+test('loops sized by arithmetic stop expanding at the budget instead of drawing 250,000 nodes', async () => {
+  const view = await mount('root = Col(@Each(@Range(0, 500 + 0), "i", @Each(@Range(0, 500 + 0), "j", Text("x"))))')
+  assert.equal(view.block().dataset.state, 'tooLarge')
+  assert.equal(view.host.querySelector('.iui-root'), null)
+  await view.unmount()
+})
+
+test('loops sized by a $variable stop at the budget', async () => {
+  const view = await mount('$x = 500\nroot = Col(@Each(@Range(0, $x), "i", @Each(@Range(0, $x), "j", Text("x"))))')
+  assert.equal(view.block().dataset.state, 'tooLarge')
+  assert.equal(texts(view), 0)
+  await view.unmount()
+})
+
+test('a slider that lengthens nested loops re-renders within the budget and stops past it', async () => {
+  const view = await mount('$n = 3\nroot = Col([Slider($n, 1, 500, 1, "N"), Col(@Each(@Range(0, $n), "i", Row(@Each(@Range(0, $n), "j", Text("c")))))])')
+  for (const n of [12, 40, 12, 40]) {
+    await type(view.host.querySelector('input[type="range"]'), String(n))
+    assert.equal(view.block().dataset.state, 'complete')
+    assert.equal(texts(view), n * n)
+  }
+  await type(view.host.querySelector('input[type="range"]'), '500')
+  assert.equal(view.block().dataset.state, 'tooLarge')
+  assert.equal(texts(view), 0)
+  await view.unmount()
+})
+
+test('components looped over lists the estimate cannot measure stop at the budget', async () => {
+  const view = await mount(`$a = [${zeros(200)}]\nroot = Col(@Each(true ? $a : [], "i", @Each(true ? $a : [], "j", Text("x"))))`)
+  assert.equal(view.block().dataset.state, 'tooLarge')
+  assert.equal(texts(view), 0)
+  await view.unmount()
+})
+
+test('a declared list, or one a click copies into a $variable, is measured at its real length', async () => {
+  const declared = await mount(`$a = [${zeros(200)}]\nroot = Col(@Each($a, "i", @Each($a, "j", "x")))`)
+  assert.equal(declared.block().dataset.state, 'tooLarge')
+  await declared.unmount()
+  const copied = await mount(`$a = [${zeros(200)}]\n$b = []\nroot = Col([Button("Fill", @Set($b, $a)), Col(@Each($b, "i", @Each($b, "j", "x")))])`)
+  assert.equal(copied.block().dataset.state, 'complete')
+  await click(button(copied.host, 'Fill'))
+  assert.equal(copied.block().dataset.state, 'tooLarge')
+  assert.ok(copied.host.textContent.length < 2000)
+  await copied.unmount()
+})
+
+test('text looped over a loop variable stops at the budget', { timeout: 10_000 }, async () => {
+  // Neither the source nor a function fixes the inner list, and the body never calls plugin code: only the
+  // runtime's own @Each can count it.
+  const view = await mount(`$a = [${zeros(200)}]\nxs = @Each(@Range(0, 150), "k", $a)\nroot = Col(@Each(xs, "r", @Each(r, "c", "x")))`)
+  assert.equal(view.block().dataset.state, 'tooLarge')
+  assert.ok(view.host.textContent.length < 2000)
+  await view.unmount()
+})
+
+test('an @Each no block claims still stops within one synchronous run', () => {
+  const each = count => ({
+    k: 'Comp',
+    name: 'Each',
+    args: [
+      { k: 'Arr', els: Array(count).fill({ k: 'Num', v: 0 }) },
+      { k: 'Str', v: 'i' },
+      { k: 'Str', v: 'x' },
+    ],
+  })
+  const context = { getState: () => undefined, resolveRef: () => undefined }
+  assert.equal(evaluate(each(100), context).length, 100)
+  assert.throws(() => evaluate(each(30_000), context), /expansion budget/)
+})
+
+test('a block over budget while it streams gets a fresh attempt when its fence closes', async () => {
+  const view = await mount('root = Col(@Each(@Range(0, 200 + 0), "i", @Each(@Range(0, 200 + 0), "j", Text("x"))))', { streaming: true, closed: false })
+  assert.equal(view.block().dataset.state, 'tooLarge')
+  await view.update({ code: 'root = Col(@Each(@Range(0, 2 + 0), "i", Text("small")))', streaming: true, closed: true })
+  assert.equal(view.block().dataset.state, 'complete')
+  assert.equal(texts(view), 2)
+  await view.unmount()
+})
+
 test('an Image whose address fails shows a placeholder and never searches with its alt text', async () => {
   fetches = []
   const view = await mount('root = Col([Image("https://example.invalid/private.png", "INTERNAL_TEST_caption")])')
@@ -249,9 +424,17 @@ test('tables keep small numbers visible', () => {
 
 test('a stacked chart draws negative values below zero instead of flattening them', async () => {
   const view = await mount('root = Col([Chart("bar", [{k: "Q1", gain: 100, loss: -40}], "k", ["gain", "loss"], "number", null, true)])')
-  const heights = [...view.host.querySelectorAll('rect[fill]')]
-    .filter(rect => rect.getAttribute('fill').startsWith('var(--iui-chart'))
-    .map(rect => Number(rect.getAttribute('height')))
+  // The outer segment is a path with rounded corners; its height is the span of the y coordinates it visits.
+  const extent = shape => {
+    if (shape.tagName === 'rect') return Number(shape.getAttribute('height'))
+    const ys = [...shape.getAttribute('d').matchAll(/M[-\d.]+,([-\d.]+)|V([-\d.]+)|A(?:[-\d.]+[ ,]){6}([-\d.]+)/g)].map(match =>
+      Number(match[1] ?? match[2] ?? match[3]),
+    )
+    return Math.max(...ys) - Math.min(...ys)
+  }
+  const heights = [...view.host.querySelectorAll('rect[fill], path[fill]')]
+    .filter(shape => shape.getAttribute('fill').startsWith('var(--iui-chart'))
+    .map(extent)
   assert.equal(heights.length, 2)
   assert.ok(
     heights.every(height => height > 0),

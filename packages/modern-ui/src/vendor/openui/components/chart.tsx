@@ -1,9 +1,9 @@
 import { defineComponent } from "@openuidev/react-lang";
 import { useId, useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import { z } from "zod/v4";
+import { bar, curve, makeFormat, stepDigits, type Format } from "./chart-math";
 
 type Row = Record<string, unknown>;
-type Format = (value: number, compact?: boolean) => string;
 type Spec = {
   type: "bar" | "line" | "area" | "pie" | "donut" | "scatter";
   rows: Row[];
@@ -18,17 +18,6 @@ const COLORS = 6;
 const seriesColor = (i: number) => `var(--iui-chart-${(i % COLORS) + 1})`;
 const num = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? value : Number(value) || 0);
 const label = (row: Row, x: string) => String(row[x] ?? "");
-
-function makeFormat(kind: string | undefined, currency: string | undefined): Format {
-  const code = typeof currency === "string" && /^[A-Za-z]{3}$/.test(currency) ? currency.toUpperCase() : "USD";
-  // Axis ticks are compact ("$2B"); tooltips keep two decimals ("$1.24B").
-  return (value, compact) => {
-    if (kind === "percent") return `${Number(value.toFixed(compact ? 1 : 2))}%`;
-    const big = Math.abs(value) >= (compact ? 1000 : 1e6);
-    const options: Intl.NumberFormatOptions = { minimumFractionDigits: 0, maximumFractionDigits: compact && big ? 1 : 2, ...(big ? { notation: "compact" } : {}) };
-    return value.toLocaleString("en-US", kind === "currency" ? { ...options, style: "currency", currency: code } : options);
-  };
-}
 
 function niceStep(span: number) {
   if (span <= 0) return 1;
@@ -86,7 +75,8 @@ function Cartesian({ spec, width }: { spec: Spec; width: number }) {
   const lo = Math.floor(Math.min(0, ...values) / step) * step;
   const hi = Math.max(lo + step, Math.ceil(Math.max(0, ...values) / step) * step);
   const ticks = Array.from({ length: Math.round((hi - lo) / step) + 1 }, (_, k) => lo + k * step);
-  const left = Math.max(...ticks.map((t) => format(t, true).length)) * 6.4 + 12;
+  const digits = stepDigits(step);
+  const left = Math.max(...ticks.map((t) => format(t, true, digits).length)) * 6.4 + 12;
   const pad = { top: 10, right: 4, bottom: 26, left };
   const w = Math.max(10, width - pad.left - pad.right);
   const h = Math.max(10, height - pad.top - pad.bottom);
@@ -118,7 +108,7 @@ function Cartesian({ spec, width }: { spec: Spec; width: number }) {
           <g key={t}>
             <line x1={pad.left} x2={pad.left + w} y1={y(t)} y2={y(t)} className="iui-chart-grid" strokeDasharray={t === 0 ? undefined : "3 4"} />
             <text x={pad.left - 10} y={y(t) + 4} textAnchor="end" className="iui-chart-tick">
-              {format(t, true)}
+              {format(t, true, digits)}
             </text>
           </g>
         ))}
@@ -138,24 +128,26 @@ function Cartesian({ spec, width }: { spec: Spec; width: number }) {
                 const [from, to] = spans[i][si];
                 const top = y(Math.max(from, to));
                 const bottom = y(Math.min(from, to));
-                return <rect key={`${i}-${s}`} x={xAt(i) - inner / 2} y={top} width={inner} height={Math.max(0, bottom - top)} fill={seriesColor(si)} rx={si === series.length - 1 ? 4 : 0} />;
+                const tall = Math.max(0, bottom - top);
+                return si === series.length - 1 ? <path key={`${i}-${s}`} d={bar(xAt(i) - inner / 2, top, inner, tall, to >= from)} fill={seriesColor(si)} /> : <rect key={`${i}-${s}`} x={xAt(i) - inner / 2} y={top} width={inner} height={tall} fill={seriesColor(si)} />;
               });
             const each = inner / series.length;
             return series.map((s, si) => {
               const v = num(row[s]);
-              return <rect key={`${i}-${s}`} x={xAt(i) - inner / 2 + each * si + 1} y={Math.min(y(v), y(0))} width={Math.max(1, each - 2)} height={Math.abs(y(0) - y(v))} rx={4} fill={seriesColor(si)} />;
+              return <path key={`${i}-${s}`} d={bar(xAt(i) - inner / 2 + each * si + 1, Math.min(y(v), y(0)), Math.max(1, each - 2), Math.abs(y(0) - y(v)), v >= 0)} fill={seriesColor(si)} />;
             });
           })}
         {(type === "line" || type === "area") &&
           series.map((s, si) => {
             const top = (i: number) => (stacked ? spans[i][si][1] : num(rows[i][s]));
             const base = (i: number) => (stacked ? spans[i][si][0] : 0);
-            const points = rows.map((_, i) => `${xAt(i).toFixed(1)},${y(top(i)).toFixed(1)}`);
-            const under = rows.map((_, i) => `${xAt(i).toFixed(1)},${y(base(i)).toFixed(1)}`).reverse();
+            const line = curve(rows.map((_, i) => [xAt(i), y(top(i))] as const));
+            // The lower edge retraces the series below (or the baseline) backwards, so stacked areas meet exactly.
+            const under = curve(rows.map((_, i) => [xAt(i), y(base(i))] as const).reverse()).replace(/^M/, "L");
             return (
               <g key={s}>
-                {type === "area" && rows.length > 1 && <path d={`M${points.join("L")}L${under.join("L")}Z`} fill={`url(#${gradient}-${si})`} />}
-                <path d={`M${points.join("L")}`} fill="none" stroke={seriesColor(si)} strokeWidth={2.2} strokeLinejoin="round" strokeLinecap="round" />
+                {type === "area" && rows.length > 1 && <path d={`${line}${under}Z`} fill={`url(#${gradient}-${si})`} />}
+                <path d={line} fill="none" stroke={seriesColor(si)} strokeWidth={2.2} strokeLinejoin="round" strokeLinecap="round" />
                 {(rows.length <= 16 || hover !== null) &&
                   rows.map((_, i) => (rows.length <= 16 || i === hover ? <circle key={i} cx={xAt(i)} cy={y(top(i))} r={i === hover ? 4.5 : 3} fill={seriesColor(si)} stroke="var(--iui-canvas)" strokeWidth={1.5} /> : null))}
               </g>
@@ -195,7 +187,8 @@ function Scatter({ spec, width }: { spec: Spec; width: number }) {
   const name = rows[0] ? Object.keys(rows[0]).find((k) => k !== x && typeof rows[0][k] === "string") : undefined;
   const ya = axis(rows.flatMap((r) => series.map((s) => num(r[s]))), false);
   const xa = axis(rows.map((r) => num(r[x])), false);
-  const left = Math.max(...ya.ticks.map((t) => format(t, true).length)) * 6.4 + 12;
+  const yDigits = stepDigits(ya.ticks[1] - ya.ticks[0]);
+  const left = Math.max(...ya.ticks.map((t) => format(t, true, yDigits).length)) * 6.4 + 12;
   const pad = { top: 10, right: 8, bottom: 26, left };
   const w = Math.max(10, width - pad.left - pad.right);
   const h = Math.max(10, height - pad.top - pad.bottom);
@@ -209,7 +202,7 @@ function Scatter({ spec, width }: { spec: Spec; width: number }) {
         {ya.ticks.map((t) => (
           <g key={`y${t}`}>
             <line x1={pad.left} x2={pad.left + w} y1={py(t)} y2={py(t)} className="iui-chart-grid" strokeDasharray="3 4" />
-            <text x={pad.left - 10} y={py(t) + 4} textAnchor="end" className="iui-chart-tick">{format(t, true)}</text>
+            <text x={pad.left - 10} y={py(t) + 4} textAnchor="end" className="iui-chart-tick">{format(t, true, yDigits)}</text>
           </g>
         ))}
         {xa.ticks.map((t, k) => (k % every === 0 ? <text key={`x${t}`} x={px(t)} y={height - 6} textAnchor="middle" className="iui-chart-tick">{Number(t.toFixed(6)).toLocaleString("en-US", { notation: Math.abs(t) >= 1e4 ? "compact" : "standard" })}</text> : null))}

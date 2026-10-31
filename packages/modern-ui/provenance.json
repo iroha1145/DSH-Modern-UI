@@ -3670,17 +3670,17 @@
     },
     {
       "target": "src/vendor/intelligent/client/OpenUIBlock.tsx",
-      "targetSha256": "1cc74200008ef9d138adeb5b5b977d0e0891e56270fbeec1ae0974f0208d37ed",
+      "targetSha256": "51d71e91e7416e79bd978e25a1817da0e0e285b6050c37d2505a2a897af1e320",
       "description": "Original code-fence presenter that renders openui-lang blocks with @openuidev/react-lang inside answers, routes @ToAssistant through the Session input actions, and keeps unparsable source readable."
     },
     {
       "target": "src/vendor/intelligent/client/OpenUIBlock.module.css",
-      "targetSha256": "62ab654d763c9bbcd15c41e1851e46ff7d967a44df6a27f3255edbff1d488260",
+      "targetSha256": "63eddbeef2687db5a821c0c142712154f955c8b725ef0be37c66196b7659b507",
       "description": "Original styles for the OpenUI block frame, placeholder and preserved-source card."
     },
     {
       "target": "src/vendor/intelligent/client/openui-source.ts",
-      "targetSha256": "751ac3038c5c7ea1361efb990e6cfb0a4647c7b01a8136fb6b065dcd486dfacc",
+      "targetSha256": "6bc6b480844b384c0974ffbf9fcc4ae98dddabaf59ccbb6b267901604fdb0848",
       "description": "Original pure helpers for openui-lang fences: which bodies render, the parse size bound, and the text a @ToAssistant click sends."
     },
     {
@@ -3702,6 +3702,11 @@
       "target": "src/jev-settings.module.css",
       "targetSha256": "cbcc052cdc0ab83cf9b46d21f7fab4b28c5e5e1279acc11d2575892eecf89d61",
       "description": "Original styles for the Jev settings row, matching the Modern preference rows."
+    },
+    {
+      "target": "src/vendor/intelligent/client/openui-budget.ts",
+      "targetSha256": "045a8ee91f40619058598fb4e75e22b3ef988d9c5b201756a94d660e92e4f7a4",
+      "description": "Original per-block step budget for openui-lang blocks: a counted view of the component library and the counter for the build-time patched @Each of @openuidev/lang-core, which stop an over-budget evaluation or render in the @openuidev/react-lang runtime."
     }
   ],
   "adapters": [
