@@ -3685,12 +3685,12 @@
     },
     {
       "target": "src/jev-routing.ts",
-      "targetSha256": "323d3398d6736e606011f336d001653386a4b91306031f6320242f1f623b6798",
+      "targetSha256": "6de582988bdcc9defaab50eb4c376ad808b35a91c21e5511a427065ceee6ee70",
       "description": "Original optional TypeSafe Jev presentation routing: one System One choice per user message, delivered as a runtime-context hint through the public system-prompt assembly; no hint and no failure without a key or on error."
     },
     {
       "target": "src/jev-settings-state.ts",
-      "targetSha256": "e26e7a3fc5083250bc4ecbd1479d7c10262b8e66e19084f1d72d71df32a56b79",
+      "targetSha256": "7b9fe98f9561c7b0823a792574f5ce5249e8420306cfeb9405d2d22ace4d39ac",
       "description": "Original state for the Jev settings row: the jev.enabled switch through the Modern UI config form and the TypeSafe key through the official credentials Remote, which never returns the value."
     },
     {

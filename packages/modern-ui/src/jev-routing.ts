@@ -62,6 +62,11 @@ const INSTRUCTIONS =
 
 const MESSAGE_LIMIT = 6000
 const CONTEXT_MESSAGES = 4
+// Visible ASCII only: a bearer token with spaces, line breaks or other characters is not a valid header value.
+const HEADER_SAFE = /^[\x21-\x7e]+$/
+
+/** A failure whose message is safe to log: it never contains the request headers or the key. */
+class RoutingError extends Error {}
 
 /** One validated Jev decision. */
 export interface Decision {
@@ -116,7 +121,9 @@ const textOf = (message: Message | undefined): string =>
  * messages this step claimed from the inbox, which the Host admits to the session only after assembly.
  * @param session - The live session.
  * @param claimed - User messages claimed for the step being assembled.
- * @returns A key for the latest user message and up to four recent texts, or undefined before any user message.
+ * @returns A key for the latest user message and up to four recent texts, or undefined before any user message
+ * and when the latest one carries no text (only attachments): there is nothing to classify, and the previous
+ * message's decision must not be reused for it.
  */
 export function conversationFor(session: RoutedSession, claimed: readonly unknown[] = []): { turn: string; conversation: { role: 'user' | 'assistant'; content: string }[] } | undefined {
   const entries: { role: 'user' | 'assistant'; content: string; id: string }[] = []
@@ -125,8 +132,8 @@ export function conversationFor(session: RoutedSession, claimed: readonly unknow
     if (message?.source?.kind !== 'user') return
     const id = String(message.id ?? fallback)
     admitted.add(id)
-    const content = textOf(message)
-    if (content !== '') entries.push({ role: 'user', content, id })
+    // A message without text still counts as the latest one, so it never inherits the previous decision.
+    entries.push({ role: 'user', content: textOf(message), id })
   }
   for (const seq of session.surface.nodes) {
     const event = session.eventAt(seq as never)
@@ -138,10 +145,13 @@ export function conversationFor(session: RoutedSession, claimed: readonly unknow
   }
   for (const message of claimed as Message[]) if (!admitted.has(String(message?.id))) addUser(message, '')
   const latest = entries.findLast(entry => entry.role === 'user')
-  if (latest === undefined) return undefined
+  if (latest === undefined || latest.content === '') return undefined
   return {
     turn: `${session.id}:${latest.id}`,
-    conversation: entries.slice(-CONTEXT_MESSAGES).map(({ role, content }) => ({ role, content: content.slice(0, MESSAGE_LIMIT) })),
+    conversation: entries
+      .filter(entry => entry.content !== '')
+      .slice(-CONTEXT_MESSAGES)
+      .map(({ role, content }) => ({ role, content: content.slice(0, MESSAGE_LIMIT) })),
   }
 }
 
@@ -191,9 +201,10 @@ export class PresentationRouter {
 
   private async request(settings: JevSettings, conversation: unknown, sessionId: string, signal?: AbortSignal): Promise<Decision | undefined> {
     try {
-      const key = isCredentialRefName(settings.credential) ? await this.deps.resolveKey(settings.credential) : undefined
+      const key = (isCredentialRefName(settings.credential) ? await this.deps.resolveKey(settings.credential) : undefined)?.trim()
       // No key is the normal state for users without Jev: say nothing.
       if (key === undefined || key === '') return undefined
+      if (!HEADER_SAFE.test(key)) throw new RoutingError('the key contains characters a request header cannot carry')
       const timeout = AbortSignal.timeout(Math.max(1, settings.timeout))
       const response = await this.deps.fetch(settings.endpoint, {
         method: 'POST',
@@ -205,14 +216,16 @@ export class PresentationRouter {
         }),
         signal: signal === undefined ? timeout : AbortSignal.any([timeout, signal]),
       })
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      if (!response.ok) throw new RoutingError(`HTTP ${response.status}`)
       const decision = decisionFromResponse(await response.json())
-      if (decision === undefined) throw new Error('invalid decision')
+      if (decision === undefined) throw new RoutingError('invalid decision')
       return decision
     } catch (error) {
       if (!signal?.aborted && !this.warned.has(sessionId)) {
         this.warned.add(sessionId)
-        this.deps.warn(`jev routing: no presentation decision (${error instanceof Error ? error.message : 'unknown error'}); answering without one`)
+        // Messages from fetch and the runtime can quote the Authorization header, so only our own reach the log.
+        const reason = error instanceof RoutingError ? error.message : error instanceof Error && error.name === 'TimeoutError' ? 'timed out' : 'request failed'
+        this.deps.warn(`jev routing: no presentation decision (${reason}); answering without one`)
       }
       return undefined
     }

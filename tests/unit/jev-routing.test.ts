@@ -189,6 +189,57 @@ describe('PresentationRouter', () => {
     expect(calls).toHaveLength(0)
   })
 
+  test('a message with only attachments gets no decision and never inherits the previous one', async () => {
+    const { fetch, calls } = jev(() => json(answer('flowchart')))
+    const router = new PresentationRouter(() => settings(), { fetch, resolveKey: async () => 'k', warn: vi.fn() })
+    const live = session([user('u1', 'draw the request path')])
+    expect(await router.decide(live)).toEqual({ presentation: 'flowchart', confidence: 0.8 })
+    live.entries.push(assistant('here it is'))
+    const upload = { id: 'u2', role: 'user', source: { kind: 'user' }, content: [{ type: 'image', mediaType: 'image/png' }] }
+    // Claimed by the inbox but not yet admitted, then admitted to the session.
+    expect(await router.decide(live, undefined, [upload])).toBeUndefined()
+    live.entries.push({ type: 'user/message', data: upload })
+    expect(await router.decide(live)).toBeUndefined()
+    expect(calls).toHaveLength(1)
+    // The next text message is classified without the attachment-only one.
+    live.entries.push(user('u3', 'now compare the two options'))
+    await router.decide(live)
+    expect(calls).toHaveLength(2)
+    expect((calls[1].body.state as { conversation: { content: string }[] }).conversation.map(entry => entry.content)).toEqual([
+      'draw the request path',
+      'here it is',
+      'now compare the two options',
+    ])
+  })
+
+  test('a key that cannot be a header value is refused before any request, and no failure log carries the key', async () => {
+    const warn = vi.fn()
+    const { fetch, calls } = jev(() => json(answer('table')))
+    const broken = new PresentationRouter(() => settings(), { fetch, resolveKey: async () => 'sk-synthetic\nsecond-line', warn })
+    expect(await broken.decide(session([user('u1', 'a')]))).toBeUndefined()
+    expect(calls).toHaveLength(0)
+    const leaky = vi.fn(async () => {
+      throw new TypeError('Headers.append: "Bearer sk-leaky-key" is an invalid header value.')
+    }) as unknown as typeof globalThis.fetch
+    const throwing = new PresentationRouter(() => settings(), { fetch: leaky, resolveKey: async () => 'sk-leaky-key', warn })
+    expect(await throwing.decide(session([user('u1', 'b')]))).toBeUndefined()
+    expect(warn).toHaveBeenCalledTimes(2)
+    for (const [message] of warn.mock.calls) {
+      expect(message).not.toMatch(/sk-synthetic|second-line|sk-leaky-key|Bearer/)
+    }
+    expect(warn.mock.calls.map(([message]) => message)).toEqual([
+      expect.stringContaining('the key contains characters a request header cannot carry'),
+      expect.stringContaining('(request failed)'),
+    ])
+  })
+
+  test('surrounding whitespace in a key, as an .env line leaves it, is trimmed', async () => {
+    const { fetch, calls } = jev(() => json(answer('table')))
+    const router = new PresentationRouter(() => settings(), { fetch, resolveKey: async () => '  sk-test \n', warn: vi.fn() })
+    await router.decide(session([user('u1', 'compare these')]))
+    expect((calls[0].init.headers as Record<string, string>).authorization).toBe('Bearer sk-test')
+  })
+
   test('an aborted turn is asked again when it is retried', async () => {
     const { fetch, calls } = jev((_body, init) => (init.signal?.aborted ? Promise.reject(new Error('aborted')) : json(answer('steps'))))
     const router = new PresentationRouter(() => settings(), { fetch, resolveKey: async () => 'k', warn: vi.fn() })

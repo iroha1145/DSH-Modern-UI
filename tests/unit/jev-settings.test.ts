@@ -138,6 +138,28 @@ describe('trackJev', () => {
     expect(credentials.set).not.toHaveBeenCalled()
   })
 
+  test('an older describe answer arriving late does not overwrite a newer one', async () => {
+    const { form } = hostForm()
+    const answers: ((view: CredentialView) => void)[] = []
+    const credentials: JevCredentials = {
+      describe: vi.fn(
+        (refs: string[]) =>
+          new Promise(resolve => {
+            answers.push(view => resolve({ ok: true as const, value: { [refs[0]]: view } }))
+          }),
+      ),
+      set: vi.fn(async () => ({ ok: true as const, value: undefined })),
+      unset: vi.fn(async () => ({ ok: true as const, value: undefined })),
+    }
+    const state = trackJev(form, credentials)
+    state.refresh('TYPESAFE_API_KEY')
+    answers[1]({ configured: true, source: 'file', writable: true })
+    await settled()
+    answers[0]({ configured: false, writable: true })
+    await settled()
+    expect(state.state.getSnapshot()).toMatchObject({ configured: true, source: 'file' })
+  })
+
   test('re-reads when the Host reports a change to its reference or the configured reference changes', async () => {
     const { form, store } = hostForm()
     const { credentials } = hostCredentials()

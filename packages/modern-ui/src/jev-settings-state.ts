@@ -84,12 +84,15 @@ export function trackJev(form: JevForm, credentials: JevCredentials): JevState {
   })
   const update = (patch: Partial<JevRowState>) => { state.set({ ...state.getSnapshot(), ...patch }) }
 
+  let reads = 0
   const describe = async () => {
+    const read = ++reads
     const ref = state.getSnapshot().ref
     if (ref === null) { update({ configured: false, source: undefined, writable: false }); return }
     const response = await credentials.describe([ref]).catch(() => undefined)
-    // A newer reference may have replaced this one while the answer travelled.
-    if (response?.ok !== true || state.getSnapshot().ref !== ref) return
+    // Only the latest read applies: an older answer, or one for a reference since replaced, may describe a state
+    // a save has already changed.
+    if (read !== reads || response?.ok !== true || state.getSnapshot().ref !== ref) return
     const view = response.value[ref]
     update({ configured: view?.configured ?? false, source: view?.source, writable: view?.writable ?? true })
   }
