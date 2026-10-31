@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-01
+
 ### Changed
 
 - 「回答可视化组件」追加的提示词改为更倾向可视化和分段作答，标准、PTC 和创造模式都会收到；极简模式（minimal）按 DSH 的设计只用一句固定的系统提示词（人设设了 `complete: true`，其他提示词段一律不加），所以和以前一样收不到这段提示词：讲解、分析、对比、推荐、计划、调研和科普时，内容有形状（选项、对比、架构或流程、机制、步骤、数字和趋势、真实事物的样子）就优先用组件，长回答可以每部分各配一个；人物、地点、建筑、作品、物种、产品、设备、菜品这类有样子的东西配真实图片，组件卡片里用 SearchImage 按名字找图。需要多次调用工具或分几部分的回答，先把已经确定的一部分（概览、第一段或框架）写出来再继续下一次调用，后面的部分接着前面写，不重复；不需要工具的回答仍是一次写完。组件代码改为逐段写：每个部分的组件后面紧跟它自己用的数据，不再把所有数据留到最后，所以每段在后面还在生成时就已经画完。`jev_presentation_advice` 工具的说明补了一句：Jev 的回答只是参考，最终按模型自己对材料和用户意愿的判断来定（展示提示词本身仍不提 Jev）。纯文字请求、代码、命令和文件内容仍按 Markdown 写。
@@ -56,6 +58,7 @@
 
 - 会话级联网开关（`/web on|off`）及其协议；联网工具统一走官方插件管理。
 
-[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/iroha1145/DSH-Modern-UI/releases/tag/v0.1.0

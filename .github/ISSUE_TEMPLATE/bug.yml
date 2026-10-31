@@ -7,7 +7,7 @@ body:
     attributes:
       label: 插件版本
       description: '`dsh plugin --profile web list` 中 `@iroha1145/dsh-modern-ui` 的版本'
-      placeholder: 0.1.1
+      placeholder: 0.1.2
     validations:
       required: true
   - type: input

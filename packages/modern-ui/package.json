@@ -1,6 +1,6 @@
 {
   "name": "@iroha1145/dsh-modern-ui",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Modern UI browser extension for the unmodified official DSH release",
   "keywords": [
     "dsh-plugin",
