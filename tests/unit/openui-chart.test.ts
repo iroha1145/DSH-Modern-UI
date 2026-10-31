@@ -21,6 +21,21 @@ describe('chart number formats', () => {
     expect(number(0)).toBe('0')
   })
 
+  test('precision never leaves the range Intl accepts, even for coincident ticks or values below 1e-20', () => {
+    expect([0, Number.NaN, -1, Number.POSITIVE_INFINITY].map(stepDigits)).toEqual([0, 0, 0, 0])
+    expect(stepDigits(1e-25)).toBe(20)
+    const number = makeFormat('number', undefined)
+    expect(() => number(1e-25, true, 25)).not.toThrow()
+    expect(() => number(0.5, false, 25)).not.toThrow()
+  })
+
+  test('tooltips keep the axis precision, and three significant digits below 1', () => {
+    const number = makeFormat('number', undefined)
+    expect(number(1.0005, false, stepDigits(0.0005))).toBe('1.0005')
+    expect(number(0.000123456, false, stepDigits(0.00002))).toBe('0.000123')
+    expect(number(1234.567, false, 0)).toBe('1,234.57')
+  })
+
   test('tick precision follows the step', () => {
     expect([1000, 5, 2.5, 0.25, 0.0005].map(stepDigits)).toEqual([0, 0, 1, 2, 4])
   })

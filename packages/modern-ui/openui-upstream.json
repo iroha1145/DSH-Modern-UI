@@ -32,14 +32,14 @@
       "source": "src/lib/components/chart.tsx",
       "target": "src/vendor/openui/components/chart.tsx",
       "sourceSha256": "61a270bc9aa80ead37631c90ea525052f60482ff904544b7d32cbd2d0e60bef3",
-      "targetSha256": "e2326d2e15478fa18bab083174ce3a49dd2ad16a7dec33039d66b2bac9149b99",
+      "targetSha256": "5ed25d35f56e69a80646c9d6e8e545d59547e7782f91993f2644f0ca1c86f6e8",
       "adapted": true
     },
     {
       "source": "src/lib/components/components.css",
       "target": "src/vendor/openui/components/components.css",
       "sourceSha256": "8af6f161130ee3f70b0be7afd6b523a2a09eeb6b3c5a87d10f73a3c143789e04",
-      "targetSha256": "4dda0dcebce08ffb8c436c1c25458b16b69ba056c6f896ff6ff627a788115e92",
+      "targetSha256": "8cc92d4e52e34d1c479db2d2e38a7d07d8e2345f2c575c48d49c062262f71d09",
       "adapted": true
     },
     {
@@ -53,7 +53,7 @@
       "source": "src/lib/components/extra.tsx",
       "target": "src/vendor/openui/components/extra.tsx",
       "sourceSha256": "586d1a898eb6405fea4fab136b3ca0a4db626b559a17ee9125b4232de312ae1d",
-      "targetSha256": "41e2a68204ccd8fc6441a946881fcb6c0751c19b312ef6daebc9d078e563df0d",
+      "targetSha256": "5b27d630264ce1f04010609e3c466fafadc766974a2e733b1d53e687b50118ab",
       "adapted": true
     },
     {
@@ -68,7 +68,7 @@
     },
     {
       "target": "src/vendor/openui/components/chart-math.ts",
-      "targetSha256": "b91016f9f264b7fcd773053f92e8eb65afa10f91414cf7d0cac50e07c7cf204f",
+      "targetSha256": "0e8c75bbd2d66d05e87c1ca351c6a4a55cc2e1a3f77fbb4ce0878a08e809eac3",
       "authored": true
     },
     {
@@ -82,7 +82,7 @@
       "source": "src/lib/components/html-view.tsx",
       "target": "src/vendor/openui/components/html-view.tsx",
       "sourceSha256": "39bc4730a8fd87dacbde2f3b16ec13d1882f1e085f511a9b0dbe3b3a4167cecf",
-      "targetSha256": "8cb74e04f71389bd99ac3aa9832a20c07842e0199eca1a5dafc3dd4a310889dd",
+      "targetSha256": "8ed87055f2048782bf03ea8690a60b3b3b58aa9e073e387b264c35a4a6ab4b1b",
       "adapted": true
     },
     {

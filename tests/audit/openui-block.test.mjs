@@ -588,6 +588,74 @@ test('scatter x ticks show small decimals instead of zeros', async () => {
   await view.unmount()
 })
 
+test('charts survive coincident scatter ticks, values below 1e-20 and a scatter without a number series', async () => {
+  const view = await mount(
+    'root = Col([Chart("scatter", [{x:100, y:1}, {x:100.00000000000002, y:2}], "x", ["y"]), Chart("line", [{p:"a", v:0}, {p:"b", v:1e-25}], "p", ["v"]), Chart("scatter", [{x:10, y:"20"}], "x")])',
+  )
+  assert.equal(view.block().dataset.state, 'complete')
+  assert.equal(view.host.querySelectorAll('.iui-chart-plot svg').length, 3)
+  assert.ok(!view.host.innerHTML.includes('NaN'), 'no NaN coordinates')
+  assert.ok(!view.host.innerHTML.includes('Infinity'), 'no infinite coordinates')
+  await view.unmount()
+})
+
+test('a stacked bar rounds the outer segment of its upward and of its downward stack', async () => {
+  const view = await mount('root = Col([Chart("bar", [{q: "Q1", gain: 100, loss: -40, flat: 0}], "q", ["gain", "loss", "flat"], "number", null, true)])')
+  const rounded = [...view.host.querySelectorAll('path[fill^="var(--iui-chart"]')].map(path => path.getAttribute('fill'))
+  assert.deepEqual(rounded, ['var(--iui-chart-1)', 'var(--iui-chart-2)'])
+  await view.unmount()
+})
+
+test('a popover with a component trigger nests no button and stays open while its own content scrolls', async () => {
+  const view = await mount('root = Col([Popover(Button("Open"), [Text("detail")]), Popover([Badge("info")], [Text("more")])])')
+  assert.equal(view.host.querySelector('button button'), null)
+  const trigger = view.host.querySelectorAll('[role="button"].iui-popover-trigger')[1]
+  await click(trigger)
+  const panel = () => document.querySelector('.iui-popover')
+  assert.ok(panel(), 'opens')
+  await act(async () => {
+    panel().dispatchEvent(new dom.window.Event('scroll'))
+  })
+  assert.ok(panel(), 'scrolling inside the panel keeps it open')
+  await act(async () => {
+    document.dispatchEvent(new dom.window.Event('scroll'))
+  })
+  assert.equal(panel(), null, 'scrolling the page closes it')
+  await view.unmount()
+})
+
+test('an HtmlView stops growing with viewport-sized content, keeps its page across a theme switch, and resets on new HTML', async () => {
+  const view = await mount('root = Col([HtmlView("<div style=\'min-height:100vh\'>x</div>")])')
+  const frame = () => view.host.querySelector('iframe')
+  const box = () => view.host.querySelector('.iui-html-view')
+  const token = JSON.parse(/token=("[0-9a-f]{32}")/.exec(frame().getAttribute('srcdoc'))[1])
+  const report = async height => {
+    await act(async () => {
+      dom.window.dispatchEvent(
+        new dom.window.MessageEvent('message', { data: { type: 'dsh:openui-html-view:v1', token, height }, source: frame().contentWindow }),
+      )
+    })
+  }
+  for (const height of [376, 392, 408, 424, 440]) await report(height)
+  assert.equal(box().style.height, '408px')
+  const before = frame().getAttribute('srcdoc')
+  await act(async () => {
+    box().style.colorScheme = 'dark'
+    view.host.setAttribute('data-theme', 'dark')
+    await new Promise(resolve => setTimeout(resolve, 0))
+  })
+  assert.equal(frame().getAttribute('srcdoc'), before, 'the page is not rebuilt for a theme switch')
+  await act(async () => {
+    dom.window.dispatchEvent(
+      new dom.window.MessageEvent('message', { data: { type: 'dsh:openui-html-view:v1', token, state: 'failed' }, source: frame().contentWindow }),
+    )
+  })
+  assert.equal(frame(), null)
+  await view.update({ code: 'root = Col([HtmlView("<p>new</p>")])', streaming: false, closed: true })
+  assert.ok(frame(), 'new HTML clears the stopped state')
+  assert.equal(box().style.height, '360px')
+  await view.unmount()
+})
 test('an HtmlView frame allows the data: images its inner policy promises', async () => {
   const view = await mount('root = Col([HtmlView("<img src=\'data:image/gif;base64,R0lGODlhAQABAAAAACw=\'>", 80)])')
   const outer = view.host.querySelector('iframe').getAttribute('srcdoc')

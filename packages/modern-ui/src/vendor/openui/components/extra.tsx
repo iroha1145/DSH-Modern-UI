@@ -2,7 +2,7 @@ import { defineComponent } from "@openuidev/react-lang";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import { Check, ChevronLeft, ChevronRight, Copy } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { z } from "zod/v4";
 import { copy as copyText } from "../actions";
@@ -74,7 +74,7 @@ export const Popover = defineComponent({
   component: function PopoverView({ props, renderNode }) {
     const [open, setOpen] = useState(false);
     const [at, setAt] = useState<{ left: number; top: number; up: boolean } | null>(null);
-    const button = useRef<HTMLButtonElement>(null);
+    const button = useRef<HTMLElement>(null);
     const panel = useRef<HTMLDivElement>(null);
     useLayoutEffect(() => {
       if (!open || !button.current) return;
@@ -88,7 +88,10 @@ export const Popover = defineComponent({
         const target = event.target as Node;
         if (event.type === "keydown" ? (event as KeyboardEvent).key === "Escape" : !panel.current?.contains(target) && !button.current?.contains(target)) setOpen(false);
       };
-      const onScroll = () => setOpen(false);
+      // Scrolling the page moves the trigger away; scrolling inside the panel (a table, code) does not.
+      const onScroll = (event: Event) => {
+        if (!panel.current?.contains(event.target as Node)) setOpen(false);
+      };
       document.addEventListener("pointerdown", close);
       document.addEventListener("keydown", close);
       window.addEventListener("scroll", onScroll, true);
@@ -100,9 +103,28 @@ export const Popover = defineComponent({
     }, [open]);
     return (
       <>
-        <button ref={button} type="button" className="iui-popover-trigger" aria-expanded={open} onClick={() => setOpen(!open)}>
-          {renderSlot(props.trigger, renderNode)}
-        </button>
+        {typeof props.trigger === "string" ? (
+          <button ref={button as RefObject<HTMLButtonElement>} type="button" className="iui-popover-trigger" aria-expanded={open} onClick={() => setOpen(!open)}>
+            {props.trigger}
+          </button>
+        ) : (
+          // A component trigger may hold its own button, and a button cannot contain another one.
+          <span
+            ref={button as RefObject<HTMLSpanElement>}
+            role="button"
+            tabIndex={0}
+            className="iui-popover-trigger"
+            aria-expanded={open}
+            onClick={() => setOpen(!open)}
+            onKeyDown={(event) => {
+              if (event.target !== event.currentTarget || (event.key !== "Enter" && event.key !== " ")) return;
+              event.preventDefault();
+              setOpen(!open);
+            }}
+          >
+            {renderSlot(props.trigger, renderNode)}
+          </span>
+        )}
         {open &&
           at &&
           createPortal(
