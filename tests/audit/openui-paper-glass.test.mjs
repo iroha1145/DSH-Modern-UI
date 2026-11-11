@@ -442,3 +442,156 @@ test('desktop inputs use 14px type while coarse pointers upgrade to 16px, and ra
     await mobile.context.close()
   }
 })
+
+const SELECTION_SHOWCASE = [
+  '$seg = "a"',
+  '$cards = "a"',
+  '$pills = "a"',
+  'root = Col([',
+  '  SegmentedControl($seg, ["a", "b"], false, "Mode"),',
+  '  RadioGroup($cards, [{value:"a",label:"Card A",description:"Card details A"},{value:"b",label:"Card B",description:"Card details B"}], "Card choice", "cards"),',
+  '  RadioGroup($pills, [{value:"a",label:"Pill A",description:"Pill details A"},{value:"b",label:"Pill B",description:"Pill details B"}], "Pill choice", "pills")',
+  '])',
+].join('\n')
+
+async function selectionColors(page) {
+  return page.evaluate(() => {
+    const block = document.querySelector('#block')
+    const reference = document.createElement('span')
+    reference.style.cssText = 'position:absolute;forced-color-adjust:none;background:Highlight;color:HighlightText'
+    block.append(reference)
+    const referenceStyle = getComputedStyle(reference)
+    const system = { background: referenceStyle.backgroundColor, color: referenceStyle.color }
+    reference.remove()
+    return {
+      forced: matchMedia('(forced-colors:active)').matches,
+      system,
+      controls: Array.from(block.querySelectorAll('.iui-segmented > button.is-selected, .iui-choice.is-selected'), element => {
+        const style = getComputedStyle(element),
+          title = element.querySelector('.iui-choice-text > span'),
+          description = element.querySelector('.iui-choice-description')
+        return {
+          text: element.textContent,
+          background: style.backgroundColor,
+          color: style.color,
+          adjustment: style.forcedColorAdjust,
+          title: title ? getComputedStyle(title).color : style.color,
+          description: description ? getComputedStyle(description).color : style.color,
+        }
+      }),
+    }
+  })
+}
+
+async function assertForcedSelection(page) {
+  const colors = await selectionColors(page)
+  assert.equal(colors.forced, true)
+  assert.equal(colors.controls.length, 3)
+  for (const item of colors.controls) {
+    assert.equal(item.background, colors.system.background, JSON.stringify(item))
+    assert.equal(item.color, colors.system.color, JSON.stringify(item))
+    assert.equal(item.title, colors.system.color, JSON.stringify(item))
+    assert.equal(item.description, colors.system.color, JSON.stringify(item))
+    assert.equal(item.adjustment, 'none', JSON.stringify(item))
+  }
+}
+
+for (const dark of [false, true]) {
+  for (const matchIdScope of [false, true]) {
+    test(`forced-colors selected controls preserve system foreground/background through switching, hover and keyboard focus (${dark ? 'dark' : 'light'}, ${matchIdScope ? 'ID and class scope' : 'class scope'})`, async () => {
+      const { context, page } = await openShowcase({ dark, forcedColors: 'active', reducedMotion: 'reduce', code: SELECTION_SHOWCASE })
+      try {
+        // The ID arm is a specificity sentinel; theme tokens still live on .iui-root.
+        if (matchIdScope)
+          await page
+            .locator('#block .iui-col')
+            .first()
+            .evaluate(element => {
+              element.id = 'iui-scope'
+              element.dataset.theme = element.closest('[data-theme]').dataset.theme
+            })
+        await page.locator('.iui-choice.is-selected').first().waitFor()
+        await assertForcedSelection(page)
+        await page.locator('.iui-segmented > button').nth(1).click()
+        for (const selector of ['.iui-radio-cards', '.iui-radio-pills'])
+          await page
+            .locator(selector + ' .iui-choice')
+            .nth(1)
+            .click()
+        await assertForcedSelection(page)
+        assert.deepEqual(await page.locator('.iui-choice.is-selected input').evaluateAll(inputs => inputs.map(input => input.checked)), [true, true])
+        for (const selector of [
+          '.iui-segmented > button.is-selected',
+          '.iui-radio-cards .iui-choice.is-selected',
+          '.iui-radio-pills .iui-choice.is-selected',
+        ]) {
+          const control = page.locator(selector)
+          await control.hover()
+          await assertForcedSelection(page)
+          await page.keyboard.press('Tab')
+          const target = selector.includes('segmented') ? control : control.locator('input')
+          await target.focus()
+          assert(await target.evaluate(element => element.matches(':focus-visible')))
+          const outline = await control.evaluate(element => getComputedStyle(element).outlineWidth)
+          assert.equal(outline, '2px')
+          await assertForcedSelection(page)
+        }
+        await page.locator('.iui-segmented > button').first().click()
+        for (const selector of ['.iui-radio-cards', '.iui-radio-pills'])
+          await page
+            .locator(selector + ' .iui-choice')
+            .first()
+            .click()
+        await assertForcedSelection(page)
+      } finally {
+        await context.close()
+      }
+    })
+  }
+  test(`ordinary selection colors retain Paper Widgets design (${dark ? 'dark' : 'light'})`, async () => {
+    const { context, page } = await openShowcase({ dark, reducedMotion: 'reduce', code: SELECTION_SHOWCASE })
+    try {
+      const styles = await page.evaluate(dark => {
+        const block = document.querySelector('#block'),
+          reference = document.createElement('span')
+        reference.style.cssText = 'position:absolute;forced-color-adjust:none'
+        block.append(reference)
+        const color = declaration => {
+          reference.style.cssText = 'position:absolute;' + declaration
+          const style = getComputedStyle(reference)
+          return { color: style.color, background: style.backgroundColor }
+        }
+        const expected = {
+          segment: color('color:var(--iui-ink);background:' + (dark ? 'color-mix(in srgb, var(--iui-ink) 10%, var(--iui-canvas))' : 'var(--iui-card-bg)')),
+          cards: color('color:var(--iui-ink);background:color-mix(in srgb, var(--iui-ink) 3%, var(--iui-card-bg))'),
+          pills: color('color:var(--iui-on-ink);background:var(--iui-ink)'),
+          description: color('color:var(--iui-muted)').color,
+        }
+        const actual = ['.iui-segmented > button.is-selected', '.iui-radio-cards .iui-choice.is-selected', '.iui-radio-pills .iui-choice.is-selected'].map(
+          selector => {
+            const element = block.querySelector(selector),
+              style = getComputedStyle(element),
+              description = element.querySelector('.iui-choice-description')
+            return {
+              color: style.color,
+              background: style.backgroundColor,
+              description: description ? getComputedStyle(description).color : null,
+              shadow: style.boxShadow,
+            }
+          },
+        )
+        reference.remove()
+        return { expected, actual, forced: matchMedia('(forced-colors:active)').matches }
+      }, dark)
+      assert.equal(styles.forced, false)
+      for (const [index, key] of ['segment', 'cards', 'pills'].entries()) {
+        assert.equal(styles.actual[index].color, styles.expected[key].color)
+        assert.equal(styles.actual[index].background, styles.expected[key].background)
+        assert.notEqual(styles.actual[index].shadow, 'none')
+        if (index > 0) assert.equal(styles.actual[index].description, styles.expected.description)
+      }
+    } finally {
+      await context.close()
+    }
+  })
+}

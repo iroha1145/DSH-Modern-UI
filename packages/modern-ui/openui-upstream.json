@@ -39,7 +39,7 @@
       "source": "src/lib/components/components.css",
       "target": "src/vendor/openui/components/components.css",
       "sourceSha256": "8af6f161130ee3f70b0be7afd6b523a2a09eeb6b3c5a87d10f73a3c143789e04",
-      "targetSha256": "80d987defffc58fee0bec411ca3574e83fdcbb4c08aeb274ba8cb80f9bf7a7a5",
+      "targetSha256": "38a796f3bac8e1a1431241a95885b39c217f332d6c6c9236580daffa78401021",
       "adapted": true
     },
     {

@@ -457,6 +457,8 @@
   @media (forced-colors: active) {
     .iui-card, .iui-card-soft, .iui-card-glass, .iui-box-glass, .iui-popover, .iui-chart-tooltip, .iui-diagram-node, .iui-table-scroll, .iui-timer, .iui-codeblock, .iui-quote, .iui-html-view, .iui-flashcard-face, .iui-button, .iui-segmented, .iui-carousel-nav, .iui-badge { border: 1px solid ButtonBorder; box-shadow: none; }
     :is(.iui-button-solid, .iui-icon-button-solid, .iui-segmented > button.is-selected, .iui-radio-pills .iui-choice.is-selected, .iui-radio-cards .iui-choice.is-selected) { background: Highlight; color: HighlightText; border-color: Highlight; box-shadow: none; forced-color-adjust: none; }
+    &[data-theme="dark"] .iui-segmented > button.is-selected { background: Highlight; color: HighlightText; }
+    :is(.iui-radio-pills, .iui-radio-cards) .iui-choice.is-selected .iui-choice-description { color: inherit; }
   }
 
   @media (prefers-reduced-motion: reduce) {
