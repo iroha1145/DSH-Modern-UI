@@ -16,7 +16,7 @@
 - **F09**：PreferenceRow 和 EnterBehaviorRow 以实例唯一 ID 关联设置名、当前值与说明，保持原有菜单开关和焦点行为。
 - **F10**：QuestionFlow 的单选/多选组关联当前问题标题，标题 ID 加入实例前缀，避免相同请求同时展示时互相引用。
 - **F11**：子菜单父项的 Tab 与 ArrowRight 共用进入逻辑，等待 portal 完成定位后聚焦首个可用子项；已打开的子菜单同样推进焦点。顶层菜单触发器保留进入主列表的既有规则。
-- **F12**：只在 Carousel item 内收敛卡片阴影并保留 24px 实际绘制空间，保留横向滚动、snap 与分页。轨道不使用覆盖相邻内容的负 margin，并验证上下相邻按钮的真实命中和点击。首末 Pressable(Card)、浅/深主题、选中/未选中、hover/键盘焦点共有 16 张截图，外侧及上下边界像素均回到背景色。
+- **F12**：只在 Carousel item 内收敛普通及 glass 卡片阴影并保留 24px 实际绘制空间，保留横向滚动、snap 与分页；glass 的 blur/sheen 以及 Carousel 外的材质和阴影不变。轨道不使用覆盖相邻内容的负 margin，并验证上下相邻按钮的真实命中和点击。首末 Pressable(Card)、普通/glass、浅/深主题、选中/未选中、hover/键盘焦点共有 32 张截图，外侧及上下边界像素均回到背景色。
 
 真实组件浏览器回归集中于 `tests/audit/complete-audit-openui.test.mjs`、`complete-audit-keyboard.test.mjs`、`complete-audit-toast.test.mjs`、`complete-audit-toast-composer.test.mjs`；既有菜单、布局、主题、OpenUI 和模型动效检查同时保留。
 

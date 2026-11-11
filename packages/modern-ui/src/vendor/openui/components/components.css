@@ -367,7 +367,7 @@
   .iui-carousel { position: relative; min-width: 0; }
   .iui-carousel-track { display: flex; gap: 12px; padding: 24px; scroll-padding-inline: 24px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: none; }
   .iui-carousel-track::-webkit-scrollbar { display: none; }
-  .iui-carousel-item { --iui-card-shadow: var(--iui-shadow-sm); --iui-card-shadow-hover: 0 4px 12px -2px rgb(0 0 0 / 14%); flex: none; max-width: 85%; min-width: 0; scroll-snap-align: start; display: flex; flex-direction: column; }
+  .iui-carousel-item { --iui-card-shadow: var(--iui-shadow-sm); --iui-card-shadow-hover: 0 4px 12px -2px rgb(0 0 0 / 14%); --iui-glass-card-shadow: var(--iui-card-shadow); --iui-glass-card-shadow-hover: var(--iui-card-shadow-hover); flex: none; max-width: 85%; min-width: 0; scroll-snap-align: start; display: flex; flex-direction: column; }
   &[data-theme="dark"] .iui-carousel-item { --iui-card-shadow-hover: 0 4px 12px -2px rgb(0 0 0 / 48%); }
   .iui-carousel-item > .iui-card, .iui-carousel-item > .iui-pressable { height: 100%; }
   /* Frosted circular controls floating over photos and cards. */

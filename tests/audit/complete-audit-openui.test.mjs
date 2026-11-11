@@ -227,62 +227,81 @@ test('F12: first/last Pressable cards retain hover, selected and keyboard focus 
   const page = await open(390)
   if (process.env.COMPLETE_AUDIT_CAROUSEL_SCREENSHOTS) await mkdir(process.env.COMPLETE_AUDIT_CAROUSEL_SCREENSHOTS, { recursive: true })
   for (const scheme of ['light', 'dark']) {
-    for (const selected of [false, true]) {
-      await show(
-        page,
-        `root = Col([Button("Before"), Carousel([Pressable([Card([Title("First card"), Text("Full visible card and focus ring")])], null, ${selected}), Pressable([Card([Title("Last card"), Text("Full visible card and focus ring")])], null, ${selected})], 240), Button("After")], 4)`,
-        false,
-        scheme,
-      )
-      await page.locator('.iui-pressable').first().waitFor()
-      await page.evaluate(scheme => {
-        const dark = scheme === 'dark',
-          root = document.querySelector('.iui-root')
-        document.body.style.background = dark ? '#171717' : '#fff'
-        root.style.setProperty('--page', dark ? '#171717' : '#fff')
-        root.style.setProperty('--ink', dark ? '#eee' : '#171717')
-        root.style.setProperty('--ink-2', dark ? '#aaa' : '#5b5b5b')
-      }, scheme)
-      for (const end of [false, true]) {
-        await page.locator('.iui-carousel-track').evaluate((el, end) => el.scrollTo({ left: end ? el.scrollWidth : 0, behavior: 'instant' }), end)
-        const tile = page.locator('.iui-pressable').nth(end ? 1 : 0)
-        assert.equal(await tile.getAttribute('aria-pressed'), String(selected))
-        for (const state of ['hover', 'focus']) {
-          if (state === 'hover') {
-            await page.evaluate(() => document.activeElement?.blur())
-            await tile.hover()
-          } else {
-            await page.mouse.move(385, 800)
-            await page.getByRole('button', { name: 'Before', exact: true }).focus()
-            await page.keyboard.press('Tab')
-            if (end) await page.keyboard.press('Tab')
-            assert(await tile.evaluate(el => el.matches(':focus-visible')))
-          }
-          await page.waitForTimeout(200)
-          const decoration = await tile.evaluate(el => {
-            const track = el.closest('.iui-carousel-track').getBoundingClientRect(),
-              box = el.getBoundingClientRect(),
-              style = getComputedStyle(el)
-            return {
-              left: box.left - track.left,
-              right: track.right - box.right,
-              top: box.top - track.top,
-              bottom: track.bottom - box.bottom,
-              shadow: style.boxShadow,
-              cardShadow: getComputedStyle(el.firstElementChild).boxShadow,
-              outline: style.outlineWidth,
+    for (const variant of ['paper', 'glass']) {
+      for (const selected of [false, true]) {
+        await show(
+          page,
+          `root = Col([Button("Before"), Carousel([Pressable([Card([Title("First card"), Text("Full visible card and focus ring")], "${variant === 'glass' ? 'glass' : 'outline'}")], null, ${selected}), Pressable([Card([Title("Last card"), Text("Full visible card and focus ring")], "${variant === 'glass' ? 'glass' : 'outline'}")], null, ${selected})], 240), Button("After"), Card([Text("Outside glass")], "glass")], 4)`,
+          false,
+          scheme,
+        )
+        await page.locator('.iui-pressable').first().waitFor()
+        await page.evaluate(scheme => {
+          const dark = scheme === 'dark',
+            root = document.querySelector('.iui-root')
+          document.body.style.background = dark ? '#171717' : '#fff'
+          root.style.setProperty('--page', dark ? '#171717' : '#fff')
+          root.style.setProperty('--ink', dark ? '#eee' : '#171717')
+          root.style.setProperty('--ink-2', dark ? '#aaa' : '#5b5b5b')
+        }, scheme)
+        for (const end of [false, true]) {
+          await page.locator('.iui-carousel-track').evaluate((el, end) => el.scrollTo({ left: end ? el.scrollWidth : 0, behavior: 'instant' }), end)
+          const tile = page.locator('.iui-pressable').nth(end ? 1 : 0)
+          assert.equal(await tile.getAttribute('aria-pressed'), String(selected))
+          for (const state of ['hover', 'focus']) {
+            if (state === 'hover') {
+              await page.evaluate(() => document.activeElement?.blur())
+              await tile.hover()
+            } else {
+              await page.mouse.move(385, 800)
+              await page.getByRole('button', { name: 'Before', exact: true }).focus()
+              await page.keyboard.press('Tab')
+              if (end) await page.keyboard.press('Tab')
+              assert(await tile.evaluate(el => el.matches(':focus-visible')))
             }
-          })
-          assert(decoration.left >= 23 && decoration.right >= 23 && decoration.top >= 21 && decoration.bottom >= 23, JSON.stringify(decoration))
-          assert(decoration.cardShadow.includes('12px') || state === 'focus', JSON.stringify(decoration))
-          if (state === 'focus') assert.equal(decoration.outline, '2px')
-          if (process.env.COMPLETE_AUDIT_CAROUSEL_SCREENSHOTS)
-            await page.screenshot({
-              path: path.join(
-                process.env.COMPLETE_AUDIT_CAROUSEL_SCREENSHOTS,
-                `${scheme}-${end ? 'last' : 'first'}-${selected ? 'selected' : 'plain'}-${state}.png`,
-              ),
+            await page.waitForTimeout(200)
+            const decoration = await tile.evaluate(el => {
+              const track = el.closest('.iui-carousel-track').getBoundingClientRect(),
+                box = el.getBoundingClientRect(),
+                style = getComputedStyle(el)
+              return {
+                left: box.left - track.left,
+                right: track.right - box.right,
+                top: box.top - track.top,
+                bottom: track.bottom - box.bottom,
+                shadow: style.boxShadow,
+                cardShadow: getComputedStyle(el.firstElementChild).boxShadow,
+                cardBlur: getComputedStyle(el.firstElementChild, '::before').backdropFilter,
+                cardSheen: getComputedStyle(el.firstElementChild, '::before').backgroundImage,
+                outline: style.outlineWidth,
+              }
             })
+            assert(decoration.left >= 23 && decoration.right >= 23 && decoration.top >= 21 && decoration.bottom >= 23, JSON.stringify(decoration))
+            assert(decoration.cardShadow.includes('12px') || state === 'focus', JSON.stringify(decoration))
+            if (variant === 'glass') {
+              const outside = await page
+                .locator('.iui-card-glass')
+                .last()
+                .evaluate(el => ({
+                  blur: getComputedStyle(el, '::before').backdropFilter,
+                  sheen: getComputedStyle(el, '::before').backgroundImage,
+                  shadow: getComputedStyle(el).boxShadow,
+                }))
+              assert.notEqual(outside.blur, 'none')
+              assert.notEqual(outside.sheen, 'none')
+              assert.equal(decoration.cardBlur, outside.blur)
+              assert.equal(decoration.cardSheen, outside.sheen)
+              assert.notEqual(decoration.cardShadow, outside.shadow)
+            }
+            if (state === 'focus') assert.equal(decoration.outline, '2px')
+            if (process.env.COMPLETE_AUDIT_CAROUSEL_SCREENSHOTS)
+              await page.screenshot({
+                path: path.join(
+                  process.env.COMPLETE_AUDIT_CAROUSEL_SCREENSHOTS,
+                  `${variant}-${scheme}-${end ? 'last' : 'first'}-${selected ? 'selected' : 'plain'}-${state}.png`,
+                ),
+              })
+          }
         }
       }
     }
