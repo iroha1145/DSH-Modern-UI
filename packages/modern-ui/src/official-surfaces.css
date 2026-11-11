@@ -338,3 +338,22 @@ body[data-ds-dark-theme] [data-changed-files] button[class*="_header"] > [class*
   border-radius: var(--dsw-radius-md);
   background: var(--dsw-alias-bg-layer-3);
 }
+
+
+/* ==========================================================================
+   plugin-manager, schedule: the split buttons in the page heads ("Add plugin"
+   and, from 0.2.2, "New" on the automation page): a primary action followed by
+   a menu arrow.
+   The official sheets join the two halves (square inner corners). Every
+   official button gets its own rounded outline from official-controls.css, so
+   the halves are two separate buttons here, and they touched. Separate targets
+   need room between them: 8px, the gap the same toolbars keep between rows.
+   Hook: the wrappers have no data-*, role or aria; classes X_2TxG_addGroup
+   (rc.4, 0.2.2-rc.1) and t-XoWW_createGroup (0.2.2-rc.1).
+   Official rules: .X_2TxG_addGroup and .t-XoWW_createGroup (0,1,0); the doubled
+   attribute makes these (0,2,0).
+   ========================================================================== */
+[class*="_addGroup"][class*="_addGroup"],
+[class*="_createGroup"][class*="_createGroup"] {
+  gap: 8px;
+}

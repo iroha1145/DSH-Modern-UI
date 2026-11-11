@@ -205,3 +205,18 @@
     padding: 14px 6px;
   }
 }
+
+/* A section may take the whole phone screen by hiding the dialog's nav; the plugin market does below 561px
+   (`[role="dialog"]:has([data-dsh-market-root]) > nav { display: none }`). The close control stays at the
+   dialog's top right, which is then where the header actions sit, so the two overlapped. The header takes the
+   title row's top inset and its actions stop 8px short of the close control (28px wide, 12px from the edge,
+   inside the header's 16px padding). */
+@media (max-width: 560px) {
+  [data-shortcut-modal="settings"][role="dialog"]:has([data-dsh-market-root]) > div > div:first-child {
+    padding-top: calc(16px + env(safe-area-inset-top, 0px));
+  }
+  [data-shortcut-modal="settings"][role="dialog"]:has([data-dsh-market-root]) .VOzbGW_actions {
+    box-sizing: border-box;
+    padding-right: 32px;
+  }
+}
