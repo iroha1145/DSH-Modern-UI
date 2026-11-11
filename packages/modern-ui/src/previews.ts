@@ -7,6 +7,7 @@
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from './contracts.ts'
+import { dictionaries } from './locale-dictionaries.ts'
 import * as markdownLocale from './vendor/documentpreview/client/markdown/locales.ts'
 import * as planLocale from './vendor/plan/client/locales.ts'
 import { registerMarkdownBody } from './vendor/documentpreview/client/markdown/index.ts'
@@ -14,18 +15,6 @@ import { registerPlanPreview } from './vendor/plan/client/index.ts'
 
 export { MARKDOWN_BODY_ID } from './vendor/documentpreview/client/markdown/index.ts'
 export { PLAN_PREVIEW_ID } from './vendor/plan/client/index.ts'
-
-const LANGUAGES = ['zh', 'en', 'ja', 'es', 'fr', 'de', 'ru', 'pt'] as const
-const dictionaries = <D extends Record<string, string>>(source: Record<(typeof LANGUAGES)[number], D>) => ({
-  zh: source.zh,
-  en: source.en,
-  ja: source.ja,
-  es: source.es,
-  fr: source.fr,
-  de: source.de,
-  ru: source.ru,
-  pt: source.pt,
-})
 
 /**
  * Register the two preview namespaces and their shadowing entries.

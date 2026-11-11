@@ -2,7 +2,7 @@
 import { spawnSync } from 'node:child_process'
 import { cp, mkdir, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
-import { basename, delimiter, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { basename, delimiter, dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createHash, randomUUID } from 'node:crypto'
 import { createRequire } from 'node:module'
@@ -19,6 +19,7 @@ import {
 } from './profile-settings.mjs'
 import { acquireOperationLock } from './operation-lock.mjs'
 import { backupDataHome } from './data-backup.mjs'
+import { containsPath } from './contains-path.mjs'
 import { createLaunchLifecycle } from './launch-child.mjs'
 import { download, unpack } from './artifacts.mjs'
 import { preparePowerShell, bindPowerShell } from './shell-runtime.mjs'
@@ -334,11 +335,7 @@ async function install(options) {
     )
   const previousReference = previous ? await receiptReference(previous) : undefined
   const home = await futureRealpath(options.home)
-  const contains = (parent, child) => {
-    const path = relative(parent, child)
-    return path === '' || (path !== '..' && !path.startsWith('..' + sep) && !isAbsolute(path))
-  }
-  if (contains(root, home) || contains(home, root)) throw new Error('Program and data directories must be separate after resolving symlinks/junctions')
+  if (containsPath(root, home) || containsPath(home, root)) throw new Error('Program and data directories must be separate after resolving symlinks/junctions')
   if (previous && relative(await realpath(previous.home), home) !== '') throw new Error('An upgrade must retain the same data home')
   await mkdir(home, { recursive: true })
   if (relative(home, await realpath(home)) !== '') throw new Error('Data directory resolution changed during creation')
