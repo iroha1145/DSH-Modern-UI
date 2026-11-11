@@ -94,8 +94,9 @@ test('the remaining language-pack data changes only explicitly reviewed legacy c
     dictionary[change.key] = change.before
   }
   expect(hash(restored)).toBe(corrections.languagePacksBaselineHash)
-  expect(languagePacks.some(row => row.namespace === 'conversation')).toBe(false)
-  for (const namespace of ['chat', 'fileDrag', 'model', 'workspace']) expect(languagePacks.some(row => row.namespace === namespace)).toBe(true)
+  // Both namespaces are registered in every language by their owning module; a second copy here would collide.
+  for (const namespace of ['conversation', 'fileDrag']) expect(languagePacks.some(row => row.namespace === namespace)).toBe(false)
+  for (const namespace of ['chat', 'model', 'workspace']) expect(languagePacks.some(row => row.namespace === namespace)).toBe(true)
   for (const row of languagePacks)
     for (const language of ['ja', 'es', 'fr', 'de', 'ru', 'pt'] as const)
       expect(Object.values(row.dictionaries[language]).every(value => typeof value === 'string')).toBe(true)

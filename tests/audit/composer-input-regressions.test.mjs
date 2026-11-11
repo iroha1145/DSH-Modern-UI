@@ -436,6 +436,120 @@ test('an edit after an Enter-key send still keeps the failed message out of the 
   }
 })
 
+// The browser registry behind availableAttachmentIds: apply.ts releases an attachment right after the shell
+// accepts its removal, and a reload drops every runtime image.
+function registryFixture(ids, deps = {}) {
+  const live = new Set(ids)
+  return { live, ...shellFixture({ availableAttachmentIds: list => list.filter(id => live.has(id)), ...deps }) }
+}
+
+test('a visible recovery backup survives clearing the composer and a later unrelated message', async () => {
+  let stored = []
+  const { shell, sends, live } = registryFixture(['A'], {
+    persistFailedSends: records => {
+      stored = records
+    },
+  })
+  try {
+    shell.setDraft('a long prompt worth keeping')
+    shell.addAttachments(['A'])
+    shell.submit()
+    sends[0].reject(new Error('offline'))
+    await tick()
+    assert.equal(shell.snapshot.draft, 'a long prompt worth keeping')
+    live.delete('A')
+    shell.pruneAttachments([])
+    // The text is still in the composer, so the card (shown for its missing file) still backs this draft.
+    assert.equal(shell.snapshot.failedSends[0].restored, true)
+    assert.equal(shell.snapshot.failedSends[0].missingAttachments, 1)
+    shell.setDraft('')
+    assert.notEqual(shell.snapshot.failedSends[0].restored, true)
+    shell.setDraft('ping')
+    shell.submit()
+    sends[1].resolve({ kind: 'success' })
+    await tick()
+    assert.equal(shell.snapshot.failedSends.length, 1)
+    assert.equal(shell.snapshot.failedSends[0].draft.text, 'a long prompt worth keeping')
+    assert.equal(stored.length, 1)
+    assert.equal(stored[0].draft.text, 'a long prompt worth keeping')
+    assert.equal(shell.actions.restoreFailedSend(shell.snapshot.failedSends[0].id), true)
+    assert.equal(shell.snapshot.draft, 'a long prompt worth keeping')
+  } finally {
+    shell.dispose()
+  }
+})
+
+test('removing an attachment from a restored draft updates its backup, so no file is reported missing and a second failure recovers again', async () => {
+  const { shell, sends, live } = registryFixture(['A', 'B'])
+  try {
+    shell.setDraft('text with two images')
+    shell.addAttachments(['A', 'B'])
+    shell.submit()
+    sends[0].reject(new Error('offline'))
+    await tick()
+    assert.deepEqual(shell.snapshot.attachmentIds, ['A', 'B'])
+    assert.equal(shell.removeAttachment('B'), true)
+    live.delete('B')
+    shell.setDraft('text with one image')
+    const [record] = shell.snapshot.failedSends
+    assert.equal(record.attachmentCount, 1)
+    assert.equal(record.missingAttachments, 0)
+    assert.equal(record.restored, true)
+    shell.submit()
+    sends[1].reject(new Error('offline'))
+    await tick()
+    assert.equal(shell.snapshot.draft, 'text with one image')
+    assert.deepEqual(shell.snapshot.attachmentIds, ['A'])
+    assert.deepEqual(
+      shell.snapshot.failedSends.filter(item => item.restored !== true),
+      [],
+    )
+  } finally {
+    shell.dispose()
+  }
+})
+
+test('emptying an automatically restored draft keeps its text as an explicit backup; an attachment-only message removed by hand leaves none', async () => {
+  const text = registryFixture(['A'])
+  try {
+    text.shell.setDraft('first')
+    text.shell.addAttachments(['A'])
+    text.shell.submit()
+    text.sends[0].reject(new Error('offline'))
+    await tick()
+    text.shell.setDraft('')
+    // The image is still in the composer: the draft is edited, not abandoned.
+    assert.equal(text.shell.snapshot.failedSends[0].restored, true)
+    assert.equal(text.shell.removeAttachment('A'), true)
+    text.live.delete('A')
+    text.shell.setDraft('second')
+    text.shell.submit()
+    text.sends[1].resolve({ kind: 'success' })
+    await tick()
+    assert.equal(text.shell.snapshot.failedSends.length, 1)
+    const [backup] = text.shell.snapshot.failedSends
+    assert.equal(backup.draft.text, 'first')
+    assert.equal(backup.attachmentCount, 0)
+    assert.equal(backup.missingAttachments, 0)
+    assert.notEqual(backup.restored, true)
+  } finally {
+    text.shell.dispose()
+  }
+  const image = registryFixture(['A'])
+  try {
+    image.shell.addAttachments(['A'])
+    image.shell.submit()
+    image.sends[0].resolve({ kind: 'error', text: 'offline' })
+    await tick()
+    assert.deepEqual(image.shell.snapshot.attachmentIds, ['A'])
+    assert.equal(image.shell.snapshot.failedSends.length, 1)
+    assert.equal(image.shell.removeAttachment('A'), true)
+    assert.deepEqual(image.shell.snapshot.failedSends, [])
+  } finally {
+    image.shell.dispose()
+  }
+})
+
 test('reverse failures stay distinct in send order; discard releases only that message and teardown ignores stale settlements', async () => {
   const { shell, sends, released } = shellFixture()
   shell.setDraft('first')
