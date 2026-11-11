@@ -67,6 +67,14 @@ jobs:
       - name: Host replacement drift
         continue-on-error: true
         run: node scripts/vendor-drift.mjs --host '${{ matrix.host }}' --provenance packages/modern-ui/src/host-compat/PROVENANCE.json --json "$RUNNER_TEMP/canary-drift/host-drift.json" --markdown "$RUNNER_TEMP/canary-drift/host-drift.md"
+      # The runner image lists azure.archive.ubuntu.com first. When that mirror stops resolving, apt gives up instead of
+      # falling back, so drop it and let the remaining entries (archive.ubuntu.com, security.ubuntu.com) serve the packages.
+      - name: Use the Ubuntu archive directly when installing browser packages
+        run: |
+          if [ -f /etc/apt/apt-mirrors.txt ]; then
+            sudo sed -i '/azure\.archive\.ubuntu\.com/d' /etc/apt/apt-mirrors.txt
+            cat /etc/apt/apt-mirrors.txt
+          fi
       - name: Install the browser
         run: |
           node node_modules/playwright-core/cli.js install --with-deps chromium
