@@ -43,6 +43,20 @@ export function attachmentReadProtocol(version: string | undefined): AttachmentR
   return newer ? 'attachment-ref' : 'attachment-id'
 }
 
+/** The official plugin that owns browser file-drag transfers from the 0.2.2 prereleases on. */
+const OFFICIAL_FILE_DRAG = '@deepseek-ai/dsh-client-ui-file-drag'
+
+/**
+ * Whether the running Host composes the official file-drag plugin. That plugin then owns the
+ * public `fileDrag` service, the `fileDrag` dictionaries and the feedback overlay; 0.2.1
+ * releases ship none, and Modern UI provides them itself there.
+ * @param ctx - any client context under the Host Loader.
+ * @returns true when the Host's boot graph lists the official plugin.
+ */
+export function hostComposesFileDrag(ctx: Context): boolean {
+  return ctx.get('modules')?.manifest.plugins.some(row => row.id === OFFICIAL_FILE_DRAG) === true
+}
+
 type AttachmentRead = ReturnType<ISession['readAttachment']>
 
 /**

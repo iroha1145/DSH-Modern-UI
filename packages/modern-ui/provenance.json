@@ -603,7 +603,7 @@
       "source": "packages/client/ui-conversation/src/client/input/facade.ts",
       "target": "src/vendor/conversation/client/input/facade.ts",
       "sourceSha256": "9790e2207849606abfa31bdc54865ed0ef5cb2d76c76c2552e620fcf6ef25f9a",
-      "targetSha256": "59dedb5e9ca244c130a1a931db5b0a985f50a77fb645205adc16171e1aca13fd",
+      "targetSha256": "6352cd49ebf0f15eebeb60438ff178571f9fec07ddc62eacf7add08fc208cfea",
       "adapted": true
     },
     {
@@ -3734,7 +3734,7 @@
     },
     {
       "target": "src/host-contract.ts",
-      "targetSha256": "008253a2fd8b9b9fb4437934eb0305e79e396716ce8b5f63dc0d2e737fa3b8bd",
+      "targetSha256": "37c84cd41a3af7a580702d83c2b9586dc209d3849e0968e3298ed8411e10ea8c",
       "description": "Host contract differences one build bridges across releases, chosen from the published Host release: the Session image read argument (attachment id before 0.2.2, complete reference from 0.2.2)."
     },
     {
@@ -3877,7 +3877,7 @@
     },
     {
       "target": "src/file-drag.ts",
-      "targetSha256": "78598da8715cf939c0992d50214f5e44381e964919f74492346308922fa22212",
+      "targetSha256": "efab755adb06d8a9dfbd419572590d2d50977611978d6b219484bf1cfcd3a84a",
       "sources": [
         {
           "source": "packages/client/ui-file-drag/src/client/index.ts",

@@ -2238,30 +2238,6 @@
     }
   },
   {
-    "namespace": "fileDrag",
-    "source": "packages/client/ui-file-drag/src/client/locales.ts",
-    "dictionaries": {
-      "ja": {
-        "failed": "ドラッグ＆ドロップに失敗しました。もう一度お試しください。"
-      },
-      "es": {
-        "failed": "Error al arrastrar. Intentar otra vez."
-      },
-      "fr": {
-        "failed": "Le glissement a échoué. Essayer à nouveau."
-      },
-      "de": {
-        "failed": "Ziehen ist fehlgeschlagen. Versuchen Sie es erneut."
-      },
-      "ru": {
-        "failed": "Перетащить не удалось. Попробуйте еще раз."
-      },
-      "pt": {
-        "failed": "Falha ao arrastar. Tente novamente."
-      }
-    }
-  },
-  {
     "namespace": "goal",
     "source": "packages/client/ui-goal/src/client/locales.ts",
     "dictionaries": {

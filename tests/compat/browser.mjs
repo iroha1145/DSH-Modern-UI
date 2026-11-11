@@ -708,7 +708,25 @@ export async function runBrowserChecks({ state, output, executablePath, checkHos
       })
       const decoded = await image.evaluate(element => ({ width: element.naturalWidth, height: element.naturalHeight }))
       assert.equal(page.url(), before)
-      return decoded
+      // The image must come from the Modern image layer. When that scope fails to start (its dictionaries or
+      // its service colliding with another owner) nothing is thrown and the official renderer takes over.
+      const plugin = path.dirname(
+        createRequire(path.join(state.home, 'profiles', state.profile, 'package.json')).resolve('@iroha1145/dsh-modern-ui/package.json'),
+      )
+      const galleries = new Set(
+        [...(await readFile(path.join(plugin, 'lib/client.js'), 'utf8')).matchAll(/["'`]([\w-]+_gallery)["'`]/g)].map(match => match[1]),
+      )
+      const owner = await image.evaluate(element => ({
+        gallery: element.closest('[data-align]')?.className ?? '',
+        draggable: element.getAttribute('draggable'),
+      }))
+      assert.ok(galleries.size > 0, 'The installed client bundle names no image gallery class')
+      assert.ok(
+        owner.gallery.split(/\s+/).some(name => galleries.has(name)),
+        `The transcript image is not rendered by the Modern image layer: ${JSON.stringify(owner)}`,
+      )
+      assert.equal(owner.draggable, 'true', JSON.stringify(owner))
+      return { ...decoded, ...owner }
     })
     await check('real-stream-stop-cancellation', async () => {
       await send('COMPAT_STOP')

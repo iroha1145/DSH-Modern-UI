@@ -237,7 +237,10 @@ export class SessionInputShell implements SessionInput {
       // submit runs inside an editor update, where Lexical defers that clear
       // until the detached send has already been stamped; counting it would
       // cancel the failed message's recovery into its own untouched empty draft.
-      if (!this.sentClear) this.editEpoch += 1
+      if (!this.sentClear) {
+        this.editEpoch += 1
+        this.releaseEmptiedRecovery()
+      }
       this.dispatchRun(({ type: 'draft-changed', command: this.projection.command }))
     }
     const caret = this.projection.caret
@@ -397,6 +400,8 @@ export class SessionInputShell implements SessionInput {
     if (next.length === this.attachmentIds.length) return false
     this.attachmentIds = next
     this.editEpoch += 1
+    this.forgetRestoredAttachment(id)
+    this.releaseEmptiedRecovery()
     this.publish()
     return true
   }
@@ -410,6 +415,7 @@ export class SessionInputShell implements SessionInput {
     const next = this.attachmentIds.filter(id => keep.has(id))
     if (next.length === this.attachmentIds.length) return
     this.attachmentIds = next
+    this.releaseEmptiedRecovery()
     this.publish()
   }
 
@@ -950,6 +956,8 @@ export class SessionInputShell implements SessionInput {
     const record = this.failedDetached.get(id)
     if (record === undefined || this.disposed || this.core.state.phase !== 'plain'
       || this.projection.clipboardText !== '' || this.attachmentIds.length !== 0 || this.recoveryInFlight(id)) return false
+    // The composer is empty here, so a binding left by an earlier restore is stale.
+    this.releaseEmptiedRecovery()
     this.attachmentIds = this.deps.availableAttachmentIds?.(record.attachmentIds) ?? record.attachmentIds
     const missing = record.value.missingAttachments + record.attachmentIds.length - this.attachmentIds.length
     this.editEpoch += 1
@@ -962,6 +970,8 @@ export class SessionInputShell implements SessionInput {
     } else {
       this.failedDetached.set(id, { ...record, value: { ...record.value, restored: true } })
       this.restoredRecordId = id
+      // Nothing came back (no text, every attachment gone): the backup stays an explicit record.
+      this.releaseEmptiedRecovery()
     }
     this.persistFailures()
     this.publish()
@@ -1009,6 +1019,36 @@ export class SessionInputShell implements SessionInput {
     if (record !== undefined) this.failedDetached.set(id, { ...record, value: { ...record.value, restored: false } })
     this.persistFailures()
     return id
+  }
+
+  /**
+   * A recovery backup is bound to the composer only while the composer still holds
+   * its message. Once the draft is emptied the backup is an explicit record again,
+   * so a later unrelated send or command cannot settle it as a retry.
+   */
+  private releaseEmptiedRecovery(): void {
+    const id = this.restoredRecordId
+    if (id === undefined || this.projection.clipboardText !== '' || this.attachmentIds.length !== 0) return
+    this.restoredRecordId = undefined
+    const record = this.failedDetached.get(id)
+    if (record === undefined) return
+    const { draft, attachmentCount } = record.value
+    // Nothing is left to recover once its only content, the attachments, was removed by hand.
+    if (draft.text === '' && (draft.quotes?.length ?? 0) === 0 && attachmentCount === 0) this.failedDetached.delete(id)
+    else this.failedDetached.set(id, { ...record, value: { ...record.value, restored: false } })
+    this.persistFailures()
+  }
+
+  /** An attachment removed from a restored draft no longer belongs to that message's backup. */
+  private forgetRestoredAttachment(id: DraftAttachmentId): void {
+    const recordId = this.restoredRecordId
+    const record = recordId === undefined ? undefined : this.failedDetached.get(recordId)
+    if (recordId === undefined || record === undefined || !record.attachmentIds.includes(id)) return
+    this.failedDetached.set(recordId, {
+      attachmentIds: record.attachmentIds.filter(candidate => candidate !== id),
+      value: { ...record.value, attachmentCount: Math.max(0, record.value.attachmentCount - 1) },
+    })
+    this.persistFailures()
   }
 
   private clearReattachedRecovery(): void {
