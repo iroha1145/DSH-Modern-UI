@@ -19,6 +19,34 @@ env:
   DSH_TELEMETRY_DISABLED: '1'
 
 jobs:
+  chat-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        host: ['0.2.1-rc.2', '0.2.1-rc.3', '0.2.1-rc.4', '0.2.2-rc.1']
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: '24.22.1'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Published chat contract in an independent consumer
+        run: node tests/compat/chat-contract.mjs --host '${{ matrix.host }}' --root '${{ runner.temp }}/chat-contract'
+      - uses: actions/upload-artifact@v7.0.1
+        if: always()
+        with:
+          name: chat-contract-${{ matrix.host }}
+          path: |
+            ${{ runner.temp }}/chat-contract/report.json
+            ${{ runner.temp }}/chat-contract/*/*.log
+            ${{ runner.temp }}/chat-contract/*/contract.json
+            ${{ runner.temp }}/chat-contract/*/package-lock.json
+
   check:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
