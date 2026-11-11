@@ -1,11 +1,10 @@
 import { defineComponent } from "@openuidev/react-lang";
-import katex from "katex";
 import "katex/dist/katex.min.css";
 import { Check, ChevronLeft, ChevronRight, Copy } from "lucide-react";
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { z } from "zod/v4";
-import { KATEX_SAFE_OPTIONS } from "../../primitives/markdown/katex-options";
+import { renderBoundedTex } from "../../primitives/markdown/katex-render";
 import { copy as copyText } from "../actions";
 import { inline } from "./markdown";
 import { children, cx, space } from "./style";
@@ -23,6 +22,9 @@ const CONTROLS = 'button, a[href], input, select, textarea, [role="button"], [ta
 // control (a Pressable is a focusable div) acts on the keys itself, so the trigger takes them first.
 const keysAreItsOwn = (element: Element) =>
   ["BUTTON", "INPUT", "SELECT", "TEXTAREA"].includes(element.tagName) || (element as HTMLElement).isContentEditable === true;
+
+// React ownership crosses portals, unlike the inert DOM boundary of a card face.
+const FaceActivityContext = createContext(true);
 
 // Carousel
 export const Carousel = defineComponent({
@@ -110,17 +112,23 @@ export const Popover = defineComponent({
   props: z.object({ trigger: slot, content: slot, title: z.string().optional() }),
   description: 'Shows content in a small panel when the trigger is clicked: title names the panel; always supply it for an icon trigger. A definition, a source, details behind an Icon("info", "sm").',
   component: function PopoverView({ props, renderNode }) {
+    const active = useContext(FaceActivityContext);
     const id = useId();
     const text = useUiText();
     const title = props.title?.trim();
     const [open, setOpen] = useState(false);
+    const shown = open && active;
+    const toggle = () => { if (active) setOpen((current) => !current); };
+    useLayoutEffect(() => {
+      if (!active) setOpen(false);
+    }, [active]);
     const [at, setAt] = useState<Placement | null>(null);
     const button = useRef<HTMLElement>(null);
     const panel = useRef<HTMLDivElement>(null);
     const body = useRef<HTMLDivElement>(null);
     const entered = useRef(false);
     useLayoutEffect(() => {
-      if (!open) entered.current = false;
+      if (!shown) entered.current = false;
       else if (at && !entered.current) {
         panel.current?.focus();
         entered.current = true;
@@ -139,11 +147,11 @@ export const Popover = defineComponent({
       if (!control) return;
       control.setAttribute("aria-haspopup", "dialog");
       control.setAttribute("aria-controls", `${id}-panel`);
-      control.setAttribute("aria-expanded", String(open));
-    }, [control, open, id]);
+      control.setAttribute("aria-expanded", String(shown));
+    }, [control, shown, id]);
     // Measured before the first paint, and again whenever the viewport, the trigger or the content changes size.
     useLayoutEffect(() => {
-      if (!open) return;
+      if (!shown) return;
       const update = () => {
         if (!button.current || !panel.current) return;
         const next = place(button.current, panel.current);
@@ -157,9 +165,9 @@ export const Popover = defineComponent({
         observer.disconnect();
         window.removeEventListener("resize", update);
       };
-    }, [open]);
+    }, [shown]);
     useEffect(() => {
-      if (!open) return;
+      if (!shown) return;
       const close = (event: Event) => {
         const target = event.target as Node;
         if (!panel.current?.contains(target) && !button.current?.contains(target)) setOpen(false);
@@ -185,11 +193,11 @@ export const Popover = defineComponent({
         document.removeEventListener("keydown", onKeyDown, true);
         window.removeEventListener("scroll", onScroll, true);
       };
-    }, [open, control]);
+    }, [shown, control]);
     return (
       <>
         {typeof props.trigger === "string" ? (
-          <button ref={button as RefObject<HTMLButtonElement>} type="button" id={`${id}-trigger`} className="iui-popover-trigger" aria-haspopup="dialog" aria-controls={`${id}-panel`} aria-expanded={open} onClick={() => setOpen(!open)}>
+          <button ref={button as RefObject<HTMLButtonElement>} type="button" id={`${id}-trigger`} className="iui-popover-trigger" aria-haspopup="dialog" aria-controls={`${id}-panel`} aria-expanded={shown} onClick={toggle}>
             {props.trigger}
           </button>
         ) : control ? (
@@ -200,7 +208,7 @@ export const Popover = defineComponent({
             id={`${id}-trigger`} className="iui-popover-trigger"
             onClickCapture={(event) => {
               event.stopPropagation();
-              setOpen(!open);
+              toggle();
             }}
             onKeyDownCapture={(event) => {
               if (event.key !== "Enter" && event.key !== " ") return;
@@ -208,7 +216,7 @@ export const Popover = defineComponent({
               if (target === null || keysAreItsOwn(target)) return;
               event.preventDefault();
               event.stopPropagation();
-              setOpen(!open);
+              toggle();
             }}
           >
             {renderSlot(props.trigger, renderNode)}
@@ -221,18 +229,18 @@ export const Popover = defineComponent({
             tabIndex={0}
             aria-label={!hasTriggerText ? title || text.details : undefined}
             id={`${id}-trigger`} className="iui-popover-trigger"
-            aria-haspopup="dialog" aria-controls={`${id}-panel`} aria-expanded={open}
-            onClick={() => setOpen(!open)}
+            aria-haspopup="dialog" aria-controls={`${id}-panel`} aria-expanded={shown}
+            onClick={toggle}
             onKeyDown={(event) => {
               if (event.target !== event.currentTarget || (event.key !== "Enter" && event.key !== " ")) return;
               event.preventDefault();
-              setOpen(!open);
+              toggle();
             }}
           >
             {renderSlot(props.trigger, renderNode)}
           </span>
         )}
-        {open &&
+        {shown &&
           createPortal(
             // The panel leaves the block's DOM, so it carries its own scope for the tokens and styles. It is laid out
             // hidden once, to be measured, before it is placed.
@@ -305,7 +313,7 @@ export const MathBlock = defineComponent({
   props: z.object({ tex: z.string(), inline: z.boolean().optional() }),
   description: 'LaTeX formula, e.g. Math("E = mc^2"); inline true to sit in a Text list.',
   component: ({ props }) => {
-    const html = katex.renderToString(str(props.tex), { ...KATEX_SAFE_OPTIONS, displayMode: !props.inline, throwOnError: false, strict: "ignore", output: "htmlAndMathml" });
+    const { html } = renderBoundedTex(str(props.tex), { displayMode: !props.inline, throwOnError: false, strict: "ignore", output: "htmlAndMathml" });
     // KaTeX escapes its input and is configured without \href or \includegraphics.
     return props.inline ? <span className="iui-math" dangerouslySetInnerHTML={{ __html: html }} /> : <div className="iui-math is-block" dangerouslySetInnerHTML={{ __html: html }} />;
   },
@@ -317,30 +325,39 @@ export const Flashcard = defineComponent({
   props: z.object({ front: slot, back: slot, hint: z.string().optional() }),
   description: "Card with a flip button to switch between front and back. Put several in a Carousel or Grid.",
   component: function FlashcardView({ props, renderNode }) {
+    const active = useContext(FaceActivityContext);
     const text = useUiText();
     const [flipped, setFlipped] = useState(false);
     const front = useRef<HTMLDivElement>(null);
     const back = useRef<HTMLDivElement>(null);
     const toggle = useRef<HTMLButtonElement>(null);
+    const frontFocus = useRef<EventTarget | null>(null);
+    const backFocus = useRef<EventTarget | null>(null);
     useLayoutEffect(() => {
       if (front.current) front.current.inert = flipped;
       if (back.current) back.current.inert = !flipped;
     }, [flipped]);
     const flip = () => {
-      // Scripted activation can leave focus in the face that is about to become inert.
-      if ((flipped ? back : front).current?.contains(document.activeElement)) toggle.current?.focus();
+      // React focus capture also sees owned portal content outside the face DOM.
+      // An outer flip owns restoration when this whole card is becoming inert.
+      if (active && ((flipped ? back : front).current?.contains(document.activeElement)
+        || (flipped ? backFocus : frontFocus).current === document.activeElement)) toggle.current?.focus();
       setFlipped(!flipped);
     };
     const face = (value: unknown) => (typeof value === "string" ? <span className="iui-flashcard-word">{inline(value)}</span> : renderSlot(value, renderNode));
     return (
       <article className={cx("iui-flashcard", flipped && "is-flipped")}>
         <div className="iui-flashcard-inner">
-          <div ref={front} className="iui-flashcard-face is-front" aria-hidden={flipped}>
-            {face(props.front)}
-            {props.hint && <span className="iui-flashcard-hint">{str(props.hint)}</span>}
+          <div ref={front} className="iui-flashcard-face is-front" aria-hidden={flipped} onFocusCapture={(event) => { frontFocus.current = event.target; }}>
+            <FaceActivityContext.Provider value={active && !flipped}>
+              {face(props.front)}
+              {props.hint && <span className="iui-flashcard-hint">{str(props.hint)}</span>}
+            </FaceActivityContext.Provider>
           </div>
-          <div ref={back} className="iui-flashcard-face is-back" aria-hidden={!flipped}>
-            {face(props.back)}
+          <div ref={back} className="iui-flashcard-face is-back" aria-hidden={!flipped} onFocusCapture={(event) => { backFocus.current = event.target; }}>
+            <FaceActivityContext.Provider value={active && flipped}>
+              {face(props.back)}
+            </FaceActivityContext.Provider>
           </div>
         </div>
         <button ref={toggle} type="button" className="iui-flashcard-toggle" aria-pressed={flipped} onClick={flip}>{text.tapToFlip}</button>

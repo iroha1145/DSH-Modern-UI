@@ -1546,7 +1546,7 @@
       "source": "packages/client/ui-primitives/src/markdown/katex.tsx",
       "target": "src/vendor/primitives/markdown/katex.tsx",
       "sourceSha256": "8227e04d29333d2568021ed012143237b457852bce25d82cf394d72b941e74a5",
-      "targetSha256": "ec3d43a7a93972becd007dcfdcb41afd29800377a147593db8d1361967d3b152",
+      "targetSha256": "9c5839915d60bfb735cbdd40d0a0fe306c18765c11175b4f99367b1b8eaaba32",
       "adapted": true
     },
     {
