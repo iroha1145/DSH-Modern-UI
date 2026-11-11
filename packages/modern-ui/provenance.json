@@ -1502,7 +1502,7 @@
       "source": "packages/client/ui-primitives/src/markdown/CodeBlock.tsx",
       "target": "src/vendor/primitives/markdown/CodeBlock.tsx",
       "sourceSha256": "1829b570450f386cfe50054b3705af70fb0b75189e7bcf2786245b7b8632c93d",
-      "targetSha256": "8629ccd705cfb0a0a5d5d79a1e1e7f3d4c5ef66a0f3bacd01306ea932de226fc",
+      "targetSha256": "a6a72350837aac2f9479c0bebbf06f4e73ea0b970e9ee32ed39c1229b5a3cdf8",
       "adapted": true
     },
     {
@@ -1517,7 +1517,7 @@
       "source": "packages/client/ui-primitives/src/markdown/highlight.ts",
       "target": "src/vendor/primitives/markdown/highlight.ts",
       "sourceSha256": "8f641cddd716d1d96908784514e8e557a882d8547a2f2a60f6bb8e19855709b0",
-      "targetSha256": "d2397eb77a3262f146181ff4e2c75d999b3f66f54272991f981595a9d9a37272",
+      "targetSha256": "cce28c9e7ce5809989ae3562ca24b1b486e5480cfd6f7e86fcc5fdabf788fa84",
       "adapted": true,
       "adaptation": "A lazy grammar whose import fails is forgotten, so a later render can import it again instead of staying plain for the session."
     },

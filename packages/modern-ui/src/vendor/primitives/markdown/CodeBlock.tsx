@@ -124,9 +124,10 @@ export function CodeBlock({
     }
     if (streaming !== true) {
       const previous = lineCacheRef.current
-      if (previous !== null && previous.code === trimmed && previous.lang === lang) {
+      if (previous !== null && previous.code === trimmed && previous.lang === lang && previous.frame.settled) {
         // The settled fence keeps the streamed lines; the session's tokenizer caches are no longer needed, and a
-        // fence that streams again starts a new session (settledRef).
+        // fence that streams again starts a new session (settledRef). A frame that still shows backlog lines as
+        // plain text is not kept: the completed fence takes the ordinary synchronous or deferred path instead.
         sessionRef.current = null
         settledRef.current = true
         return previous.body

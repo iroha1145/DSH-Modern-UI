@@ -76,3 +76,23 @@ test('oversize fallback escapes source markup rather than inserting it', () => {
   expect(body.querySelector('img')).toBeNull()
   expect(body.textContent).toBe(tex)
 })
+
+test('ordinary operator spacing in long formulae and hex colours are not counted as backward shifts', () => {
+  const polynomial = Array.from({ length: 200 }, (_, index) => `a_{${index}}x^{${index}}`).join(' + ')
+  const derivation = `\\begin{aligned}${Array.from({ length: 22 }, (_, index) => `f(x_{${index}}) &= a_{${index}} x^2 + b_{${index}} x + c_{${index}} - \\frac{1}{2}\\sigma^2 t + \\mu t`).join(' \\\\ ')}\\end{aligned}`
+  for (const tex of [
+    polynomial,
+    derivation,
+    String.raw`a \quad b`.repeat(80),
+    String.raw`\fcolorbox{#0066cc}{white}{x} + \fcolorbox{#3366cc}{#ffeedd}{y} + \fcolorbox{#1234dd}{white}{z}`,
+  ]) {
+    for (const displayMode of [false, true]) {
+      const config = { ...options, displayMode }
+      expect(renderBoundedTex(tex, config).html, tex.slice(0, 40)).toBe(katex.renderToString(tex, config))
+    }
+  }
+  for (const tex of [String.raw`\hspace{-20em}`.repeat(4) + 'x', String.raw`\hspace{20em}\hspace{-20em}`.repeat(40) + 'x']) {
+    const { body } = renderBoundedTex(tex, options)
+    expect(body.firstElementChild?.className, tex.slice(0, 40)).toBe('katex-error')
+  }
+})

@@ -74,3 +74,52 @@ test('lazy grammar notifications follow normalized aliases and unsubscribe clean
     unwatchPy()
   }
 })
+
+const lineText = (lines: readonly (readonly { text: string }[])[] | undefined) => lines?.map(line => line.map(span => span.text).join('')).join('\n')
+const colored = (line: readonly { style: object }[] | undefined) => line?.some(span => Object.keys(span.style).length > 0) ?? false
+
+test('a long line arriving mid-stream keeps the colored prefix and colors the following lines', async () => {
+  const head = Array.from({ length: 30 }, (_, index) => `const value${index} = ${index}`)
+  const long = `const sql = "${'select a, b from t where x = 1 and '.repeat(12)}"`
+  const tail = Array.from({ length: 10 }, (_, index) => `const after${index} = ${index}`)
+  const source = [...head, long, ...tail].join('\n')
+  expect(long.length).toBeGreaterThan(400)
+  const session = new StreamingHighlightSession()
+  for (let end = 12; end < source.length + 12; end += 12) {
+    const code = source.slice(0, end)
+    const lines = session.update(code, 'ts')
+    expect(lines, `plain fallback at ${end}`).toBeDefined()
+    expect(lineText(lines)).toBe(code)
+    if (code.length > head.join('\n').length + 1) expect(colored(lines?.[0])).toBe(true)
+  }
+  const final = session.update(source, 'ts')
+  expect(final).toEqual(await highlightLinesAsync(source, 'ts', new AbortController().signal))
+  expect(colored(final?.[head.length])).toBe(true)
+  expect(colored(final?.[head.length + 3])).toBe(true)
+})
+
+test('a fence first highlighted when it is already long catches up frame by frame', async () => {
+  const lines = Array.from({ length: 260 }, (_, index) => `const item${index} = compute(${index}, "label ${index}")`)
+  const session = new StreamingHighlightSession()
+  let code = lines.slice(0, 200).join('\n') + '\n'
+  const first = session.updateFrame(code, 'ts')
+  if (first === undefined) throw new Error('late start must not fall back to plain text')
+  expect(first.settled).toBe(false)
+  expect(first.appended.length).toBeGreaterThan(0)
+  expect(first.appended.length).toBeLessThan(200)
+  expect(first.tail.length).toBeGreaterThan(80)
+  expect(colored(first.tail[0])).toBe(false)
+  expect(colored(first.appended[0])).toBe(true)
+  expect(lineText(session.update(code, 'ts'))).toBe(code)
+  let frames = 1
+  for (let index = 200; index < lines.length; index++) {
+    code += `${lines[index]}\n`
+    const frame = session.updateFrame(code, 'ts')
+    frames += 1
+    if (frame?.settled) break
+  }
+  expect(frames).toBeLessThan(8)
+  expect(session.updateFrame(code, 'ts')?.settled).toBe(true)
+  const settled = session.update(code, 'ts')
+  expect(settled).toEqual(await highlightLinesAsync(code, 'ts', new AbortController().signal))
+})

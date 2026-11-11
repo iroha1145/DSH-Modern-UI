@@ -1,7 +1,7 @@
 import { defineComponent } from "@openuidev/react-lang";
 import "katex/dist/katex.min.css";
 import { Check, ChevronLeft, ChevronRight, Copy } from "lucide-react";
-import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { createContext, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { z } from "zod/v4";
 import { renderBoundedTex } from "../../primitives/markdown/katex-render";
@@ -312,8 +312,11 @@ export const MathBlock = defineComponent({
   name: "Math",
   props: z.object({ tex: z.string(), inline: z.boolean().optional() }),
   description: 'LaTeX formula, e.g. Math("E = mc^2"); inline true to sit in a Text list.',
-  component: ({ props }) => {
-    const { html } = renderBoundedTex(str(props.tex), { displayMode: !props.inline, throwOnError: false, strict: "ignore", output: "htmlAndMathml" });
+  component: function MathView({ props }) {
+    const tex = str(props.tex);
+    const displayMode = !props.inline;
+    // A streaming answer re-renders this node for every chunk; the formula is rendered and checked once per text.
+    const html = useMemo(() => renderBoundedTex(tex, { displayMode, throwOnError: false, strict: "ignore", output: "htmlAndMathml" }).html, [tex, displayMode]);
     // KaTeX escapes its input and is configured without \href or \includegraphics.
     return props.inline ? <span className="iui-math" dangerouslySetInnerHTML={{ __html: html }} /> : <div className="iui-math is-block" dangerouslySetInnerHTML={{ __html: html }} />;
   },

@@ -186,6 +186,8 @@ test('model list exposes its active option on mobile and desktop, including empt
       await search.fill('Model 1')
       await check()
       await page.evaluate(() => window.resizePicker(8))
+      // React commits the smaller catalog asynchronously; wait for the search box to leave instead of sampling once.
+      await page.waitForFunction(() => document.querySelector('[role="combobox"]') === null)
       assert.equal(await page.getByRole('combobox').count(), 0)
       assert.equal(await list.evaluate(el => el.contains(document.getElementById(el.getAttribute('aria-activedescendant')))), true)
       await page.evaluate(() => window.resizePicker(12))
