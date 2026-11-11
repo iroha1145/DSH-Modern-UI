@@ -11,10 +11,15 @@ import { fileURLToPath } from 'node:url'
  * directory. The script would then exit 0 having done nothing.
  */
 export function isMainModule(moduleUrl) {
-  if (!process.argv[1]) return false
+  const entry = process.argv[1]
+  if (!entry || entry === '-') return false
+  let entryPath
   try {
-    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(moduleUrl))
-  } catch {
-    return false
+    entryPath = realpathSync(entry)
+  } catch (error) {
+    // Eval/test runners may supply an argv spelling that is not a file.
+    if (error.code === 'ENOENT' || error.code === 'ENOTDIR') return false
+    throw error
   }
+  return entryPath === realpathSync(fileURLToPath(moduleUrl))
 }

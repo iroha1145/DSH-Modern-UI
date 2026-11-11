@@ -1,8 +1,9 @@
 /** Real DSH + the working-tree plugin, in a dedicated home with a local scripted model. */
 import { execFile, spawn } from 'node:child_process'
-import { mkdir, readFile, realpath, symlink, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { promisify } from 'node:util'
+import { ensurePreviewDependency } from './preview-dependency.mjs'
 
 const repo = path.resolve(import.meta.dirname, '..')
 const root = path.resolve(repo, '../.tools/conversation-layout-preview')
@@ -78,9 +79,7 @@ for (const [name, target] of [
 ]) {
   const destination = path.join(profile, 'node_modules', name)
   await mkdir(path.dirname(destination), { recursive: true })
-  const existing = await realpath(destination).catch(() => null)
-  if (existing === null) await symlink(target, destination, process.platform === 'win32' ? 'junction' : 'dir')
-  else if (existing !== (await realpath(target))) throw new Error(`Unexpected preview dependency at ${destination}`)
+  await ensurePreviewDependency(target, destination)
   manifest.dependencies[name] = 'link:' + target.replaceAll('\\', '/')
   if (!manifest.dsh.profile.bundles.includes(name)) manifest.dsh.profile.bundles.push(name)
 }

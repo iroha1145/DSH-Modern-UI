@@ -247,7 +247,7 @@ export interface AdvisorDeps {
 }
 
 /** No key, a key no request header can carry, or a usable key. */
-export type KeyState = 'none' | 'unusable' | 'ready'
+export type KeyState = 'none' | 'unusable' | 'unavailable' | 'ready'
 
 /** The parts of a live session the advisor reads. */
 export interface AdvisedSession {
@@ -311,7 +311,7 @@ export class PresentationAdvisor {
       const key = await this.key()
       return key === undefined ? 'none' : HEADER_SAFE.test(key) ? 'ready' : 'unusable'
     } catch {
-      return 'none'
+      return 'unavailable'
     }
   }
 
@@ -547,6 +547,9 @@ export function installJevTool(ctx: Context, settings: () => JevSettings, prompt
           scope.logger.warn(
             'jev: the TypeSafe key contains spaces, line breaks or other characters a request header cannot carry; the tool stays hidden until the key is replaced',
           )
+        }
+        if (next === 'unavailable' && keyState !== 'unavailable') {
+          scope.logger.warn('jev: credential provider unavailable; the tool stays hidden until credential resolution recovers')
         }
         keyState = next
         reconcileAll()
