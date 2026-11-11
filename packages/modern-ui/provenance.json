@@ -3907,7 +3907,7 @@
     },
     {
       "target": "src/official-controls.css",
-      "targetSha256": "7e2c12b911465e0bed9f950eb8f14bc12335fd5d33c411b4de2f674220edd312",
+      "targetSha256": "22467db4e292122f9b48dfe2d0c67ec3e5e60fa6aca7de6c92c4b876db98d0a0",
       "sources": [
         {
           "source": "packages/client/ui-primitives/src/Button.module.css",
@@ -3994,7 +3994,7 @@
           "sourceSha256": "d1ea993723f44e3d657af171fa25678d421665211110140b0c5e1554805ff48a"
         }
       ],
-      "description": "Selected patched style deltas mapped to exact published rc.4 Web/client classes. The retired ConfigField delta applies only to the current SettingsValueField gap; no retired component or business owner is restored."
+      "description": "Selected patched style deltas mapped to exact published rc.4 Web/client classes. The seven Web modules that 0.2.2-rc.1 rebuilt under new hashes (Button, HoverCard, DisclosureRow, ConfigField, SegmentedTabs, MenuSurface, Modal) also list their published 0.2.2-rc.1 class names as alternatives; the deltas themselves are unchanged. The retired ConfigField delta applies only to the current SettingsValueField gap; no retired component or business owner is restored."
     },
     {
       "target": "src/plugin-documents/locales.ts",

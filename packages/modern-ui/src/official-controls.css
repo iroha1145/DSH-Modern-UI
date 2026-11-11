@@ -1,10 +1,14 @@
-/* Exact private classes from the official rc.2/rc.3/rc.4 releases.
- * tests/compat/official-controls.test.mjs checks all 49 classes against the actual
- * installed release's CSS and runtime mappings, plus switch/menu structure.
+/* Exact private classes from the official releases. A CSS-module class carries a hash of its
+ * module's source, so a release that edits a module renames every class in it. Where 0.2.2-rc.1
+ * renamed a module, each rule lists both names in one :is(), which keeps the specificity of a
+ * single class: the rc.2/rc.3/rc.4 name first, the 0.2.2-rc.1 name second.
+ * tests/compat/official-controls.test.mjs checks all 49 targets against the actual installed
+ * release's CSS and runtime mappings (the release must ship one complete variant of every
+ * renamed module), plus switch/menu structure.
  * Set COMPAT_BACKEND_PACKAGE to each independent consumer's DSH package.json.
  * This is a scoped delta over official CSS; theme tokens provide colors/radii.
  * The body attribute is owned and withdrawn by installOfficialControls. */
-body[data-modern-official-controls] ._button_1rv3m_2 {
+body[data-modern-official-controls] :is(._button_1rv3m_2, ._button_1ulci_2) {
   gap: 6px;
   border: 1px solid transparent;
   border-radius: var(--dsw-radius-lg);
@@ -22,49 +26,50 @@ body[data-modern-official-controls] ._button_1rv3m_2 {
    modules, e.g. width: 28px; padding: 0 for the Session log "more" and right-sidebar expand
    buttons. The Modern padding would squeeze their glyph, so it skips them; :where keeps the
    rule's specificity. Text buttons, including text + chevron ones, carry no aria-label. */
-body[data-modern-official-controls] ._button_1rv3m_2:not(:where([aria-label]:has(> svg:only-child))) { padding: 0 12px; }
-body[data-modern-official-controls] ._button_1rv3m_2:active:not(:disabled) {
+body[data-modern-official-controls] :is(._button_1rv3m_2, ._button_1ulci_2):not(:where([aria-label]:has(> svg:only-child))) { padding: 0 12px; }
+body[data-modern-official-controls] :is(._button_1rv3m_2, ._button_1ulci_2):active:not(:disabled) {
   --dsh-button-motion-duration: var(--dsh-motion-press-duration);
   --dsh-button-motion-curve: var(--dsh-motion-feedback-curve);
   transform: scale(.985);
 }
-body[data-modern-official-controls] ._button_1rv3m_2[aria-haspopup]:active:not(:disabled) { transform: none; }
-body[data-modern-official-controls] ._button_1rv3m_2:disabled { opacity: .45; }
-body[data-modern-official-controls] ._sm_1rv3m_28 {
+body[data-modern-official-controls] :is(._button_1rv3m_2, ._button_1ulci_2)[aria-haspopup]:active:not(:disabled) { transform: none; }
+body[data-modern-official-controls] :is(._button_1rv3m_2, ._button_1ulci_2):disabled { opacity: .45; }
+body[data-modern-official-controls] :is(._sm_1rv3m_28, ._sm_1ulci_28) {
   font-size: var(--fs-label, .75rem);
   line-height: 18px;
   border-radius: var(--dsw-radius-md);
 }
-body[data-modern-official-controls] ._sm_1rv3m_28:not(:where([aria-label]:has(> svg:only-child))) { padding: 0 10px; }
-body[data-modern-official-controls] ._primary_1rv3m_36 {
+body[data-modern-official-controls] :is(._sm_1rv3m_28, ._sm_1ulci_28):not(:where([aria-label]:has(> svg:only-child))) { padding: 0 10px; }
+body[data-modern-official-controls] :is(._primary_1rv3m_36, ._primary_1ulci_36) {
   background: var(--primary, var(--dsw-alias-button-primary-fill));
   color: var(--dsw-alias-label-primary-foreground);
 }
 /* The patched primitives draw the outline edge with an inset hairline (the transparent border only
-   keeps the box size); rc.4 draws it with the border this rule clears, so both halves are needed. */
-body[data-modern-official-controls] ._outline_1rv3m_54 {
+   keeps the box size); rc.4 draws it with the border this rule clears, so both halves are needed.
+   0.2.2-rc.1 ships the same hairline itself, so the rule changes nothing there. */
+body[data-modern-official-controls] :is(._outline_1rv3m_54, ._outline_1ulci_56) {
   border: .5px solid transparent;
   background: var(--surface, transparent);
   box-shadow: inset 0 0 0 var(--dsh-hairline-width, .5px) var(--dsh-button-outline-color, var(--dsw-alias-border-l3));
 }
-body[data-modern-official-controls] ._toolbar_1rv3m_63 {
+body[data-modern-official-controls] :is(._toolbar_1rv3m_63, ._toolbar_1ulci_68) {
   border: .5px solid var(--dsw-alias-border-l3);
   background: var(--surface, var(--dsw-alias-button-tool-bar-fill));
 }
-body[data-modern-official-controls] ._icon_1rv3m_71 { width: 14px; height: 14px; }
+body[data-modern-official-controls] :is(._icon_1rv3m_71, ._icon_1ulci_78) { width: 14px; height: 14px; }
 @media (hover: hover) {
-  body[data-modern-official-controls] ._primary_1rv3m_36:hover:not(:disabled) {
+  body[data-modern-official-controls] :is(._primary_1rv3m_36, ._primary_1ulci_36):hover:not(:disabled) {
     background: var(--primary, var(--dsw-alias-button-primary-fill));
     opacity: .92;
   }
-  body[data-modern-official-controls] ._ghost_1rv3m_45:hover:not(:disabled) { background: var(--hover, var(--dsw-alias-interactive-bg-hover)); }
-  body[data-modern-official-controls] ._outline_1rv3m_54:hover:not(:disabled),
-  body[data-modern-official-controls] ._toolbar_1rv3m_63:hover:not(:disabled) {
+  body[data-modern-official-controls] :is(._ghost_1rv3m_45, ._ghost_1ulci_46):hover:not(:disabled) { background: var(--hover, var(--dsw-alias-interactive-bg-hover)); }
+  body[data-modern-official-controls] :is(._outline_1rv3m_54, ._outline_1ulci_56):hover:not(:disabled),
+  body[data-modern-official-controls] :is(._toolbar_1rv3m_63, ._toolbar_1ulci_68):hover:not(:disabled) {
     background: var(--inset, var(--dsw-alias-interactive-bg-hover));
     border-color: var(--line-strong);
   }
 }
-body[data-modern-official-controls] ._ghost_1rv3m_45:active:not(:disabled) { background: var(--hover-2, var(--dsw-alias-interactive-bg-active)); }
+body[data-modern-official-controls] :is(._ghost_1rv3m_45, ._ghost_1ulci_46):active:not(:disabled) { background: var(--hover-2, var(--dsw-alias-interactive-bg-active)); }
 
 body[data-modern-official-controls] ._wrap_14sgc_1 {
   box-sizing: border-box;
@@ -75,34 +80,34 @@ body[data-modern-official-controls] ._wrap_14sgc_1 {
 body[data-modern-official-controls] ._input_14sgc_25 { font-size: var(--fs-body); }
 @media (pointer: coarse) { body[data-modern-official-controls] ._input_14sgc_25 { font-size: 16px; } }
 
-body[data-modern-official-controls] ._card_38jqx_9 {
+body[data-modern-official-controls] :is(._card_38jqx_9, ._card_bgejw_9) {
   --dsw-hovercard-bg: var(--dsw-alias-bg-layer-2);
   color: var(--dsw-alias-label-primary);
   box-shadow: var(--dsw-elevation-panel);
 }
-body[data-modern-official-controls] ._copied_38jqx_36 { color: var(--dsw-alias-label-primary); }
-body[data-modern-official-controls] ._row_k7ery_26 {
+body[data-modern-official-controls] :is(._copied_38jqx_36, ._copied_bgejw_36) { color: var(--dsw-alias-label-primary); }
+body[data-modern-official-controls] :is(._row_k7ery_26, ._row_l4nv8_26) {
   padding: 0 6px;
   border-radius: var(--dsw-radius-md);
   color: var(--ink-2, var(--dsw-alias-label-secondary));
   transition: color 140ms ease, background-color 140ms ease;
 }
 @media (hover: hover) {
-  body[data-modern-official-controls] ._row_k7ery_26:hover { color: var(--ink, var(--dsw-alias-label-primary)); }
-  body[data-modern-official-controls] ._row_k7ery_26[data-expandable]:hover { background: var(--inset, var(--dsw-alias-interactive-bg-hover)); }
+  body[data-modern-official-controls] :is(._row_k7ery_26, ._row_l4nv8_26):hover { color: var(--ink, var(--dsw-alias-label-primary)); }
+  body[data-modern-official-controls] :is(._row_k7ery_26, ._row_l4nv8_26)[data-expandable]:hover { background: var(--inset, var(--dsw-alias-interactive-bg-hover)); }
 }
-body[data-modern-official-controls] ._field_bjqpo_3 { gap: 8px; }
-body[data-modern-official-controls] ._indicator_1p79o_9 { transition: transform var(--dsh-feel-control-duration) var(--dsh-feel-control-curve); }
-body[data-modern-official-controls] ._tab_1p79o_1 { transition: color var(--dsh-feel-control-duration) var(--dsh-feel-control-curve); }
-body[data-modern-official-controls] ._tab_1p79o_1[aria-selected='true'] { font-weight: 500; }
-body[data-modern-official-controls] ._material_ri079_21 { -webkit-backdrop-filter: var(--dsw-menu-backdrop-filter); }
-body[data-modern-official-controls] ._mask_o6lrb_18::after,
-body[data-modern-official-controls] ._dialog_o6lrb_33 {
+body[data-modern-official-controls] :is(._field_bjqpo_3, ._field_181ew_3) { gap: 8px; }
+body[data-modern-official-controls] :is(._indicator_1p79o_9, ._indicator_1lga9_11) { transition: transform var(--dsh-feel-control-duration) var(--dsh-feel-control-curve); }
+body[data-modern-official-controls] :is(._tab_1p79o_1, ._tab_1lga9_1) { transition: color var(--dsh-feel-control-duration) var(--dsh-feel-control-curve); }
+body[data-modern-official-controls] :is(._tab_1p79o_1, ._tab_1lga9_1)[aria-selected='true'] { font-weight: 500; }
+body[data-modern-official-controls] :is(._material_ri079_21, ._material_1w4el_21) { -webkit-backdrop-filter: var(--dsw-menu-backdrop-filter); }
+body[data-modern-official-controls] :is(._mask_o6lrb_18, ._mask_14mp3_18)::after,
+body[data-modern-official-controls] :is(._dialog_o6lrb_33, ._dialog_14mp3_33) {
   animation-duration: var(--dsh-motion-feedback-duration);
   animation-timing-function: var(--dsh-motion-feedback-curve);
 }
 @media (forced-colors: active) {
-  body[data-modern-official-controls] ._surface_ri079_1 { outline: 1px solid CanvasText; }
+  body[data-modern-official-controls] :is(._surface_ri079_1, ._surface_1w4el_1) { outline: 1px solid CanvasText; }
 }
 
 /* Only the official switch is adapted. Modern's own Switch already owns Feel. */
@@ -176,11 +181,11 @@ body[data-modern-official-controls] ._UE8Aa_root {
   --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
 }
 @media (prefers-reduced-motion: reduce) {
-  body[data-modern-official-controls] ._button_1rv3m_2,
-  body[data-modern-official-controls] ._row_k7ery_26,
-  body[data-modern-official-controls] ._indicator_1p79o_9,
-  body[data-modern-official-controls] ._tab_1p79o_1 { transition: none; }
-  body[data-modern-official-controls] ._button_1rv3m_2:active:not(:disabled) { transform: none; }
-  body[data-modern-official-controls] ._mask_o6lrb_18::after,
-  body[data-modern-official-controls] ._dialog_o6lrb_33 { animation: none; }
+  body[data-modern-official-controls] :is(._button_1rv3m_2, ._button_1ulci_2),
+  body[data-modern-official-controls] :is(._row_k7ery_26, ._row_l4nv8_26),
+  body[data-modern-official-controls] :is(._indicator_1p79o_9, ._indicator_1lga9_11),
+  body[data-modern-official-controls] :is(._tab_1p79o_1, ._tab_1lga9_1) { transition: none; }
+  body[data-modern-official-controls] :is(._button_1rv3m_2, ._button_1ulci_2):active:not(:disabled) { transform: none; }
+  body[data-modern-official-controls] :is(._mask_o6lrb_18, ._mask_14mp3_18)::after,
+  body[data-modern-official-controls] :is(._dialog_o6lrb_33, ._dialog_14mp3_33) { animation: none; }
 }

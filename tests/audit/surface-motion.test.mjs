@@ -25,7 +25,7 @@ import './packages/modern-ui/src/official-controls.css';
 import './packages/modern-ui/src/official-surfaces.css';
 const app=createRoot(document.getElementById('app'));let revision=0;let mode='buttons';
 function Fixture({revision}) {return <><span id="revision">{revision}</span>
-{mode==='buttons' && <div className="buttons"><Button id="action">Action</Button><Button id="anchor" aria-haspopup="menu">Anchored</Button><button id="official" className="_button_1rv3m_2">Official</button><button id="official-anchor" className="_button_1rv3m_2" aria-haspopup="menu">Official anchored</button></div>}
+{mode==='buttons' && <div className="buttons"><Button id="action">Action</Button><Button id="anchor" aria-haspopup="menu">Anchored</Button><button id="official" className="_button_1rv3m_2">Official</button><button id="official-anchor" className="_button_1rv3m_2" aria-haspopup="menu">Official anchored</button><button id="official-next" className="_button_1ulci_2">Official 0.2.2</button><button id="official-next-anchor" className="_button_1ulci_2" aria-haspopup="menu">Official 0.2.2 anchored</button></div>}
 {mode==='tooltip' && <Tooltip label="A stable tooltip" side="bottom" portal><Button id="tooltip-trigger">Tooltip trigger</Button></Tooltip>}
 {mode==='modal' && <div className={modal.root}><div id="mask" className={modal.mask}/><div id="modal" className={modal.dialog} role="dialog" aria-label="Motion fixture"><div className={modal.header}>Modal fixture</div><div className={modal.body}>Stable content</div></div></div>}
 {mode==='prompt' && <div id="prompt-host"><div id="prompt" data-trigger-menu>Official prompt menu fixture</div></div>}
@@ -133,7 +133,7 @@ function stableGeometry(samples, position = true) {
 test('vendored and official action feedback stays centered and releases monotonically without overshoot', async () => {
   const { context, page } = await open('buttons')
   try {
-    for (const id of ['action', 'official']) {
+    for (const id of ['action', 'official', 'official-next']) {
       const button = page.locator('#' + id),
         box = await button.boundingBox()
       await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
@@ -171,7 +171,7 @@ test('vendored and official action feedback stays centered and releases monotoni
 test('anchored vendored and official triggers never move while pressed or released', async () => {
   const { context, page } = await open('buttons')
   try {
-    for (const id of ['anchor', 'official-anchor']) {
+    for (const id of ['anchor', 'official-anchor', 'official-next-anchor']) {
       const box = await page.locator('#' + id).boundingBox()
       await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
       await page.mouse.down()
@@ -269,7 +269,7 @@ test('official prompt card enters with constant dimensions, a one-way movement n
 test('reduced motion disables button shrink and tooltip, modal and official prompt entrances', async () => {
   const { context, page } = await open('buttons', 'reduce')
   try {
-    for (const id of ['action', 'official', 'anchor', 'official-anchor']) {
+    for (const id of ['action', 'official', 'official-next', 'anchor', 'official-anchor', 'official-next-anchor']) {
       const box = await page.locator('#' + id).boundingBox()
       await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
       await page.mouse.down()

@@ -4,7 +4,7 @@
 
 适配目标为官方 `0.2.1-rc.4` 和 `dsh-better-sidebar 0.28.0`。不改动官方/社区包，不替换 React、模块加载器或事件处理。官方控件的状态、键盘交互和数据保存仍由原组件负责。
 
-`installOfficialControls` 挂载一张插件拥有的样式表，并设置可撤回的 `body[data-modern-official-controls]`。选择器使用真实 rc.4 Web shell CSS Modules 名称，或官方独立 client bundle 的精确已编译名称，没有 `_button` 等模糊匹配。测试将每个名字与已发布资产交叉核对；升级宿主后必须重新核验这些显式兼容映射。
+`installOfficialControls` 挂载一张插件拥有的样式表，并设置可撤回的 `body[data-modern-official-controls]`。选择器使用真实 rc.4 Web shell CSS Modules 名称，或官方独立 client bundle 的精确已编译名称，没有 `_button` 等模糊匹配。测试将每个名字与已发布资产交叉核对；升级宿主后必须重新核验这些显式兼容映射。`0.2.2-rc.1` 重新构建了其中七个 Web 模块（Button、HoverCard、DisclosureRow、ConfigField、SegmentedTabs、MenuSurface、Modal），类名换了哈希；样式表在同一条规则里用 `:is()` 并列两个版本的类名，检查要求当前宿主完整带有每个模块其中一个版本的类名。
 
 原有 Modern 主题已经提供调色板、圆角与字体 token，因此新表只包含旧补丁尚未覆盖的差异：
 
