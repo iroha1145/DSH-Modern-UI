@@ -2,6 +2,8 @@
 
 对应附件《DSH Modern UI 完整综合审计报告》，基线为 `74b08dcc02c44699582953b3a78136ca84f7d139`（0.1.15）。本次覆盖 F01–F12、C01、H01–H08。N01–N05 按报告的非缺陷边界保留，不将本次检查扩写为所有浏览器、平台或辅助技术已验证。
 
+另纳入《DSH-Modern-UI · PR #67 审查报告》的 R1。R1 已作为独立提交 `12e1a8bd22efd72f2171a4702e9f51f5e988f3a7` 更新到 [PR #67](https://github.com/iroha1145/DSH-Modern-UI/pull/67)；综合审计分支以此为基础整合，保留该 PR 的玻璃卡片、材质、提示词和常规动效设计。
+
 ## 用户界面与键盘操作
 
 - **F01/F02**：Badge 和 Button 使用可收缩的独立标签节点，完整长文本可换行；保留图标、原始动作值和原生按钮操作。实际 Renderer 的 Card、Row、Grid、Form 覆盖长英文单词、长句、中文、德文、不同按钮尺寸/变体、禁用及 streaming 状态。
@@ -23,6 +25,12 @@
 **C01**：`node tests/compat/chat-contract.mjs` 在仓库外为 0.2.1-rc.2/rc.3/rc.4 和 0.2.2-rc.1 分别安装官方宿主，解析其实际聊天依赖，记录版本、路径、发布 JS 的 SHA-256、字段及 lockfile。旧三版保留 `compactAnswer`，rc.1 检查 `hasNonReplyProcess`；未知版本显式失败。
 
 公共投影语义与 Modern 有意保留的后续回复/工具增强分开断言。检查包含对象稳定性、最早回复、后续回复可见性和原始 Markdown 复制。PR CI 新增四版本合约矩阵。Windows x64 / Node 24.18.0 的四个独立消费者各通过 7 项检查；这不是完整宿主生命周期或所有平台验证，`verifiedHosts` 未扩大。
+
+## PR67 高对比配色
+
+**R1**：仅在 `forced-colors: active` 内，以相同优先级的后写规则恢复暗色 SegmentedControl 的 Highlight/HighlightText 配对，并让 cards/pills 选中项说明继承选中态文字颜色。普通浅/深主题保持 PR67 原设计。
+
+`openui-paper-glass.test.mjs` 新增六项真实 Renderer 验证，覆盖浅/深主题、class/ID scope、初始/切换/切回选择、hover、键盘可见焦点、主标题/说明与实际系统色参考；另验证普通主题颜色与阴影。PR67 独立分支的该套件 16/16 通过，独立探针确认旧版本会失败、修复后配对正确。使用浏览器 forced-colors 模拟，没有切换用户 Windows 原生高对比主题。
 
 ## 维护与异常诊断
 
