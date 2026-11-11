@@ -49,10 +49,10 @@
  */
 
 :root {
-  --bui-shadow-xs: 0 0 4px 0 rgba(0, 0, 0, 0.04);
-  --bui-shadow-sm: 0 18px 47px 0 rgba(0, 0, 0, 0.03), 0 7.5px 19px 0 rgba(0, 0, 0, 0.02), 0 4px 10.5px 0 rgba(0, 0, 0, 0.02), 0 2.3px 5.8px 0 rgba(0, 0, 0, 0.01), 0 1.2px 3.1px 0 rgba(0, 0, 0, 0.01), 0 0.5px 1.3px 0 rgba(0, 0, 0, 0.01);
-  --bui-shadow-md: 0 17.54px 23.39px 0 rgba(0, 0, 0, 0.04), 0 9.4px 12.5px 0 rgba(0, 0, 0, 0.03), 0 5.25px 7px 0 rgba(0, 0, 0, 0.02), 0 2.79px 3.72px -2px rgba(0, 0, 0, 0.01), 0 1.16px 1.5px 0 rgba(0, 0, 0, 0.01);
-  --bui-shadow-lg: 0 25px 50px 0 rgba(0, 0, 0, 0.05), 0 12px 24px 0 rgba(0, 0, 0, 0.04), 0 6px 12px 0 rgba(0, 0, 0, 0.03), 0 3px 6px 0 rgba(0, 0, 0, 0.02), 0 1.5px 3px 0 rgba(0, 0, 0, 0.02);
+  --bui-shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 0 0 0.5px rgba(0, 0, 0, 0.02);
+  --bui-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 4px 12px -2px rgba(0, 0, 0, 0.035), 0 14px 28px -12px rgba(0, 0, 0, 0.045);
+  --bui-shadow-md: 0 2px 4px -1px rgba(0, 0, 0, 0.035), 0 8px 20px -4px rgba(0, 0, 0, 0.05), 0 20px 38px -14px rgba(0, 0, 0, 0.065);
+  --bui-shadow-lg: 0 4px 10px -2px rgba(0, 0, 0, 0.04), 0 14px 32px -6px rgba(0, 0, 0, 0.065), 0 28px 56px -14px rgba(0, 0, 0, 0.09);
   --bui-page: oklch(0.985 0.001 286.376);
   --bui-canvas: oklch(0.961 0.002 247.84);
   --bui-surface: oklch(1 0 0);
@@ -83,17 +83,17 @@
   --bui-tooltip-muted: oklch(0.731 0.008 260.731);
   --bui-tooltip-border: oklch(0.356 0.007 264.474);
   --bui-shadow-hairline: 0 0 0 1px var(--bui-line);
-  --bui-shadow-btn: 0 0 0 1px var(--bui-line-strong), var(--bui-shadow-xs);
-  --bui-shadow-card: 0 0 0 1px var(--bui-line), var(--bui-shadow-sm);
-  --bui-shadow-raised: 0 0 0 1px var(--bui-line), var(--bui-shadow-md);
-  --bui-shadow-overlay: 0 0 0 1px var(--bui-line), var(--bui-shadow-lg);
-  --bui-shadow-inset-field: inset 0 1px 2px oklch(0 0 0 / 0.12);
-  --bui-radius-chip: 6px;
-  --bui-radius-control: 8px;
-  --bui-radius-card: 10px;
-  --bui-radius-window: 14px;
-  --bui-radius-composer-hero: 22px;
-  --bui-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --bui-shadow-btn: inset 0 1px 0 oklch(1 0 0 / 0.85), 0 0 0 1px var(--bui-line-strong), var(--bui-shadow-xs);
+  --bui-shadow-card: inset 0 1px 0 oklch(1 0 0 / 0.9), 0 0 0 1px color-mix(in srgb, var(--bui-line) 82%, transparent), var(--bui-shadow-sm);
+  --bui-shadow-raised: inset 0 1px 0 oklch(1 0 0 / 0.92), 0 0 0 1px color-mix(in srgb, var(--bui-line) 88%, transparent), var(--bui-shadow-md);
+  --bui-shadow-overlay: inset 0 1px 0 oklch(1 0 0 / 0.94), 0 0 0 1px color-mix(in srgb, var(--bui-line) 92%, transparent), var(--bui-shadow-lg);
+  --bui-shadow-inset-field: inset 0 1px 2px oklch(0 0 0 / 0.08);
+  --bui-radius-chip: 8px;
+  --bui-radius-control: 10px;
+  --bui-radius-card: 16px;
+  --bui-radius-window: 20px;
+  --bui-radius-composer-hero: 24px;
+  --bui-ease-out: cubic-bezier(0.215, 0.61, 0.355, 1);
 }
 
 body[data-ds-dark-theme] {
@@ -126,9 +126,9 @@ body[data-ds-dark-theme] {
   --bui-tooltip-muted: oklch(0.731 0.008 260.731);
   --bui-tooltip-border: oklch(0.308 0.006 258.354);
   --bui-shadow-hairline: 0 0 0 1px var(--bui-line);
-  --bui-shadow-btn: 0 0 0 1px oklch(1 0 0 / 0.1), 0 1px 2px oklch(0 0 0 / 0.3);
-  --bui-shadow-card: 0 0 0 1px oklch(1 0 0 / 0.11), 0 1px 2px oklch(0 0 0 / 0.2), 0 2px 6px oklch(0 0 0 / 0.2);
-  --bui-shadow-raised: 0 0 0 1px oklch(1 0 0 / 0.13), 0 2px 10px oklch(0 0 0 / 0.22);
-  --bui-shadow-overlay: 0 0 0 1px oklch(1 0 0 / 0.15), 0 8px 28px oklch(0 0 0 / 0.34);
-  --bui-shadow-inset-field: inset 0 1px 2px oklch(0 0 0 / 0.4);
+  --bui-shadow-btn: inset 0 1px 0 oklch(1 0 0 / 0.06), 0 0 0 1px oklch(1 0 0 / 0.09), 0 1px 2px oklch(0 0 0 / 0.28);
+  --bui-shadow-card: inset 0 1px 0 oklch(1 0 0 / 0.045), 0 0 0 1px oklch(1 0 0 / 0.075), 0 1px 3px oklch(0 0 0 / 0.24), 0 8px 20px -6px oklch(0 0 0 / 0.36), 0 18px 36px -16px oklch(0 0 0 / 0.42);
+  --bui-shadow-raised: inset 0 1px 0 oklch(1 0 0 / 0.055), 0 0 0 1px oklch(1 0 0 / 0.095), 0 3px 8px oklch(0 0 0 / 0.28), 0 14px 32px -8px oklch(0 0 0 / 0.48);
+  --bui-shadow-overlay: inset 0 1px 0 oklch(1 0 0 / 0.065), 0 0 0 1px oklch(1 0 0 / 0.11), 0 6px 16px oklch(0 0 0 / 0.34), 0 24px 56px -12px oklch(0 0 0 / 0.62);
+  --bui-shadow-inset-field: inset 0 1px 2px oklch(0 0 0 / 0.36);
 }

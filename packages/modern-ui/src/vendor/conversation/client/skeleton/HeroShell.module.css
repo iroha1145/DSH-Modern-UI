@@ -59,9 +59,9 @@
 .greetingHello {
   margin: 0;
   font-size: var(--fs-page, clamp(1.5rem, 2.2vw, 1.75rem));
-  line-height: 1.15;
+  line-height: 1.14;
   font-weight: 500;
-  letter-spacing: -0.03em;
+  letter-spacing: var(--tracking-display, -0.032em);
   color: var(--ink, var(--dsw-alias-label-primary));
   animation: heroBlurUp 480ms var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1)) 40ms both;
 }
@@ -77,15 +77,18 @@
 
 /* Cloud-Monitor .preview-badge / .count-badge */
 .previewBadge {
-  padding: 1px 7px;
+  padding: 2px 8px;
   border: 0.5px solid var(--line);
-  border-radius: var(--dsw-radius-sm);
+  border-radius: 999px;
+  corner-shape: round;
   background: var(--canvas);
   color: var(--ink-2);
   font-family: var(--font-mono);
   font-size: var(--fs-meta, 0.6875rem);
   line-height: 1.4;
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
   white-space: nowrap;
 }
 
@@ -111,18 +114,21 @@
   max-width: min(100%, 360px);
   min-height: 34px;
   padding: 0 12px;
-  border: 0.5px solid var(--line);
+  border: 0.5px solid var(--card-border, var(--line));
   border-radius: var(--dsw-radius-lg);
   background: var(--surface);
+  box-shadow: var(--shadow-panel);
   color: var(--ink);
   font-size: var(--fs-body, 0.8125rem);
   line-height: 20px;
   font-weight: 500;
+  letter-spacing: -0.01em;
   cursor: pointer;
   transition:
-    background-color 140ms ease,
-    border-color 140ms ease,
-    transform 120ms var(--ease-spring);
+    background-color var(--dsh-paper-micro-duration, 180ms) var(--dsh-paper-micro-curve, ease),
+    border-color var(--dsh-paper-micro-duration, 180ms) var(--dsh-paper-micro-curve, ease),
+    box-shadow var(--dsh-paper-micro-duration, 180ms) var(--dsh-paper-micro-curve, ease),
+    transform var(--dsh-paper-micro-duration, 180ms) var(--dsh-paper-micro-curve, ease);
 }
 
 .workspace[aria-expanded='true'] {
@@ -132,8 +138,10 @@
 
 @media (hover: hover) {
   .workspace:not(:disabled):hover {
-    background: var(--inset);
+    background: var(--surface);
     border-color: var(--line-strong);
+    box-shadow: var(--shadow-panel-hover, var(--shadow-panel));
+    transform: translateY(-1px);
   }
 }
 
@@ -187,5 +195,12 @@
   .greetingHello,
   .greetingSub {
     animation: none;
+  }
+  .workspace {
+    transition: none;
+  }
+  .workspace:not(:disabled):hover,
+  .workspace:not(:disabled):active {
+    transform: none;
   }
 }

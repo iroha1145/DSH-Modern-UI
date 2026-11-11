@@ -41,29 +41,31 @@
     box-shadow: var(--iui-card-shadow);
     font-size: 14px;
     line-height: 1.55;
+    transition: box-shadow 180ms cubic-bezier(0.215, 0.61, 0.355, 1);
   }
-  .iui-card-soft { border-color: transparent; background: var(--iui-surface); box-shadow: none; padding: 20px; }
-  /* A card inside a card is a quiet filled panel, not a second lifted tile. */
-  .iui-card .iui-card { border-radius: var(--iui-radius-lg); padding: 16px; background: var(--iui-surface); box-shadow: none; }
-  /* Header row: the icon sits on a small rounded base, its caption is the card's label. */
-  .iui-card > .iui-row:first-child > .iui-icon:first-child { width: 26px; height: 26px; border-radius: var(--iui-radius-sm); corner-shape: superellipse(1.5); background: var(--iui-chip); color: var(--iui-ink); }
-  .iui-card > .iui-row:first-child > .iui-icon:first-child > svg { width: 14px; height: 14px; }
-  .iui-card > .iui-row:first-child:has(> .iui-icon:first-child) > .iui-caption { font-size: 13px; line-height: 18px; }
+  .iui-card-soft { border-color: transparent; border-radius: var(--iui-radius-lg); background: var(--iui-surface); box-shadow: var(--iui-well-shadow); padding: 20px; }
+  /* A card inside a card is a quiet recessed well, not a second lifted tile. */
+  .iui-card .iui-card { border-radius: var(--iui-radius-md); padding: 16px; background: var(--iui-surface); box-shadow: var(--iui-well-shadow); }
+  /* Header row: the icon sits on a sculpted rounded base with a subtle top rim, its caption is the card's label. */
+  .iui-card > .iui-row:first-child > .iui-icon:first-child { width: 28px; height: 28px; border-radius: 9px; corner-shape: superellipse(1.5); background: var(--iui-chip); color: var(--iui-ink); box-shadow: inset 0 1px 0 rgb(255 255 255 / 55%), 0 0 0 1px color-mix(in srgb, var(--iui-ink) 6%, transparent); }
+  &[data-theme="dark"] .iui-card > .iui-row:first-child > .iui-icon:first-child { box-shadow: inset 0 1px 0 rgb(255 255 255 / 7%), 0 0 0 1px rgb(255 255 255 / 6%); }
+  .iui-card > .iui-row:first-child > .iui-icon:first-child > svg { width: 15px; height: 15px; }
+  .iui-card > .iui-row:first-child:has(> .iui-icon:first-child) > .iui-caption { font-size: 13px; line-height: 18px; letter-spacing: -0.005em; }
   /* A small or medium title that opens a card reads as the card title: 14/20 Medium, with a 13/18 secondary subtitle. */
-  .iui-card > :is(.iui-title-sm, .iui-title-md):first-child, .iui-card > .iui-row:first-child :is(.iui-title-sm, .iui-title-md) { font-size: 14px; line-height: 20px; font-weight: 500; }
+  .iui-card > :is(.iui-title-sm, .iui-title-md):first-child, .iui-card > .iui-row:first-child :is(.iui-title-sm, .iui-title-md) { font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: -0.012em; }
   .iui-card > :is(.iui-title-sm, .iui-title-md):first-child + :is(.iui-caption, .iui-text), .iui-card > .iui-row:first-child :is(.iui-title-sm, .iui-title-md) + :is(.iui-caption, .iui-text) { margin-top: 2px; color: var(--iui-muted); font-size: 13px; line-height: 18px; }
   .iui-divider { width: 100%; height: 0; margin: 4px 0; border: 0; border-top: 1px solid var(--iui-border); }
   .iui-form { display: flex; flex-direction: column; gap: var(--iui-field-gap); min-width: 0; }
   .iui-form > .iui-row:last-child:has(> .iui-button), .iui-form > .iui-button:last-child { margin-top: calc(var(--iui-action-gap) - var(--iui-field-gap)); }
 
-  /* Text */
-  .iui-title { color: var(--iui-ink); font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-  .iui-title-sm { font-size: 15px; line-height: 1.5; }
-  .iui-title-md { font-size: 17px; line-height: 1.4; letter-spacing: -0.2px; }
-  .iui-title-lg { font-size: 21px; line-height: 1.3; letter-spacing: -0.55px; }
-  .iui-title-xl { font-size: 25px; line-height: 1.2; font-weight: 600; letter-spacing: -0.8px; }
-  .iui-title-2xl { font-size: 32px; line-height: 1.15; font-weight: 600; letter-spacing: -1px; }
-  .iui-title-3xl { font-size: 40px; line-height: 1.1; font-weight: 600; letter-spacing: -1.4px; }
+  /* Text: Swiss / Paper Widgets typographic precision — medium card headings, crisp light display figures, tabular lining numerals. */
+  .iui-title { color: var(--iui-ink); font-weight: 500; font-variant-numeric: tabular-nums lining-nums; letter-spacing: -0.015em; overflow-wrap: anywhere; }
+  .iui-title-sm { font-size: 15px; line-height: 1.5; letter-spacing: -0.012em; }
+  .iui-title-md { font-size: 17px; line-height: 1.4; letter-spacing: -0.018em; }
+  .iui-title-lg { font-size: 21px; line-height: 1.3; letter-spacing: -0.024em; }
+  .iui-title-xl { font-size: 25px; line-height: 1.2; font-weight: 500; letter-spacing: -0.028em; }
+  .iui-title-2xl { font-size: 32px; line-height: 1.12; font-weight: 400; letter-spacing: -0.032em; }
+  .iui-title-3xl { font-size: 40px; line-height: 1.08; font-weight: 400; letter-spacing: -0.036em; }
   .iui-text { margin: 0; overflow-wrap: anywhere; line-height: 1.6; white-space: pre-line; }
   .iui-inline { display: inline-flex; vertical-align: -0.15em; margin: 0 1px; }
   .iui-inline > .iui-badge { vertical-align: 0.1em; }
@@ -83,7 +85,7 @@
   .iui-link { color: inherit; text-decoration: underline; text-decoration-color: var(--iui-border-strong); text-underline-offset: 3px; }
   .iui-link:hover { text-decoration-color: currentColor; }
   .iui-link-arrow { display: inline; width: 0.85em; height: 0.85em; margin-left: 2px; vertical-align: -0.05em; }
-  .iui-badge { display: inline-flex; align-items: center; align-self: flex-start; gap: 5px; width: fit-content; max-width: 100%; min-height: 26px; padding: 3px 10px; border-radius: 999px; corner-shape: round; background: var(--iui-badge-neutral-soft); color: var(--iui-ink); font-size: 13px; line-height: 18px; font-weight: 500; white-space: nowrap; }
+  .iui-badge { display: inline-flex; align-items: center; align-self: flex-start; gap: 5px; width: fit-content; max-width: 100%; min-height: 26px; padding: 3px 10px; border-radius: 999px; corner-shape: round; background: var(--iui-badge-neutral-soft); color: var(--iui-ink); box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 11%, transparent); font-size: 12.5px; line-height: 18px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -0.005em; white-space: nowrap; }
   .iui-badge > svg { flex: none; margin-left: -2px; }
   .iui-row > .iui-badge { align-self: center; flex: none; }
   /* Badges stay calm: info is the neutral grey pill, and the other tones are soft tints with same-hue text. */
@@ -173,24 +175,26 @@
   :is(.iui-button-outline, .iui-button-soft, .iui-button-ghost).iui-button-success { color: var(--iui-success); }
   .iui-button:disabled { opacity: .4; cursor: not-allowed; }
   .iui-block { width: 100%; align-self: stretch; }
-  .iui-icon-button { display: grid; place-items: center; flex: none; width: 34px; height: 34px; border: 1px solid var(--iui-border); border-radius: 50%; corner-shape: round; background: var(--iui-canvas); color: var(--iui-ink); cursor: pointer; transition: background .15s; }
-  .iui-icon-button-ghost { border-color: transparent; background: transparent; color: var(--iui-muted); }
+  .iui-icon-button { display: grid; place-items: center; flex: none; width: 34px; height: 34px; border: 1px solid var(--iui-border); border-radius: 50%; corner-shape: round; background: var(--iui-canvas); color: var(--iui-ink); box-shadow: var(--iui-shadow-sm); cursor: pointer; transition: background 180ms cubic-bezier(0.215, 0.61, 0.355, 1), box-shadow 180ms cubic-bezier(0.215, 0.61, 0.355, 1), transform 180ms cubic-bezier(0.215, 0.61, 0.355, 1); }
+  .iui-icon-button-ghost { border-color: transparent; background: transparent; color: var(--iui-muted); box-shadow: none; }
   .iui-icon-button-solid { border-color: var(--iui-ink); background: var(--iui-ink); color: var(--iui-on-ink); }
-  .iui-icon-button:not(:disabled):hover { background: var(--iui-hover); color: var(--iui-ink); }
-  .iui-icon-button:not(:disabled):active { background: var(--iui-pressed); }
+  .iui-icon-button:not(:disabled):hover { background: var(--iui-hover); color: var(--iui-ink); transform: translateY(-1px); }
+  .iui-icon-button:not(:disabled):active { background: var(--iui-pressed); transform: scale(0.96); }
   .iui-icon-button-solid:not(:disabled):hover { background: var(--iui-ink-hover); color: var(--iui-on-ink); }
   .iui-icon-button:disabled { opacity: .4; cursor: not-allowed; }
 
   /* The hover and selection rings are outlines drawn inside the tile (painted over
      its content), so a scrolling row, a clipped Box or a Table cell never cuts them off. */
-  /* Pressable: an ink wash on hover (5%) and press (8%) with a small scale; a selected tile
-     keeps a light wash, a hairline ring and a check badge instead of a heavy outline. */
-  .iui-pressable { position: relative; display: flex; flex-direction: column; min-width: 0; border-radius: var(--iui-radius-lg); cursor: pointer; outline: none; transition: transform 120ms ease-out, box-shadow 120ms ease-out; }
-  .iui-pressable::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--iui-ink); opacity: 0; pointer-events: none; transition: opacity 120ms ease-out; }
-  .iui-pressable:not([aria-disabled="true"]):hover { transform: scale(1.01); }
-  .iui-pressable:not([aria-disabled="true"]):hover::after { opacity: 0.05; }
-  .iui-pressable:not([aria-disabled="true"]):active { transform: scale(0.98); }
-  .iui-pressable:not([aria-disabled="true"]):active::after { opacity: 0.08; }
+  /* Pressable: Paper Widgets tactile lift (-2px + elevated ambient dispersion) on hover and crisp 0.985 press;
+     a selected tile keeps a light wash, a hairline ring and a check badge instead of a heavy outline. */
+  .iui-pressable { position: relative; display: flex; flex-direction: column; min-width: 0; border-radius: var(--iui-radius-lg); cursor: pointer; outline: none; transition: transform 180ms cubic-bezier(0.215, 0.61, 0.355, 1), box-shadow 180ms cubic-bezier(0.215, 0.61, 0.355, 1); }
+  .iui-pressable::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--iui-ink); opacity: 0; pointer-events: none; transition: opacity 180ms cubic-bezier(0.215, 0.61, 0.355, 1); }
+  .iui-pressable:not([aria-disabled="true"]):hover { transform: translateY(-2px); }
+  :is(.iui-card.iui-pressable, .iui-pressable:has(> .iui-card)):not([aria-disabled="true"]):hover { box-shadow: var(--iui-card-shadow-hover); }
+  .iui-pressable:has(> .iui-card):not([aria-disabled="true"]):hover > .iui-card { box-shadow: var(--iui-card-shadow-hover); }
+  .iui-pressable:not([aria-disabled="true"]):hover::after { opacity: 0.035; }
+  .iui-pressable:not([aria-disabled="true"]):active { transform: scale(0.985); }
+  .iui-pressable:not([aria-disabled="true"]):active::after { opacity: 0.07; }
   .iui-pressable.is-selected { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--iui-ink) 20%, transparent); }
   .iui-pressable.is-selected::after { opacity: 0.06; }
   /* A row (a checklist line) shows its own check icon, so selected adds no fill,
@@ -224,9 +228,9 @@
 
   /* Range: a 24px pill track with an 18px thumb inside a 40px hit area. */
   .iui-slider { display: flex; flex-direction: column; min-width: 0; }
-  .iui-timer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; min-width: 0; padding: 12px 16px; border: 1px solid var(--iui-border); border-radius: var(--iui-radius-lg); }
+  .iui-timer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; min-width: 0; padding: 14px 18px; border: 0; border-radius: var(--iui-radius-xl); background: var(--iui-card-bg); box-shadow: var(--iui-card-shadow); }
   .iui-timer-read { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-  .iui-timer-time { font-size: 32px; line-height: 1.1; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .iui-timer-time { font-size: 34px; line-height: 1.08; font-weight: 400; font-variant-numeric: tabular-nums lining-nums; letter-spacing: -0.03em; }
   .iui-timer.is-running .iui-timer-time { color: var(--iui-ink); }
   .iui-timer.is-done .iui-timer-time { color: var(--iui-success); }
   .iui-timer-actions { display: flex; gap: 8px; }
@@ -235,9 +239,9 @@
   .iui-slider-head > output { color: var(--iui-ink); font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .iui-range { appearance: none; -webkit-appearance: none; display: block; width: 100%; min-width: 0; height: 40px; margin: 0; padding: 0; border: 0; background: transparent; cursor: pointer; }
   .iui-range::-webkit-slider-runnable-track { height: 24px; border: 3px solid transparent; border-radius: 999px; corner-shape: round; background: var(--iui-range-track); }
-  .iui-range::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 18px; height: 18px; margin: 0; border: 0; border-radius: 50%; corner-shape: round; background: var(--iui-range-thumb); }
+  .iui-range::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 18px; height: 18px; margin: 0; border: 0; border-radius: 50%; corner-shape: round; background: var(--iui-range-thumb); box-shadow: var(--iui-shadow-sm); }
   .iui-range::-moz-range-track { height: 24px; border-radius: 999px; corner-shape: round; background: var(--iui-range-track); }
-  .iui-range::-moz-range-thumb { width: 18px; height: 18px; border: 0; border-radius: 50%; corner-shape: round; background: var(--iui-range-thumb); }
+  .iui-range::-moz-range-thumb { width: 18px; height: 18px; border: 0; border-radius: 50%; corner-shape: round; background: var(--iui-range-thumb); box-shadow: var(--iui-shadow-sm); }
   .iui-range::-moz-range-progress { background: transparent; }
   .iui-range:focus-visible { outline: 2px solid var(--iui-focus); outline-offset: 2px; border-radius: 12px; }
   .iui-slider-marks { position: relative; height: 18px; margin-top: -2px; color: var(--iui-muted); font-size: 11px; line-height: 18px; }
@@ -275,10 +279,10 @@
   .iui-image.is-loaded > img { opacity: 1; }
   .iui-image-empty { width: 26px; height: 26px; color: var(--iui-photo-empty-icon); }
 
-  /* A framed table: 14px corners, a surface header row, hover rows. */
-  .iui-table-scroll { width: 100%; min-width: 0; overflow-x: auto; border: 1px solid var(--iui-border); border-radius: var(--iui-radius-xl); }
+  /* A framed table: 20px Paper Widgets card corners, soft elevation, a surface header row, hover rows. */
+  .iui-table-scroll { width: 100%; min-width: 0; overflow-x: auto; border: 0; border-radius: var(--iui-radius-xl); background: var(--iui-card-bg); box-shadow: var(--iui-card-shadow); }
   /* A table on a card drops its own frame: rows sit on the tile, the header is a muted caption row. */
-  .iui-card .iui-table-scroll { border: 0; border-radius: 0; }
+  .iui-card .iui-table-scroll { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
   .iui-card .iui-table th { background: transparent; color: var(--iui-muted); font-size: 12px; font-weight: 400; }
   .iui-card .iui-table :is(th, td):first-child { padding-left: 0; }
   .iui-card .iui-table :is(th, td):last-child { padding-right: 0; }
@@ -367,10 +371,10 @@
   .iui-flashcard { display: block; width: 100%; min-height: 168px; padding: 0; border: 0; background: none; color: var(--iui-ink); font: inherit; text-align: center; cursor: pointer; perspective: 900px; }
   .iui-flashcard-inner { position: relative; display: grid; width: 100%; height: 100%; min-height: inherit; transition: transform .45s cubic-bezier(.3, .7, .3, 1); transform-style: preserve-3d; }
   .iui-flashcard.is-flipped .iui-flashcard-inner { transform: rotateY(180deg); }
-  .iui-flashcard-face { grid-area: 1 / 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 20px 18px 30px; border: 1px solid var(--iui-border); border-radius: var(--iui-radius-xl); background: var(--iui-canvas); backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+  .iui-flashcard-face { grid-area: 1 / 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 20px 18px 30px; border: 0; border-radius: var(--iui-radius-xl); background: var(--iui-canvas); box-shadow: var(--iui-card-shadow); backface-visibility: hidden; -webkit-backface-visibility: hidden; transition: box-shadow 180ms cubic-bezier(0.215, 0.61, 0.355, 1); }
   .iui-flashcard-face.is-back { transform: rotateY(180deg); background: var(--iui-surface); }
-  .iui-flashcard:hover .iui-flashcard-face { border-color: var(--iui-border-strong); }
-  .iui-flashcard-word { font-size: 21px; line-height: 1.3; font-weight: 600; letter-spacing: -0.4px; }
+  .iui-flashcard:hover .iui-flashcard-face { box-shadow: var(--iui-card-shadow-hover); }
+  .iui-flashcard-word { font-size: 21px; line-height: 1.3; font-weight: 500; letter-spacing: -0.022em; }
   .iui-flashcard-face.is-back .iui-flashcard-word { font-size: 16px; font-weight: 500; letter-spacing: 0; }
   .iui-flashcard-hint { position: absolute; bottom: 10px; color: var(--iui-faint); font-size: 11px; }
   .iui-flashcard:focus-visible { outline: 2px solid var(--iui-focus); outline-offset: 3px; border-radius: var(--iui-radius-xl); }
@@ -419,8 +423,8 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .iui-pressable, .iui-pressable::after { transition: none; }
-    .iui-pressable:not([aria-disabled="true"]):hover, .iui-pressable:not([aria-disabled="true"]):active { transform: none; }
+    .iui-card, .iui-icon-button, .iui-pressable, .iui-pressable::after, .iui-flashcard-face { transition: none; }
+    .iui-icon-button:not(:disabled):hover, .iui-icon-button:not(:disabled):active, .iui-pressable:not([aria-disabled="true"]):hover, .iui-pressable:not([aria-disabled="true"]):active { transform: none; }
     .iui-image > img { transition: none; }
     .iui-image:not(.is-loaded)::before { animation: none; }
     .iui-flashcard-inner { transition: none; }
@@ -442,9 +446,9 @@
   .iui-flow > .iui-caption + .iui-title { margin-top: var(--iui-space-tight); }
 
   /* Inside a card or a grid cell, titles are card-sized (18/24) and body text is 15/22. */
-  :is(.iui-card, .iui-grid > .iui-flow, .iui-carousel-item > .iui-flow) > :is(.iui-title-lg, .iui-title-xl) { font-size: 18px; line-height: 24px; letter-spacing: -0.3px; }
-  /* 2xl and 3xl are the big figure of a stat card; its caption sits right under it. */
-  .iui-card > :is(.iui-title-2xl, .iui-title-3xl) { font-weight: 500; font-variant-numeric: tabular-nums; }
+  :is(.iui-card, .iui-grid > .iui-flow, .iui-carousel-item > .iui-flow) > :is(.iui-title-lg, .iui-title-xl) { font-size: 18px; line-height: 24px; letter-spacing: -0.02em; }
+  /* 2xl and 3xl are the big Swiss-style figure of a stat card; its caption sits right under it. */
+  .iui-card > :is(.iui-title-2xl, .iui-title-3xl) { font-weight: 400; font-variant-numeric: tabular-nums lining-nums; }
   .iui-card.iui-flow > :is(.iui-title-2xl, .iui-title-3xl) + .iui-caption { margin-top: var(--iui-space-tight); }
   :is(.iui-card, .iui-grid > .iui-flow, .iui-carousel-item > .iui-flow) > .iui-text:not(.iui-text-xs, .iui-text-sm, .iui-text-lg) { font-size: 15px; line-height: 22px; }
 

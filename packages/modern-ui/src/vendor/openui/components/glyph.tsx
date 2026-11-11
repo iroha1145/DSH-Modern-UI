@@ -24,5 +24,5 @@ function iconFor(value: unknown): LucideIcon | null {
 export function Glyph({ name, size = 18, className }: { name: unknown; size?: number; className?: string }) {
   const Icon = iconFor(name);
   if (!Icon) return null;
-  return <Icon size={size} strokeWidth={1.8} aria-hidden className={className} />;
+  return <Icon size={size} strokeWidth={1.55} aria-hidden className={className} />;
 }

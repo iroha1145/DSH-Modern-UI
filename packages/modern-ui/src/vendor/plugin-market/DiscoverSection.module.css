@@ -126,8 +126,10 @@
   justify-content: center;
   width: 48px;
   height: 48px;
-  border: 0.5px solid var(--dsw-alias-border-l3);
+  border: 0.5px solid var(--card-border, var(--dsw-alias-border-l3));
   border-radius: var(--dsw-radius-lg);
+  background: var(--surface, var(--dsw-alias-bg-layer-2));
+  box-shadow: var(--shadow-panel);
   color: var(--dsw-alias-label-secondary);
 }
 
@@ -279,6 +281,7 @@
   font-size: 20px;
   line-height: 1.2;
   font-weight: 500;
+  letter-spacing: var(--tracking-heading, -0.02em);
 }
 
 .detailDescription {

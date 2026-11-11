@@ -1,11 +1,12 @@
 .block {
-  --dsl-web-radius: var(--dsw-radius-lg);
+  --dsl-web-radius: var(--bui-radius-card, var(--dsw-radius-lg));
 
   margin: 16px 0;
   padding: 12px 14px;
   color: var(--dsw-alias-label-primary);
   background: var(--dsw-alias-markdown-code-block);
   border-radius: var(--dsl-web-radius);
+  box-shadow: var(--bui-shadow-card, var(--shadow-card));
 }
 
 /* The provider answer reads as body prose above the citation list; its own
@@ -93,6 +94,7 @@
   margin-top: 2px;
   color: var(--dsw-alias-label-tertiary);
   font: var(--dsw-font-xs-13);
+  font-variant-numeric: tabular-nums;
 }
 
 .truncated {
@@ -144,6 +146,7 @@
 .status {
   color: var(--dsw-alias-label-secondary);
   font: var(--dsw-font-xs-13);
+  font-variant-numeric: tabular-nums;
 }
 
 /* The fetch card's truncation note sits inline beside the status, so it drops

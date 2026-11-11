@@ -1,5 +1,5 @@
 .block {
-  --dsl-terminal-radius: var(--dsw-radius-lg);
+  --dsl-terminal-radius: var(--bui-radius-card, var(--dsw-radius-lg));
   --dsl-terminal-line-height: 22px;
   /* Rebindable by consumers (CodeBlock's --dsl-code-block-content-font
      pattern): a surface wanting the smaller code size rebinds this together
@@ -20,6 +20,7 @@
   color: var(--dsw-alias-label-primary);
   background: var(--dsw-alias-markdown-code-block);
   border-radius: var(--dsl-terminal-radius);
+  box-shadow: var(--bui-shadow-card, var(--shadow-card));
   /* Clip the banner to the card's own radius: when a consumer adds a border,
      the banner's equal corner radius no longer nests inside it and leaves a
      notch at the corner. Nothing inside renders out of the box. */
@@ -127,6 +128,7 @@
   top: 0;
   height: var(--dsl-terminal-line-height);
   color: var(--dsw-alias-state-error-primary);
+  font-variant-numeric: tabular-nums;
 }
 
 .copyButton {

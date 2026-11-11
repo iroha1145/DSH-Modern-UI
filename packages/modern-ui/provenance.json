@@ -98,8 +98,8 @@
       "source": "packages/client/ui-chat/src/client/chat/GenericCommandCard.module.css",
       "target": "src/vendor/chat/client/chat/GenericCommandCard.module.css",
       "sourceSha256": "b20c378e81c992132575f631bb134c52043d62b1c802b5817472cc74896312c5",
-      "targetSha256": "b20c378e81c992132575f631bb134c52043d62b1c802b5817472cc74896312c5",
-      "adapted": false
+      "targetSha256": "e90f301c7ed675b2060cd4133287ff190ec9fbe94ab61078e78da324435f1fa8",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/chat/GenericCommandCard.tsx",
@@ -140,7 +140,7 @@
       "source": "packages/client/ui-chat/src/client/chat/MessageItem.module.css",
       "target": "src/vendor/chat/client/chat/MessageItem.module.css",
       "sourceSha256": "48df552f42e88383af5acdb05f4c113282e709b4d379b599e47c3acdc4c74479",
-      "targetSha256": "94be9d426754316dfa6307a82c769918e4e08a53a3b3a1db3dfb379a901ee69b",
+      "targetSha256": "233d219199d31dcaf1233b3bbca4f0648e194d941ade76d512b8c34cb36c16d4",
       "adapted": true
     },
     {
@@ -652,8 +652,8 @@
       "source": "packages/client/ui-conversation/src/client/queue/QueueDock.module.css",
       "target": "src/vendor/conversation/client/queue/QueueDock.module.css",
       "sourceSha256": "ea85b4d45595547f52bb067fac0a569f79adc3426239d9b8fc50afb6ff3ce74f",
-      "targetSha256": "ea85b4d45595547f52bb067fac0a569f79adc3426239d9b8fc50afb6ff3ce74f",
-      "adapted": false
+      "targetSha256": "af9c4e67059544b0b739705b9eecfd7576196e80a22eb907aeedaec3fc84c880",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-conversation/src/client/queue/QueueDock.tsx",
@@ -772,14 +772,14 @@
       "source": "packages/client/ui-conversation/src/client/skeleton/HeroShell.module.css",
       "target": "src/vendor/conversation/client/skeleton/HeroShell.module.css",
       "sourceSha256": "725f0454ab60f765d9ea54085545b208a4422e6d07a35daa3a05105e5fa988c7",
-      "targetSha256": "589e126d7f13bcadb3294a4c981c68139ad3656fa6106d2793ef19cbc9b98170",
+      "targetSha256": "f8847e1c310f98d6a2e203835fb0dfe5b26fe6e8f5afc40fc213cdf02abcad48",
       "adapted": true
     },
     {
       "source": "packages/client/ui-conversation/src/client/skeleton/InputBar.module.css",
       "target": "src/vendor/conversation/client/skeleton/InputBar.module.css",
       "sourceSha256": "1ccd2142ae5677d142665344de8c851e0288e5096f57ae33987c6d4fb71a58b9",
-      "targetSha256": "f5fdece26e49e502efad615ba54520b8e9a6825be7fd66fd96d6a121af8fc594",
+      "targetSha256": "f09b79bcb8303de73db43f806513508ffcc2719a0a8cf7f9a5af9b6baade5d2d",
       "adapted": true,
       "adaptation": "Phone widths narrow the control-row column gap to 6px."
     },
@@ -794,7 +794,7 @@
       "source": "packages/client/ui-conversation/src/client/skeleton/TodoPanel.module.css",
       "target": "src/vendor/conversation/client/skeleton/TodoPanel.module.css",
       "sourceSha256": "5602cd8990c6c09b87d094bbdc0e9a367b91974cecda0574925e2667116fc5fb",
-      "targetSha256": "848feabb96ce2bb08b09773b99e2a9aba2ed2abdbe84638823d3a5fd5ad37a1a",
+      "targetSha256": "aa4c450e264a282eee9d9471acdaf73736172066c28805bb82c14950bcce5b16",
       "adapted": true
     },
     {
@@ -878,8 +878,8 @@
       "source": "packages/client/ui-intelligent-ui/src/client/Followups.module.css",
       "target": "src/vendor/intelligent/client/Followups.module.css",
       "sourceSha256": "0092eab4ef5bc652985599dbcd86a07ab76d1c65b283e3c825b1654368b3985b",
-      "targetSha256": "0092eab4ef5bc652985599dbcd86a07ab76d1c65b283e3c825b1654368b3985b",
-      "adapted": false
+      "targetSha256": "8ac257f1b73d5de0f0aec73ee2c4658f677cf57658416ad056439d2864116cc3",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-intelligent-ui/src/client/Followups.tsx",
@@ -990,7 +990,7 @@
       "source": "packages/client/ui-model-selection/src/client/ModelSelect.module.css",
       "target": "src/vendor/model/client/ModelSelect.module.css",
       "sourceSha256": "0de0065c688b56e0d76f732f483ab0414d02a8352c8a8f39a68331e4b4b641dc",
-      "targetSha256": "4921caf1d3883c7e68551aa13439fb6fde6ac8bdd3d4df94763a3d4f40c430b6",
+      "targetSha256": "c57abab7059aeeb0747bc00633b48a0c7be798a4fa430fd41aa602119acc8cb0",
       "adapted": true,
       "adaptation": "Phone-width composer rows (container ≤480px) keep only the bulb for the effort and drop the chevron; the trigger cap adds the row slack that control-row-layout.ts publishes."
     },
@@ -1054,8 +1054,8 @@
       "source": "packages/client/ui-model-selection/src/client/settings/ModelPickerSettingsCard.module.css",
       "target": "src/vendor/model/client/settings/ModelPickerSettingsCard.module.css",
       "sourceSha256": "ab196c6541cd6ecc69e323cd335496d3c103191809289e89ad2e002876ad7cc4",
-      "targetSha256": "ab196c6541cd6ecc69e323cd335496d3c103191809289e89ad2e002876ad7cc4",
-      "adapted": false
+      "targetSha256": "7a2d25135a7a0a3ece39ea2e66a6c412cc56bd4e2b68f161cdb053c534973f21",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-model-selection/src/client/settings/ModelPickerSettingsCard.tsx",
@@ -1187,8 +1187,8 @@
       "source": "packages/client/ui-primitives/src/CodeCard.module.css",
       "target": "src/vendor/primitives/CodeCard.module.css",
       "sourceSha256": "81648bc452651b1c29f1b09e21d5bf7aba49c7a86a14d38cded32041a4ab0ee9",
-      "targetSha256": "81648bc452651b1c29f1b09e21d5bf7aba49c7a86a14d38cded32041a4ab0ee9",
-      "adapted": false
+      "targetSha256": "e267a6f96e837b3f169deac81a4ee2a18ae4f86adc9b02c3d3a8120e0d3b888b",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/CodeFileIcon.tsx",
@@ -1495,8 +1495,8 @@
       "source": "packages/client/ui-primitives/src/markdown/CodeBlock.module.css",
       "target": "src/vendor/primitives/markdown/CodeBlock.module.css",
       "sourceSha256": "bb7dbfd92b46c3303d539a263d2257c917d909e3b695a1ae9056262f51187072",
-      "targetSha256": "bb7dbfd92b46c3303d539a263d2257c917d909e3b695a1ae9056262f51187072",
-      "adapted": false
+      "targetSha256": "e0296d65e44582edb7a3b49fc9e82a8f374160c583ec6dc9401ed8d89e007653",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/markdown/CodeBlock.tsx",
@@ -1567,7 +1567,7 @@
       "source": "packages/client/ui-primitives/src/markdown/MarkdownText.module.css",
       "target": "src/vendor/primitives/markdown/MarkdownText.module.css",
       "sourceSha256": "86cc61d8d6bacbe4ebab5d10c672b5a0ec13e6ed7a1c6ee6aaa382dd825432d1",
-      "targetSha256": "0d1ce64c83c81951913c295fb1ef5fc7c2adaec246d99ff643b86f847cac0e2a",
+      "targetSha256": "974efb441b8fb190f47dc90fef67473709be89e1ec031cde6f48fb8fa8648aea",
       "adapted": true
     },
     {
@@ -1694,8 +1694,8 @@
       "source": "packages/client/ui-primitives/src/Pill.module.css",
       "target": "src/vendor/primitives/Pill.module.css",
       "sourceSha256": "6b53a08c2d8c783cff4282f3bb04281f8dc8774e1128cf89a84cd00d82d578e6",
-      "targetSha256": "6b53a08c2d8c783cff4282f3bb04281f8dc8774e1128cf89a84cd00d82d578e6",
-      "adapted": false
+      "targetSha256": "8cb340db68fefbf65f58db6b3ca19fa8e55a37551c6b7f49a82b8b6134a984c1",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/Pill.tsx",
@@ -1736,8 +1736,8 @@
       "source": "packages/client/ui-primitives/src/ReadBlock.module.css",
       "target": "src/vendor/primitives/ReadBlock.module.css",
       "sourceSha256": "9b0a6560e5fb45ec1711da5488d8c350e14fabe056e4683e0bf72318144f70d7",
-      "targetSha256": "9b0a6560e5fb45ec1711da5488d8c350e14fabe056e4683e0bf72318144f70d7",
-      "adapted": false
+      "targetSha256": "ac5806f9d07d7555573b3cd755cc404a1a509f6b24bc54b9a3c1fa9bb845a59e",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/ReadBlock.tsx",
@@ -1771,8 +1771,8 @@
       "source": "packages/client/ui-primitives/src/SearchBlock.module.css",
       "target": "src/vendor/primitives/SearchBlock.module.css",
       "sourceSha256": "cb7c922e5df96ea77f42010fd51dcbf38dc9e8de07a76cd534f827ac40e88c45",
-      "targetSha256": "cb7c922e5df96ea77f42010fd51dcbf38dc9e8de07a76cd534f827ac40e88c45",
-      "adapted": false
+      "targetSha256": "0ee04aa44850662031b1e07a41ac90f27ef9b77399ad66d08706c1c231f6c3c2",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/SearchBlock.tsx",
@@ -1820,7 +1820,7 @@
       "source": "packages/client/ui-primitives/src/Switch.module.css",
       "target": "src/vendor/primitives/Switch.module.css",
       "sourceSha256": "3277e898938ce69ed6eb2d8a211eebcf071a9e4647b58e3362738c90466f2631",
-      "targetSha256": "d149ab2d4eee93522112c73512bbd5714e0bba04c2738ba82af1173993aab1ec",
+      "targetSha256": "458e2accb59d240a4876be8a09f49a2e60e3ac6a33b088eba123c3b2ce25cfe6",
       "adapted": true
     },
     {
@@ -1834,8 +1834,8 @@
       "source": "packages/client/ui-primitives/src/Tag.module.css",
       "target": "src/vendor/primitives/Tag.module.css",
       "sourceSha256": "ac135f028674d5bce37a2617902c86d5934b299742536056a2abc5e99583764e",
-      "targetSha256": "ac135f028674d5bce37a2617902c86d5934b299742536056a2abc5e99583764e",
-      "adapted": false
+      "targetSha256": "82c0efa7ea4102b0707fdf354f898f513db25001d6188eca4ffe5daf2e142144",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/Tag.tsx",
@@ -1848,7 +1848,7 @@
       "source": "packages/client/ui-primitives/src/TerminalBlock.module.css",
       "target": "src/vendor/primitives/TerminalBlock.module.css",
       "sourceSha256": "2222cf3fe4bb3ed72a9eaeea3663978d51bbc45af054035b82bcbe244410e3c5",
-      "targetSha256": "01999d7d575cfcd051f6deba036e5fac4000e816d3f40da6a88928b89e5a6425",
+      "targetSha256": "ad0af5e932de391e256e973d231b03cb6cb370f94f0f03f78a11cc82f5ae4fbe",
       "adapted": true
     },
     {
@@ -1876,7 +1876,7 @@
       "source": "packages/client/ui-primitives/src/Toast.module.css",
       "target": "src/vendor/primitives/Toast.module.css",
       "sourceSha256": "d1f293eb66f7deaf8a0419023028e092cede2ce94544214924aa373f9876fa8e",
-      "targetSha256": "c74fd84f61f80c227ff9a38d427bd24540a417ae965cc7bbfb43b15da53acea8",
+      "targetSha256": "410a2e0cd50aa4b528337c52303d0cf20f5beca3415139232d2aebdb129c7abc",
       "adapted": true
     },
     {
@@ -1960,8 +1960,8 @@
       "source": "packages/client/ui-primitives/src/WebBlock.module.css",
       "target": "src/vendor/primitives/WebBlock.module.css",
       "sourceSha256": "a5a00ff4e0460d7d77f02ba0e4f2cc9d1f4c3a92446e62d6f353891cd5d6c3ca",
-      "targetSha256": "a5a00ff4e0460d7d77f02ba0e4f2cc9d1f4c3a92446e62d6f353891cd5d6c3ca",
-      "adapted": false
+      "targetSha256": "a439158bfd2a59bd14a41ea80d75ec6b28533598d94fe1e7cc63cd1105e4d837",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/WebBlock.tsx",
@@ -2058,8 +2058,8 @@
       "source": "packages/client/ui-subagent/src/client/agent-tree/AgentTree.module.css",
       "target": "src/vendor/subagent/client/agent-tree/AgentTree.module.css",
       "sourceSha256": "fa51bdf638a7effec9ff9e896c8790a6aae54700bb1ff0c559dd0be3577ca1b4",
-      "targetSha256": "fa51bdf638a7effec9ff9e896c8790a6aae54700bb1ff0c559dd0be3577ca1b4",
-      "adapted": false
+      "targetSha256": "53fd8cf47316b5ece76b36f6d786ef05517fa7ddcdfed2a392d7bf07575e665c",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-subagent/src/client/agent-tree/AgentTree.tsx",
@@ -2114,14 +2114,14 @@
       "source": "packages/client/ui-theme/src/styles/base.css",
       "target": "src/vendor/theme/styles/base.css",
       "sourceSha256": "eca218aa6a72c1c69dcb991b0cac7f0252248a6db710906bec214a18fcf55940",
-      "targetSha256": "a1b1d61e8d5ccdd34e7331676567ac06a015b20a813b4a414f5b520db0332820",
+      "targetSha256": "f27b9ca49d1282d54d3855bd9ed39f6c528c5897a845c2e442d096cf92d214f2",
       "adapted": true
     },
     {
       "source": "packages/client/ui-theme/src/styles/beautiful-ui.css",
       "target": "src/vendor/theme/styles/beautiful-ui.css",
       "sourceSha256": "758c969dee3c94cbd69ac53fae68870669f85b2042665fe4159da74381b4e174",
-      "targetSha256": "e9cab36bee87e1f4d64e63524e28c3a21e3ae829637512a796ded0b293b89999",
+      "targetSha256": "8e9ec76b6fcab5ae2fd91443989add0f9471158636950f642767233cf3b514d2",
       "adapted": true
     },
     {
@@ -2135,7 +2135,7 @@
       "source": "packages/client/ui-theme/src/styles/design-platform.css",
       "target": "src/vendor/theme/styles/design-platform.css",
       "sourceSha256": "7c268e5c64ab548220c813ac69bd17ed16323b3933aa6afa011d888844e51f22",
-      "targetSha256": "8e2f5e42c6e9a9ce3cc36baec611e427d844dae8ec852bd8a31a1cb28f3c6ffb",
+      "targetSha256": "71baefa875e62895b0584b409800f73b538ea2494b461f9cb42a25e3a3dd1008",
       "adapted": true
     },
     {
@@ -2163,7 +2163,7 @@
       "source": "packages/client/ui-theme/src/styles/gradient-shadow-text.css",
       "target": "src/vendor/theme/styles/gradient-shadow-text.css",
       "sourceSha256": "1a7c133f6652c902670a7c3178b907a7e14ae00b7da1ca7ca21e74a20d1b4a48",
-      "targetSha256": "5081dba737c80f067d06f55efd5fa58bc164880596f6d6e95ddf70c765069563",
+      "targetSha256": "e8215b32b7c591b6e0139e7998c66404db020eb85031022c8c49a94f22e2e64e",
       "adapted": true
     },
     {
@@ -2219,7 +2219,7 @@
       "source": "packages/client/ui-tool/src/client/tool/components/AskQuestionCard.module.css",
       "target": "src/vendor/tool/client/tool/components/AskQuestionCard.module.css",
       "sourceSha256": "e8796a15b635851f22a0190d991ba2cb8f0fa685c354a64db68f2bf0795873fb",
-      "targetSha256": "4a76022eba4a8c16eed9fa7e0a67b4c9508350c74b6cfe6f68a0f3462ef3370d",
+      "targetSha256": "a249536cc0aeb01cabfe5fcec4eec4e546d8691b1015109df0dab35f4c885a80",
       "adapted": true
     },
     {
@@ -2275,7 +2275,7 @@
       "source": "packages/client/ui-tool/src/client/tool/components/ToolRow.module.css",
       "target": "src/vendor/tool/client/tool/components/ToolRow.module.css",
       "sourceSha256": "79529703bfa7a19c178ce501015c60f559e2c39e5b69e76a6650b681e181b3ed",
-      "targetSha256": "c42d2f262d42ece654528ce48b44a38b6cc878db2d42f9321ebd49581d51a121",
+      "targetSha256": "18b9dda718812c591efe92934bd63661cd7462a1381fe94138ec13971f8b0120",
       "adapted": true
     },
     {
@@ -2767,7 +2767,7 @@
       "source": "packages/client/ui-chat/src/client/chat/ChatView.module.css",
       "target": "src/vendor/chat/client/chat/ChatView.module.css",
       "sourceSha256": "01a284c505eb6dbe7a23a2dc1397d038aaf1f3189f56850242edab6dd153f8ce",
-      "targetSha256": "ae428fec09358cbf8dfe6004448863ea4b65bba727aa775b80cc98e7d70c33dd",
+      "targetSha256": "8a5cc2c9383789f4decfbb745ceaa592c6108d47cc9fa5d1a5d7274f93f92229",
       "adapted": true
     },
     {
@@ -3281,7 +3281,7 @@
       "source": "packages/client/ui-primitives/src/UserMessageBubble.module.css",
       "target": "src/vendor/primitives/UserMessageBubble.module.css",
       "sourceSha256": "15cb543a7d2e302b5c722f2c7fecfe0493cae949c59a9a86f3d4b7de5efd3075",
-      "targetSha256": "ab9e70301b492f91a29c0aa4371e798765bf3a264284ff8ec060f611ba5c73b8",
+      "targetSha256": "9846fd9988520faf1f08abc1e7652f85b9598c4b93c0046a4ca03440f520f1ce",
       "adapted": true
     },
     {
@@ -3470,7 +3470,7 @@
       "source": "packages/client/ui-plugin-market/src/client/DiscoverSection.module.css",
       "sourceSha256": "862a2675f1c5e3e8338b9c7d3a5eafc24b946c5a2dd1ab8514d0e2d431e42069",
       "target": "src/vendor/plugin-market/DiscoverSection.module.css",
-      "targetSha256": "f3e8324ba4ceab012de52eb0f97fd7c3e26db605a72b59c7e6739c8a492cb900",
+      "targetSha256": "49771ea2ccf82c04f5784c187ff71dee0c6b05f6ac91281ccf0403a4f24a83c4",
       "adapted": true
     },
     {
@@ -3512,7 +3512,7 @@
       "source": "packages/client/ui-user-questions/src/client/QuestionComposer.module.css",
       "sourceSha256": "bb27a8bc81153824ea2dd0b7b9fe0fb66329262b75088554d73b942d9ab185d2",
       "target": "src/vendor/questions/QuestionComposer.module.css",
-      "targetSha256": "5affa985350a503fc541eab770c3ac514f8f545a65fa9a540a25e81212af73de",
+      "targetSha256": "0adfec4a39303f9e35536161781c8f08d2de67972dccba6b74456533917ad05a",
       "adapted": true
     },
     {
@@ -3694,7 +3694,7 @@
     },
     {
       "target": "src/vendor/intelligent/client/OpenUIBlock.module.css",
-      "targetSha256": "63eddbeef2687db5a821c0c142712154f955c8b725ef0be37c66196b7659b507",
+      "targetSha256": "6df8b05a35f300466cb33ed8c89bdf9986dda7ccc21a2877b5c5150e7939be1b",
       "description": "Original styles for the OpenUI block frame, placeholder and preserved-source card."
     },
     {
@@ -3803,7 +3803,7 @@
     },
     {
       "target": "src/official-surfaces.css",
-      "targetSha256": "1eb61bfd82c3edc2d09937adad03e9f254e89d42a2766abb7255e18c75fed845",
+      "targetSha256": "c2e94e037ee828b6475c2ad99908fbf00f6e95fbc3e1d89a2dda49b1cf601273",
       "sources": [
         {
           "source": "packages/client/ui-input-trigger/src/client/MenuView.module.css",

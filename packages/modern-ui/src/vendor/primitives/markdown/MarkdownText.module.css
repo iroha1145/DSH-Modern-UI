@@ -59,6 +59,14 @@
   line-height: 1.2;
 }
 
+.markdown :is(h1, h2) {
+  letter-spacing: var(--tracking-heading, -0.02em);
+}
+
+.markdown h3 {
+  letter-spacing: var(--tracking-title, -0.015em);
+}
+
 .markdown :is(h4, h5, h6) {
   line-height: 1.6;
 }
@@ -327,7 +335,7 @@
   max-width: 100%;
   height: auto;
   margin: 0;
-  border-radius: var(--dsw-radius-md);
+  border-radius: var(--dsw-radius-lg);
   background: var(--dsw-alias-bg-base);
   object-fit: contain;
 }

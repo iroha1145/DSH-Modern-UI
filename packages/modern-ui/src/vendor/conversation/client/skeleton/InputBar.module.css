@@ -97,7 +97,7 @@
   box-shadow: var(--dsw-elevation-soft);
   font-size: 14px;
   line-height: 22px;
-  transition: box-shadow 150ms var(--bui-ease-out), border-radius 150ms var(--bui-ease-out);
+  transition: box-shadow 180ms var(--bui-ease-out), border-radius 180ms var(--bui-ease-out);
   --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
   --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
 }
@@ -119,6 +119,7 @@
 .card:focus-within {
   outline: none;
   --dsw-elevation-stroke-color: var(--bui-line-strong, var(--line-strong));
+  box-shadow: var(--dsw-elevation-prominent);
 }
 
 .hero .card {
@@ -372,12 +373,13 @@
   border-radius: var(--bui-radius-control);
   background: var(--bui-ink);
   color: var(--bui-surface, var(--surface));
-  box-shadow: none;
+  box-shadow: var(--shadow-thumb);
   cursor: pointer;
   transition:
     background-color 140ms ease,
     color 140ms ease,
     opacity 140ms ease,
+    box-shadow 140ms ease,
     transform 120ms var(--ease-spring);
 }
 
@@ -398,20 +400,20 @@
   cursor: default;
 }
 
-/* Cloud-Monitor .sv-summary-row / .sv-stat suggestion grid */
+/* Paper Widgets suggestion tiles */
 .heroSuggestions {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
   max-width: var(--dsh-composer-card-max-width);
-  margin-top: 12px;
+  margin-top: 14px;
 }
 
 .suggestionGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 @media (max-width: 720px) {
@@ -436,30 +438,30 @@
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-start;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  padding: 14px 16px;
-  border: 0.5px solid var(--card-border, rgb(23 23 23 / 0.07));
+  padding: 16px 18px;
+  border: 1px solid var(--card-border, rgb(23 23 23 / 0.055));
   border-radius: var(--dsw-radius-xl);
   background: var(--surface);
   box-shadow: var(--shadow-panel);
   color: var(--ink);
   font-size: var(--fs-body, 0.8125rem);
-  line-height: 1.45;
+  line-height: 1.48;
   text-align: left;
   cursor: pointer;
   animation: suggestionFadeUp 420ms var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
   transition:
-    background-color 150ms ease,
-    border-color 150ms ease,
-    box-shadow 180ms ease,
-    transform 140ms var(--ease-spring);
+    background-color var(--dsh-paper-micro-duration, 180ms) var(--dsh-paper-micro-curve, ease),
+    border-color var(--dsh-paper-micro-duration, 180ms) var(--dsh-paper-micro-curve, ease),
+    box-shadow var(--dsh-paper-micro-duration, 180ms) var(--dsh-paper-micro-curve, ease),
+    transform var(--dsh-paper-micro-duration, 180ms) var(--dsh-paper-micro-curve, ease);
 }
 
 .suggestionTop {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   width: 100%;
 }
 
@@ -467,18 +469,30 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   flex: none;
   border-radius: var(--dsw-radius-sm);
   background: var(--accent-tint);
   color: var(--primary);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.55),
+    inset 0 0 0 1px color-mix(in srgb, var(--primary) 13%, transparent);
+  transition: transform var(--dsh-paper-micro-duration, 180ms) var(--dsh-paper-micro-curve, ease);
+}
+
+:global(body[data-ds-dark-theme]) .suggestionIcon {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    inset 0 0 0 1px color-mix(in srgb, var(--primary) 18%, transparent);
 }
 
 .suggestionKicker {
-  font-size: var(--fs-meta, 0.6875rem);
+  font-family: var(--ds-font-family-code);
+  font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-kicker, 0.04em);
+  text-transform: uppercase;
   color: var(--ink-3);
 }
 
@@ -486,14 +500,19 @@
   overflow-wrap: anywhere;
   color: var(--ink-2);
   font-weight: 500;
+  letter-spacing: -0.01em;
 }
 
 @media (hover: hover) {
   .suggestionRow:hover:not(:disabled) {
-    background: var(--inset);
-    border-color: color-mix(in srgb, var(--primary) 24%, var(--card-border));
-    box-shadow: var(--shadow-panel-lift);
-    transform: translateY(-1px);
+    background: var(--surface);
+    border-color: color-mix(in srgb, var(--primary) 22%, var(--card-border));
+    box-shadow: var(--shadow-panel-hover, var(--shadow-panel-lift));
+    transform: translateY(-2px);
+  }
+
+  .suggestionRow:hover:not(:disabled) .suggestionIcon {
+    transform: scale(1.05);
   }
 
   .suggestionRow:hover:not(:disabled) .suggestionText {
@@ -502,7 +521,7 @@
 }
 
 .suggestionRow:active:not(:disabled) {
-  transform: translateY(1px) scale(0.99);
+  transform: scale(0.985);
 }
 
 .shuffleRow {
@@ -517,23 +536,29 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
-  border: 0.5px solid var(--line);
-  border-radius: var(--dsw-radius-sm);
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 999px;
+  corner-shape: round;
   background: var(--surface);
+  box-shadow: var(--shadow-btn);
   color: var(--ink-2);
   font-size: var(--fs-meta, 0.6875rem);
   font-weight: 500;
   line-height: 16px;
   cursor: pointer;
-  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
+  transition:
+    color var(--dsh-paper-micro-duration, 180ms) var(--dsh-paper-micro-curve, ease),
+    background-color var(--dsh-paper-micro-duration, 180ms) var(--dsh-paper-micro-curve, ease),
+    box-shadow var(--dsh-paper-micro-duration, 180ms) var(--dsh-paper-micro-curve, ease),
+    transform var(--dsh-paper-micro-duration, 180ms) var(--dsh-paper-micro-curve, ease);
 }
 
 @media (hover: hover) {
   .shuffleButton:hover {
     color: var(--ink);
     background: var(--inset);
-    border-color: var(--line-strong);
+    transform: translateY(-1px);
   }
 }
 
@@ -562,11 +587,19 @@
 
 @media (prefers-reduced-motion: reduce) {
   .suggestionRow,
+  .suggestionIcon,
+  .shuffleButton,
   .card,
   .add,
   .primary {
     animation: none;
     transition: none;
+  }
+  .suggestionRow:hover:not(:disabled),
+  .suggestionRow:active:not(:disabled),
+  .suggestionRow:hover:not(:disabled) .suggestionIcon,
+  .shuffleButton:hover {
+    transform: none;
   }
 }
 

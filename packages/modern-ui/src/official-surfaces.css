@@ -277,6 +277,7 @@ body[data-ds-dark-theme] [data-changed-files] button[class*="_header"] > [class*
 
 [data-changed-files] button[class*="_header"] [class*="_stat"]:not([class*="_statCounts"]) {
   font-size: 11px;
+  font-variant-numeric: tabular-nums;
 }
 
 

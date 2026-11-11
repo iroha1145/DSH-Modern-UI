@@ -357,11 +357,31 @@
   box-shadow: var(--dsw-elevation-panel);
   cursor: pointer;
   pointer-events: auto;
+  transition:
+    background-color var(--dsh-paper-micro-duration, 180ms) var(--dsh-paper-micro-curve, ease),
+    box-shadow var(--dsh-paper-micro-duration, 180ms) var(--dsh-paper-micro-curve, ease),
+    transform var(--dsh-paper-micro-duration, 180ms) var(--dsh-paper-micro-curve, ease);
 }
 
 @media (hover: hover) {
   .toBottom:hover {
     background: var(--dsw-alias-button-floating-hover);
+    box-shadow: var(--dsw-elevation-prominent);
+    transform: translateY(-2px);
+  }
+}
+
+.toBottom:active {
+  transform: scale(0.96);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toBottom {
+    transition: none;
+  }
+  .toBottom:hover,
+  .toBottom:active {
+    transform: none;
   }
 }
 

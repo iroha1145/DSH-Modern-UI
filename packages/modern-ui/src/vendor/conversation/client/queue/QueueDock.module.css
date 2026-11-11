@@ -98,6 +98,7 @@
   font-family: Inter, var(--dsw-font-family);
   font-size: 13px;
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
   line-height: 24px;
 }
 
@@ -182,6 +183,7 @@
   flex: none;
   color: var(--dsw-alias-label-tertiary);
   font-size: 10px;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 

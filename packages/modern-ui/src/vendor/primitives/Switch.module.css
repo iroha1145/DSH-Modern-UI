@@ -44,6 +44,7 @@
   background: color-mix(in srgb,
     var(--dsw-alias-label-primary-foreground) var(--dsh-switch-fill, var(--dsh-switch-rest-fill)),
     var(--dsw-alias-switch-thumb));
+  box-shadow: var(--shadow-thumb);
   transform: translateX(var(--dsh-switch-x, var(--dsh-switch-rest-x)));
 }
 

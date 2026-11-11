@@ -153,7 +153,7 @@
   box-sizing: border-box;
   padding: var(--agent-pad) var(--agent-pad) 8px;
   border: 0;
-  border-radius: var(--dsw-radius-lg);
+  border-radius: var(--bui-radius-card, var(--dsw-radius-lg));
   background: var(--dsw-alias-bg-layer-2);
   box-shadow: var(--dsw-elevation-panel);
   color: var(--dsw-alias-label-tertiary);
@@ -168,6 +168,7 @@
 @media (hover: hover) {
   .card[data-openable]:hover {
     box-shadow: var(--dsw-elevation-prominent);
+    translate: 0 -2px;
   }
 }
 
@@ -204,12 +205,21 @@
   width: var(--agent-avatar);
   height: var(--agent-avatar);
   margin-top: var(--agent-avatar-top);
-  border-radius: var(--dsw-radius-xs);
+  border-radius: var(--dsw-radius-sm);
   background: var(--dsw-alias-bg-module-platform);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.5),
+    inset 0 0 0 0.5px var(--dsw-alias-border-l3);
   color: var(--dsw-alias-label-secondary);
   font-size: 12px;
   font-weight: 500;
   line-height: 1;
+}
+
+:global(body[data-ds-dark-theme]) .avatar {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.06),
+    inset 0 0 0 0.5px var(--dsw-alias-border-l3);
 }
 
 .name {
@@ -219,6 +229,7 @@
   color: var(--dsw-alias-label-primary);
   font-size: 13px;
   font-weight: 500;
+  letter-spacing: var(--tracking-title, -0.015em);
   line-height: 1.2;
   text-wrap: balance;
   overflow-wrap: anywhere;
@@ -550,9 +561,17 @@
 
 /* Motion only without a reduced-motion preference; otherwise everything appears at once.
    A new agent's connector draws from its parent first, then its card rises in. */
+@media (prefers-reduced-motion: reduce) {
+  .card[data-openable]:hover {
+    translate: none;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .card {
-    transition: box-shadow var(--dsh-feel-control-duration) var(--dsh-feel-control-curve);
+    transition:
+      box-shadow var(--dsh-paper-micro-duration, 180ms) var(--dsh-paper-micro-curve, ease),
+      translate var(--dsh-paper-micro-duration, 180ms) var(--dsh-paper-micro-curve, ease);
   }
 
   /* Entry motion stays inside the tree: the glide overlay's copy of a leaving card must not replay it. */

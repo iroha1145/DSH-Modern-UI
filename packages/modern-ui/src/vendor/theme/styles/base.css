@@ -19,6 +19,13 @@
   --dsh-motion-feedback-duration: 120ms;
   --dsh-motion-feedback-curve: cubic-bezier(0.2, 0.8, 0.2, 1);
   --dsh-motion-press-duration: 80ms;
+  /* Paper Widgets tactile micro-interaction timing & Swiss typographic tracking. */
+  --dsh-paper-micro-duration: 180ms;
+  --dsh-paper-micro-curve: cubic-bezier(0.215, 0.61, 0.355, 1);
+  --tracking-display: -0.03em;
+  --tracking-heading: -0.02em;
+  --tracking-title: -0.015em;
+  --tracking-kicker: 0.04em;
 
   /* Cloud-Monitor typography & spacing scale */
   --fs-meta: 0.75rem;
@@ -44,21 +51,21 @@
   --space-6: 1.5rem;
   --space-8: 2rem;
 
-  /* Cloud-Monitor control heights & corner steps */
+  /* Cloud-Monitor control heights & Paper Widgets corner hierarchy */
   --control-h: 40px;
   --control-h-sm: 36px;
   --r-xs: 6px;
   --r-sm: 8px;
   --r-md: 10px;
   --r-lg: 16px;
-  --r-shell: 30px;
-  --r-card: 26px;
-  --r-tile: 18px;
-  --r-well: 14px;
-  --r-control: 14px;
-  --r-segment: 11px;
-  --r-dropdown-item: 10px;
-  --r-chip: 7px;
+  --r-shell: 28px;
+  --r-card: 24px;
+  --r-tile: 20px;
+  --r-well: 12px;
+  --r-control: 12px;
+  --r-segment: 10px;
+  --r-dropdown-item: 8px;
+  --r-chip: 8px;
 
   --radius-chip: var(--r-chip);
   --radius-control: var(--r-control);
@@ -69,8 +76,8 @@
   --dsw-radius-sm: 8px;
   --dsw-radius-md: 10px;
   --dsw-radius-lg: 14px;
-  --dsw-radius-xl: 18px;
-  --dsw-radius-panel: 26px;
+  --dsw-radius-xl: 20px;
+  --dsw-radius-panel: 24px;
 
   /* Legacy component names resolve to the generated Feel models. */
   --duration-stagger: 0ms;
@@ -122,6 +129,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  font-optical-sizing: auto;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
 }
 
@@ -131,6 +139,10 @@ body {
  * zero-specificity selectors let any component rule decide otherwise. */
 :where(h1, h2, h3, h4, h5, h6) {
   text-wrap-style: balance;
+}
+
+:where(h1, h2, h3) {
+  letter-spacing: var(--tracking-heading);
 }
 
 :where(p, li, dd, blockquote, figcaption) {
