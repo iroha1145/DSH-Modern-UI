@@ -557,7 +557,7 @@ function QuestionFlow({ pending, t, useStore, useQuestionCard, actions, foldLabe
               {question.detail !== undefined && (
                 <div className={css.detail}><MarkdownText text={question.detail} labels={markdownLabels} /></div>
               )}
-              <div className={css.options} role={question.multiSelect === true ? 'group' : 'radiogroup'} aria-labelledby={`${descriptionIdPrefix}-question-${pending.key}-${String(index)}`}>
+              <div className={css.options} role="group" aria-labelledby={`${descriptionIdPrefix}-question-${pending.key}-${String(index)}`}>
                 {(question.options ?? []).map((option, optionIndex) => {
                   const selected = draft.selected.includes(option.label)
                   const display = parseRecommendedLabel(option.label)
@@ -579,8 +579,9 @@ function QuestionFlow({ pending, t, useStore, useQuestionCard, actions, foldLabe
                       <button
                         type="button"
                         className={css.option}
-                        role={question.multiSelect === true ? 'checkbox' : 'radio'}
-                        aria-checked={selected}
+                        role={question.multiSelect === true ? 'checkbox' : undefined}
+                        aria-checked={question.multiSelect === true ? selected : undefined}
+                        aria-pressed={question.multiSelect === true ? undefined : selected}
                         aria-label={display.label}
                         aria-describedby={hasDescription ? descriptionId : undefined}
                         disabled={locked}

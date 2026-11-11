@@ -17,10 +17,7 @@
 
 import { createElement } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
-import katex from 'katex'
-
-// Limit author-specified dimensions while retaining KaTeX's existing macro expansion budget.
-const MATH_LIMITS = { maxSize: 20, maxExpand: 1000 } as const
+import { renderBoundedTex } from './katex-render'
 
 /**
  * Convert one inline `style` attribute string into React's style object.
@@ -67,12 +64,12 @@ function domToReact(node: ChildNode, key: number): ReactNode {
  * parse (colored with KaTeX's stock `errorColor`, matching rehype-katex).
  */
 export function renderTexToReact(value: string, displayMode: boolean): ReactNode {
-  let html: string
+  let rendered: ReturnType<typeof renderBoundedTex>
   try {
-    html = katex.renderToString(value, { ...MATH_LIMITS, displayMode, throwOnError: true })
+    rendered = renderBoundedTex(value, { displayMode, throwOnError: true })
   } catch (error) {
     try {
-      html = katex.renderToString(value, { ...MATH_LIMITS, displayMode, strict: 'ignore', throwOnError: false })
+      rendered = renderBoundedTex(value, { displayMode, strict: 'ignore', throwOnError: false })
     } catch {
       // KaTeX renders ParseErrors itself under throwOnError: false; only its
       // internal errors reach here, so mirror rehype-katex's manual span.
@@ -88,6 +85,5 @@ export function renderTexToReact(value: string, displayMode: boolean): ReactNode
       )
     }
   }
-  const parsed = new DOMParser().parseFromString(html, 'text/html')
-  return [...parsed.body.childNodes].map(domToReact)
+  return [...rendered.body.childNodes].map(domToReact)
 }

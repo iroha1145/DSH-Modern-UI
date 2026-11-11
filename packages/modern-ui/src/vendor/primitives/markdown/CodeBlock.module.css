@@ -137,7 +137,18 @@
   white-space: normal;
 }
 
-.numbered :where(pre) code > :global(.line) {
+.lineGroup {
+  display: block;
+  contain: layout;
+  min-height: 1lh;
+}
+
+.card[data-code-wrap='false'] .lineGroup {
+  width: max-content;
+  min-width: 100%;
+}
+
+.numbered :where(pre) code :global(.line) {
   position: relative;
   display: block;
   min-height: 1lh;
@@ -146,7 +157,7 @@
   white-space: var(--dsl-code-block-line-white-space, pre-wrap);
 }
 
-.numbered :where(pre) code > :global(.line)::before {
+.numbered :where(pre) code :global(.line)::before {
   position: absolute;
   inset-inline-start: 0;
   width: var(--dsl-code-block-line-number-width);

@@ -13,12 +13,12 @@
  * so a session that never opens a code surface in one of those languages pays
  * neither the grammar modules nor their synchronous init. The first render of a
  * lazy language falls back to plain text while its grammar loads, then
- * {@link onGrammarLoaded} notifies subscribers to re-render with highlighting.
+ * {@link subscribeGrammarLoaded} notifies the language's subscribers.
  * An unknown or absent language falls back to plain text (no highlighting, still
  * monospace) — never an error.
  */
 
-import { createHighlighterCoreSync, createCssVariablesTheme } from 'shiki/core'
+import { createHighlighterCoreSync, createCssVariablesTheme, splitLines } from 'shiki/core'
 import { createJavaScriptRegexEngine, defaultJavaScriptRegexConstructor } from 'shiki/engine/javascript'
 import langTs from '@shikijs/langs/typescript'
 import langBash from '@shikijs/langs/shellscript'
@@ -309,14 +309,52 @@ const regexEngine = createJavaScriptRegexEngine({
 })
 
 /**
- * Lines at least this many UTF-16 units long render as one uncolored token.
- * With the JavaScript regex engine, scanning one JavaScript string-literal
- * line costs about 70 ms at 1,000 units, 300 ms at 2,000, 600 ms at 5,000 and
- * 2.5 s at 10,000, so this cap keeps one line within a few frames. A skipped
+ * Long lines render as one uncolored token. The regex engine cannot yield
+ * within a match, so even the asynchronous path needs a per-line cap. A skipped
  * line leaves the grammar state unchanged: a multi-line construct that opens
  * or closes on it colors the following lines as if the line were absent.
  */
-const TOKENIZE_MAX_LINE_LENGTH = 1000
+const TOKENIZE_MAX_LINE_LENGTH = 500
+
+const SYNC_MAX_CHARACTERS = 4096
+const SYNC_MAX_LINES = 80
+const SYNC_MAX_WORK = 120_000
+
+/** Bound synchronous work by size, line count and the quadratic cost of long string lines. */
+export function withinHighlightBudget(code: string): boolean {
+  if (code.length > SYNC_MAX_CHARACTERS) return false
+  const lines = splitLines(code)
+  if (lines.length > SYNC_MAX_LINES) return false
+  let work = 0
+  for (const [line] of lines) {
+    if (line.length < TOKENIZE_MAX_LINE_LENGTH) work += line.length * line.length
+    if (work > SYNC_MAX_WORK) return false
+  }
+  return true
+}
+
+/**
+ * How much of `completed` (whole lines, each ending in a newline) one streaming
+ * frame may tokenize under the same budget. The first line always counts: a
+ * single line is the unit of work, already capped by the per-line length limit.
+ * @returns the length of the leading whole lines to take, newline included.
+ */
+function streamingFrameQuota(completed: string): number {
+  let end = 0
+  let lines = 0
+  let work = 0
+  while (end < completed.length) {
+    const newline = completed.indexOf('\n', end)
+    if (newline < 0) break
+    const length = newline - end
+    const cost = length < TOKENIZE_MAX_LINE_LENGTH ? length * length : 0
+    if (lines > 0 && (newline + 1 > SYNC_MAX_CHARACTERS || lines + 1 > SYNC_MAX_LINES || work + cost > SYNC_MAX_WORK)) break
+    work += cost
+    lines += 1
+    end = newline + 1
+  }
+  return end
+}
 
 let singleton: HighlighterCore | undefined
 
@@ -352,33 +390,26 @@ function highlighter(): HighlighterCore {
 
 /** Grammar ids whose lazy import is in flight or done, so it is requested once. */
 const requested = new Set<string>()
-/** Subscribers re-rendered after a lazy grammar registers (React callers). */
-const listeners = new Set<() => void>()
-/** Bumped on each lazy-grammar load; the `useSyncExternalStore` snapshot. */
-let loadCount = 0
+const listeners = new Map<string, Set<() => void>>()
+const loadedGrammars = new Set<string>()
 
-/**
- * Subscribe to lazy-grammar load completions; `listener` fires after a
- * {@link LAZY_GRAMMARS} grammar finishes registering on the singleton, so a
- * caller that rendered its plain fallback while the grammar loaded can
- * re-highlight. Uses the `useSyncExternalStore` subscribe signature; pair it with
- * {@link grammarLoadCount} as the snapshot. Returns an unsubscribe function.
- * @param listener - invoked (no args) on each grammar-load completion.
- * @returns a disposer that removes the listener.
- */
-export function subscribeGrammarLoaded(listener: () => void): () => void {
-  listeners.add(listener)
-  return () => { listeners.delete(listener) }
+/** Subscribe only to the normalized language used by this code surface. */
+export function subscribeGrammarLoaded(lang: string | undefined, listener: () => void): () => void {
+  const resolved = grammarForHint(lang)
+  if (resolved === undefined || !LAZY_GRAMMARS.has(resolved)) return () => {}
+  let subscribers = listeners.get(resolved)
+  if (subscribers === undefined) listeners.set(resolved, subscribers = new Set())
+  subscribers.add(listener)
+  return () => {
+    subscribers.delete(listener)
+    if (subscribers.size === 0) listeners.delete(resolved)
+  }
 }
 
-/**
- * The lazy-grammar load counter — a value that changes on every load, so a
- * `useSyncExternalStore` snapshot re-renders the subscriber when a grammar
- * registers. Opaque: only its identity across renders matters.
- * @returns the current load count.
- */
-export function grammarLoadCount(): number {
-  return loadCount
+/** Stable readiness snapshot: loading Python never invalidates TypeScript. */
+export function isGrammarLoaded(lang: string | undefined): boolean {
+  const resolved = grammarForHint(lang)
+  return resolved !== undefined && (!LAZY_GRAMMARS.has(resolved) || loadedGrammars.has(resolved))
 }
 
 /**
@@ -399,8 +430,12 @@ function ensureGrammar(resolved: string): boolean {
     requested.add(resolved)
     void load().then((mod) => {
       highlighter().loadLanguageSync(mod.default)
-      loadCount += 1
-      for (const listener of listeners) listener()
+      // A grammar module may also register embedded languages.
+      for (const id of highlighter().getLoadedLanguages()) {
+        if (loadedGrammars.has(id)) continue
+        loadedGrammars.add(id)
+        for (const listener of listeners.get(id) ?? []) listener()
+      }
     }).catch(() => {
       // The fence stays plain; forget the request so a later render can import the grammar again.
       requested.delete(resolved)
@@ -423,7 +458,8 @@ const warmupTimer = setTimeout(() => { highlighter() }, 0)
  * when `lang` maps to a registered grammar; `undefined` means the caller
  * renders its plain fallback. A lazy grammar not yet loaded returns `undefined`
  * for this call and loads in the background; subscribe with
- * {@link onGrammarLoaded} to re-highlight once it registers.
+ * {@link subscribeGrammarLoaded} to re-highlight once it registers. Blocks
+ * above the synchronous budget stay plain until the caller's async task completes.
  * @param code - the source text.
  * @param lang - the language hint (a markdown fence info string or a fixed caller id).
  * @returns the highlighted HTML, or `undefined` for unknown or not-yet-loaded languages.
@@ -432,6 +468,7 @@ export function highlightToHtml(code: string, lang: string | undefined): string 
   const resolved = grammarForHint(lang)
   if (resolved === undefined) return undefined
   if (!ensureGrammar(resolved)) return undefined
+  if (!withinHighlightBudget(code)) return undefined
   return highlighter().codeToHtml(code, {
     lang: resolved, theme: 'css-variables', tokenizeMaxLineLength: TOKENIZE_MAX_LINE_LENGTH,
   })
@@ -506,8 +543,10 @@ function lineSpans(line: ThemedToken[]): HighlightSpan[] {
  * completed line together with the grammar state after them;
  * {@link updateFrame} reports only newly completed lines plus the still-growing
  * last line, while {@link update} materializes the complete compatibility
- * result. Per-call tokenization cost therefore excludes the completed prefix,
- * and the result equals a from-scratch tokenization of the same code.
+ * result. Per-call tokenization cost therefore excludes the completed prefix
+ * and is bounded by the synchronous budget: lines beyond one frame's share stay
+ * plain until a later frame reaches them. Once a frame reports `settled`, the
+ * result equals a from-scratch tokenization of the same code.
  * Non-append input and a change of resolved grammar reset the cache and
  * re-tokenize fully, so any input stays correct.
  */
@@ -566,18 +605,29 @@ export class StreamingHighlightSession {
     if (resolved !== this.resolved || !code.startsWith(this.prefix)) this.reset(resolved)
     const firstNewLine = this.spans.length
     const rest = code.slice(this.prefix.length)
-    const lastNewline = rest.lastIndexOf('\n')
-    if (lastNewline >= 0) {
-      const grownEnd = rest[lastNewline - 1] === '\r' ? lastNewline - 1 : lastNewline
+    // One frame tokenizes at most one budget of newly completed lines. Text that
+    // arrives faster than that, or a fence first seen when it is already long,
+    // keeps its colored prefix: the backlog shows as plain lines and the
+    // following frames work through it.
+    const taken = streamingFrameQuota(rest.slice(0, rest.lastIndexOf('\n') + 1))
+    if (taken > 0) {
+      const grownEnd = rest[taken - 2] === '\r' ? taken - 2 : taken - 1
       const tokens = this.tokenize(resolved, rest.slice(0, grownEnd))
       for (const line of tokens) this.spans.push(lineSpans(line))
       this.state = highlighter().getLastGrammarState(tokens)
-      this.prefix = code.slice(0, this.prefix.length + lastNewline + 1)
+      this.prefix = code.slice(0, this.prefix.length + taken)
     }
+    const pending = rest.slice(taken)
+    // The growing last line is tokenized on its own whatever its length (the
+    // per-line cap bounds it); a backlog of whole lines waits for its frame.
+    const settled = !pending.includes('\n') || withinHighlightBudget(pending)
     this.lastFrame = {
       generation: this.generation,
       appended: this.spans.slice(firstNewLine),
-      tail: this.tokenize(resolved, rest.slice(lastNewline + 1)).map(lineSpans),
+      tail: settled
+        ? this.tokenize(resolved, pending).map(lineSpans)
+        : pending.split(/\r?\n/).map(line => [{ text: line, style: {} }]),
+      settled,
     }
     return this.lastFrame
   }
@@ -613,6 +663,8 @@ export interface StreamingHighlightFrame {
   readonly appended: readonly HighlightSpan[][]
   /** The still-growing final line or lines, replaced by the next frame. */
   readonly tail: readonly HighlightSpan[][]
+  /** False while {@link tail} still holds untokenized backlog lines shown as plain text. */
+  readonly settled: boolean
 }
 
 /**
@@ -635,6 +687,7 @@ export function highlightLines(code: string, lang: string | undefined): Highligh
   const resolved = grammarForHint(lang)
   if (resolved === undefined) return undefined
   if (!ensureGrammar(resolved)) return undefined
+  if (!withinHighlightBudget(code)) return undefined
   const { tokens } = highlighter().codeToTokens(code, {
     lang: resolved, theme: 'css-variables', tokenizeMaxLineLength: TOKENIZE_MAX_LINE_LENGTH,
   })
@@ -648,4 +701,53 @@ export function highlightLines(code: string, lang: string | undefined): Highligh
     ? tokens.slice(0, -1)
     : tokens
   return lines.map(line => line.map(token => ({ text: token.content, style: { color: token.color } })))
+}
+
+async function yieldHighlighting(): Promise<void> {
+  const scheduler = (globalThis as typeof globalThis & { scheduler?: { yield?: () => Promise<void> } }).scheduler
+  if (scheduler?.yield !== undefined) await scheduler.yield()
+  else await new Promise<void>(resolve => setTimeout(resolve, 0))
+}
+
+/** Keep each DOM upgrade small as well as each tokenization slice. */
+export const HIGHLIGHT_CHUNK_LINES = 32
+
+/** Highlight a large block in cancellable slices, carrying TextMate state across every line. */
+export async function highlightLinesAsync(
+  code: string,
+  lang: string | undefined,
+  signal: AbortSignal,
+  onChunk?: (lines: HighlightSpan[][]) => void,
+): Promise<HighlightSpan[][] | undefined> {
+  // Commit the readable plain fallback before starting any tokenization.
+  await yieldHighlighting()
+  const resolved = grammarForHint(lang)
+  if (signal.aborted || resolved === undefined || !ensureGrammar(resolved)) return undefined
+  const result: HighlightSpan[][] = []
+  let state: GrammarState | undefined
+  let deadline = performance.now() + 8
+  let chunkStart = 0
+  for (const [line] of splitLines(code)) {
+    if (signal.aborted) return undefined
+    const tokens = highlighter().codeToTokensBase(line, {
+      lang: resolved,
+      theme: 'css-variables',
+      tokenizeMaxLineLength: TOKENIZE_MAX_LINE_LENGTH,
+      ...(state === undefined ? {} : { grammarState: state }),
+    })
+    state = highlighter().getLastGrammarState(tokens)
+    result.push(lineSpans(tokens[0]!))
+    const chunkReady = result.length - chunkStart === HIGHLIGHT_CHUNK_LINES
+    if (chunkReady) {
+      onChunk?.(result.slice(chunkStart))
+      chunkStart = result.length
+    }
+    if (performance.now() >= deadline || chunkReady) {
+      await yieldHighlighting()
+      if (signal.aborted) return undefined
+      deadline = performance.now() + 8
+    }
+  }
+  if (chunkStart < result.length) onChunk?.(result.slice(chunkStart))
+  return result
 }

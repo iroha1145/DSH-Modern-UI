@@ -998,7 +998,7 @@
       "source": "packages/client/ui-model-selection/src/client/ModelSelect.tsx",
       "target": "src/vendor/model/client/ModelSelect.tsx",
       "sourceSha256": "72cdaf8eee5362562440ddd86519b039da7d012b1b980db40d283f148dad7d1e",
-      "targetSha256": "8cd9da6995aaddf5f31ca4686ce6a10036f09f7301243c7611c8264cc1355295",
+      "targetSha256": "cd5309f44e3c0a1208ba13b24dc978080aadb42b5acbbdd8358e57173937407d",
       "adapted": true
     },
     {
@@ -1180,8 +1180,8 @@
       "source": "packages/client/ui-primitives/src/code-highlighting.ts",
       "target": "src/vendor/primitives/code-highlighting.ts",
       "sourceSha256": "595e6554e9d5c14e91f09de15030e016200010c6af77a9e47e15b8d7e4fa58b2",
-      "targetSha256": "595e6554e9d5c14e91f09de15030e016200010c6af77a9e47e15b8d7e4fa58b2",
-      "adapted": false
+      "targetSha256": "997e9bdf8da423a9f235a35b32a7a7c3d95f8b30b69817836faa07f10021c63f",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/CodeCard.module.css",
@@ -1495,14 +1495,14 @@
       "source": "packages/client/ui-primitives/src/markdown/CodeBlock.module.css",
       "target": "src/vendor/primitives/markdown/CodeBlock.module.css",
       "sourceSha256": "bb7dbfd92b46c3303d539a263d2257c917d909e3b695a1ae9056262f51187072",
-      "targetSha256": "e0296d65e44582edb7a3b49fc9e82a8f374160c583ec6dc9401ed8d89e007653",
+      "targetSha256": "16bbf9f73342ca74f945f8b9301d0a4ccddfd3158174bf1d8c095f169b2e6c80",
       "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/markdown/CodeBlock.tsx",
       "target": "src/vendor/primitives/markdown/CodeBlock.tsx",
       "sourceSha256": "1829b570450f386cfe50054b3705af70fb0b75189e7bcf2786245b7b8632c93d",
-      "targetSha256": "525856b955874df780d506291e761e8bd2cc3dc0670818d742447c71ba5226ad",
+      "targetSha256": "a6a72350837aac2f9479c0bebbf06f4e73ea0b970e9ee32ed39c1229b5a3cdf8",
       "adapted": true
     },
     {
@@ -1517,7 +1517,7 @@
       "source": "packages/client/ui-primitives/src/markdown/highlight.ts",
       "target": "src/vendor/primitives/markdown/highlight.ts",
       "sourceSha256": "8f641cddd716d1d96908784514e8e557a882d8547a2f2a60f6bb8e19855709b0",
-      "targetSha256": "e60a81393e1eb28e3f0f43832e291eed43214daff37e21c20aede4e0443db001",
+      "targetSha256": "cce28c9e7ce5809989ae3562ca24b1b486e5480cfd6f7e86fcc5fdabf788fa84",
       "adapted": true,
       "adaptation": "A lazy grammar whose import fails is forgotten, so a later render can import it again instead of staying plain for the session."
     },
@@ -1546,7 +1546,7 @@
       "source": "packages/client/ui-primitives/src/markdown/katex.tsx",
       "target": "src/vendor/primitives/markdown/katex.tsx",
       "sourceSha256": "8227e04d29333d2568021ed012143237b457852bce25d82cf394d72b941e74a5",
-      "targetSha256": "b5969e4ae785e91f77e85c25c511157fc6c1471ad0a2551f82bcf52bb00d18ac",
+      "targetSha256": "9c5839915d60bfb735cbdd40d0a0fe306c18765c11175b4f99367b1b8eaaba32",
       "adapted": true
     },
     {
@@ -1638,7 +1638,7 @@
       "source": "packages/client/ui-primitives/src/Menu.tsx",
       "target": "src/vendor/primitives/Menu.tsx",
       "sourceSha256": "cf0333db81f314e6d1e49f44109499e2443e1301dd42a455429942cacb793b8c",
-      "targetSha256": "e473390e2725f6cdafa23edd5cdfd4bfc9d082889dd7e1dc23b0dbf8321e96f1",
+      "targetSha256": "d4d2da879d44b720d5ae3f07ac194bc231817342a2b02a776af3dba56614e04a",
       "adapted": true
     },
     {
@@ -1743,8 +1743,8 @@
       "source": "packages/client/ui-primitives/src/ReadBlock.tsx",
       "target": "src/vendor/primitives/ReadBlock.tsx",
       "sourceSha256": "51826cdfc3e53abf381423087c1a96fc87a97031c602bb917b8f8c1040801610",
-      "targetSha256": "51826cdfc3e53abf381423087c1a96fc87a97031c602bb917b8f8c1040801610",
-      "adapted": false
+      "targetSha256": "05b9d0903807a9c8b46cc3f5213ca5bb12b02561216220a59ba08b0e213b98e7",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/ReferenceIcon.tsx",
@@ -3519,7 +3519,7 @@
       "source": "packages/client/ui-user-questions/src/client/QuestionComposer.tsx",
       "sourceSha256": "53a88b7a0034d0a460b44b08e86754710a1d3c9496e761d9b2d41798be884db1",
       "target": "src/vendor/questions/QuestionFlow.tsx",
-      "targetSha256": "a1fcc5d693eddb1f854899600cf10ae407c866ba85c05be1ad29fb26f8e8b783",
+      "targetSha256": "6a7f08569f9379f3cb3ed72721414f5a2ed4d294f6c09cb15eb0e84093f62d33",
       "adapted": true
     },
     {

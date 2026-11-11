@@ -1,13 +1,14 @@
-import { Fragment, useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { Fragment, memo, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode, Ref } from 'react'
 import clsx from 'clsx'
 import { writeClipboard } from '../clipboard.ts'
 import { CodeToolbar, type CodeToolbarLabels } from '../CodeToolbar.tsx'
 import {
-  StreamingHighlightSession, grammarLoadCount, highlightToHtml, subscribeGrammarLoaded,
+  HIGHLIGHT_CHUNK_LINES, StreamingHighlightSession, highlightToHtml, withinHighlightBudget,
 } from './highlight.ts'
 import type { HighlightSpan, StreamingHighlightFrame } from './highlight.ts'
 import { useViewportHighlighting } from './useViewportHighlighting.ts'
+import { useDeferredHighlightChunks, useGrammarReady } from './useHighlighting.ts'
 import css from './CodeBlock.module.css'
 
 export interface CodeBlockProps {
@@ -68,6 +69,28 @@ function renderLine(line: readonly HighlightSpan[], index: number): ReactNode {
   )
 }
 
+// Completed groups retain their token DOM while only the next group upgrades.
+const DeferredLineGroup = memo(function DeferredLineGroup({ text, lines, numbered, last }: {
+  text: string; lines: HighlightSpan[][] | undefined; numbered: boolean; last: boolean
+}) {
+  return <span className={css.lineGroup}>{lines !== undefined ? lines.map(renderLine)
+    : numbered ? text.split('\n').map((line, index) => <Fragment key={index}>{index > 0 && '\n'}<span className="line">{line}</span></Fragment>)
+      : text}{!last && '\n'}</span>
+})
+
+function DeferredCode({ code, chunks, numbered }: { code: string; chunks: HighlightSpan[][][] | undefined; numbered: boolean }) {
+  const groups = useMemo(() => {
+    const lines = code.split(/\r?\n/)
+    const result: string[] = []
+    for (let index = 0; index < lines.length; index += HIGHLIGHT_CHUNK_LINES) result.push(lines.slice(index, index + HIGHLIGHT_CHUNK_LINES).join('\n'))
+    return result
+  }, [code])
+  const complete = chunks?.length === groups.length
+  return <pre {...SHIKI_PRE_PROPS} className={complete ? SHIKI_PRE_PROPS.className : css.plain}><code>
+    {groups.map((text, index) => <DeferredLineGroup key={index} text={text} lines={chunks?.[index]} numbered={numbered} last={index === groups.length - 1} />)}
+  </code></pre>
+}
+
 export function CodeBlock({
   code, lang, streaming, className, contentRef, lineNumbers = false, showHeader = true, copyLabel, copiedLabel, toolbarLabels, wrap,
 }: CodeBlockProps) {
@@ -75,10 +98,8 @@ export function CodeBlock({
   const sourceLines = lineNumbers ? trimmed.split('\n') : undefined
   const rootRef = useRef<HTMLDivElement>(null)
   const highlighting = useViewportHighlighting(rootRef, lang)
-  // Re-render when a lazy grammar finishes loading, so a fence that showed plain
-  // text while its language's grammar imported picks up highlighting. The
-  // snapshot value is opaque; only its change across renders drives the memo.
-  const loaded = useSyncExternalStore(subscribeGrammarLoaded, grammarLoadCount, grammarLoadCount)
+  const loaded = useGrammarReady(lang)
+  const withinBudget = useMemo(() => withinHighlightBudget(trimmed), [trimmed])
   // Streaming state lives in refs mutated inside the memo (the MarkdownText
   // streaming-cache pattern): the session's caches carry across chunks only
   // because the owner keys this instance stably while the fence grows.
@@ -103,9 +124,10 @@ export function CodeBlock({
     }
     if (streaming !== true) {
       const previous = lineCacheRef.current
-      if (previous !== null && previous.code === trimmed && previous.lang === lang) {
+      if (previous !== null && previous.code === trimmed && previous.lang === lang && previous.frame.settled) {
         // The settled fence keeps the streamed lines; the session's tokenizer caches are no longer needed, and a
-        // fence that streams again starts a new session (settledRef).
+        // fence that streams again starts a new session (settledRef). A frame that still shows backlog lines as
+        // plain text is not kept: the completed fence takes the ordinary synchronous or deferred path instead.
         sessionRef.current = null
         settledRef.current = true
         return previous.body
@@ -151,11 +173,16 @@ export function CodeBlock({
     return body
   }, [streaming, highlighting, trimmed, lang, loaded])
   const html = useMemo(
-    () => (highlighting && streaming !== true && streamedBody === undefined
+    () => (highlighting && withinBudget && streaming !== true && streamedBody === undefined
       ? highlightToHtml(trimmed, lang)
       : undefined),
-    [streaming, highlighting, streamedBody, trimmed, lang, loaded],
+    [streaming, highlighting, withinBudget, streamedBody, trimmed, lang, loaded],
   )
+  const deferredChunks = useDeferredHighlightChunks(
+    trimmed, lang, highlighting && !withinBudget && streaming !== true && streamedBody === undefined, loaded,
+  )
+  const deferredBody = !withinBudget && streaming !== true && streamedBody === undefined
+    ? <DeferredCode code={trimmed} chunks={deferredChunks} numbered={lineNumbers} /> : undefined
   const [copied, setCopied] = useState(false)
   const copyTimer = useRef<number | undefined>(undefined)
   const mounted = useRef(false)
@@ -175,10 +202,8 @@ export function CodeBlock({
 
   const onCopy = useCallback(() => {
     if (copied) return
-    /* v8 ignore next -- both arms always mount a <pre>; trimmed is the
-       typed fallback if the DOM shape ever diverges. */
-    const text = rootRef.current?.querySelector('pre')?.textContent ?? trimmed
-    void writeClipboard(text).then((ok) => {
+    // Copy source, independent of partial token DOM and newline normalization.
+    void writeClipboard(trimmed).then((ok) => {
       if (!ok || !mounted.current) return
       setCopied(true)
       window.clearTimeout(copyTimer.current)
@@ -191,6 +216,8 @@ export function CodeBlock({
   // shiki's own docs.
   const body = streamedBody !== undefined
     ? streamedBody
+    : deferredBody !== undefined
+      ? deferredBody
     : html === undefined
       ? (
         <pre className={css.plain}><code>{sourceLines === undefined ? trimmed : sourceLines.map((line, index) => (

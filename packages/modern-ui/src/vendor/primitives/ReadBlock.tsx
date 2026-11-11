@@ -1,16 +1,16 @@
-import { useCallback, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react'
+import { memo, useCallback, useMemo, useRef, useState, type CSSProperties } from 'react'
 import clsx from 'clsx'
 import { FoldToggle } from './FoldToggle.tsx'
 import { writeClipboard } from './clipboard.ts'
 import { CodeToolbar, type CodeToolbarLabels } from './CodeToolbar.tsx'
 import cardCss from './CodeCard.module.css'
 import {
-  grammarLoadCount,
   highlightLines,
-  subscribeGrammarLoaded,
+  withinHighlightBudget,
   type HighlightSpan,
 } from './markdown/highlight.ts'
 import { useViewportHighlighting } from './markdown/useViewportHighlighting.ts'
+import { useDeferredHighlightChunks, useGrammarReady } from './markdown/useHighlighting.ts'
 import css from './ReadBlock.module.css'
 
 /**
@@ -57,8 +57,15 @@ export interface ReadBlockLabels extends CodeToolbarLabels {
 }
 
 function renderSpans(spans: readonly HighlightSpan[]) {
-  return spans.map((span, index) => <span key={index} style={span.style}>{span.text}</span>)
+  return spans.map((span, index) => <span key={index} style={{ color: span.style.color }}>{span.text}</span>)
 }
+
+const ReadRow = memo(function ReadRow({ line, spans }: { line: ReadBlockLine; spans: readonly HighlightSpan[] | undefined }) {
+  return <div className={css.line}>
+    <span className={css.gutter} aria-hidden>{line.number}</span>
+    <span className={css.content}>{spans === undefined ? line.text : renderSpans(spans)}</span>
+  </div>
+})
 
 /**
  * Render a read tool result as a line-numbered, optionally syntax-highlighted
@@ -80,14 +87,14 @@ export function ReadBlock({
   // Whole-window highlighting preserves multiline grammar context; copy uses
   // the same text without gutter or banner chrome.
   const raw = useMemo(() => lines.map(line => line.text).join('\n'), [lines])
-  // Re-render when a lazy grammar finishes loading, so a read card that showed
-  // plain text while its language's grammar imported picks up highlighting. The
-  // snapshot value is opaque; only its change across renders drives the memo.
-  const loaded = useSyncExternalStore(subscribeGrammarLoaded, grammarLoadCount, grammarLoadCount)
-  const highlighted = useMemo(
-    () => highlighting ? highlightLines(raw, lang) : undefined,
-    [highlighting, raw, lang, loaded],
+  const loaded = useGrammarReady(lang)
+  const withinBudget = useMemo(() => withinHighlightBudget(raw), [raw])
+  const immediate = useMemo(
+    () => highlighting && withinBudget ? highlightLines(raw, lang) : undefined,
+    [highlighting, withinBudget, raw, lang, loaded],
   )
+  const deferred = useDeferredHighlightChunks(raw, lang, highlighting && !withinBudget, loaded)
+  const highlighted = useMemo(() => immediate ?? deferred?.flat(), [immediate, deferred])
   const [expanded, setExpanded] = useState(false)
   const [copied, setCopied] = useState(false)
   const [wrapped, setWrapped] = useState(false)
@@ -113,10 +120,7 @@ export function ReadBlock({
 
   const rows = (slice: readonly (readonly [ReadBlockLine, readonly HighlightSpan[] | undefined])[]) =>
     slice.map(([line, spans]) => (
-      <div key={line.number} className={css.line}>
-        <span className={css.gutter} aria-hidden>{line.number}</span>
-        <span className={css.content}>{spans === undefined ? line.text : renderSpans(spans)}</span>
-      </div>
+      <ReadRow key={line.number} line={line} spans={spans} />
     ))
 
   const gutterDigits = lines.reduce((digits, line) => Math.max(digits, String(line.number).length), 3)

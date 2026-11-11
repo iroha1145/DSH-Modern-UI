@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode, SyntheticEvent } from 'react'
-import { createPortal } from 'react-dom'
+import { createPortal, flushSync } from 'react-dom'
 import clsx from 'clsx'
 import { IconCheckOutlineRegular } from './icons/index.tsx'
 import { overlayTopMargin } from './overlay-top-margin.ts'
@@ -75,7 +75,7 @@ export interface MenuItemButtonProps {
    * directly before it draws no second line, and the list's first row draws none.
    */
   separatorBefore?: boolean
-  /** Row activation (click, Enter, or Tab on the focused row). */
+  /** Row activation (click, Enter, or Space on the focused row). */
   onSelect: () => void
 }
 
@@ -131,12 +131,10 @@ const MEASURE_STYLE: CSSProperties = { visibility: 'hidden', left: 0, top: 0 }
 const MENU_ROW = 'button[role="menuitem"], button[role="menuitemradio"], button[role="menuitemcheckbox"]'
 
 /**
- * Render an anchored dropdown menu. While the list is open its keys mirror the
- * composer's: Tab settles the focused row — from the trigger, Tab enters the
- * list instead — and Escape or Shift+Tab close it and return focus to the
- * anchor's first button, and selecting a row does the same — the rows unmount
- * with the list. Only a keyboard on the trigger or inside the list is
- * intercepted; Tab presses elsewhere on the page stay the browser's.
+ * Render an anchored dropdown menu. Arrows navigate its rows; Enter, Space,
+ * and click activate them. Tab and Shift+Tab close every menu level and
+ * continue the browser's traversal from the trigger. Escape closes one level
+ * and restores its trigger. Tab presses elsewhere keep the browser's traversal.
  * @param props.autoFocus - focus the first item on open; the arrow keys walk the list either way.
  * @param props.open - whether the list is showing (owner-controlled).
  * @param props.anchor - the trigger element (rendered in place).
@@ -216,7 +214,6 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
    * able to name by position.
    */
   const triggerRef = useRef<HTMLElement | null>(null)
-  const selectingWithTab = useRef(false)
 
   /**
    * Hand the keyboard back to the trigger that opened the menu — or, when the
@@ -241,8 +238,7 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
    * preview button): only a keyboard left on the closing list (or on the body
    * its removal produced) comes back to the trigger.
    */
-  const refocusAfterSelection = (): void => {
-    const navigation = selectingWithTab.current
+  const refocusAfterSelection = (navigation = false): void => {
     queueMicrotask(() => {
       if (openRef.current) return
       const active = document.activeElement
@@ -405,7 +401,9 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
       return
     }
     const active = document.activeElement
-    triggerRef.current = active instanceof HTMLElement && rootRef.current?.contains(active) === true ? active : null
+    // Host-owned pickers can place the real trigger outside this wrapper.
+    triggerRef.current = active instanceof HTMLElement && active !== document.body
+      && (rootRef.current?.contains(active) === true || getAnchorRect !== undefined) ? active : null
   }, [open])
 
   useEffect(() => {
@@ -436,7 +434,7 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
       const focused = document.activeElement
       const inSubmenu = submenuRef.current?.contains(focused) === true
       const insideList = listRef.current?.contains(focused) === true || inSubmenu
-      const anchored = rootRef.current?.contains(focused) === true || insideList
+      const anchored = rootRef.current?.contains(focused) === true || focused === triggerRef.current || insideList
       if ((e.key === 'ArrowLeft' && inSubmenu) || (e.key === 'Escape' && openSubmenuId !== null)) {
         e.preventDefault()
         if (e.repeat) return
@@ -446,7 +444,7 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
         setOpenSubmenuId(null)
         return
       }
-      if ((e.key === 'ArrowRight' || (e.key === 'Tab' && !e.shiftKey)) && focused instanceof HTMLButtonElement && focused.getAttribute('aria-haspopup') === 'menu' && focused.dataset.menuParent !== undefined && anchored) {
+      if (e.key === 'ArrowRight' && focused instanceof HTMLButtonElement && focused.getAttribute('aria-haspopup') === 'menu' && focused.dataset.menuParent !== undefined && anchored) {
         e.preventDefault()
         const parentId = focused.dataset.menuParent ?? null
         submenuParentRef.current = focused
@@ -463,39 +461,17 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
         onClose()
         if (anchored || autoFocus) refocusAnchor()
       }
-      // Tab settles like Enter and Shift+Tab leaves like Escape, so a menu's
-      // keys mean what they mean in the composer. Only a keyboard already on
-      // the trigger or inside the list is intercepted: Tab elsewhere on the
-      // page keeps the browser's traversal even while a menu is open.
       if (e.key === 'Tab') {
-        const list = listRef.current
-        if (list === null || !anchored) return
-        if (e.shiftKey) {
-          e.preventDefault()
-          onClose()
-          refocusAnchor(true)
-          return
-        }
-        // Tab settles the row it is on; from anywhere else in the menu region
-        // it enters the list. A focused control that is not a row (a retry
-        // button inside an error strip) and a list with no enabled row keep the
-        // browser's traversal instead of being swallowed.
-        if (insideList) {
-          if (focused instanceof Element && focused.matches(MENU_ROW)) {
-            e.preventDefault()
-            selectingWithTab.current = true
-            try { (focused as HTMLElement).click() }
-            finally { selectingWithTab.current = false }
-          }
-          return
-        }
-        const row = list.querySelector<HTMLButtonElement>('button:not(:disabled)')
-        if (row === null) return
-        e.preventDefault()
-        row.focus()
-        walkIndex.current = 0
+        if (!anchored) return
+        // Restore the sequential-navigation origin before removing portals.
+        // Commit the close before the browser computes its next Tab stop;
+        // the owning modal still handles its boundary in the bubble phase.
+        refocusAnchor(true)
+        flushSync(onClose)
         return
       }
+      // Editing controls own their caret/navigation keys, even inside a menu.
+      if (focused instanceof HTMLElement && (focused.matches('input, textarea, select') || focused.isContentEditable)) return
       // Arrows walk the list whether or not the menu focused its first item on
       // open, so `autoFocus` chooses only that entry behavior. A keyboard still
       // on the anchor enters at the end the step comes from — unless it already
@@ -528,15 +504,18 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
     }
     document.addEventListener('pointerdown', onPointerDown)
     const onEscape = (event: KeyboardEvent): void => { if (event.key === 'Escape') onKeyDown(event) }
-    const onOtherKey = (event: KeyboardEvent): void => { if (event.key !== 'Escape') onKeyDown(event) }
+    const onTab = (event: KeyboardEvent): void => { if (event.key === 'Tab') onKeyDown(event) }
+    const onOtherKey = (event: KeyboardEvent): void => { if (event.key !== 'Escape' && event.key !== 'Tab') onKeyDown(event) }
     document.addEventListener('keydown', onOtherKey)
     document.addEventListener('keydown', onEscape, true)
+    document.addEventListener('keydown', onTab, true)
     window.addEventListener('blur', onWindowBlur)
     return () => {
       composition.dispose()
       document.removeEventListener('pointerdown', onPointerDown)
       document.removeEventListener('keydown', onOtherKey)
       document.removeEventListener('keydown', onEscape, true)
+      document.removeEventListener('keydown', onTab, true)
       window.removeEventListener('blur', onWindowBlur)
     }
   }, [open, onClose, autoFocus, openSubmenuId, submenuPos])
@@ -656,7 +635,7 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
       onClick={(e) => {
         e.stopPropagation()
         const row = e.target instanceof Element ? e.target.closest(MENU_ROW) : null
-        if (row !== null && row.getAttribute('aria-haspopup') !== 'menu') refocusAfterSelection()
+        if (row !== null && row.getAttribute('aria-haspopup') !== 'menu') refocusAfterSelection(e.detail === 0)
       }}
       onPointerMove={collapseSubmenuFrom}
       onFocus={collapseSubmenuFrom}
