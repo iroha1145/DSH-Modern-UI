@@ -65,6 +65,21 @@ jobs:
         run: npm run typecheck
       - name: Unit tests
         run: npx vitest run --project unit
+      - name: Use direct Ubuntu HTTPS mirrors
+        run: |
+          sudo tee /etc/apt/sources.list.d/ubuntu.sources > /dev/null <<'SOURCES'
+          Types: deb
+          URIs: https://mirrors.edge.kernel.org/ubuntu
+          Suites: noble noble-updates noble-backports
+          Components: main restricted universe multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+
+          Types: deb
+          URIs: https://security.ubuntu.com/ubuntu
+          Suites: noble-security
+          Components: main restricted universe multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+          SOURCES
       - name: Install the browser for audit regressions
         run: node node_modules/playwright-core/cli.js install --with-deps chromium
       - run: npm run build
