@@ -19,7 +19,7 @@
     "lucide-react": "0.562.0",
     "zod": "4.6.7"
   },
-  "adaptation": "The OpenUI component library, generic @functions and prompt guidance of the Open Intelligent UI demo, rendered by @openuidev/react-lang inside DSH answers. Theme tokens are scoped to the rendered block and follow the DSH palette; weights use 400/500/600 and quotes have no side rule. The street map, YouTube, confetti, dashboard-data and color functions are omitted, consumer-only helpers are filtered from the prompt, icons resolve through lucide-react exports instead of dynamic imports, SearchImage runs the demo server routes' Wikipedia and Wikimedia Commons lookups from the browser, HtmlView runs in two nested sandboxes without network access (WebRTC constructors are removed as a best effort), pixel lengths and @Range are capped, an Image whose address fails no longer searches by its alt text, table numbers keep small values, stacked charts stack negative values downward, Code copies through the shared clipboard fallback, inputs register a reader of their current value in a field registry (components/fields.ts, which also holds the upstream useFieldName helper, now keyed by statement or instance instead of label) for @ToAssistant, reactive text and single-choice controls project their final store values to strings or finite numbers before display and field reads while generic array fields retain their values, Timer never coerces structured state, a Slider writes its clamped value back to its state when its bounds change and restores the chosen value when they widen, chart ticks and tooltips keep small non-zero values, lines and single areas are drawn as monotone curves while stacked areas keep straight edges, scatter x ticks keep small decimals, bars round only their outer corners (components/chart-math.ts), a chart keeps the value axis it drew while changing data still fits it and takes optional min and max bounds, so a Slider-driven chart no longer rescales at every rounded step, corner radii follow the host's larger superellipse corners while pills and circles stay round, interface words come from the block's dictionaries, the prompt options teach openui-lang fences inside Markdown answers, and @Replace and @Join check the length of the text they would build against the block budget before building it. Flow diagram components, the interface-word context and the generated prompt are original to DSH. No Next.js app, demo server route, OpenUI Cloud gateway or autofix client is distributed.",
+  "adaptation": "The OpenUI component library, generic @functions and prompt guidance of the Open Intelligent UI demo, rendered by @openuidev/react-lang inside DSH answers. Theme tokens are scoped to the rendered block and follow the DSH palette; weights use 400/500/600 and quotes have no side rule. The street map, YouTube, confetti, dashboard-data and color functions are omitted, consumer-only helpers are filtered from the prompt, icons resolve through lucide-react exports instead of dynamic imports, SearchImage runs the demo server routes' Wikipedia and Wikimedia Commons lookups from the browser, HtmlView runs in two nested sandboxes without network access (WebRTC constructors are removed as a best effort), pixel lengths and @Range are capped, an Image whose address fails no longer searches by its alt text, table numbers keep small values, stacked charts stack negative values downward, Code copies through the shared clipboard fallback, inputs register a reader of their current value in a field registry (components/fields.ts, which also holds the upstream useFieldName helper, now keyed by statement or instance instead of label) for @ToAssistant, reactive text and single-choice controls project their final store values to strings or finite numbers before display and field reads while generic array fields retain their values, Timer never coerces structured state, a Slider writes its clamped value back to its state when its bounds change and restores the chosen value when they widen, chart ticks and tooltips keep small non-zero values, lines and single areas are drawn as monotone curves while stacked areas keep straight edges, scatter x ticks keep small decimals, bars round only their outer corners (components/chart-math.ts), a chart keeps the value axis it drew while changing data still fits it and takes optional min and max bounds, so a Slider-driven chart no longer rescales at every rounded step, corner radii follow the host's larger superellipse corners while pills and circles stay round, Card variant \"glass\" and Box background \"glass\" render backdrop-blurred cards through an isolated ::before layer while Popover, chart tooltips and Carousel controls use frosted glass with opaque @supports, prefers-reduced-transparency and forced-colors fallbacks, controls and surfaces share the host's Paper Widgets elevation, focus and motion tokens (with anchored overlay triggers excluded from press scaling and Carousel respecting prefers-reduced-motion), interface words come from the block's dictionaries, the prompt options teach openui-lang fences inside Markdown answers, and @Replace and @Join check the length of the text they would build against the block budget before building it. Flow diagram components, the interface-word context and the generated prompt are original to DSH. No Next.js app, demo server route, OpenUI Cloud gateway or autofix client is distributed.",
   "files": [
     {
       "source": "src/lib/actions.ts",
@@ -39,21 +39,21 @@
       "source": "src/lib/components/components.css",
       "target": "src/vendor/openui/components/components.css",
       "sourceSha256": "8af6f161130ee3f70b0be7afd6b523a2a09eeb6b3c5a87d10f73a3c143789e04",
-      "targetSha256": "09b35732661a5324d41662ea8ab04c39aa581ac3e64976621ad4cb0997e6f914",
+      "targetSha256": "695bdde8d6debf827fb15e4ad3fb5ebbb39bdd03b8e901122649d27133c24188",
       "adapted": true
     },
     {
       "source": "src/lib/components/controls.tsx",
       "target": "src/vendor/openui/components/controls.tsx",
       "sourceSha256": "3a372d84ff59b02136eb1c78d72080b6b7ce41387b55bd455b8e757095414762",
-      "targetSha256": "5fe4bddbff96eb38cf4ea6c877831c41ccb8cf42c7ed681d28db8ce15063cbc8",
+      "targetSha256": "98dbc45958ae86763c1ed57520356babb740bd92c60d8a18c031b45295aa7650",
       "adapted": true
     },
     {
       "source": "src/lib/components/extra.tsx",
       "target": "src/vendor/openui/components/extra.tsx",
       "sourceSha256": "586d1a898eb6405fea4fab136b3ca0a4db626b559a17ee9125b4232de312ae1d",
-      "targetSha256": "648c401a96f32f894bd3fc759e25d553b8e7903c8d87471a9395cc22b1a7df30",
+      "targetSha256": "ea81845c3e1002bb2ca31ce468750e3295cdb7fc0db728954918b53fdfbb0eb3",
       "adapted": true
     },
     {
@@ -103,7 +103,7 @@
       "source": "src/lib/components/layout.tsx",
       "target": "src/vendor/openui/components/layout.tsx",
       "sourceSha256": "3707aa0745b61887d74692a37b9c787d15d0d7c9b5c38dfb6c9ecfbdce0beb4f",
-      "targetSha256": "4f485132311c010b09df33341b66fb00e6b3947e6899337ccba6d251d38afed6",
+      "targetSha256": "5ad73de3d195f5bf941bfef48d2028761f1bea517b3a25a48cedbbcf9a72697e",
       "adapted": true
     },
     {
@@ -131,7 +131,7 @@
       "source": "src/lib/components/style.ts",
       "target": "src/vendor/openui/components/style.ts",
       "sourceSha256": "422f53214a21f66a0a2bd4844fb9cdf5ec238a428681994569cf76340a54da1d",
-      "targetSha256": "36f3752be3e650e5dc348905790604548f09280b7e342773654611b6b8bd9ee3",
+      "targetSha256": "f0dd8650e176644c62a7181d28cef0682ea32c440b117b1df7cbeee5ef483cce",
       "adapted": true
     },
     {
@@ -159,7 +159,7 @@
       "source": "src/lib/components/theme.css",
       "target": "src/vendor/openui/components/theme.css",
       "sourceSha256": "ed324d7b3238bf2692caf3a5f805d24f259ded61dbbfdf175b353da6a284efde",
-      "targetSha256": "857ca204d147362c52cd15ef30e4294544c6f81efbf917115b74fbdd03287a0f",
+      "targetSha256": "df90db20a789a413dcbfa5d985a388fa3c9558be6853d98c029079ece21294f7",
       "adapted": true
     },
     {
@@ -213,19 +213,19 @@
       "source": "src/lib/library.ts",
       "target": "src/vendor/openui/library.ts",
       "sourceSha256": "b4d27f6d20a94cdaab801dd47cb6b26777a7db4d47672ea8c8d0aae590bd8666",
-      "targetSha256": "fc4d5dbce0e86bb4741361323b0bea18fcc245a7c1c3d3beb3d7ba608e4505db",
+      "targetSha256": "e41745a1aad10a7438b013bb19706fd8191ac0d07338203ba3f0b02a60cf2607",
       "adapted": true
     },
     {
       "source": "src/lib/prompt-options.ts",
       "target": "src/vendor/openui/prompt-options.ts",
       "sourceSha256": "af940aab9435ee2a5400f965e8d5f3d7a188d56987c7260082df738bb24e2eb2",
-      "targetSha256": "bc39c988dd165ad48bf5c04dcf5d823a2d72db5a1860f69e22d4b880af59de70",
+      "targetSha256": "436e807e0c674100b8e89f05d9202242c46a8708531e8fa4124aca6676956c5a",
       "adapted": true
     },
     {
       "target": "src/vendor/openui/system-prompt.generated.ts",
-      "targetSha256": "a3541361a46372ed9ae25a6cd967122c6328b0c644306f2607edbaa1e4e841ca",
+      "targetSha256": "d3176fc89022afed70978f29c8aa70d620c5f6d121380d12826fa273c991bf41",
       "authored": true
     }
   ]

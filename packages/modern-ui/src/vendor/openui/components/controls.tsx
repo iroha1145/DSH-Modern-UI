@@ -192,7 +192,7 @@ export const Pressable = defineComponent({
         tabIndex={0}
         aria-pressed={props.selected === undefined ? undefined : !!props.selected}
         aria-disabled={streaming || undefined}
-        className={cx("iui-pressable", props.selected && "is-selected")}
+        className={cx("iui-pressable", props.selected && "is-selected", props.radius === "full" && "iui-round")}
         style={{ padding: space(props.padding), background: bg(props.background), ...onColor(props.background), borderRadius: radius(props.radius) }}
         onClick={onClick}
         onKeyDown={onKeyDown}

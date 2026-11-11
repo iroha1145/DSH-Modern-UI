@@ -47,7 +47,10 @@ export const Carousel = defineComponent({
         observer.disconnect();
       };
     }, [items.length]);
-    const page = (dir: number) => ref.current?.scrollBy({ left: dir * ref.current.clientWidth * 0.85, behavior: "smooth" });
+    const page = (dir: number) => {
+      const reduced = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      ref.current?.scrollBy({ left: dir * ref.current.clientWidth * 0.85, behavior: reduced ? "auto" : "smooth" });
+    };
     return (
       <div className="iui-carousel">
         <div ref={ref} className="iui-carousel-track" style={{ gap: space(props.gap) }}>
