@@ -48,8 +48,10 @@ export const Carousel = defineComponent({
       };
     }, [items.length]);
     const page = (dir: number) => {
-      const reduced = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-      ref.current?.scrollBy({ left: dir * ref.current.clientWidth * 0.85, behavior: reduced ? "auto" : "smooth" });
+      const el = ref.current;
+      if (!el) return;
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      el.scrollBy({ left: dir * el.clientWidth * 0.85, behavior: reducedMotion ? "instant" : "smooth" });
     };
     return (
       <div className="iui-carousel">

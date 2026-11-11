@@ -18,6 +18,8 @@ export interface MenuItem {
   id: string
   label: ReactNode
   disabled?: boolean
+  /** Choice semantics; ordinary actions omit this property. */
+  choice?: 'radio' | 'checkbox'
   /** Effective binding supplied by the command owner; omitted for unbound actions. */
   shortcut?: { keys: readonly string[]; aria?: string | undefined }
   /** Leading icon (figma .Menu_cell gap 8). */
@@ -41,8 +43,16 @@ export interface MenuLabel {
   text: string
 }
 
-/** One primary-menu entry: a row, a separator, or a heading label. */
-export type MenuEntry = MenuItem | MenuSeparator | MenuLabel
+/** Named, independent set of menu choices. */
+export interface MenuGroup {
+  type: 'group'
+  id: string
+  label: string
+  items: readonly MenuItem[]
+}
+
+/** A row, separator, heading, or named group of choices. */
+export type MenuEntry = MenuItem | MenuSeparator | MenuLabel | MenuGroup
 
 /** Props for one component-rendered menu row. */
 export interface MenuItemButtonProps {
@@ -118,6 +128,7 @@ function isLabel(entry: MenuEntry): entry is MenuLabel {
 
 /** Unplaced portal list: hidden but laid out at a fixed origin so offsetWidth/offsetHeight are real. */
 const MEASURE_STYLE: CSSProperties = { visibility: 'hidden', left: 0, top: 0 }
+const MENU_ROW = 'button[role="menuitem"], button[role="menuitemradio"], button[role="menuitemcheckbox"]'
 
 /**
  * Render an anchored dropdown menu. While the list is open its keys mirror the
@@ -377,12 +388,12 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
     window.addEventListener('scroll', place, true)
     return () => { observer.disconnect(); cancelAnimationFrame(frame); window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true) }
   }, [open, openSubmenuId])
-  useEffect(() => {
-    if (openSubmenuId !== null && focusSubmenu.current) {
+  useLayoutEffect(() => {
+    if (openSubmenuId !== null && submenuPos !== null && focusSubmenu.current) {
       focusSubmenu.current = false
       submenuRef.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus()
     }
-  }, [openSubmenuId])
+  }, [openSubmenuId, submenuPos])
 
   // Opening remembers where the keyboard was, so closing can hand it back to
   // that control — an anchor wrapping several (a split button) cannot be asked
@@ -435,11 +446,11 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
         setOpenSubmenuId(null)
         return
       }
-      if (e.key === 'ArrowRight' && focused instanceof HTMLButtonElement && focused.getAttribute('aria-haspopup') === 'menu' && anchored) {
+      if ((e.key === 'ArrowRight' || (e.key === 'Tab' && !e.shiftKey)) && focused instanceof HTMLButtonElement && focused.getAttribute('aria-haspopup') === 'menu' && focused.dataset.menuParent !== undefined && anchored) {
         e.preventDefault()
         const parentId = focused.dataset.menuParent ?? null
         submenuParentRef.current = focused
-        if (openSubmenuId === parentId && submenuRef.current !== null) submenuRef.current.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus()
+        if (openSubmenuId === parentId && submenuPos !== null && submenuRef.current !== null) submenuRef.current.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus()
         else { focusSubmenu.current = true; setOpenSubmenuId(parentId) }
         return
       }
@@ -470,7 +481,7 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
         // button inside an error strip) and a list with no enabled row keep the
         // browser's traversal instead of being swallowed.
         if (insideList) {
-          if (focused instanceof Element && focused.getAttribute('role') === 'menuitem') {
+          if (focused instanceof Element && focused.matches(MENU_ROW)) {
             e.preventDefault()
             selectingWithTab.current = true
             try { (focused as HTMLElement).click() }
@@ -528,7 +539,7 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
       document.removeEventListener('keydown', onEscape, true)
       window.removeEventListener('blur', onWindowBlur)
     }
-  }, [open, onClose, autoFocus, openSubmenuId])
+  }, [open, onClose, autoFocus, openSubmenuId, submenuPos])
 
   // A close from selection/Escape/outside click outruns a pending grace close;
   // left armed it would shut a list reopened inside the grace window. Its own
@@ -538,7 +549,13 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
     if (!open) cancelClose()
   }, [open, cancelClose])
 
-  const renderEntry = (entry: MenuEntry) => {
+  const renderEntry = (entry: MenuEntry): ReactNode => {
+    if ('type' in entry && entry.type === 'group') {
+      return <div key={entry.id} role="group" aria-label={entry.label}>
+        <div className={css.label} aria-hidden="true">{entry.label}</div>
+        {entry.items.map(renderEntry)}
+      </div>
+    }
     if (isSeparator(entry)) {
       return <div key={entry.id} className={css.separator} role="separator" />
     }
@@ -557,7 +574,8 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
       >
         <button
           type="button"
-          role="menuitem"
+          role={entry.choice === undefined ? 'menuitem' : `menuitem${entry.choice}`}
+          aria-checked={entry.choice === undefined ? undefined : selected}
           className={clsx(css.item, selected && (selection === 'fill' ? css.selectedFill : css.selected), entry.danger === true && css.danger)}
           disabled={entry.disabled}
           aria-keyshortcuts={entry.shortcut?.aria}
@@ -587,7 +605,8 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
               <button
                 key={sub.id}
                 type="button"
-                role="menuitem"
+                role={sub.choice === undefined ? 'menuitem' : `menuitem${sub.choice}`}
+                aria-checked={sub.choice === undefined ? undefined : sub.id === selectedId || selectedIds?.includes(sub.id) === true}
                 className={css.item}
                 disabled={sub.disabled}
                 aria-keyshortcuts={sub.shortcut?.aria}
@@ -610,7 +629,7 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
   // focus, data row or component row — closes the open card. A parent opens
   // its card in its own handlers; rows inside the card are not top-level rows.
   const collapseSubmenuFrom = (e: SyntheticEvent<HTMLDivElement>): void => {
-    const row = e.target instanceof Element ? e.target.closest('button[role="menuitem"]') : null
+    const row = e.target instanceof Element ? e.target.closest(MENU_ROW) : null
     if (row === null || row.getAttribute('aria-haspopup') === 'menu') return
     if (row.closest('[role="menu"]') !== e.currentTarget) return
     setOpenSubmenuId(null)
@@ -636,7 +655,7 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
       // own handler ran; a submenu parent only opened its card.
       onClick={(e) => {
         e.stopPropagation()
-        const row = e.target instanceof Element ? e.target.closest('button[role="menuitem"]') : null
+        const row = e.target instanceof Element ? e.target.closest(MENU_ROW) : null
         if (row !== null && row.getAttribute('aria-haspopup') !== 'menu') refocusAfterSelection()
       }}
       onPointerMove={collapseSubmenuFrom}

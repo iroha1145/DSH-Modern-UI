@@ -123,7 +123,7 @@ export const Button = defineComponent({
         onClick={() => run(label, props.action, true)}
       >
         {props.icon ? <Glyph name={props.icon} size={props.size === "sm" ? 14 : 16} /> : null}
-        {label}
+        <span className="iui-button-label">{label}</span>
       </button>
     );
   },

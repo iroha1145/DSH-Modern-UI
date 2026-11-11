@@ -62,13 +62,3 @@ export function createLaunchLifecycle() {
     },
   }
 }
-
-// The caller retains its operation lease until the child and its stdio close.
-export async function launchChild(executable, args, options) {
-  const lifecycle = createLaunchLifecycle()
-  try {
-    return await lifecycle.run(executable, args, options)
-  } finally {
-    lifecycle.dispose()
-  }
-}

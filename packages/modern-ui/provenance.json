@@ -680,7 +680,7 @@
       "source": "packages/client/ui-conversation/src/client/settings/EnterBehaviorRow.tsx",
       "target": "src/vendor/conversation/client/settings/EnterBehaviorRow.tsx",
       "sourceSha256": "c4feff11ad20f14d3c534fe7da2ca6b7a680b66dd3dc6f7e5036df7391282321",
-      "targetSha256": "744332b86092e55890a16108e0a9e79e473f12d84782648768b34185d2c40dcd",
+      "targetSha256": "95b6ea80d09bbad0eec9569e98436f0daedf5d9d9ba7cf5d051fefbf9dd6feff",
       "adapted": true
     },
     {
@@ -913,14 +913,14 @@
       "source": "packages/client/ui-layout/src/client/AppFrame.module.css",
       "target": "src/vendor/layout/AppFrame.module.css",
       "sourceSha256": "cf23e7703655143656d73b628f579be01cdb7ec62feaff5c9fc913b6f17403e4",
-      "targetSha256": "6315165904c7837af493f0804b26258af4937a3eed1e68af2268fc8c37872d0b",
+      "targetSha256": "b4e1b7c76ceeee6b985667f7f14e42c2e876e34636de162789483a87acbe6c49",
       "adapted": true
     },
     {
       "source": "packages/client/ui-layout/src/client/AppFrame.tsx",
       "target": "src/vendor/layout/AppFrame.tsx",
       "sourceSha256": "f4d0ff65db73b83c93f2d068991c2c02e1018adacc4979c17b188d76e81b29d1",
-      "targetSha256": "e1bd884faa6b809fc466722eb07dd9663fde535e315d16fe013389ed3dccecc3",
+      "targetSha256": "ca64f78d4042ca25b608613c2b809b131f0bc217b9c82dcdeac4e34197426a6f",
       "adapted": true
     },
     {
@@ -941,7 +941,7 @@
       "source": "packages/client/ui-layout/src/client/index.ts",
       "target": "src/vendor/layout/index.ts",
       "sourceSha256": "f200d6056230ca2821157fe30f2c1704e5a7674bec13521a8f63c059a30fc145",
-      "targetSha256": "053d1c1d0780791e106cd2436a46240759b79d9eca0cbb415d5b73b10457f21f",
+      "targetSha256": "6843f0ea897c13bcef75cc4f818435b9cb93155876eb830b0485740085ffa5e3",
       "adapted": true
     },
     {
@@ -955,7 +955,7 @@
       "source": "packages/client/ui-layout/src/client/shortcut-locales.ts",
       "target": "src/vendor/layout/shortcut-locales.ts",
       "sourceSha256": "5f151fba129e4cb5d50dd8ea59502fc6011df03b9b735a356986fd9211c28608",
-      "targetSha256": "f35768ae268ba4ef4b6e596eb7054725fca9942ad22553808a4f0a9b649f1171",
+      "targetSha256": "106b3a080f230b6f1212909006f73d6fd2b722748ace14eacee3059f57fa7040",
       "adapted": true
     },
     {
@@ -990,7 +990,7 @@
       "source": "packages/client/ui-model-selection/src/client/ModelSelect.module.css",
       "target": "src/vendor/model/client/ModelSelect.module.css",
       "sourceSha256": "0de0065c688b56e0d76f732f483ab0414d02a8352c8a8f39a68331e4b4b641dc",
-      "targetSha256": "c57abab7059aeeb0747bc00633b48a0c7be798a4fa430fd41aa602119acc8cb0",
+      "targetSha256": "9ad603cf92bd84a721f155557f5f5a2f46c3f46ad0dd0f3094702775062b875a",
       "adapted": true,
       "adaptation": "Phone-width composer rows (container ≤480px) keep only the bulb for the effort and drop the chevron; the trigger cap adds the row slack that control-row-layout.ts publishes."
     },
@@ -1638,7 +1638,7 @@
       "source": "packages/client/ui-primitives/src/Menu.tsx",
       "target": "src/vendor/primitives/Menu.tsx",
       "sourceSha256": "cf0333db81f314e6d1e49f44109499e2443e1301dd42a455429942cacb793b8c",
-      "targetSha256": "eac409d1a990fe17742fcefb5162fcb1f220884d28bdd3daf121ace54481a782",
+      "targetSha256": "e473390e2725f6cdafa23edd5cdfd4bfc9d082889dd7e1dc23b0dbf8321e96f1",
       "adapted": true
     },
     {
@@ -1876,14 +1876,14 @@
       "source": "packages/client/ui-primitives/src/Toast.module.css",
       "target": "src/vendor/primitives/Toast.module.css",
       "sourceSha256": "d1f293eb66f7deaf8a0419023028e092cede2ce94544214924aa373f9876fa8e",
-      "targetSha256": "410a2e0cd50aa4b528337c52303d0cf20f5beca3415139232d2aebdb129c7abc",
+      "targetSha256": "8d33f3691aea0cde4daf5e85c43f58967ce4095e2b1170d080d0c011baae5484",
       "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/Toast.tsx",
       "target": "src/vendor/primitives/Toast.tsx",
       "sourceSha256": "85ed92693c910decadb38f095764bbdb3a1c6992b60bf63dedabdbebccd309b6",
-      "targetSha256": "41b6816e7305b888a6724d0cb8c2a029c9f6ef8bf8186cec9526c07ec36d88cb",
+      "targetSha256": "73d22ccf5daccc1641daebb260900d75d83d512d0c69b15de90f799090be203a",
       "adapted": true
     },
     {
@@ -2584,7 +2584,7 @@
       "source": "packages/client/ui-workspace/src/client/rows/Rows.tsx",
       "target": "src/vendor/workspace/client/rows/Rows.tsx",
       "sourceSha256": "d8b7103c28e8aa8b3dd444992a30552e392a7f164966819e62466cae6bcf60f6",
-      "targetSha256": "e8d91a1861e6f2b2e21e9b199e03dd96018254a0f1a4ca2bc5c69ee51f99051a",
+      "targetSha256": "74f9802150316ac4559e0dbffa04b7acae32da2451777c477252654d3644b161",
       "adapted": true
     },
     {
@@ -2598,7 +2598,7 @@
       "source": "packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.tsx",
       "target": "src/vendor/workspace/client/rows/WorkspaceBrowser.tsx",
       "sourceSha256": "733c94a0b663b7f112b5a296689fcbae86ea7dc7927ec7a3159996cb0957e719",
-      "targetSha256": "4463e83dfd815194d6917429aff92e4e18f53084c1be0f5ddeebfa2c2e061545",
+      "targetSha256": "d0f680f796a00b3b4840928a25ad7adf7928f883877f9574a528a10f73e5e0be",
       "adapted": true
     },
     {
@@ -2696,7 +2696,7 @@
       "source": "packages/client/ui-workspace/src/client/WorkspacePicker.tsx",
       "target": "src/vendor/workspace/client/WorkspacePicker.tsx",
       "sourceSha256": "37431a4bf706729c16a6502f8e57222a373f182bf165011f1cdb4f21678f04f8",
-      "targetSha256": "39632d23f9af56d3b46be9b4e4e2244a73f266a77fdfcda3dce02ba4bc5e3ab9",
+      "targetSha256": "753b957d74a17cf0c0cd33c5532654aaff6e8693bc1b58c4d89e21acb7494993",
       "adapted": true
     },
     {
@@ -2710,7 +2710,7 @@
       "source": "packages/client/ui-chat/src/client/settings/PreferenceRow.tsx",
       "target": "src/vendor/chat/client/settings/PreferenceRow.tsx",
       "sourceSha256": "f16f2b1103247e918e5831340677dbb78c225a27697ca3025ae65cc2a2559979",
-      "targetSha256": "31eb1ff360bcad58fe9bf67ae0ec7ac3b261fb38222dd6e097b4f32f0e0cd42d",
+      "targetSha256": "877e4dfca151bcd6324406cf5ead6d21c4833e1c220970203f6ba8a333eef87b",
       "adapted": true
     },
     {
@@ -3477,7 +3477,7 @@
       "source": "packages/client/ui-plugin-market/src/client/DiscoverSection.tsx",
       "sourceSha256": "6082724fbb6332113c2574c8f7066160cb773cd7c3e4ba6a0d173c1463ada918",
       "target": "src/vendor/plugin-market/DiscoverSection.tsx",
-      "targetSha256": "12482ad47b55af7d121592c6eeb5382ca691e9944531401ce95511db559b9d2e",
+      "targetSha256": "18e800ba95ff405a88d69255fd5e3269fcccd901e9e0c897e359538402a04b4e",
       "adapted": true
     },
     {
@@ -3519,7 +3519,7 @@
       "source": "packages/client/ui-user-questions/src/client/QuestionComposer.tsx",
       "sourceSha256": "53a88b7a0034d0a460b44b08e86754710a1d3c9496e761d9b2d41798be884db1",
       "target": "src/vendor/questions/QuestionFlow.tsx",
-      "targetSha256": "faa88e1efe8b02f5fb61931263ba686217af30c45c80052939af3e08bafd1b33",
+      "targetSha256": "a1fcc5d693eddb1f854899600cf10ae407c866ba85c05be1ad29fb26f8e8b783",
       "adapted": true
     },
     {
@@ -3584,7 +3584,7 @@
     },
     {
       "target": "src/previews.ts",
-      "targetSha256": "7f047c8bf580552f78c132417f8b2c3034b393b037abf61bf74d03337fdc9599",
+      "targetSha256": "913ec0fbe3539537bd1c423ef2a74f046292b69aea2b6566bde3a56849e8e802",
       "description": "Registers the Modern Markdown file preview body and plan preview body that shadow the official keyed entries (priority -100) so both previews fold code fences."
     },
     {
@@ -3604,7 +3604,7 @@
     },
     {
       "target": "src/client.tsx",
-      "targetSha256": "7bfdb34a5f2f30aa92eb7b37a763e4a11ea041819c63e5607c4b4424ea26c9b6",
+      "targetSha256": "316ab6ef374801ca420eddfda4d790dc30f69dcb09af70b309122252db7eba1a",
       "description": "Original plugin composition, public owner selection and presentation/service registration."
     },
     {
@@ -3704,7 +3704,7 @@
     },
     {
       "target": "src/jev-tool.ts",
-      "targetSha256": "d8dace0ccd0b2922c16ca763c14eb051c2f569041fb11140c644d0a32fa16a37",
+      "targetSha256": "8560c5b0b3cdfc5c683b6755407e13b4a010d2655b3366bf752b4d8a11b3d6aa",
       "description": "Original optional TypeSafe Jev presentation advice tool: registered only in main agents' own tool scopes while the presentation prompt, jev.enabled and a resolvable key allow it; on a model call it sends the user messages of the turn being processed plus the model's structure summary (at most 600 characters) as one System One choice per turn, and returns an ordinary, ignorable tool result; a missing key, errors and cancellation return \"no suggestion\" and never fail a turn."
     },
     {

@@ -81,13 +81,3 @@ export async function acquireOperationLock(root) {
     },
   })
 }
-
-/** Run one operation under the lease, releasing it on success or rejection. */
-export async function withOperationLock(root, operation) {
-  const lease = await acquireOperationLock(root)
-  try {
-    return await operation(lease)
-  } finally {
-    await lease.release()
-  }
-}

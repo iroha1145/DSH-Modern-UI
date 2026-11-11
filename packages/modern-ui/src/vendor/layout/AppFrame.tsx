@@ -20,7 +20,7 @@ import type { ReactNode } from 'react'
 import type {
   PropsLocale, PropsRenderSlots, PropsRuntime, PropsStore,
 } from '@deepseek-ai/dsh-client-ui-slots'
-import { CENTER_MIN, clampWidth, computeColumns, RIGHTBAR_DEFAULT_RATIO, RIGHTBAR_MAX_RATIO, RIGHTBAR_MIN, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_COLLAPSED, SIDEBAR_DEFAULT } from './columns.ts'
+import { CENTER_MIN, clampWidth, computeColumns, RIGHTBAR_DEFAULT_RATIO, RIGHTBAR_MAX_RATIO, RIGHTBAR_MIN, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_COLLAPSED, SIDEBAR_DEFAULT, SIDEBAR_MIN, SIDEBAR_MAX } from './columns.ts'
 import { DocumentTitle } from './DocumentTitle.tsx'
 import type { createLayoutStore } from './stores.ts'
 import css from './AppFrame.module.css'
@@ -30,7 +30,7 @@ export type AppFrameProps =
   & PropsRuntime<'root'>
   & PropsRenderSlots<'sidebar' | 'main' | 'rightbar' | 'shell.bottom' | 'shell.overlay' | 'shell.leading'>
   & PropsStore<ReturnType<typeof createLayoutStore>>
-  & PropsLocale<'common'>
+  & PropsLocale<'modern-layout-shortcuts'>
 
 /** Center column grid item (session-body building block). */
 function CenterColumn(props: { children?: ReactNode }) {
@@ -56,7 +56,7 @@ function RightbarColumn(props: { children?: ReactNode }) {
  * One drag handle: pointer capture, rAF-throttled dx reports against the drag-start origin.
  * `side` keys the hover-reveal CSS to the owning column.
  */
-function DragHandle(props: { side: 'sidebar' | 'rightbar'; left: number; onStart: () => void; onDrag: (dx: number) => void; onEnd: () => void }) {
+function DragHandle(props: { side: 'sidebar' | 'rightbar'; left: number; onStart: () => void; onDrag: (dx: number) => void; onEnd: () => void; label: string; width: number; min: number; max: number; onResize: (width: number) => void }) {
   const [dragging, setDragging] = useState(false)
   const origin = useRef(0)
   const latest = useRef(0)
@@ -107,6 +107,24 @@ function DragHandle(props: { side: 'sidebar' | 'rightbar'; left: number; onStart
     <div
       className={css.handle}
       style={props.side === 'sidebar' ? { gridColumn: '2 / 3', left: 0 } : { left: props.left }}
+      role="separator"
+      tabIndex={0}
+      aria-label={props.label}
+      aria-orientation="vertical"
+      aria-valuenow={Math.round(props.width)}
+      aria-valuemin={Math.round(props.min)}
+      aria-valuemax={Math.round(props.max)}
+      onKeyDown={event => {
+        if (event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing) return
+        const step = event.shiftKey ? 40 : 10
+        const direction = props.side === 'sidebar' ? 1 : -1
+        const width = event.key === 'Home' ? props.min : event.key === 'End' ? props.max
+          : event.key === 'ArrowRight' ? props.width + step * direction
+          : event.key === 'ArrowLeft' ? props.width - step * direction : null
+        if (width === null) return
+        event.preventDefault()
+        props.onResize(clampWidth(width, props.min, props.max))
+      }}
       data-side={props.side}
       data-dragging={dragging || undefined}
       onPointerDown={onPointerDown}
@@ -344,9 +362,9 @@ export function AppFrame({
         </div>
       )}
       {/* The collapsed rail is fixed-width: no resize handle while closed. */}
-      {!mobile && !sidebarCollapsed && <DragHandle side="sidebar" left={cols.sidebar} onStart={onSidebarStart} onDrag={onSidebarDrag} onEnd={onDragEnd} />}
+      {!mobile && !sidebarCollapsed && <DragHandle side="sidebar" label={t('resizeSidebar')} width={cols.sidebar} min={SIDEBAR_MIN} max={SIDEBAR_MAX} onResize={actions.setSidebar} left={cols.sidebar} onStart={onSidebarStart} onDrag={onSidebarDrag} onEnd={onDragEnd} />}
       {layoutInfo.rightbarShown && !layoutInfo.rightbarFullscreen && normal.rightbar > 0 && (
-        <DragHandle side="rightbar" left={viewport - normal.rightbar} onStart={onRightbarStart} onDrag={onRightbarDrag} onEnd={onDragEnd} />
+        <DragHandle side="rightbar" label={t('resizeRightbar')} width={normal.rightbar} min={RIGHTBAR_MIN} max={Math.min(viewport * RIGHTBAR_MAX_RATIO, viewport - normal.sidebar - CENTER_MIN)} onResize={actions.setRightbar} left={viewport - normal.rightbar} onStart={onRightbarStart} onDrag={onRightbarDrag} onEnd={onDragEnd} />
       )}
     </div>
   )

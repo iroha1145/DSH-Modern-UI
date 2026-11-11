@@ -127,6 +127,7 @@ export function WorkspacePickFlow({
   const items: MenuEntry[] = pinAdd
     ? listed.map(({ id, title, path, suffix }) => ({
       id,
+      choice: 'radio',
       // The title gives way first, so the suffix that tells the rows apart
       // stays visible; the native tooltip carries the full path.
       label: suffix === undefined

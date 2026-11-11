@@ -16,7 +16,7 @@ import type { RefObject } from 'react'
 import clsx from 'clsx'
 import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import {
-  HoverCard, IconArchiveOutlineRegular, IconEditOutlineRegular,
+  HoverCard, IconArchiveOutlineRegular, IconEditOutlineRegular, IconCopyOutlineRegular, IconCheckOutlineRegular, IconWarningOutlineRegular, MenuItemButton, writeClipboard,
   IconEllipsisOutlineRegular, IconFolderCloseRegular, IconFolderOpenRegular,
   IconNewChatOutlineRegular, IconPinFillRegular, IconTrashOutlineRegular,
   IconTriangleRightFillRegular, IconUnarchiveOutlineRegular, Menu, relativeTime, StateDot, Tooltip, useRowDragPreview,
@@ -28,6 +28,23 @@ import type { WorkspaceId } from '@deepseek-ai/dsh-api-workspace-controller/clie
 import type { MenuOpenState, WorkspaceBrowserProps } from '../contract/slots.ts'
 import type { GroupNode, SearchResultNode, SessionNode } from '../tree.ts'
 import css from './Rows.module.css'
+
+/** Copy feedback survives the menu closing; writes use the same full value as the hover card. */
+function useRowCopy() {
+  const [result, setResult] = useState<'copied' | 'failed' | null>(null)
+  useEffect(() => {
+    if (result === null) return
+    const timer = setTimeout(() => { setResult(null) }, 2000)
+    return () => { clearTimeout(timer) }
+  }, [result])
+  return { result, copy: (text: string, trigger: HTMLButtonElement | null) => {
+    trigger?.focus({ preventScroll: true })
+    setResult(null)
+    const writing = writeClipboard(text)
+    if (document.activeElement === document.body) trigger?.focus({ preventScroll: true })
+    void writing.then(ok => { setResult(ok ? 'copied' : 'failed') })
+  } }
+}
 
 /** The standard locale seat, prop-passed from the browser root. */
 type RowTranslate = WorkspaceBrowserProps['t']
@@ -212,7 +229,7 @@ type ProjectRowItemProps = {
   containsCurrentDescendant?: boolean
   onToggle: () => void
   onCreate: () => void
-  /** Real-Workspace actions; absent for the ungrouped bucket (no menu shown). */
+  /** Optional Workspace mutations; copying an available path is independent. */
   actions?: { rename: () => void; delete: () => void } | undefined
   /** Present only for real Workspace rows in the grouped view. */
   drag?: WorkspaceRowDragProps | undefined
@@ -280,8 +297,11 @@ function ProjectRow({
   const label = row.workspaceId === undefined ? t('group.ungrouped') : row.label
   const active = containsCurrentDescendant || (group.expanded && group.containsCurrent)
   const [menuOpen, setMenuOpen] = useState(false)
+  const copy = useRowCopy()
+  const menuTriggerRef = useRef<HTMLButtonElement>(null)
   const dragPreview = useRowDragPreview(css.dragPreview as string)
   const workspaceMenuItems = [
+    ...row.cwd !== undefined && row.cwd !== '' ? [{ id: 'copy', label: t('copy'), icon: <IconCopyOutlineRegular /> }] : [],
     ...access.rename ? [{ id: 'rename', label: t('rename'), icon: <IconEditOutlineRegular /> }] : [],
     ...access.delete ? [{ id: 'delete', label: t('delete.workspace'), icon: <IconTrashOutlineRegular />, danger: true }] : [],
   ]
@@ -322,14 +342,17 @@ function ProjectRow({
       <span className={css.projectText}>
         <span className={css.title}>{label}</span>
       </span>
+      <span role="status" className={css.visuallyHidden}>{copy.result === 'copied' ? t('hover.copied') : copy.result === 'failed' ? t('toast.sessionIdCopyFailed') : ''}</span>
       <span className={css.rowActions}>
-        {actions !== undefined && workspaceMenuItems.length > 0 && (
+        {workspaceMenuItems.length > 0 && (
           <Menu
             open={menuOpen}
             onClose={() => { setMenuOpen(false) }}
             items={workspaceMenuItems}
             onSelect={(id) => {
               setMenuOpen(false)
+              if (id === 'copy' && row.cwd !== undefined) { copy.copy(row.cwd, menuTriggerRef.current); return }
+              if (actions === undefined) return
               // Unknown ids leave before the dispatch: a future menu row must
               // not inherit the destructive branch as an else fallback.
               /* v8 ignore next -- Menu can emit only the rename and delete rows supplied above. */
@@ -343,10 +366,12 @@ function ProjectRow({
               <button
                 type="button"
                 className={css.iconButton}
+                title={copy.result === 'copied' ? t('hover.copied') : copy.result === 'failed' ? t('toast.sessionIdCopyFailed') : undefined}
+                ref={menuTriggerRef}
                 aria-label={t('actions.workspace.aria', { name: label })}
                 onClick={(e) => { e.stopPropagation(); setMenuOpen(v => !v) }}
               >
-                <IconEllipsisOutlineRegular />
+                {copy.result === 'copied' ? <IconCheckOutlineRegular /> : copy.result === 'failed' ? <IconWarningOutlineRegular /> : <IconEllipsisOutlineRegular />}
               </button>
             )}
           />
@@ -661,6 +686,8 @@ export function SessionNodeItem({
   const reorderable = useSessionAccess(node.id, 'workspace/insertSessionBefore')
   const draggable = drag !== undefined && reorderable && !row.blank && !row.archived
   const [menuOpen, setMenuOpen] = useState(false)
+  const copy = useRowCopy()
+  const menuTriggerRef = useRef<HTMLButtonElement>(null)
   const dragPreview = useRowDragPreview(css.dragPreview as string)
   // The menu's open state, bound into the row entries' `useMenuOpenState` hook.
   const menuOpenState = useMemo((): MenuOpenState => [menuOpen, setMenuOpen], [menuOpen])
@@ -772,6 +799,7 @@ export function SessionNodeItem({
           {row.pinned && !row.archived && <PinnedIndicator t={t} />}
         </span>
       )}
+      <span role="status" className={css.visuallyHidden}>{copy.result === 'copied' ? t('hover.copied') : copy.result === 'failed' ? t('toast.sessionIdCopyFailed') : ''}</span>
       {/* The strip's clicks stay in the strip: the trigger and every
           row.action entry act without also opening the row, so an entry's
           button needs no propagation handling of its own. */}
@@ -786,13 +814,16 @@ export function SessionNodeItem({
               <button
                 type="button"
                 className={css.iconButton}
+                title={copy.result === 'copied' ? t('hover.copied') : copy.result === 'failed' ? t('toast.sessionIdCopyFailed') : undefined}
+                ref={menuTriggerRef}
                 aria-label={t('actions.session.aria', { name: title })}
                 onClick={() => { setMenuOpen(v => !v) }}
               >
-                <IconEllipsisOutlineRegular />
+                {copy.result === 'copied' ? <IconCheckOutlineRegular /> : copy.result === 'failed' ? <IconWarningOutlineRegular /> : <IconEllipsisOutlineRegular />}
               </button>
             )}
           >
+            {row.title !== '' && <MenuItemButton icon={<IconCopyOutlineRegular />} onSelect={() => { copy.copy(row.title, menuTriggerRef.current); setMenuOpen(false) }}>{t('copy')}</MenuItemButton>}
             {renderSlot(
               'sidebar.workspaces.session.menu.item',
               { sessionId: node.id, displayTitle: row.title },

@@ -673,6 +673,34 @@ describe('installJevTool', () => {
     expect(env.scope.logger.warn).toHaveBeenCalledTimes(2)
   })
 
+  test('a rejecting credential provider keeps session creation live, reports only transitions, and recovers', async () => {
+    const env = host(undefined)
+    const main = env.main()
+    await env.install()
+    expect(env.scope.logger.warn).not.toHaveBeenCalled()
+    env.scope.credentials.resolve.mockRejectedValue(new Error('Authorization: Bearer sk-private-provider-body'))
+    await expect(env.created(main)).resolves.toBeUndefined()
+    expect(main.state.live).toBeUndefined()
+    expect(env.scope.logger.warn).toHaveBeenCalledExactlyOnceWith(
+      'jev: credential provider unavailable; the tool stays hidden until credential resolution recovers',
+    )
+    await env.keyUpdated()
+    await env.created(env.main('another'))
+    expect(env.scope.logger.warn).toHaveBeenCalledTimes(1)
+    env.scope.credentials.resolve.mockResolvedValue({ value: 'recovered-key', source: 'file' })
+    await env.keyUpdated()
+    expect(main.state.live?.name).toBe(JEV_TOOL)
+    env.scope.credentials.resolve.mockResolvedValue(undefined)
+    await env.keyUpdated()
+    expect(main.state.live).toBeUndefined()
+    expect(env.scope.logger.warn).toHaveBeenCalledTimes(1)
+    env.scope.credentials.resolve.mockRejectedValue(new Error('another sensitive provider failure'))
+    await env.keyUpdated()
+    expect(env.scope.logger.warn).toHaveBeenCalledTimes(2)
+    expect(JSON.stringify(env.scope.logger.warn.mock.calls)).not.toMatch(/sk-private|recovered-key|sensitive|Authorization/)
+    await env.dispose()
+  })
+
   test('switching Jev or the presentation prompt off removes the tool; switching back restores it', async () => {
     const env = host('test-key')
     const main = env.main()

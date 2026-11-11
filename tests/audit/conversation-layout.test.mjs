@@ -86,8 +86,9 @@ async function width(page) {
 }
 async function chooseMode(page, mode) {
   await page.locator('[data-conversation-layout-settings] button[aria-haspopup="menu"]').click()
-  assert.equal(await page.getByRole('menuitem').count(), 4)
-  await page.getByRole('menuitem', { name: { reading: 'Reading', standard: 'Standard', wide: 'Wide', custom: 'Custom' }[mode], exact: true }).click()
+  assert.equal(await page.getByRole('menuitemradio').count(), 4)
+  assert.equal(await page.getByRole('menuitemradio', { checked: true }).count(), 1)
+  await page.getByRole('menuitemradio', { name: { reading: 'Reading', standard: 'Standard', wide: 'Wide', custom: 'Custom' }[mode], exact: true }).click()
 }
 async function open() {
   const context = await browser.newContext({ viewport: { width: 1520, height: 900 } })

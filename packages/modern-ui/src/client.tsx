@@ -1,5 +1,6 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from './contracts.ts'
+import { dictionaries } from './locale-dictionaries.ts'
 import { installThemeStyles } from './vendor/theme/client/styles.ts'
 import { installIconSprite } from './vendor/theme/client/icon-sprite.ts'
 import * as chatLocale from './vendor/chat/client/locale.ts'
@@ -50,18 +51,6 @@ import { installConversationLayout } from './conversation-layout.tsx'
 export const inject = ['slots', 'theme', 'locale', 'configForms', 'remote', 'remote.session']
 /** The sprite installer, exported so a test can mount a second owner without a second plugin instance. */
 export { installIconSprite }
-
-const LANGUAGES = ['zh', 'en', 'ja', 'es', 'fr', 'de', 'ru', 'pt'] as const
-const dictionaries = <D extends Record<string, string>>(source: Record<(typeof LANGUAGES)[number], D>) => ({
-  zh: source.zh,
-  en: source.en,
-  ja: source.ja,
-  es: source.es,
-  fr: source.fr,
-  de: source.de,
-  ru: source.ru,
-  pt: source.pt,
-})
 
 /** Mount selected Modern owners before dependent presentation cells. */
 export async function apply(ctx: Context): Promise<void> {

@@ -2,12 +2,8 @@ import { createReadStream } from 'node:fs'
 import { cp, lstat, mkdir, readdir, readlink, realpath, rename, rm, statfs, writeFile } from 'node:fs/promises'
 import { createHash, randomUUID } from 'node:crypto'
 import { isDeepStrictEqual } from 'node:util'
-import { isAbsolute, join, relative, sep } from 'node:path'
-
-const contains = (parent, child) => {
-  const path = relative(parent, child)
-  return path === '' || (path !== '..' && !path.startsWith('..' + sep) && !isAbsolute(path))
-}
+import { join } from 'node:path'
+import { containsPath } from './contains-path.mjs'
 
 /** Stream all files, include empty directories and link text, never traverse links. */
 export async function dataTree(root) {
@@ -40,7 +36,7 @@ export async function dataTree(root) {
 export async function backupDataHome(home, root, { copy = cp, space = statfs } = {}) {
   home = await realpath(home)
   root = await realpath(root)
-  if (contains(home, root) || contains(root, home)) throw new Error('Data backup requires separate program and data directories')
+  if (containsPath(home, root) || containsPath(root, home)) throw new Error('Data backup requires separate program and data directories')
   if ((await readdir(home)).length === 0) return { state: 'empty-home' }
   const before = await dataTree(home)
   const parent = join(root, 'data-backups')

@@ -1,10 +1,11 @@
 import { test } from 'vitest'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
-import { readFileSync, realpathSync } from 'node:fs'
+import { readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { chatContract } from './chat-contract-versions.mjs'
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
 const development = createRequire(path.join(root, 'package.json'))
@@ -14,6 +15,8 @@ assert.ok(process.env.COMPAT_BACKEND_PACKAGE, 'Set COMPAT_BACKEND_PACKAGE to an 
 const backendPackage = realpathSync(process.env.COMPAT_BACKEND_PACKAGE)
 const consumer = createRequire(backendPackage)
 const version = JSON.parse(readFileSync(backendPackage)).version
+const contract = chatContract(version)
+if (process.env.COMPAT_EXPECTED_HOST) assert.equal(version, process.env.COMPAT_EXPECTED_HOST)
 const chatPackage = realpathSync(consumer.resolve('@deepseek-ai/dsh-client-ui-chat/package.json'))
 assert.equal(JSON.parse(readFileSync(chatPackage)).version, version)
 const chatRoot = path.dirname(chatPackage)
@@ -106,26 +109,98 @@ function fixture({ inputAt, answer = true } = {}) {
   return { spec, turn, byKey, nodes, locations, order: [...byKey.keys()], control: byKey.get('control') }
 }
 
-test('published compactAnswer contract is present and follows the actual selected Host projector', () => {
+test('published fields match the explicitly supported Host version', () => {
   const keys = declarations(path.join(chatRoot, 'lib/types/client/contract/snapshot.d.ts'), 'ChatTurnProcessPresentation')
-  assert.ok(keys.includes('compactAnswer'))
-  assert.ok(!keys.includes('hasNonReplyProcess'))
-  console.info(
-    JSON.stringify({ version, backendPackage, chatPackage, publishedClientSha256: createHash('sha256').update(official).digest('hex'), fields: keys }),
+  assert.equal(keys.includes('compactAnswer'), contract === 'compact-answer')
+  assert.equal(keys.includes('hasNonReplyProcess'), contract === 'non-reply')
+  assert.deepEqual(
+    keys.toSorted(),
+    [
+      'turn',
+      'spec',
+      'turnStarted',
+      'turnClosed',
+      'hasExternalProcess',
+      'hasInterleavedInput',
+      contract === 'compact-answer' ? 'compactAnswer' : 'hasNonReplyProcess',
+    ].sort(),
   )
+  const evidence = { version, backendPackage, chatPackage, publishedClientSha256: createHash('sha256').update(official).digest('hex'), fields: keys }
+  console.info(JSON.stringify(evidence))
+  if (process.env.COMPAT_CONTRACT_EVIDENCE) writeFileSync(process.env.COMPAT_CONTRACT_EVIDENCE, JSON.stringify(evidence, null, 2) + '\n')
+  const f = fixture()
+  const modern = new ChatTurnProcessProjector()
+  modern.replace(f.order, f.locations, f.nodes)
+  for (const key of keys) assert.ok(Object.hasOwn(modern.get(f.control), key), 'Missing public process field ' + key)
+})
+
+test('published projection semantics follow the selected Host, including steering before and after the answer', () => {
   for (const input of [{}, { inputAt: 5 }, { inputAt: 15 }, { inputAt: 5, answer: false }]) {
     const f = fixture(input)
+    // Shared Host semantics: tool work precedes the answer. Later process is tested as a Modern enhancement below.
+    f.byKey.set('tool', { ...f.byKey.get('tool'), anchorSeq: 8 })
+    f.byKey.delete('later')
     const modern = new ChatTurnProcessProjector(),
       host = new OfficialProjector()
     modern.replace(f.order, f.locations, f.nodes)
     host.replace(f.order, f.locations, f.nodes)
     const actual = modern.get(f.control),
       expected = host.get(f.control)
-    for (const key of keys) assert.ok(Object.hasOwn(actual, key), 'Missing public process field ' + key)
-    assert.equal(actual.compactAnswer, expected.compactAnswer)
-    assert.equal(actual.hasInterleavedInput, expected.hasInterleavedInput)
+    for (const key of ['turn', 'spec', 'turnStarted', 'turnClosed', 'hasExternalProcess', 'hasInterleavedInput']) {
+      assert.equal(actual[key], expected[key], key)
+    }
+    const versionField = contract === 'compact-answer' ? 'compactAnswer' : 'hasNonReplyProcess'
+    assert.equal(actual[versionField], expected[versionField], versionField)
+    assert.equal(actual.compactAnswer, input.inputAt === undefined || input.inputAt > 10)
+    assert.equal(actual.hasInterleavedInput, input.inputAt !== undefined)
+    assert.equal(actual.hasNonReplyProcess, true, 'visible tool work is non-reply process')
     assert.equal(typeof actual.hasNonReplyProcess, 'boolean', 'Modern always publishes its optional extension')
   }
+})
+
+test('unsupported versions fail explicitly instead of bypassing assertions', () => {
+  assert.throws(() => chatContract('0.2.2-rc.2'), /Unsupported chat contract version/)
+})
+
+test('reply-only and hidden rows do not become non-reply process; visible reasoning does', () => {
+  const f = fixture()
+  f.byKey.delete('tool')
+  f.byKey.delete('later')
+  f.byKey.set('progress', {
+    ...f.byKey.get('first'),
+    key: 'progress',
+    id: 'progress',
+    anchorSeq: 8,
+    data: { step: 0, blocks: [{ kind: 'text', text: 'Progress' }] },
+  })
+  const projectors = [new ChatTurnProcessProjector(), ...(contract === 'non-reply' ? [new OfficialProjector()] : [])]
+  for (const projector of projectors) {
+    projector.replace([...f.byKey.keys()], f.locations, f.nodes)
+    const before = projector.get(f.control)
+    assert.equal(before.hasExternalProcess, true)
+    assert.equal(before.hasNonReplyProcess, false)
+    assert.equal(projector.update(new Set([1]), f.locations, f.nodes).size, 0)
+    assert.equal(projector.get(f.control), before)
+    const progress = f.byKey.get('progress')
+    f.byKey.set('progress', { ...progress, data: { ...progress.data, blocks: [...progress.data.blocks, { kind: 'reasoning', text: 'Thinking' }] } })
+    assert.deepEqual([...projector.update(new Set([1]), f.locations, f.nodes)], [1])
+    const after = projector.get(f.control)
+    assert.notEqual(after, before)
+    assert.equal(after.hasExternalProcess, before.hasExternalProcess)
+    assert.equal(after.hasNonReplyProcess, true)
+    f.byKey.set('progress', { ...progress, visibility: 'hidden' })
+    projector.update(new Set([1]), f.locations, f.nodes)
+    assert.equal(projector.get(f.control).hasNonReplyProcess, false)
+    f.byKey.set('progress', progress)
+  }
+})
+
+test('copy preserves raw Markdown including code and links across closing replies', () => {
+  const f = fixture()
+  const texts = ['**First**\n\n```js\nconst n = 1\n```', '[Later](https://example.test/source?q=1&x=2)']
+  const assistants = texts.map((text, index) => ({ step: index + 1, blocks: [{ kind: 'text', text }], finalNode: { seq: 10 + index * 10 } }))
+  f.turn.steps = assistants.map(data => ({ step: data.step, status: 'closed', data: { get: () => data } }))
+  assert.equal(answerText(f.turn, assistants[1]), texts.join('\n\n'))
 })
 
 test('a compactAnswer-only change publishes a new presentation; unchanged updates retain identity', () => {
@@ -198,4 +273,9 @@ test('earliest closing reply remains the answer, later answers stay copyable/nav
   const projector = new ChatTurnProcessProjector()
   projector.replace(f.order, f.locations, f.nodes)
   assert.equal(projector.get(f.control).hasExternalProcess, true, 'tool work after the earliest answer remains foldable process')
+  assert.equal(projector.get(f.control).hasNonReplyProcess, true)
+  const host = new OfficialProjector()
+  host.replace(f.order, f.locations, f.nodes)
+  assert.equal(host.get(f.control).hasExternalProcess, false, 'these Host releases stop process classification at the first answer anchor')
+  if (contract === 'non-reply') assert.equal(host.get(f.control).hasNonReplyProcess, false)
 })

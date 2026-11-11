@@ -470,14 +470,14 @@ function QuestionFlow({ pending, t, useStore, useQuestionCard, actions, foldLabe
     <div className={css.frame} data-question-key={pending.key}>
       <section
         className={clsx(css.card, minimized && css.cardMinimized)}
-        aria-labelledby={`question-${pending.key}-${String(index)}`}
+        aria-labelledby={`${descriptionIdPrefix}-question-${pending.key}-${String(index)}`}
       >
         <header className={css.header}>
           {(question.header !== undefined || minimized) && (
             <div className={css.headingBlock}>
               {question.header !== undefined && <div className={css.eyebrow}>{question.header}</div>}
               {minimized && (
-                <h2 className={css.title} id={`question-${pending.key}-${String(index)}`}>
+                <h2 className={css.title} id={`${descriptionIdPrefix}-question-${pending.key}-${String(index)}`}>
                   {question.question}
                 </h2>
               )}
@@ -536,7 +536,7 @@ function QuestionFlow({ pending, t, useStore, useQuestionCard, actions, foldLabe
               <div className={css.questionTitle} data-expanded={expanded.has('question') || undefined}>
                 <h2
                   className={clsx(css.title, css.titlePreview)}
-                  id={`question-${pending.key}-${String(index)}`}
+                  id={`${descriptionIdPrefix}-question-${pending.key}-${String(index)}`}
                 >
                   {question.question}
                 </h2>
@@ -546,8 +546,8 @@ function QuestionFlow({ pending, t, useStore, useQuestionCard, actions, foldLabe
                     className={clsx(css.iconButton, css.copyToggle, css.questionToggle)}
                     aria-label={questionToggleLabel}
                     aria-expanded={expanded.has('question')}
-                    aria-controls={`question-${pending.key}-${String(index)}`}
-                    aria-describedby={`question-${pending.key}-${String(index)}`}
+                    aria-controls={`${descriptionIdPrefix}-question-${pending.key}-${String(index)}`}
+                    aria-describedby={`${descriptionIdPrefix}-question-${pending.key}-${String(index)}`}
                     onClick={() => { toggleCopy('question') }}
                   >
                     {expanded.has('question') ? <IconChevronUpOutlineRegular /> : <IconChevronDownOutlineRegular />}
@@ -557,7 +557,7 @@ function QuestionFlow({ pending, t, useStore, useQuestionCard, actions, foldLabe
               {question.detail !== undefined && (
                 <div className={css.detail}><MarkdownText text={question.detail} labels={markdownLabels} /></div>
               )}
-              <div className={css.options} role={question.multiSelect === true ? 'group' : 'radiogroup'}>
+              <div className={css.options} role={question.multiSelect === true ? 'group' : 'radiogroup'} aria-labelledby={`${descriptionIdPrefix}-question-${pending.key}-${String(index)}`}>
                 {(question.options ?? []).map((option, optionIndex) => {
                   const selected = draft.selected.includes(option.label)
                   const display = parseRecommendedLabel(option.label)

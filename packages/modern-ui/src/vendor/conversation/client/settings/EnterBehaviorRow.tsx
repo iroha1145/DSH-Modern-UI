@@ -1,5 +1,5 @@
 /** General Settings row for the Composer's busy-state Enter preference. */
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { IconChevronDownOutlineRegular, Menu } from '@iroha1145/dsh-modern-ui/primitives'
@@ -40,20 +40,23 @@ const OPTIONS: readonly {
 export function EnterBehaviorRow({ useBusyEnter, useSaveFailed, setBusyEnter, t }: EnterBehaviorRowProps) {
   const behavior = useBusyEnter(value => value)
   const failed = useSaveFailed(value => value)
+  const labelId = useId()
+  const valueId = useId()
+  const descriptionId = useId()
   const [open, setOpen] = useState(false)
   const selectedLabel = behavior === 'queue' ? 'settings.enter.queue' : 'settings.enter.steer'
 
   return (
     <div className={css.row}>
       <div className={css.rowText}>
-        <div className={css.title}>{t('settings.enter.title')}</div>
-        <div className={css.desc}>{t('settings.enter.description')}</div>
+        <div id={labelId} className={css.title}>{t('settings.enter.title')}</div>
+        <div id={descriptionId} className={css.desc}>{t('settings.enter.description')}</div>
         {failed && <div role="alert">{t('settings.saveFailed')}</div>}
       </div>
       <Menu
         open={open}
         onClose={() => { setOpen(false) }}
-        items={OPTIONS.map(option => ({ id: option.id, label: t(option.label) }))}
+        items={OPTIONS.map(option => ({ id: option.id, label: t(option.label), choice: 'radio' as const }))}
         selectedId={behavior}
         onSelect={(id) => {
           setOpen(false)
@@ -65,11 +68,13 @@ export function EnterBehaviorRow({ useBusyEnter, useSaveFailed, setBusyEnter, t 
           <button
             type="button"
             className={css.selector}
+            aria-labelledby={`${labelId} ${valueId}`}
+            aria-describedby={descriptionId}
             aria-haspopup="menu"
             aria-expanded={open}
             onClick={() => { setOpen(value => !value) }}
           >
-            {t(selectedLabel)}
+            <span id={valueId}>{t(selectedLabel)}</span>
             <IconChevronDownOutlineRegular className={css.chevron} />
           </button>
         )}

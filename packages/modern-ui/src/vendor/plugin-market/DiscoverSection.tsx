@@ -469,7 +469,7 @@ function Browser({ state, listing, t, face, hooks, language, onInstall, openPack
     <>
       <div className={css.toolbar}>
         <Menu open={menu === 'market'} onClose={() => { setMenu(null) }} portal autoFocus selectedId={listing.url}
-          items={state.indexes.map(index => ({ id: index.url, label: indexLabel(index, face.resolveText) }))}
+          items={state.indexes.map(index => ({ id: index.url, label: indexLabel(index, face.resolveText), choice: 'radio' as const }))}
           footer={[{ id: 'manage', label: t('manageSources'), icon: <IconSlidersTwoOutlineRegular size={14} /> }]}
           onSelect={(id) => {
             setMenu(null)
@@ -487,7 +487,7 @@ function Browser({ state, listing, t, face, hooks, language, onInstall, openPack
           placeholder={t('search')} aria-label={t('search')} onChange={(event) => { setText(event.target.value) }} />
         {declarations.labels.length === 0 ? null : (
           <Menu open={menu === 'filter'} onClose={() => { setMenu(null) }} portal autoFocus align="end" selectedIds={query.labels}
-            items={declarations.labels.map(item => ({ id: item.id, label: item.title }))}
+            items={declarations.labels.map(item => ({ id: item.id, label: item.title, choice: 'checkbox' as const }))}
             onSelect={(id) => {
               const labels = query.labels.includes(id) ? query.labels.filter(label => label !== id) : [...query.labels, id]
               face.search({ ...query, labels })
@@ -500,7 +500,7 @@ function Browser({ state, listing, t, face, hooks, language, onInstall, openPack
             )} />
         )}
         <Menu open={menu === 'sort'} onClose={() => { setMenu(null) }} portal autoFocus align="end" selectedId={sortMenuId(sort)}
-          items={sortOptions}
+          items={sortOptions.map(option => ({ ...option, choice: 'radio' as const }))}
           {...directed
             ? { footer: [{ id: 'direction', label: t(sort.direction === 'asc' ? 'switchToDescending' : 'switchToAscending') }] }
             : {}}
