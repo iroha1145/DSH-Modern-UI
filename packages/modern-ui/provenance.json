@@ -1974,7 +1974,7 @@
       "source": "packages/client/ui-settings-general/src/client/SettingsRoot.module.css",
       "target": "src/vendor/settings-shell/settings-shell.css",
       "sourceSha256": "c6a47f4d8f4abd80e1b23148c2d3b135b051cc4f7c8098d40c3c731b3f8ed8fc",
-      "targetSha256": "fec50394bf2649ee021acfcd5c9fe38c5c637462e202c2c93ad9bff55e2d965d",
+      "targetSha256": "3874589fb399bf0b8a9ceb55d514e2fe1aaece3934e18c6c81e784b065bd9070",
       "adapted": true
     },
     {
@@ -3470,7 +3470,7 @@
       "source": "packages/client/ui-plugin-market/src/client/DiscoverSection.module.css",
       "sourceSha256": "862a2675f1c5e3e8338b9c7d3a5eafc24b946c5a2dd1ab8514d0e2d431e42069",
       "target": "src/vendor/plugin-market/DiscoverSection.module.css",
-      "targetSha256": "49771ea2ccf82c04f5784c187ff71dee0c6b05f6ac91281ccf0403a4f24a83c4",
+      "targetSha256": "ef8faaeb8a07564f570bda2bd9c2705ae9a96d0327210eca74daa2d913e1da49",
       "adapted": true
     },
     {
@@ -3803,7 +3803,7 @@
     },
     {
       "target": "src/official-surfaces.css",
-      "targetSha256": "c2e94e037ee828b6475c2ad99908fbf00f6e95fbc3e1d89a2dda49b1cf601273",
+      "targetSha256": "6e155103dff05c21b1d1c23257f7f867738e37a0e73c6e040b927becb4c752fd",
       "sources": [
         {
           "source": "packages/client/ui-input-trigger/src/client/MenuView.module.css",
@@ -4061,7 +4061,7 @@
     },
     {
       "target": "src/vendor/settings-models/client/ReasoningDeclarationCard.module.css",
-      "targetSha256": "5bcbd09d35e3447440d55b35a9b13c16e0d73cc38a957c9c668b52fbb240917d",
+      "targetSha256": "80ce87cd11c24bcb1c8322ce6ad36ecbadf6052c565d61e93eb3d588c9fcc10b",
       "sources": [
         {
           "source": "packages/client/ui-settings-models/src/client/ModelsSection.module.css",
