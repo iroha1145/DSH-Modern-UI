@@ -4,6 +4,7 @@
    in light and dark; the dark block only retunes status and chart colors. */
 :is(.iui-root) {
   color-scheme: light;
+  --iui-font: var(--dsw-font-family, system-ui, sans-serif);
   --iui-mono: var(--ds-font-family-code, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   --iui-canvas: var(--page, #ffffff);
   /* Greys are ink at an alpha, so they stack on any surface (cards, tints, sunk

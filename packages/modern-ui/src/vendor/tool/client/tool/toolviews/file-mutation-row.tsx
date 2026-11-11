@@ -1,5 +1,6 @@
 // Derived from deepseek-ai/deepseek-harness (MIT); see package LICENSE and provenance.
 import type { Context } from '@deepseek-ai/cordis'
+import { useMemo } from 'react'
 import { IconEditOutlineRegular } from '@iroha1145/dsh-modern-ui/primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ToolCallViewProps } from '@deepseek-ai/dsh-client-ui-tool/client'
@@ -33,7 +34,7 @@ function contentKilobytes(block: FileMutationRowProps['block']): number | null {
  */
 export function FileMutationRow({ toolName, block, cwd, home, openFile, inspect, useDisclosure, t }: FileMutationRowProps) {
   const model = toolRowModel(toolName, block, cwd, home)
-  const diff = diffCardModel(block)
+  const diff = useMemo(() => diffCardModel(block), [block])
   const kilobytes = contentKilobytes(block)
   const size = kilobytes === null ? null : t('tool.preparing.content', { kilobytes })
   return (

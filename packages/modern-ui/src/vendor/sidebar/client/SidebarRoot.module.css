@@ -629,6 +629,9 @@
     border-right: 0.5px solid var(--dsw-alias-border-l2);
     border-radius: 0 var(--dsw-radius-xl) var(--dsw-radius-xl) 0;
     background: var(--dsw-alias-bg-layer-2);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
     transform: translateX(-100%);
     opacity: 0;
     pointer-events: none;
@@ -640,6 +643,13 @@
     transform: translateX(0);
     opacity: 1;
     pointer-events: auto;
+  }
+
+  /* On a short phone viewport, scroll the navigation chrome with the list
+     rather than shrinking the only browsing/search region to zero height. */
+  .root[data-mobile-drawer] .regionArea {
+    flex: 1 0 160px;
+    min-height: 160px;
   }
 
   .mobileBackdrop {
@@ -669,6 +679,10 @@
 
   .mobileHeading {
     display: flex;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--dsw-alias-bg-layer-2);
     flex: none;
     align-items: center;
     justify-content: space-between;

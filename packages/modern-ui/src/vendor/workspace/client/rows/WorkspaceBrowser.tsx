@@ -40,6 +40,7 @@ import {
 import { ProjectRowItem, SearchResultItem, SessionNodeItem } from './Rows.tsx'
 import { FLAT_SESSION_ORDER_KEY, type SessionGroupBy } from '../stores.ts'
 import { WorkspacePickFlow } from '../WorkspacePicker.tsx'
+import { observeComposition } from '../../../primitives/keyboard-composition.ts'
 import css from './WorkspaceBrowser.module.css'
 
 /**
@@ -55,6 +56,8 @@ const SEARCH_QUERY_MAX_CODE_UNITS = 500
 const SESSION_WATERMARK_BASE = 5
 /** Highest watermark that attention-bearing Sessions raise automatically; Show more and search reveals may exceed it. */
 const SESSION_WATERMARK_AUTO_MAX = 50
+/** The ungrouped inventory starts with a larger page than each individual Workspace. */
+const FLAT_SESSION_WATERMARK_BASE = 50
 
 /** Show the blank row plus the first `watermark` non-blank rows, in list order. */
 function watermarkRows(sessions: readonly SessionNode[], watermark: number): {
@@ -114,28 +117,6 @@ function sanitizeSearchQuery(value: string): string {
   const next = withoutNul.charCodeAt(end)
   if (last >= 0xD800 && last <= 0xDBFF && next >= 0xDC00 && next <= 0xDFFF) end--
   return withoutNul.slice(0, end)
-}
-
-/**
- * Accept the native drag at document level while a row drag is active: row
- * hover still owns the insertion marker, and releasing outside the list must
- * not be rendered as a rejected drop before dragend commits that last marker.
- */
-function useNativeDragAcceptance(active: boolean): void {
-  useEffect(() => {
-    if (!active) return
-    const acceptDrag = (event: DragEvent): void => {
-      event.preventDefault()
-      if (event.dataTransfer !== null) event.dataTransfer.dropEffect = 'move'
-    }
-    const acceptDrop = (event: DragEvent): void => { event.preventDefault() }
-    document.addEventListener('dragover', acceptDrag)
-    document.addEventListener('drop', acceptDrop)
-    return () => {
-      document.removeEventListener('dragover', acceptDrag)
-      document.removeEventListener('drop', acceptDrop)
-    }
-  }, [active])
 }
 
 /** Grouping, ordering, and archived-filter menu; own open state so it resets with the wide chrome. */
@@ -345,7 +326,6 @@ function SessionTree({
   const [workspaceDrag, setWorkspaceDrag] = useState<WorkspaceDragState | null>(null)
   const workspaceDropCommitted = useRef(false)
   const nativeDragActive = drag !== null || workspaceDrag !== null
-  useNativeDragAcceptance(nativeDragActive)
   const currentGroup = current === undefined || !workspaceReady
     ? undefined
     : owningGroupKey(workspaces, current)
@@ -496,11 +476,7 @@ function SessionTree({
         setWorkspaceDrag({ workspaceId, over: null })
       },
       end: () => {
-        if (workspaceDrag?.over !== null && workspaceDrag?.over !== undefined) {
-          commitWorkspaceDrag(workspaceDrag, workspaceDrag.over)
-        } else {
-          setWorkspaceDrag(null)
-        }
+        setWorkspaceDrag(null)
         workspaceDropCommitted.current = false
       },
     }
@@ -619,8 +595,7 @@ function SessionTree({
               commitSessionDrag(drag, { id: node.id, half: normalizeHalf(half) })
             },
             end: () => {
-              if (drag?.over !== null && drag?.over !== undefined) commitSessionDrag(drag, drag.over)
-              else setDrag(null)
+              setDrag(null)
               sessionDropCommitted.current = false
             },
           }
@@ -692,7 +667,7 @@ function SessionTree({
   )
 }
 
-/** The flat "In one list" body: every session is one draggable top-level row. */
+/** The flat "In one list" body: paged top-level rows over the complete draggable inventory. */
 function FlatList({
   list, sessionIds, rowState, onLeaveArchivedOnly, useSessionStatus, useSessionAccess, open, onSessionRenameRequest,
   usePanelInfo, setSessionOrder, workspaceReady, animationResetKey,
@@ -726,10 +701,19 @@ function FlatList({
   )
   const [drag, setDrag] = useState<DragState | null>(null)
   const dropCommitted = useRef(false)
-  useNativeDragAcceptance(drag !== null)
   const currentId = panelActive
     ? undefined
     : Object.values(list.byId).find(session => (session.retainedBy.mainView ?? 0) > 0)?.id
+  const [storedWatermark, setStoredWatermark] = useState(FLAT_SESSION_WATERMARK_BASE)
+  const minimum = Math.max(
+    FLAT_SESSION_WATERMARK_BASE,
+    requiredWatermark(rows, currentId, revealSessionId),
+    rows.findIndex(row => row.id === currentId) + 1,
+  )
+  const watermark = Math.max(storedWatermark, minimum)
+  if (watermark !== storedWatermark) setStoredWatermark(watermark)
+  const visible = watermarkRows(rows, watermark)
+  const expandable = watermarkRows(rows, minimum).hiddenCount > 0
   const commitDrag = (activeDrag: DragState, over: NonNullable<DragState['over']>): void => {
     if (dropCommitted.current) return
     dropCommitted.current = true
@@ -744,14 +728,17 @@ function FlatList({
         className={clsx(css.list, css.flatList)}
         role="tree"
         label={t('section.sessions')}
-        rowKeys={rows.length === 0 ? ['empty'] : rows.map(row => `session:${row.id}`)}
+        rowKeys={rows.length === 0 ? ['empty'] : [
+          ...visible.rows.map(row => `session:${row.id}`),
+          ...expandable ? ['overflow:flat'] : [],
+        ]}
         ready={list.phase === 'ready' && workspaceReady && drag === null}
-        resetKey={animationResetKey}
+        resetKey={JSON.stringify([animationResetKey, watermark])}
       >
         {rows.length === 0 && (
           <EmptySessions rowState={rowState} onLeaveArchivedOnly={onLeaveArchivedOnly} t={t} />
         )}
-        {rows.map((node) => {
+        {visible.rows.map((node) => {
           const active = drag !== null && drag.pinned === node.pinned
           const normalizeHalf = (half: 'before' | 'after'): 'before' | 'after' =>
             node.blank ? 'after' : half
@@ -784,8 +771,7 @@ function FlatList({
                   if (drag !== null) commitDrag(drag, { id: node.id, half: normalizeHalf(half) })
                 },
                 end: () => {
-                  if (drag?.over !== null && drag?.over !== undefined) commitDrag(drag, drag.over)
-                  else setDrag(null)
+                  setDrag(null)
                   dropCommitted.current = false
                 },
               }}
@@ -794,6 +780,21 @@ function FlatList({
             />
           )
         })}
+        {expandable && (
+          <button
+            type="button"
+            className={css.sessionOverflowButton}
+            data-row-key="overflow:flat"
+            aria-expanded={visible.hiddenCount === 0}
+            onClick={() => {
+              setStoredWatermark(visible.hiddenCount === 0
+                ? minimum
+                : visible.hiddenCount <= FLAT_SESSION_WATERMARK_BASE ? Infinity : watermark + FLAT_SESSION_WATERMARK_BASE)
+            }}
+          >
+            {visible.hiddenCount === 0 ? t('sessions.collapse') : t('sessions.expand', { n: visible.hiddenCount })}
+          </button>
+        )}
       </AnimatedRows>
       <span className={css.fade} />
     </HoverCardGroup>
@@ -1109,7 +1110,12 @@ export function WorkspaceBrowser({
   // states; the menu anchors on this button).
   const wsPickerOpen = shortcutState.addRequested
   const wsPlusRef = useRef<HTMLButtonElement>(null)
-  const composingRef = useRef(false)
+  const composition = useRef<ReturnType<typeof observeComposition> | null>(null)
+  useEffect(() => {
+    const observer = observeComposition(document)
+    composition.current = observer
+    return () => { observer.dispose(); composition.current = null }
+  }, [])
 
   const openSearchResult = (sessionId: SessionId): void => {
     if (archivedSessionIds.includes(sessionId)) {
@@ -1331,6 +1337,13 @@ export function WorkspaceBrowser({
                 onChange={(e) => { setQuery(sanitizeSearchQuery(e.target.value)) }}
                 onKeyDown={(e) => {
                   if (e.key !== 'Escape') return
+                  if (composition.current?.guards(e.nativeEvent)) {
+                    e.stopPropagation()
+                    return
+                  }
+                  if (!searchExpanded && query === '') return
+                  e.stopPropagation()
+                  e.preventDefault()
                   setQuery('')
                   setSearchExpanded(false)
                 }}
@@ -1528,10 +1541,12 @@ export function WorkspaceBrowser({
           disabled={renaming}
           onFocus={(e) => { e.target.select() }}
           onChange={(e) => { setRenameDraft(e.target.value); setRenameError(null) }}
-          onCompositionStart={() => { composingRef.current = true }}
-          onCompositionEnd={() => { composingRef.current = false }}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && !composingRef.current) {
+            if (composition.current?.guards(e.nativeEvent)) {
+              if (e.key === 'Escape') e.stopPropagation()
+              return
+            }
+            if (e.key === 'Enter') {
               e.preventDefault()
               confirmRename()
             }

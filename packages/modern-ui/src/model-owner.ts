@@ -136,7 +136,7 @@ export function apply(ctx: ClientContext): void {
   const codexVerbs = { refresh: codex.refresh, choose: codex.choose }
   // A new connection may be a restarted Host with other plugins; ask again only where the answer was in use.
   ctx.on('connection/reset', () => {
-    if (codex.store.getSnapshot().status !== 'unknown') codex.refresh()
+    codex.reset()
   })
 
   ctx.inject(['slots', 'modelDirectories'], scope => {

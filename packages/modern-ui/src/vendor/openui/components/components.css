@@ -312,7 +312,7 @@
   .iui-pie-legend span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
   .iui-pie-legend b { font-weight: 500; font-variant-numeric: tabular-nums; }
 
-  .iui-svg { display: block; max-width: 100%; height: auto; margin-inline: auto; overflow: visible; color: var(--iui-ink); }
+  .iui-svg { display: block; max-width: 100%; height: auto; margin-inline: auto; overflow: hidden; color: var(--iui-ink); }
 
   .iui-html-view { position: relative; width: 100%; min-width: 0; overflow: hidden; border: 1px solid var(--iui-border); border-radius: var(--iui-radius-lg); background: var(--iui-canvas); }
   .iui-html-view > iframe { display: block; width: 100%; height: 100%; border: 0; background: transparent; }
@@ -422,7 +422,7 @@
     .iui-pressable, .iui-pressable::after { transition: none; }
     .iui-pressable:not([aria-disabled="true"]):hover, .iui-pressable:not([aria-disabled="true"]):active { transform: none; }
     .iui-image > img { transition: none; }
-    .iui-image::before { animation: none; }
+    .iui-image:not(.is-loaded)::before { animation: none; }
     .iui-flashcard-inner { transition: none; }
   }
 

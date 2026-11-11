@@ -55,6 +55,7 @@
 }
 
 .notice {
+  box-sizing: border-box;
   width: 100%;
   max-width: var(--dsh-composer-card-max-width);
   margin-bottom: 8px;
@@ -64,6 +65,18 @@
   color: var(--ink-2);
   font-size: var(--fs-label, 0.75rem);
   line-height: 18px;
+}
+
+.failedText {
+  max-height: 72px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.retry:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 /* Beautiful UI Rounded prompt bar; the hero uses its tall 22px variation. */

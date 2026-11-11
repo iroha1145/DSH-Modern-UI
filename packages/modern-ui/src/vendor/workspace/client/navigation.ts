@@ -262,7 +262,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
 
   async archiveSession(sessionId: SessionId, options: { readonly stopActivity?: boolean } = {}): Promise<void> {
     await this.workspaces.archiveSession(sessionId, options)
-    if (this.mainReference?.sessionId === sessionId) this.clearMain()
+    if (this.mainReference?.sessionId === sessionId) this.clearMain(false)
   }
 
   async unarchiveSession(sessionId: SessionId): Promise<void> {
@@ -381,16 +381,17 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     const current = this.mainReference?.sessionId
     if (current === undefined
       || !this.workspaces.list.getSnapshot().archivedSessionIds.includes(current)) return false
-    this.clearMain()
+    this.clearMain(false)
     return true
   }
 
-  private clearMain(): void {
+  private clearMain(reveal = true): void {
     const previous = this.mainReference
     this.mainReference = undefined
     this.selection.set({})
     previous?.release()
-    this.ctx.layout.selectPanel(null)
+    // Archive maintenance clears the old selection without cancelling a newer navigation.
+    if (reveal) this.ctx.layout.selectPanel(null)
   }
 
   private replaceMain(

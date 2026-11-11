@@ -50,6 +50,7 @@ import {
 import { VendorMarkIcon } from './VendorMarkIcon.tsx'
 import { formatPrice } from './format-price.ts'
 import { useDismissBehindModal } from '../../primitives/useDismissBehindModal.ts'
+import { observeComposition } from '../../primitives/keyboard-composition.ts'
 
 /** Catalogs above this many models show search. */
 const SEARCH_THRESHOLD = 8
@@ -125,6 +126,13 @@ export function ModelSelect({
   const optionRefs = useRef<(HTMLDivElement | null)[]>([])
   const [menuPos, setMenuPos] = useState<CSSProperties | null>(null)
   const id = useId()
+  const composition = useRef<ReturnType<typeof observeComposition> | null>(null)
+  useEffect(() => {
+    if (!open) return
+    const observer = observeComposition(document)
+    composition.current = observer
+    return () => { observer.dispose(); composition.current = null }
+  }, [open])
 
   const accountProviderName = t('provider.account')
   const groups = useMemo(() => orderModelProviders(state.groups).map(group => ({
@@ -245,31 +253,42 @@ export function ModelSelect({
       const GAP = 8
       // The fixed card's containing block: the layout viewport the trigger rect is measured in.
       const viewport = document.documentElement.clientHeight
+      const visual = window.visualViewport
+      const top = visual?.offsetTop ?? 0
+      const bottom = top + (visual?.height ?? viewport)
+      const left = visual?.offsetLeft ?? 0
+      const width = visual?.width ?? window.innerWidth
+      const maxWidth = `${Math.max(0, width - MARGIN * 2)}px`
+      if (menu.style.maxWidth !== maxWidth) menu.style.maxWidth = maxWidth
       const lw = menu.offsetWidth
       // The card's natural height: its laid-out height with the list at full length.
       const lh = menu.offsetHeight - list.clientHeight + list.scrollHeight
       // The stylesheet caps the card at --picker-cap, so a long catalog renders shorter than lh.
       const cap = Number.parseFloat(getComputedStyle(menu).getPropertyValue('--picker-cap'))
       const fit = Number.isNaN(cap) ? lh : Math.min(lh, cap)
-      const above = rect.top - GAP - MARGIN
-      const below = viewport - rect.bottom - GAP - MARGIN
+      const upperEdge = Math.min(rect.top - GAP, bottom - MARGIN)
+      const lowerEdge = Math.max(rect.bottom + GAP, top + MARGIN)
+      const above = upperEdge - top - MARGIN
+      const below = bottom - lowerEdge - MARGIN
       // Open upward like the composer's other menus; flip below only when the
       // card does not fit above and more room waits below.
       const down = fit > above && below > above
       const room = Math.max(down ? below : above, 0)
       let x = rect.right - lw
-      if (lw > 0) x = Math.min(Math.max(x, MARGIN), window.innerWidth - lw - MARGIN)
+      if (lw > 0) x = Math.max(left + MARGIN, Math.min(x, left + width - lw - MARGIN))
       // Pin the edge facing the trigger so the card hugs it at whatever height it renders.
       const edge: CSSProperties = down
-        ? { top: Math.max(rect.bottom + GAP, MARGIN) }
-        : { bottom: Math.max(viewport - rect.top + GAP, MARGIN) }
+        ? { top: lowerEdge }
+        : { bottom: viewport - upperEdge }
       setMenuPos(lh > 0
-        ? { left: x, ...edge, '--picker-room': `${room}px` } as CSSProperties
-        : { left: x, ...edge })
+        ? { left: x, maxWidth, ...edge, '--picker-room': `${room}px` } as CSSProperties
+        : { left: x, maxWidth, ...edge })
     }
     place()
     window.addEventListener('scroll', place, true)
     window.addEventListener('resize', place)
+    window.visualViewport?.addEventListener('resize', place)
+    window.visualViewport?.addEventListener('scroll', place)
     const observer = new ResizeObserver(place)
     observer.observe(menu)
     observer.observe(anchorRef.current as HTMLSpanElement)
@@ -277,6 +296,8 @@ export function ModelSelect({
       observer.disconnect()
       window.removeEventListener('scroll', place, true)
       window.removeEventListener('resize', place)
+      window.visualViewport?.removeEventListener('resize', place)
+      window.visualViewport?.removeEventListener('scroll', place)
     }
   }, [available, open, state, query])
 
@@ -528,6 +549,11 @@ export function ModelSelect({
     <div
       ref={rootRef}
       className={css.root}
+      onKeyDownCapture={event => {
+        // The shared host guard covers keyCode 229 and the first key after compositionend. Capture once so a
+        // list handler and the root cannot consume that guard twice while the same native event bubbles.
+        if (composition.current?.guards(event.nativeEvent) || event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) event.stopPropagation()
+      }}
       onKeyDown={onRootKeyDown}
       onBlur={onBlur}
       onMouseDown={(event) => {

@@ -2,7 +2,7 @@ import { defineComponent } from "@openuidev/react-lang";
 import { useId, useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import { useUiLocale, useUiText } from "./ui-text";
 import { z } from "zod/v4";
-import { bar, curve, makeFormat, niceStep, polyline, stackAreas, valueDomain, type Domain, type Format, type Range } from "./chart-math";
+import { axisFraction, bar, curve, domainTicks, makeFormat, niceDomain, polyline, stackAreas, valueDomain, type Domain, type Format, type Range } from "./chart-math";
 
 type Row = Record<string, unknown>;
 type Spec = {
@@ -11,6 +11,7 @@ type Spec = {
   x: string;
   series: string[];
   stacked: boolean;
+  drawable: boolean;
   height: number;
   format: Format;
   locale: string;
@@ -21,7 +22,10 @@ type Spec = {
 
 const COLORS = 6;
 const seriesColor = (i: number) => `var(--iui-chart-${(i % COLORS) + 1})`;
-const num = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? value : Number(value) || 0);
+const num = (value: unknown) => {
+  const number = typeof value === "number" ? value : typeof value === "string" ? Number(value) : 0;
+  return Number.isFinite(number) ? number : 0;
+};
 const label = (row: Row, x: string) => String(row[x] ?? "");
 
 function useWidth() {
@@ -77,14 +81,14 @@ function Cartesian({ spec, width }: { spec: Spec; width: number }) {
   useLayoutEffect(() => {
     held.current = { lo, hi, step };
   });
-  const ticks = Array.from({ length: Math.round((hi - lo) / step) + 1 }, (_, k) => lo + k * step);
-  const left = Math.max(...ticks.map((t) => format(t, true, step).length)) * 6.4 + 12;
+  const ticks = domainTicks({ lo, hi, step });
+  const left = Math.max(0, ...ticks.map((t) => format(t, true, step).length)) * 6.4 + 12;
   const pad = { top: 10, right: 4, bottom: 26, left };
   const w = Math.max(10, width - pad.left - pad.right);
   const h = Math.max(10, height - pad.top - pad.bottom);
   const band = w / Math.max(1, rows.length);
   const xAt = (i: number) => pad.left + band * i + band / 2;
-  const y = (v: number) => pad.top + h - ((v - lo) / (hi - lo)) * h;
+  const y = (v: number) => pad.top + h - axisFraction(v, lo, hi) * h;
   // Label every nth category so the labels never overlap.
   const longest = Math.max(1, ...rows.map((r) => label(r, x).length));
   const every = Math.max(1, Math.ceil((longest * 6.6 + 10) / band));
@@ -190,12 +194,8 @@ function axis(values: number[], zero: boolean) {
   const list = [...values, ...(zero || values.length === 0 ? [0] : [])];
   const min = Math.min(...list);
   const max = Math.max(...list);
-  // Values that differ only by rounding count as one value, so no tick step is lost below the float precision.
-  const span = max - min > Math.abs(max) * 1e-12 ? max - min : 0;
-  const step = niceStep((span || Math.abs(max) || 1) / 5);
-  const lo = Math.floor(min / step) * step;
-  const hi = Math.max(lo + step, Math.ceil(max / step) * step);
-  return { lo, hi, step, ticks: Array.from({ length: Math.round((hi - lo) / step) + 1 }, (_, k) => lo + k * step) };
+  const domain = niceDomain(min, max);
+  return { ...domain, ticks: domainTicks(domain) };
 }
 
 function pointNameKey({ rows, x }: Spec): string | undefined {
@@ -211,12 +211,12 @@ function Scatter({ spec, width }: { spec: Spec; width: number }) {
   const bounds = [spec.range.min, spec.range.max].filter((v): v is number => v !== undefined);
   const ya = axis([...rows.flatMap((r) => series.map((s) => num(r[s]))), ...bounds], false);
   const xa = axis(rows.map((r) => num(r[x])), false);
-  const left = Math.max(...ya.ticks.map((t) => format(t, true, ya.step).length)) * 6.4 + 12;
+  const left = Math.max(0, ...ya.ticks.map((t) => format(t, true, ya.step).length)) * 6.4 + 12;
   const pad = { top: 10, right: 8, bottom: 26, left };
   const w = Math.max(10, width - pad.left - pad.right);
   const h = Math.max(10, height - pad.top - pad.bottom);
-  const px = (v: number) => pad.left + ((v - xa.lo) / (xa.hi - xa.lo)) * w;
-  const py = (v: number) => pad.top + h - ((v - ya.lo) / (ya.hi - ya.lo)) * h;
+  const px = (v: number) => pad.left + axisFraction(v, xa.lo, xa.hi) * w;
+  const py = (v: number) => pad.top + h - axisFraction(v, ya.lo, ya.hi) * h;
   // The x axis is a plain number axis: the chart's format (currency, percent) describes the series values.
   const xFormat = makeFormat("number", undefined, spec.locale);
   const xLabels = xa.ticks.map((t) => xFormat(t, true, xa.step));
@@ -253,7 +253,9 @@ function Scatter({ spec, width }: { spec: Spec; width: number }) {
 function Pie({ spec, width }: { spec: Spec; width: number }) {
   const key = spec.series[0];
   const items = spec.rows.map((row) => ({ label: label(row, spec.x), value: Math.max(0, num(key ? row[key] : 0)) }));
-  const total = items.reduce((sum, item) => sum + item.value, 0) || 1;
+  const largest = Math.max(0, ...items.map(item => item.value)) || 1;
+  const total = items.reduce((sum, item) => sum + item.value / largest, 0) || 1;
+  const share = (value: number) => value / largest / total;
   const size = Math.max(80, Math.min(200, width < 420 ? width * 0.62 : 200));
   const r = size / 2;
   const inner = spec.type === "donut" ? r * 0.62 : 0;
@@ -263,7 +265,7 @@ function Pie({ spec, width }: { spec: Spec; width: number }) {
     <div className="iui-pie">
       <svg width={size} height={size} role="img" aria-label={spec.name}>
         {items.map((item, i) => {
-          const sweep = (item.value / total) * Math.PI * 2;
+          const sweep = share(item.value) * Math.PI * 2;
           const a0 = angle;
           const a1 = (angle += sweep);
           const large = sweep > Math.PI ? 1 : 0;
@@ -288,7 +290,7 @@ function Pie({ spec, width }: { spec: Spec; width: number }) {
           <div key={i}>
             <i style={{ background: seriesColor(i) }} />
             <span>{item.label}</span>
-            <b>{(item.value / total).toLocaleString(spec.locale, { style: "percent", maximumFractionDigits: 1 })}</b>
+            <b>{share(item.value).toLocaleString(spec.locale, { style: "percent", maximumFractionDigits: 1 })}</b>
           </div>
         ))}
       </div>
@@ -323,7 +325,12 @@ function toSpec(props: z.infer<typeof chartProps>, locale: string, name: string)
     x,
     series,
     stacked: !!props.stacked,
-    height: Math.min(480, Math.max(140, props.height ?? 240)),
+    drawable: !(props.stacked && (type === "bar" || type === "area")) || rows.every(row => {
+      let up = 0, down = 0;
+      for (const key of series) { const value = num(row[key]); if (value >= 0) up += value; else down += value; }
+      return Number.isFinite(up) && Number.isFinite(down);
+    }),
+    height: Math.min(480, Math.max(140, Number.isFinite(props.height) ? props.height! : 240)),
     format: makeFormat(props.format, props.currency, locale),
     locale,
     name: `${name}: ${series.join(", ")} / ${x}`,
@@ -364,10 +371,10 @@ export const Chart = defineComponent({
     const pointName = spec?.type === "scatter" ? pointNameKey(spec) : undefined;
     return (
       <figure className="iui-chart" ref={ref}>
-        {spec && width > 0 ? pie ? <Pie spec={spec} width={width} /> : spec.type === "scatter" ? <Scatter spec={spec} width={width} /> : <Cartesian spec={spec} width={width} /> : <div style={{ height: spec?.height ?? 240 }} />}
+        {spec && !spec.drawable ? <p role="status">{text.chartRangeExceeded}</p> : spec && width > 0 ? pie ? <Pie spec={spec} width={width} /> : spec.type === "scatter" ? <Scatter spec={spec} width={width} /> : <Cartesian spec={spec} width={width} /> : <div style={{ height: spec?.height ?? 240 }} />}
         {spec && !pie && <Legend series={spec.series} />}
         {props.summary && <figcaption>{props.summary}</figcaption>}
-        {spec && <details>
+        {spec && <details open={!spec.drawable || undefined}>
           <summary>{text.chartData}</summary>
           <div className="iui-table-scroll"><table className="iui-table">
             <caption>{props.summary || spec.name}</caption>

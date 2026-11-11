@@ -46,6 +46,8 @@ export interface CodexSpeed {
   readonly store: SnapshotStore<CodexSpeedState>
   /** Read the preference again; the plugin sends no change events, so callers ask when it matters. */
   readonly refresh: () => void
+  /** Invalidate requests from the previous connection and reload if the preference was in use. */
+  readonly reset: () => void
   /** Save a mode. */
   readonly choose: (mode: CodexSpeedMode) => Promise<CodexSpeedOutcome>
 }
@@ -85,6 +87,7 @@ function unwrap(reply: unknown): PreferencesReply {
 
 /** Read the fields this module uses, with the plugin's own defaults for anything else. */
 function stateOf(value: PreferencesReply): CodexSpeedState {
+  if (!MODES.some(mode => mode === value.speedMode) || typeof value.writable !== 'boolean') throw new Error('Unexpected Codex preferences reply')
   return {
     status: 'ready',
     mode: MODES.find(mode => mode === value.speedMode) ?? 'standard',
@@ -104,40 +107,60 @@ export function createCodexSpeed(call: CodexPreferenceCall): CodexSpeed {
   const store = createSnapshotStore<CodexSpeedState>(UNKNOWN)
   // The newest request wins: a read that started before a write must not overwrite what the write returned.
   let generation = 0
+  let used = false
   const publish = (next: CodexSpeedState): void => {
     if (JSON.stringify(next) !== JSON.stringify(store.getSnapshot())) store.set(next)
   }
   const refresh = (): void => {
     if (store.getSnapshot().pending !== undefined) return
+    used = true
     const current = ++generation
     void (async () => {
+      let reply: unknown
+      try {
+        reply = await call('preferences/status', {})
+      } catch {
+        // Keep a known value visible during a transport failure, but require a successful read before more writes.
+        if (current === generation) {
+          const before = store.getSnapshot()
+          publish(before.status === 'ready' ? { ...before, writable: false } : ABSENT)
+        }
+        return
+      }
       let next = ABSENT
       try {
-        next = stateOf(unwrap(await call('preferences/status', {})))
+        next = stateOf(unwrap(reply))
       } catch {
-        /* Not installed, another version, or a dropped connection: nothing to show. */
+        /* Missing plugin, denied access, or an incompatible reply invalidates previous capabilities. */
       }
       if (current === generation) publish(next)
     })()
   }
   const choose = async (mode: CodexSpeedMode): Promise<CodexSpeedOutcome> => {
     const before = store.getSnapshot()
+    if (before.status !== 'ready' || !before.writable || before.pending !== undefined) return { ok: false, message: 'Codex preferences are not writable' }
     const current = ++generation
     publish({ ...before, pending: mode })
     try {
       const value = unwrap(await call('preferences/update', { speedMode: mode }))
+      if (current !== generation) return { ok: false, message: 'The Codex connection changed' }
       // The host may normalize the value; its reply is the state.
-      if (current === generation) publish(stateOf(value))
+      publish(stateOf(value))
       return { ok: true, restartRequired: value.liveSynced === false }
     } catch (error) {
       if (current === generation) {
-        publish({ ...before, pending: undefined })
+        publish({ ...before, writable: false, pending: undefined })
         refresh()
       }
       return { ok: false, message: error instanceof Error ? error.message : String(error) }
     }
   }
-  return { store, refresh, choose }
+  const reset = (): void => {
+    generation += 1
+    publish(UNKNOWN)
+    if (used) refresh()
+  }
+  return { store, refresh, choose, reset }
 }
 
 /** The plugin's built-in answer for a model while its catalog has not listed the fast ones. */

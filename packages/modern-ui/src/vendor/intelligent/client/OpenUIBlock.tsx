@@ -10,7 +10,7 @@ import { runLibraryAction } from '../../openui/actions.ts'
 import { FieldRegistry, FieldRegistryContext } from '../../openui/components/fields.ts'
 import { webUrl } from '../../openui/components/style.ts'
 import { UI_TEXT, UiLocaleContext, UiTextContext, type UiText } from '../../openui/components/ui-text.ts'
-import { assistantMessage, CONTENT_LIMIT, EXPANSION_LIMIT, expansionEstimate, NESTING_LIMIT, nestingDepth } from './openui-source.ts'
+import { assistantMessage, CONTENT_LIMIT, EXPANSION_LIMIT, expansionEstimate, NESTING_LIMIT, nestingDepth, prepareOpenUISource } from './openui-source.ts'
 import { budgeted, ExpansionBudget, ParseLimitError } from './openui-budget.ts'
 import './locales.ts'
 import css from './OpenUIBlock.module.css'
@@ -22,17 +22,19 @@ type Notice = { key: 'proposed' | 'insertRejected' | 'copiedText' | 'copyFailed'
 
 // The block judges the source it is showing now with the same library the Renderer uses; the Renderer's own
 // parse result arrives a commit later and would describe the previous source.
-const parser = createParser(library.toJSONSchema(), library.root)
+let parser: ReturnType<typeof createParser> | undefined
 
 /**
  * The parse result, or why the block keeps its source: 'tooLarge' for source too long, nested too deep or inlining
  * more nodes than one parse may build, 'invalid' when the parser throws for any other reason. Nothing it throws
  * reaches the host, which would lose the whole answer.
  */
-function parseWithin(code: string): ReturnType<typeof parser.parse> | 'tooLarge' | 'invalid' {
+function parseWithin(code: string, program: string | null): ReturnType<ReturnType<typeof createParser>['parse']> | 'tooLarge' | 'invalid' {
   if (code.length > CONTENT_LIMIT || nestingDepth(code) > NESTING_LIMIT) return 'tooLarge'
+  if (program === null) return 'invalid'
   try {
-    return parser.parse(code)
+    parser ??= createParser(library.toJSONSchema(), library.root)
+    return parser.parse(program)
   } catch (error) {
     return error instanceof ParseLimitError ? 'tooLarge' : 'invalid'
   }
@@ -82,7 +84,8 @@ export function OpenUIBlock(props: BlockProps) {
   const [notice, setNotice] = useState<Notice | null>(null)
   const fields = useMemo(() => new FieldRegistry(), [])
   const text = useMemo(() => Object.fromEntries(Object.keys(UI_TEXT).map(key => [key, t(key as keyof UiText)])) as UiText, [t])
-  const parsed = useMemo(() => parseWithin(code), [code])
+  const program = useMemo(() => code.length > CONTENT_LIMIT ? null : prepareOpenUISource(code), [code])
+  const parsed = useMemo(() => parseWithin(code, program), [code, program])
   const oversized = useMemo(() => typeof parsed !== 'string' && estimate(parsed.root, parsed.stateDeclarations) > EXPANSION_LIMIT, [parsed])
   // The estimate cannot know lengths computed at runtime; the Renderer counts real steps against this budget.
   const [budget] = useState(() => new ExpansionBudget())
@@ -152,7 +155,7 @@ export function OpenUIBlock(props: BlockProps) {
         <UiLocaleContext.Provider value={language}><UiTextContext.Provider value={text}>
           <FieldRegistryContext.Provider value={fields}>
             <div className="iui-root" data-theme={scheme}>
-              <Renderer library={counted} response={code} isStreaming={arriving} onAction={onAction}
+              <Renderer library={counted} response={program!} isStreaming={arriving} onAction={onAction}
                 onStateUpdate={onStateUpdate} onError={(found) => { setRenderErrors(found.length) }} />
             </div>
           </FieldRegistryContext.Provider>

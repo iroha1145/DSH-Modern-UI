@@ -7,7 +7,7 @@ import { createPortal } from "react-dom";
 import { z } from "zod/v4";
 import { copy as copyText } from "../actions";
 import { inline } from "./markdown";
-import { children, cx } from "./style";
+import { children, cx, space } from "./style";
 import { useUiText } from "./ui-text";
 
 const str = (value: unknown) => (value == null ? "" : String(value));
@@ -33,7 +33,7 @@ export const Carousel = defineComponent({
     const ref = useRef<HTMLDivElement>(null);
     const [edges, setEdges] = useState({ start: true, end: true });
     const items = (Array.isArray(props.children) ? props.children.flat() : []).filter((c) => c != null);
-    const width = Math.min(640, Math.max(80, props.itemWidth ?? 240));
+    const width = Math.min(640, Math.max(80, Number.isFinite(props.itemWidth) ? props.itemWidth! : 240));
     useLayoutEffect(() => {
       const el = ref.current;
       if (!el) return;
@@ -50,7 +50,7 @@ export const Carousel = defineComponent({
     const page = (dir: number) => ref.current?.scrollBy({ left: dir * ref.current.clientWidth * 0.85, behavior: "smooth" });
     return (
       <div className="iui-carousel">
-        <div ref={ref} className="iui-carousel-track" style={{ gap: props.gap != null ? Math.max(0, props.gap) * 4 : undefined }}>
+        <div ref={ref} className="iui-carousel-track" style={{ gap: space(props.gap) }}>
           {items.map((item, i) => (
             <div key={i} className="iui-carousel-item" style={{ width }}>
               {renderNode(item)}

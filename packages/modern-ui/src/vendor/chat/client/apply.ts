@@ -173,6 +173,7 @@ export function apply(ctx: Context): void {
   ctx.effect(() => () => { transcriptView.dispose(); performancePolicy.dispose() })
   const performanceUsage = performancePolicy.mode
   const openExternalLink = (url: string) => {
+    if (!URL.canParse(url) || !['http:', 'https:'].includes(new URL(url).protocol)) return
     if (linkOpening.getSnapshot() === 'sidebar' && ctx.get('sidebarRightTabs')?.get('browser') !== undefined) {
       ctx.sidebarRight.openTab('browser', { params: { url } })
     } else {

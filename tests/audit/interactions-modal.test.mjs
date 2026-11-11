@@ -18,6 +18,11 @@ const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'http:
 for (const key of ['window', 'document', 'Node', 'HTMLElement', 'SVGElement', 'getComputedStyle'])
   globalThis[key] = key === 'getComputedStyle' ? dom.window.getComputedStyle.bind(dom.window) : dom.window[key]
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
+// jsdom has no layout engine; geometry is covered by the browser audits.
+globalThis.ResizeObserver = class {
+  observe() {}
+  disconnect() {}
+}
 window.matchMedia = () => ({ matches: true })
 const official = readFileSync(require.resolve('@deepseek-ai/dsh-client-ui-primitives'), 'utf8')
 const region = name => {

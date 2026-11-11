@@ -5,12 +5,13 @@
  * The dialog lives outside the row menu because the row unmounts with the
  * menu; the browser raises the same request from a title double-click.
  */
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button, IconEditOutlineRegular, MenuItemButton, Modal } from '@iroha1145/dsh-modern-ui/primitives'
 import type {
   RenameSessionInjected, SessionMenuItemProps, SessionRenameDialogInjected, SessionRenameDialogProps, SessionRenameTarget,
 } from '../contract/slots.ts'
 import css from '../rows/WorkspaceBrowser.module.css'
+import { observeComposition } from '../../../primitives/keyboard-composition.ts'
 
 /**
  * Menu row (order 200): ask for the rename dialog, seeded with the row's current title. Absent while
@@ -73,7 +74,12 @@ function RenameForm({ request, renameSession, onSettle, t }: {
   const [renaming, setRenaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
   // IME composition: Enter that commits a composition must not submit.
-  const composingRef = useRef(false)
+  const composition = useRef<ReturnType<typeof observeComposition> | null>(null)
+  useEffect(() => {
+    const observer = observeComposition(document)
+    composition.current = observer
+    return () => { observer.dispose(); composition.current = null }
+  }, [])
   const trimmed = draft.trim()
   const blocked = renaming || trimmed === ''
   const close = () => {
@@ -113,10 +119,12 @@ function RenameForm({ request, renameSession, onSettle, t }: {
         disabled={renaming}
         onFocus={(e) => { e.target.select() }}
         onChange={(e) => { setDraft(e.target.value); setError(null) }}
-        onCompositionStart={() => { composingRef.current = true }}
-        onCompositionEnd={() => { composingRef.current = false }}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' && !composingRef.current) {
+          if (composition.current?.guards(e.nativeEvent)) {
+            if (e.key === 'Escape') e.stopPropagation()
+            return
+          }
+          if (e.key === 'Enter') {
             e.preventDefault()
             confirm()
           }

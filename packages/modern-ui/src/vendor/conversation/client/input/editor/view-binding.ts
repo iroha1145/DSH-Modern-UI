@@ -145,13 +145,17 @@ export function installDraftWheel(scrollRef: RefObject<HTMLDivElement>): (() => 
   const el = scrollRef.current
   if (el === null) return
   const onWheel = (e: WheelEvent): void => {
+    if (e.ctrlKey || e.metaKey) return
     const host = el.closest('[data-conversation-scroll]')
     if (!(host instanceof HTMLElement) || e.deltaY === 0) return
     const atTop = el.scrollTop <= 0
     const atEnd = el.scrollTop + el.clientHeight >= el.scrollHeight - 1
     if ((e.deltaY < 0 && !atTop) || (e.deltaY > 0 && !atEnd)) return
     e.preventDefault()
-    host.scrollTop += e.deltaY
+    const unit = e.deltaMode === WheelEvent.DOM_DELTA_LINE
+      ? parseFloat(getComputedStyle(el).lineHeight) || 16
+      : e.deltaMode === WheelEvent.DOM_DELTA_PAGE ? el.clientHeight : 1
+    host.scrollTop += e.deltaY * unit
   }
   el.addEventListener('wheel', onWheel, { passive: false })
   return () => { el.removeEventListener('wheel', onWheel) }

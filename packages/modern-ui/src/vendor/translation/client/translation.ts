@@ -18,14 +18,15 @@ export type TranslateText = (request: TranslationRequest, signal: AbortSignal) =
  * @returns whitespace-preserving fragments with completion flags for translation eligibility.
  */
 export function reasoningFragments(text: string, running: boolean, maxTextChars: number): Fragment[] {
+  const limit = Number.isFinite(maxTextChars) ? Math.max(1, Math.floor(maxTextChars)) : 4_000
   const result: Fragment[] = []
   const separator = /\r?\n(?:[\t ]*\r?\n)+/g
   let start = 0
   while (true) {
     const match = separator.exec(text)
     let remaining = text.slice(start, match?.index ?? text.length)
-    while (remaining.length > maxTextChars) {
-      let cut = maxTextChars
+    while (remaining.length > limit) {
+      let cut = limit
       // A one-character limit cannot keep a surrogate pair together; every fragment must consume text.
       if (cut > 1 && /[\uD800-\uDBFF]/.test(remaining.charAt(cut - 1))) cut -= 1
       const whitespace = remaining.slice(0, cut).search(/\s+\S*$/)

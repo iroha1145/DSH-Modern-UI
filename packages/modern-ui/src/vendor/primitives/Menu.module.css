@@ -39,6 +39,11 @@
   --menu-enter-y: 0px;
 }
 
+.list[data-menu-side='left'] {
+  --menu-enter-x: 2px;
+  --menu-enter-y: 0px;
+}
+
 /* A host-provided anchor can become available after the menu mounts. Start
  * its entrance only once placement has made the hidden measuring card visible. */
 .list[data-menu-positioned='false'] {
@@ -92,11 +97,9 @@
 /* Viewport fit: the card stops 12px short of the viewport's top/bottom edges
  * (the portal MARGIN in Menu.tsx; the top side widens to the frame's published
  * overlay inset) and taller content scrolls inside
- * .viewport, so a pinned .footer stays visible. Menus with submenu rows skip
- * this class — the overflow clip would crop the side card, so they rely on
- * staying short. */
+ * .viewport, so a pinned .footer stays visible. Submenus have their own body portal. */
 .scrollable {
-  max-height: calc(100vh - 12px - max(12px, var(--dsh-frame-overlay-top, 12px)));
+  max-height: min(var(--menu-room, 100vh), calc(100vh - 12px - max(12px, var(--dsh-frame-overlay-top, 12px))));
 }
 
 .viewport {
@@ -105,7 +108,8 @@
   min-height: 0;
 }
 
-.scrollable .viewport {
+.scrollable .viewport,
+.submenu > .viewport {
   overflow-y: auto;
 }
 
@@ -310,12 +314,11 @@
 /* The submenu aligns with the parent's bottom edge. Its hit bridge covers
  * the menu inset and the 6px gap so pointer movement keeps it open. */
 .submenu {
-  position: absolute;
-  top: auto;
-  bottom: -4px;
-  left: calc(100% + 10px);
-  z-index: 101;
+  position: fixed;
+  z-index: 1101;
   min-width: 163px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 12px - max(12px, var(--dsh-frame-overlay-top, 12px)));
 }
 
 .submenu::before {
@@ -323,6 +326,26 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  left: -10px;
-  width: 10px;
+  left: -14px;
+  width: 14px;
+}
+
+.submenu[data-menu-side='left'] {
+  --menu-enter-x: 2px;
+}
+
+.submenu[data-menu-side='left']::before {
+  left: auto;
+  right: -14px;
+}
+
+@media (forced-colors: active) {
+  .item:focus-visible:not(:disabled),
+  .selectedFill {
+    forced-color-adjust: none;
+    color: HighlightText;
+    background: Highlight;
+    outline: 1px solid HighlightText;
+    outline-offset: -2px;
+  }
 }

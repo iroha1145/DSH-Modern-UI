@@ -7,6 +7,7 @@ export const UI_TEXT = {
   details: "Details",
   chart: "Chart",
   chartData: "View chart data",
+  chartRangeExceeded: "The stacked total is outside the chart’s numeric range. The complete data is shown below.",
   copy: "Copy",
   copied: "Copied",
   copyCode: "Copy code",

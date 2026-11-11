@@ -220,6 +220,40 @@ test('keyboard adjustment can be saved or cancelled without leaving permanent gu
   }
 })
 
+test('another pointer ending on a width handle cannot terminate the active drag', async () => {
+  const { context, page } = await open()
+  try {
+    await chooseMode(page, 'custom')
+    const right = page.locator('[data-conversation-width-handle="right"]')
+    await right.evaluate(node =>
+      node.addEventListener(
+        'pointerdown',
+        event => {
+          window.activeDragPointer = event.pointerId
+        },
+        { once: true },
+      ),
+    )
+    const box = await right.boundingBox()
+    await page.mouse.move(box.x + box.width / 2, box.y + 20)
+    await page.mouse.down()
+    for (const type of ['pointerdown', 'pointerup', 'pointercancel', 'lostpointercapture']) {
+      await right.evaluate(
+        (node, type) => node.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: window.activeDragPointer + 1, pointerType: 'touch', button: 0 })),
+        type,
+      )
+      assert.equal(await right.count(), 1, type)
+      assert.equal(await page.locator('[data-layout-dragging]').count(), 1, type)
+    }
+    await page.mouse.move(box.x + box.width / 2 + 50, box.y + 20, { steps: 3 })
+    await page.mouse.up()
+    assert.equal(await width(page), 940)
+    assert.equal(await right.count(), 0)
+  } finally {
+    await context.close()
+  }
+})
+
 test('pane resizing and phone widths fit without discarding the desktop preference', async () => {
   const { context, page } = await open()
   try {

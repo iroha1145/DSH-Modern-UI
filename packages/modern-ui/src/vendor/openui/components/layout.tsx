@@ -10,8 +10,8 @@ const FLEX: Record<string, string> = { start: "flex-start", end: "flex-end", cen
 type FlexProps = { gap?: number; align?: string; justify?: string; wrap?: boolean };
 const flexStyle = (p: FlexProps, column = false): CSSProperties => ({
   gap: space(p.gap),
-  alignItems: p.align ? FLEX[p.align] : undefined,
-  justifyContent: p.justify ? FLEX[p.justify] : undefined,
+  alignItems: p.align && Object.hasOwn(FLEX, p.align) ? FLEX[p.align] : undefined,
+  justifyContent: p.justify && Object.hasOwn(FLEX, p.justify) ? FLEX[p.justify] : undefined,
   flexWrap: p.wrap ? "wrap" : undefined,
   // A centered column centers its wrapped lines too.
   textAlign: column && (p.align === "center" || p.align === "end") ? p.align : undefined,
@@ -99,10 +99,11 @@ export const Grid = defineComponent({
   }),
   description: "Equal columns (default 2). With minChildWidth (px), columns drop on narrow screens.",
   component: ({ props, renderNode }) => {
-    const columns = Math.min(12, Math.max(1, Math.round(props.columns ?? 2)));
+    const columns = Math.min(12, Math.max(1, Math.round(Number.isFinite(props.columns) ? props.columns! : 2)));
     const gap = space(props.gap) ?? "12px";
     // At most `columns` columns, each at least minChildWidth wide.
-    const min = props.minChildWidth ? `max(${Math.max(0, props.minChildWidth)}px, (100% - ${columns - 1} * ${gap}) / ${columns})` : null;
+    const minWidth = props.minChildWidth ? size(props.minChildWidth) : undefined;
+    const min = minWidth ? `max(${minWidth}, (100% - ${columns - 1} * ${gap}) / ${columns})` : null;
     return (
       <div
         className="iui-grid"

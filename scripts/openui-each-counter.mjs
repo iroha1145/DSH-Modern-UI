@@ -10,6 +10,15 @@ export const LANG_CORE_VERSION = '1.0.2'
 // evaluator returns an empty value instead of throwing, so an over-budget @Set in a click handler cannot reject.
 export const EDITS = [
   {
+    // Visitors collect sets/flags or name a call's args once. Naming introduces aliases between args and
+    // mappedProps, so walking both paths again turns a short chain of Query/Mutation calls exponential.
+    // Keep the original preorder and read children after visit (which may add mappedProps), but visit each
+    // object once. This walk has its own parse ceiling because classification happens before a parse ctx exists.
+    find: 'function walkAST(node, visit) {\n\tconst walk = (current) => {\n\t\tvisit(current);\n',
+    replace:
+      'function walkAST(node, visit) {\n\tconst seen = new WeakSet();\n\tlet nodes = 0;\n\tconst walk = (current) => {\n\t\tif (seen.has(current)) return;\n\t\tif (current && typeof current === "object") seen.add(current);\n\t\t__dshCounters?.parsed(++nodes);\n\t\tvisit(current);\n',
+  },
+  {
     // @Each, lang-core's only lazy list builtin: refuse the loop up front, then stop each pass once over budget.
     find: `\t\tconst arr = evaluate(args[0], context);
 \t\tif (!Array.isArray(arr)) return [];
@@ -65,6 +74,7 @@ export const EDITS = [
     // Joining text: a chain of s = s + s doubles its length at every step.
     find: '\t\t\t\t\tif (typeof left === "string" || typeof right === "string") return String(left ?? "") + String(right ?? "");\n',
     replace: `\t\t\t\t\tif (typeof left === "string" || typeof right === "string") {
+\t\t\t\t\t\tif (__dshCounters?.cloned([left, right], context) === false) return "";
 \t\t\t\t\t\tconst texts = [String(left ?? ""), String(right ?? "")];
 \t\t\t\t\t\treturn __dshCounters?.text(texts[0].length + texts[1].length, context) === false ? "" : texts[0] + texts[1];
 \t\t\t\t\t}
@@ -93,6 +103,243 @@ export const EDITS = [
     replace: 'function materializeValue(node, ctx) {\n\t__dshCounters?.parsed(ctx.dshNodes = (ctx.dshNodes ?? 0) + 1);\n',
   },
 ]
+// Guard recursive cloning before allocating, including literal capture in deferred @Each actions.
+EDITS.push(
+  {
+    find: `function toLiteralAST(value) {
+	if (value === null || value === void 0) return { k: "Null" };
+	if (typeof value === "string") return {
+		k: "Str",
+		v: value
+	};
+	if (typeof value === "number") return {
+		k: "Num",
+		v: value
+	};
+	if (typeof value === "boolean") return {
+		k: "Bool",
+		v: value
+	};
+	if (Array.isArray(value)) return {
+		k: "Arr",
+		els: value.map(toLiteralAST)
+	};
+	if (typeof value === "object") return {
+		k: "Obj",
+		entries: Object.entries(value).map(([k, v]) => [k, toLiteralAST(v)])
+	};
+	return { k: "Null" };
+}
+`,
+    replace: `function toLiteralAST(value, context) {
+	if (context && __dshCounters?.cloned(value, context) === false) return { k: "Null" };
+	return toLiteralASTUnchecked(value);
+}
+function toLiteralASTUnchecked(value) {
+	if (value === null || value === void 0) return { k: "Null" };
+	if (typeof value === "string") return {
+		k: "Str",
+		v: value
+	};
+	if (typeof value === "number") return {
+		k: "Num",
+		v: value
+	};
+	if (typeof value === "boolean") return {
+		k: "Bool",
+		v: value
+	};
+	if (Array.isArray(value)) return {
+		k: "Arr",
+		els: value.map(toLiteralASTUnchecked)
+	};
+	if (typeof value === "object") return {
+		k: "Obj",
+		entries: Object.entries(value).map(([k, v]) => [k, toLiteralASTUnchecked(v)])
+	};
+	return { k: "Null" };
+}
+`,
+  },
+  {
+    find: `function substituteRef(node, varName, value) {
+	switch (node.k) {
+		case "Ref": return node.n === varName ? toLiteralAST(value) : node;
+		case "Member":
+			if (isASTNode(node.obj)) {
+				const subObj = substituteRef(node.obj, varName, value);
+				if (subObj.k === "Obj") {
+					const entry = subObj.entries.find(([k]) => k === node.field);
+					if (entry) return entry[1];
+				}
+				return {
+					...node,
+					obj: subObj
+				};
+			}
+			return node;
+		case "Index": return {
+			...node,
+			obj: isASTNode(node.obj) ? substituteRef(node.obj, varName, value) : node.obj,
+			index: isASTNode(node.index) ? substituteRef(node.index, varName, value) : node.index
+		};
+		case "BinOp": return {
+			...node,
+			left: substituteRef(node.left, varName, value),
+			right: substituteRef(node.right, varName, value)
+		};
+		case "UnaryOp": return {
+			...node,
+			operand: substituteRef(node.operand, varName, value)
+		};
+		case "Ternary": return {
+			...node,
+			cond: substituteRef(node.cond, varName, value),
+			then: substituteRef(node.then, varName, value),
+			else: substituteRef(node.else, varName, value)
+		};
+		case "Arr": return {
+			...node,
+			els: node.els.map((e) => substituteRef(e, varName, value))
+		};
+		case "Obj": return {
+			...node,
+			entries: node.entries.map(([k, v]) => [k, substituteRef(v, varName, value)])
+		};
+		case "Comp": {
+			const sub = (a) => substituteRef(a, varName, value);
+			const result = {
+				...node,
+				args: node.args.map(sub)
+			};
+			if (node.mappedProps) result.mappedProps = mapValues(node.mappedProps, sub);
+			return result;
+		}
+		case "Assign": return {
+			...node,
+			value: substituteRef(node.value, varName, value)
+		};
+		default: return node;
+	}
+}
+`,
+    replace: `function substituteRef(node, varName, value, context) {
+	if (__dshCounters?.cloned(node, context) === false) return { k: "Null" };
+	function substitute(node) {
+		switch (node.k) {
+			case "Ref": return node.n === varName ? toLiteralAST(value, context) : node;
+			case "Member":
+				if (isASTNode(node.obj)) {
+					const subObj = substitute(node.obj);
+					if (subObj.k === "Obj") {
+						const entry = subObj.entries.find(([k]) => k === node.field);
+						if (entry) return entry[1];
+					}
+					return {
+						...node,
+						obj: subObj
+					};
+				}
+				return node;
+			case "Index": return {
+				...node,
+				obj: isASTNode(node.obj) ? substitute(node.obj) : node.obj,
+				index: isASTNode(node.index) ? substitute(node.index) : node.index
+			};
+			case "BinOp": return {
+				...node,
+				left: substitute(node.left),
+				right: substitute(node.right)
+			};
+			case "UnaryOp": return {
+				...node,
+				operand: substitute(node.operand)
+			};
+			case "Ternary": return {
+				...node,
+				cond: substitute(node.cond),
+				then: substitute(node.then),
+				else: substitute(node.else)
+			};
+			case "Arr": return {
+				...node,
+				els: node.els.map((e) => substitute(e))
+			};
+			case "Obj": return {
+				...node,
+				entries: node.entries.map(([k, v]) => [k, substitute(v)])
+			};
+			case "Comp": {
+				const sub = (a) => substitute(a);
+				const result = {
+					...node,
+					args: node.args.map(sub)
+				};
+				if (node.mappedProps) result.mappedProps = mapValues(node.mappedProps, sub);
+				return result;
+			}
+			case "Assign": return {
+				...node,
+				value: substitute(node.value)
+			};
+			default: return node;
+		}
+	}
+	return substitute(node);
+}
+`,
+  },
+  { find: `const substituted = substituteRef(template, varName, item);`, replace: `const substituted = substituteRef(template, varName, item, context);` },
+  {
+    find: `function evaluatePropValue$1(value, context, schemaCtx, reactiveSchema, callbacks) {
+`,
+    replace: `function evaluatePropValue$1(value, context, schemaCtx, reactiveSchema, callbacks) {
+	if (__dshCounters?.built(1 + (Array.isArray(value) ? value.length : 0), context) === false) return null;
+`,
+  },
+  {
+    find: `	const schemaCtx = { library: evalCtx.library };
+	const def = evalCtx.library.components[el.typeName];`,
+    replace: `	if (__dshCounters?.cloned(el.props, evalCtx.ctx) === false) return null;
+	const schemaCtx = { library: evalCtx.library };
+	const def = evalCtx.library.components[el.typeName];`,
+  },
+  {
+    find: `function evaluateElementInline(el, context, schemaCtx) {
+`,
+    replace: `function evaluateElementInline(el, context, schemaCtx) {
+	if (__dshCounters?.cloned(el.props, context) === false) return null;
+`,
+  },
+)
+// Validation and implicit coercion can also walk nested runtime data.
+EDITS.push(
+  {
+    find: `function checkValue(value, schema, name, path, context, strict = false) {
+`,
+    replace: `function checkValue(value, schema, name, path, context, strict = false) {
+	if (__dshCounters?.cloned(value, context) === false) return INVALID;
+`,
+  },
+  {
+    find: `	for (const key in named) args[key] = evaluate(named[key], context);
+	return args;`,
+    replace: `	for (const key in named) args[key] = evaluate(named[key], context);
+	return __dshCounters?.cloned(args, context) === false ? {} : args;`,
+  },
+  {
+    find: `			const right = evaluate(node.right, context);
+			switch (node.op)`,
+    replace: `			const right = evaluate(node.right, context);
+			if (__dshCounters?.cloned([left, right], context) === false) return null;
+			switch (node.op)`,
+  },
+  {
+    find: `			return obj[String(idx)];`,
+    replace: `			if (__dshCounters?.cloned(idx, context) === false) return null;
+			return obj[String(idx)];`,
+  },
+)
 const SETTER = '__dshSetCounters'
 
 /**

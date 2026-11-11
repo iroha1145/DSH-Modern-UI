@@ -3,6 +3,15 @@ import { createHash } from 'node:crypto'
 import { expect, test } from 'vitest'
 import * as tool from '../../packages/modern-ui/src/vendor/tool/client/dictionaries.ts'
 import * as conversation from '../../packages/modern-ui/src/vendor/conversation/client/locales.ts'
+import corrections from '../fixtures/locale-audit-corrections.json'
+
+const addedKeys = new Set([
+  'input.failedSend',
+  'input.failedSend.restore',
+  'input.failedSend.discard',
+  'input.failedSend.attachments',
+  'input.failedSend.missingAttachments',
+])
 
 // Export values captured from the audited 5b1acbd baseline, independently of the shared source.
 const baseline = {
@@ -28,16 +37,28 @@ const baseline = {
   },
 } as const
 
-test('both locale namespaces preserve every original key and translation in all eight languages', () => {
+test('both namespaces preserve original dictionaries apart from explicitly approved additions and corrections', () => {
   expect(tool.NS).toBe('conversation')
   expect(conversation.NS).toBe('modern-conversation')
   for (const language of ['zh', 'en', 'ja', 'es', 'fr', 'de', 'ru', 'pt'] as const) {
     for (const dictionary of [tool, conversation]) {
-      const entries = Object.entries(dictionary[language]).sort(([a], [b]) => a.localeCompare(b, 'en'))
+      const changes = corrections.groups.shared.changes as Record<string, Record<string, { before: string; after: string }>>
+      const entries = Object.entries(dictionary[language])
+        .filter(([key]) => !addedKeys.has(key))
+        .map(([key, value]) => {
+          const correction = changes[language]?.[key]
+          if (correction !== undefined) expect(value).toBe(correction.after)
+          return [key, correction?.before ?? value]
+        })
+        .sort(([a], [b]) => (a as string).localeCompare(b as string, 'en'))
       expect(createHash('sha256').update(JSON.stringify(entries)).digest('hex')).toBe(baseline[dictionary.NS][language])
     }
-    expect(Object.keys(tool[language])).toHaveLength(391)
-    expect(Object.keys(conversation[language])).toHaveLength(395)
+    expect(Object.keys(tool[language]).filter(key => !addedKeys.has(key))).toHaveLength(391)
+    expect(Object.keys(conversation[language]).filter(key => !addedKeys.has(key))).toHaveLength(395)
+    for (const key of addedKeys) {
+      expect(tool[language]).toHaveProperty(key)
+      expect(conversation[language]).toHaveProperty(key)
+    }
     for (const key of Object.keys(tool[language]) as (keyof typeof tool.zh)[]) expect(conversation[language][key]).toBe(tool[language][key])
   }
 })

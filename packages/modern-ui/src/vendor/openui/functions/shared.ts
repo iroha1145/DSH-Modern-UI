@@ -21,15 +21,31 @@ export function read(item: unknown, field: string): unknown {
  * matches its string form (ids from inputs are often strings).
  */
 export function same(a: unknown, b: unknown): boolean {
-  if (a === b) return true;
-  const mixed = (typeof a === "number" && typeof b === "string") || (typeof a === "string" && typeof b === "number");
-  if (mixed) return String(a) === String(b);
-  if (a === null || b === null || typeof a !== "object" || typeof b !== "object") return false;
-  if (Array.isArray(a) !== Array.isArray(b)) return false;
-  if (Array.isArray(a)) return a.length === (b as unknown[]).length && a.every((x, i) => same(x, (b as unknown[])[i]));
-  const ka = Object.keys(a);
-  const kb = Object.keys(b);
-  return ka.length === kb.length && ka.every((k) => Object.hasOwn(b, k) && same((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k]));
+  const pairs = new WeakMap<object, WeakSet<object>>();
+  const pending: [unknown, unknown][] = [[a, b]];
+  let work = 0;
+  while (pending.length) {
+    if (++work > 100_000) throw new RangeError("comparison length exceeds budget");
+    const [left, right] = pending.pop()!;
+    if (left === right) continue;
+    const mixed = (typeof left === "number" && typeof right === "string") || (typeof left === "string" && typeof right === "number");
+    if (mixed) { if (String(left) !== String(right)) return false; continue; }
+    if (left === null || right === null || typeof left !== "object" || typeof right !== "object") return false;
+    if (Array.isArray(left) !== Array.isArray(right)) return false;
+    if (Array.isArray(left) && left.length !== (right as unknown[]).length) return false;
+    let seen = pairs.get(left);
+    if (seen?.has(right)) continue;
+    if (!seen) { seen = new WeakSet(); pairs.set(left, seen); }
+    seen.add(right);
+    const keys = Object.keys(left);
+    if (keys.length !== Object.keys(right).length) return false;
+    if (work + pending.length + keys.length > 100_000) throw new RangeError("comparison length exceeds budget");
+    for (const key of keys) {
+      if (!Object.hasOwn(right, key)) return false;
+      pending.push([(left as Record<string, unknown>)[key], (right as Record<string, unknown>)[key]]);
+    }
+  }
+  return true;
 }
 
 /** A finite number or a thrown error, which the runtime turns into null. */

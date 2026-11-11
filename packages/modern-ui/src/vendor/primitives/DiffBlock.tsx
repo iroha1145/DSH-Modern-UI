@@ -68,15 +68,20 @@ const ROW_CLASS: Record<DiffRow['kind'], string | undefined> = {
 
 /** Bound synchronous edit-graph search; one replacement consumes two edits. */
 const MAX_DIFF_EDIT_LENGTH = 256
+const patchCache = new WeakMap<DiffHunk, { oldText: string | null; newText: string; hunks: { lines: string[] }[] }>()
 
 /** Derive exact local patches or a whole-fragment replacement when search exceeds the limit. */
 function localHunks(diff: DiffHunk) {
+  const cached = patchCache.get(diff)
+  if (cached !== undefined && cached.oldText === diff.oldText && cached.newText === diff.newText) return cached.hunks
   const oldLines = contentLines(diff.oldText ?? '')
   const newLines = contentLines(diff.newText)
   const normalize = (lines: string[]): string => lines.map(line => `${line}\n`).join('')
-  return structuredPatch('', '', normalize(oldLines), normalize(newLines),
+  const hunks = structuredPatch('', '', normalize(oldLines), normalize(newLines),
     undefined, undefined, { context: 3, maxEditLength: MAX_DIFF_EDIT_LENGTH })?.hunks
     ?? [{ lines: [...oldLines.map(line => `-${line}`), ...newLines.map(line => `+${line}`)] }]
+  patchCache.set(diff, { oldText: diff.oldText, newText: diff.newText, hunks })
+  return hunks
 }
 
 /**

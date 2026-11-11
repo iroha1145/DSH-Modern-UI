@@ -125,3 +125,72 @@ test('the watchdog removes a frame whose heartbeat stops and permits a replaceme
     }
   }
 })
+
+test('closing a document replacement triggers the second-load guard', async () => {
+  const failsafe = setTimeout(() => {
+    void browserServer.kill()
+  }, 20_000)
+  const page = await mount('<button>Replace document</button>')
+  try {
+    await page.frameLocator('.iui-html-view > iframe').frameLocator('iframe').getByRole('button', { name: 'Replace document' }).waitFor()
+    const outer = page.frames().find(frame => frame.parentFrame() === page.mainFrame())
+    const inner = page.frames().find(frame => frame.parentFrame() === outer)
+    await inner.evaluate(() => {
+      document.open()
+      document.write('<p>Replacement</p>')
+      document.close()
+    })
+    await page.getByRole('status').filter({ hasText: 'was stopped' }).waitFor()
+    assert.equal(await page.locator('.iui-html-view > iframe').count(), 0)
+  } finally {
+    await page.close()
+    clearTimeout(failsafe)
+  }
+})
+
+test('an open document rewrite stays sandboxed, while authored heartbeats can keep the watchdog alive', async () => {
+  const failsafe = setTimeout(() => {
+    void browserServer.kill()
+  }, 20_000)
+  const page = await mount('<button>Replace document</button>')
+  try {
+    await page.frameLocator('.iui-html-view > iframe').frameLocator('iframe').getByRole('button', { name: 'Replace document' }).waitFor()
+    const outer = page.frames().find(frame => frame.parentFrame() === page.mainFrame())
+    const inner = page.frames().find(frame => frame.parentFrame() === outer)
+    await inner.evaluate(() => {
+      for (let id = 1; id <= 64; id++) clearInterval(id)
+      document.open()
+      document.write('<p id="replacement">Replaced document</p>')
+      // No close/load: this is a replacement within the same Document, not a second navigation.
+      setInterval(() => parent.postMessage({ type: 'dsh:openui-html-view:v1', heartbeat: true }, '*'), 250)
+    })
+    await page.waitForTimeout(6200)
+    assert.equal(await page.locator('.iui-html-view > iframe').count(), 1)
+    const limits = await inner.evaluate(async () => {
+      let parentDenied = false
+      try {
+        void parent.document.body
+      } catch {
+        parentDenied = true
+      }
+      let networkDenied = false
+      try {
+        await fetch('https://example.invalid/blocked-by-inherited-csp')
+      } catch {
+        networkDenied = true
+      }
+      return { parentDenied, networkDenied, body: document.body.textContent }
+    })
+    assert.deepEqual(limits, { parentDenied: true, networkDenied: true, body: 'Replaced document' })
+    await page.getByRole('button', { name: 'Outside', exact: true }).click()
+    await page.getByRole('button', { name: 'Stop view' }).click()
+    assert.equal(await page.locator('.iui-html-view > iframe').count(), 0)
+    console.info(
+      'HtmlView document rewrite:',
+      JSON.stringify({ browser: browser.version(), sameDocumentAllowed: true, authoredHeartbeatAccepted: true, ...limits }),
+    )
+  } finally {
+    await page.close()
+    clearTimeout(failsafe)
+  }
+})

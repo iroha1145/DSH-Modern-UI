@@ -47,7 +47,7 @@ test('published settings hooks still match the exact supported owner classes', (
   for (const [index, names] of [
     [0, ['bVCLcG_row', 'bVCLcG_rowText', 'vnGTiq_field']],
     [1, ['zGbnIq_modelRow', 'zGbnIq_input', 'zGbnIq_iconButton']],
-    [2, ['VOzbGW_close', 'me01iq_action', 'me01iq_error']],
+    [2, ['VOzbGW_close', 'VOzbGW_actions', 'me01iq_action', 'me01iq_error']],
   ])
     for (const name of names) {
       assert.ok(sources[index].includes(`"${name}"`), name + ' must exist in the published module mapping')

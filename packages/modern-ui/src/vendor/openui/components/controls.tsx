@@ -9,7 +9,7 @@ import {
 } from "@openuidev/react-lang";
 import { useContext, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import { z } from "zod/v4";
-import { FieldRegistryContext, useField, useFieldName } from "./fields";
+import { FieldRegistryContext, fieldScalar, useField, useFieldName } from "./fields";
 import { Glyph } from "./glyph";
 import { bg, children, color, onColor, cx, option, radius, radiusSchema, space, textOf, toOption, type Option } from "./style";
 import { useUiLocale, useUiText } from "./ui-text";
@@ -75,7 +75,7 @@ function useSettled() {
  */
 function useClearMissingChoice(field: { value: unknown; setValue: (value: string) => void }, values: string[]) {
   const settled = useSettled();
-  const value = field.value == null ? "" : String(field.value);
+  const value = String(fieldScalar(field.value));
   useLayoutEffect(() => {
     if (settled && value !== "" && !values.includes(value)) field.setValue("");
   });
@@ -214,11 +214,11 @@ export const Input = defineComponent({
   }),
   description: "Text or number field; a number field stores numbers.",
   component: function InputView({ props, statementId }) {
-    const field = useField(props.label, statementId, props.value);
+    const field = useField(props.label, statementId, props.value, fieldScalar);
     const numeric = props.type === "number";
     // A number field shows what is typed ("1." or "-") until it parses.
     const [draft, setDraft] = useState<string | null>(null);
-    const shown = draft ?? (numeric ? (typeof field.value === "number" ? String(field.value) : String(field.value ?? "")) : String(field.value ?? ""));
+    const shown = draft ?? String(fieldScalar(field.value));
     return (
       <Field label={props.label}>
         <input
@@ -255,13 +255,13 @@ export const TextArea = defineComponent({
   }),
   description: "",
   component: ({ props, statementId }) => {
-    const field = useField(props.label, statementId, props.value);
+    const field = useField(props.label, statementId, props.value, fieldScalar);
     return (
       <Field label={props.label}>
         <textarea
           className="iui-input iui-textarea"
           rows={Math.min(20, Math.max(2, Math.round(props.rows ?? 3)))}
-          value={String(field.value ?? "")}
+          value={String(fieldScalar(field.value))}
           placeholder={props.placeholder}
           aria-label={props.label ? undefined : props.placeholder}
           onChange={(event) => field.setValue(event.target.value)}
@@ -285,10 +285,10 @@ export const Select = defineComponent({
   description: "Dropdown, for long option lists.",
   component: function SelectView({ props, statementId }) {
     const text = useUiText();
-    const field = useField(props.label, statementId, props.value);
+    const field = useField(props.label, statementId, props.value, fieldScalar);
     const choices = optionList(props.options);
     useClearMissingChoice(field, choices.map((o) => o.value));
-    const value = field.value == null ? "" : String(field.value);
+    const value = String(fieldScalar(field.value));
     return (
       <Field label={props.label}>
         <select className="iui-input iui-select" value={value} aria-label={props.label ? undefined : props.placeholder} onChange={(event) => field.setValue(event.target.value)}>
@@ -315,10 +315,10 @@ export const SegmentedControl = defineComponent({
   component: function SegmentedView({ props, statementId }) {
     const text = useUiText();
     const id = useId();
-    const field = useField(props.label, statementId, props.value);
+    const field = useField(props.label, statementId, props.value, fieldScalar);
     const choices = optionList(props.options);
     useClearMissingChoice(field, choices.map((o) => o.value));
-    const value = field.value == null ? "" : String(field.value);
+    const value = String(fieldScalar(field.value));
     const group = useRef<HTMLDivElement>(null);
     const focused = useRef(false);
     const [focusIndex, setFocusIndex] = useState(0);
@@ -487,11 +487,11 @@ export const RadioGroup = defineComponent({
   }),
   description: "pills for short choices; cards for choices that need a description line.",
   component: function RadioGroupView({ props, statementId }) {
-    const field = useField(props.label, statementId, props.value);
+    const field = useField(props.label, statementId, props.value, fieldScalar);
     const name = useId();
     const choices = choiceList(props.options);
     useClearMissingChoice(field, choices.map((o) => o.value));
-    const value = field.value == null ? "" : String(field.value);
+    const value = String(fieldScalar(field.value));
     const variant = props.variant ?? "list";
     return (
       <fieldset className={cx("iui-radio-group", `iui-radio-${variant}`)}>
@@ -562,7 +562,7 @@ export const Timer = defineComponent({
     const text = useUiText();
     const field = useStateField(useFieldName(statementId), props.seconds);
     const streaming = useIsStreaming();
-    const raw = typeof field.value === "number" ? field.value : Number(field.value);
+    const raw = typeof field.value === "number" ? field.value : typeof field.value === "string" ? Number(field.value) : Number.NaN;
     const left = Number.isFinite(raw) ? Math.max(0, Math.floor(raw)) : 0;
     const [running, setRunning] = useState(false);
     // The ticking interval reads the latest value and setter, not the ones from when it started

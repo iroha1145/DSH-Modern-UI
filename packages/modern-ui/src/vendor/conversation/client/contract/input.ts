@@ -11,7 +11,7 @@ import type { SessionBinding } from '@deepseek-ai/dsh-api-session-controller/cli
 import type { InboxState } from '@deepseek-ai/dsh-agent/types'
 import type { ObservableSnapshot, SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { Branded } from '@deepseek-ai/dsh-brand'
-import type { ArbitrateKey, ArbitrateOutcome, Occurrence, ReferenceInsert, TokenSpan } from './draft-editor.ts'
+import type { ArbitrateKey, ArbitrateOutcome, DraftSnapshot, Occurrence, ReferenceInsert, TokenSpan } from './draft-editor.ts'
 import type { InputSubmitMode, MessageSubmission } from './composer-submission.ts'
 
 /** Attachment payload passed to a claimed command submission. */
@@ -256,6 +256,10 @@ export type DraftInitializationResult = 'applied' | 'preserved' | 'blocked'
  * paste/…) stay InputBar-private and never ride this face.
  */
 export interface InputActions {
+  /** Restore one failed message only into an empty draft. */
+  restoreFailedSend?(id: number): boolean
+  /** Discard one failed message and release its retained attachments. */
+  discardFailedSend?(id: number): void
   /** Insert one nonblank transcript quote. @param text - selected text. @returns whether editing accepted it. */
   insertQuote(text: string): boolean
   /** @returns a revision-guarded copy of the current editor selection. */
@@ -293,6 +297,8 @@ export type ConsumeTokenGuard = ConsumeTokenRequest['guard']
 
 /** Published input state (the currency; per-session). */
 export interface InputState {
+  /** Session-owned failed sends awaiting an explicit restore or discard. */
+  readonly failedSends?: readonly FailedInputSend[]
   /** Clipboard-text projection of the editor document (chips expanded to their clipboard form). */
   readonly draft: string
   /** Ordered runtime-only attachment ids; browser objects stay in ConversationController. */
@@ -306,6 +312,18 @@ export interface InputState {
   readonly occurrences: readonly Occurrence[]
   /** Messages still waiting for their own turn. */
   readonly queue: InboxState['next-turn']
+}
+
+/** Recovery data is semantic; attachment objects remain browser-owned. */
+export interface FailedInputSend {
+  readonly id: number
+  readonly draft: DraftSnapshot
+  readonly attachmentCount: number
+  readonly missingAttachments: number
+  /** The record backs the current restored draft until attachment loss can no longer go unnoticed. */
+  readonly restored?: boolean
+  /** Its restored draft has been submitted again and is awaiting admission. */
+  readonly retrying?: boolean
 }
 
 /**

@@ -139,13 +139,14 @@ function imageSource(url: string, pathImages: MarkdownPathImages | undefined, lo
 // A module counter, not useId: useId derives from tree position, so images at
 // the same position in two sessions would share a URL.
 let imageLoads = 0
+const imageLoadEpoch = Date.now().toString(36)
 const nextImageLoad = (): number => ++imageLoads
 
 /**
  * Tag a Host file-route image URL with its mount's load number. Browsers reuse
  * a same-URL image within one document despite `no-store`, so without the tag
  * a newly rendered image of a rewritten file would show the earlier bytes.
- * @param url - Absolute resolved image URL; URLs outside the `api/file` route stay unchanged.
+ * @param url - Absolute resolved image URL; only Host file/document image routes change.
  * @param load - Number allocated once per mounted image or file link.
  * @returns The URL with a `load` query parameter, or the unchanged URL.
  */
@@ -153,9 +154,10 @@ function freshImageUrl(url: string, load: number): string {
   let fresh: URL
   try { fresh = new URL(url) }
   catch { return url } // Only an unparsable owner-supplied URL throws; it is emitted as before.
-  if (!fresh.pathname.endsWith('/api/file')) return url
+  const documentImage = fresh.pathname.endsWith('/api/modern-ui/plugin-document-image')
+  if (!documentImage && !fresh.pathname.endsWith('/api/file')) return url
   // Appending preserves the resolver's existing query encoding.
-  fresh.search = `${fresh.search === '' ? '?' : `${fresh.search}&`}load=${load}`
+  fresh.search = `${fresh.search === '' ? '?' : `${fresh.search}&`}load=${documentImage ? `${imageLoadEpoch}-` : ''}${load}`
   return fresh.href
 }
 

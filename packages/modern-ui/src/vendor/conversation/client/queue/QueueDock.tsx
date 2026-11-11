@@ -1,5 +1,5 @@
 import type { Context } from '@deepseek-ai/cordis'
-import { useEffect, useId, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { FileAttachmentRef, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import type { PropsLocale, PropsRenderFactories, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
@@ -125,6 +125,7 @@ export function QueueDock({ useSession, useProjection, updateQueue, notify, load
   const queueMutable = useSession(s => s.subagent === null || s.subagent.address.mode === 'continuable')
   const [editing, setEditing] = useState<{ id: MessageId; text: string } | null>(null)
   const [busy, setBusy] = useState<MessageId | null>(null)
+  const actionPending = useRef(false)
   const [collapsed, setCollapsed] = useState(true)
   const listId = useId()
 
@@ -144,6 +145,8 @@ export function QueueDock({ useSession, useProjection, updateQueue, notify, load
     action: QueueAction,
     failure: string,
   ): Promise<boolean> => {
+    if (actionPending.current || !queueMutable) return false
+    actionPending.current = true
     setBusy(itemId)
     try {
       await updateQueue(itemId, action)
@@ -152,6 +155,7 @@ export function QueueDock({ useSession, useProjection, updateQueue, notify, load
       notify('error', failure)
       return false
     } finally {
+      actionPending.current = false
       setBusy(current => current === itemId ? null : current)
     }
   }
@@ -162,7 +166,7 @@ export function QueueDock({ useSession, useProjection, updateQueue, notify, load
       editing.id,
       { kind: 'edit', content: [{ type: 'text', text: editing.text }] },
       t('queue.editFailed'),
-    )) setEditing(null)
+    )) setEditing(current => current === editing ? null : current)
   }
 
   return (
@@ -202,7 +206,7 @@ export function QueueDock({ useSession, useProjection, updateQueue, notify, load
                       label={t('queue.edit')}
                       onChange={(text) => { setEditing({ id: row.id, text }) }}
                       onSave={() => { void saveEdit() }}
-                      onCancel={() => { setEditing(null) }}
+                      onCancel={() => { if (!actionPending.current) setEditing(null) }}
                     />
                   )
                   : (

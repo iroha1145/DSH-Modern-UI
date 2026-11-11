@@ -153,6 +153,7 @@ const client = await build({
   format: 'cjs',
   jsx: 'automatic',
   target: 'es2022',
+  charset: 'utf8',
   minify: true,
   legalComments: 'inline',
   metafile: true,

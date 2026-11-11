@@ -24,21 +24,31 @@ function ModelDeclaration({ model, target, revision, offered, disabled, saveMode
   saveModel: ReasoningDeclarationFace['saveModel']
   t: (key: ReasoningDeclarationKey) => string
 }): ReactNode {
-  const [draft, setDraft] = useState<{ model: ModelRowDraft; revision: number | undefined }>()
+  const [draft, setDraft] = useState<{ model: ModelRowDraft; baseline: string; revision: number | undefined }>()
+  const [refused, setRefused] = useState(false)
   const edited = draft?.model ?? model
   const failure = validateReasoningEfforts([edited])
   return (
     <>
       <ModelReasoningEfforts
         model={edited} levels={offered} position={target.index + 1} disabled={disabled} t={t}
-        onChange={next => { setDraft(current => ({ model: next, revision: current === undefined ? revision : current.revision })) }}
+        onChange={next => {
+          setRefused(false)
+          setDraft(current => ({ model: next, baseline: current?.baseline ?? JSON.stringify(model), revision: current === undefined ? revision : current.revision }))
+        }}
       />
       {draft === undefined ? null : (
         <div className={styles['actions']}>
-          <Button disabled={disabled} onClick={() => { setDraft(undefined) }}>{t('cancel')}</Button>
+          <Button disabled={disabled} onClick={() => { setDraft(undefined); setRefused(false) }}>{t('cancel')}</Button>
           <Button disabled={disabled || failure !== undefined} onClick={() => {
-            void saveModel(target, draft.model, draft.revision).then(saved => { if (saved) setDraft(undefined) })
+            // An unrelated row may advance the document revision. Rebase only while this row is unchanged.
+            const expected = JSON.stringify(model) === draft.baseline ? revision : draft.revision
+            void saveModel(target, draft.model, expected).then(saved => {
+              setRefused(!saved)
+              if (saved) setDraft(undefined)
+            })
           }}>{t('apply')}</Button>
+          {refused && <p className={styles['error']} role="alert">{t('writeRefused')}</p>}
         </div>
       )}
     </>
@@ -56,7 +66,6 @@ export function ReasoningDeclarationCard({
   const serialized = useMirror(mirror => mirror.view?.namespaces.find(candidate => candidate.ns === ns)?.schema)
   const catalog = useDeclaration(state => state.catalogs[route])
   const saving = useDeclaration(state => state.saving !== undefined)
-  const refused = useDeclaration(state => state.refused === route)
   const headingId = useId()
   useEffect(() => {
     if (!handDeclared && catalog === undefined) loadCatalog(route)
@@ -75,20 +84,19 @@ export function ReasoningDeclarationCard({
       </div>
       <ul className={styles['rows']}>
         {models.map(model => (
-          <li key={model.index + ':' + model.id} className={styles['row']} data-model-id={model.id} data-reasoning={model.efforts === undefined ? 'off' : 'on'}>
+          <li key={JSON.stringify([route, settingsPath, model.index, model.id])} className={styles['row']} data-model-id={model.id} data-reasoning={model.efforts === undefined ? 'off' : 'on'}>
             <div className={styles['identity']}>
               <span className={styles['id']}>{model.id}</span>
               {model.name === undefined ? null : <span className={styles['name']}>{model.name}</span>}
             </div>
             <ModelDeclaration
-              model={model.model} target={{ provider: route, settingsPath, index: model.index }}
+              model={model.model} target={{ provider: route, settingsPath, index: model.index, modelId: model.id }}
               revision={form.revision} offered={offered} disabled={!form.writable || saving}
               saveModel={saveModel} t={t}
             />
           </li>
         ))}
       </ul>
-      {refused ? <p className={styles['error']} role="alert">{t('writeRefused')}</p> : null}
     </section>
   )
 }

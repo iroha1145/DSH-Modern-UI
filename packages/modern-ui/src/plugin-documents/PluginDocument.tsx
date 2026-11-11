@@ -3,6 +3,7 @@ import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import { DetailDocument, useDetailDocumentLabels, type DetailDocumentState } from '../vendor/primitives/DetailDocument.tsx'
 import type { PluginDetail } from '../host-compat/plugin-documents/types.ts'
 import type {} from './locales.ts'
+import { documentImageSource } from './image-source.ts'
 
 export type DocumentTarget =
   | { readonly kind: 'bundle'; readonly name: string; readonly version?: string }
@@ -84,12 +85,7 @@ function DocumentRead({ target, language, t }: DocumentProps) {
       documentId === undefined
         ? undefined
         : {
-            resolve: (destination: string) => {
-              const url = new URL('api/modern-ui/plugin-document-image', document.baseURI)
-              url.searchParams.set('document', documentId)
-              url.searchParams.set('path', destination)
-              return url.href
-            },
+            resolve: (destination: string) => documentImageSource(destination, documentId, document.baseURI),
           },
     [documentId],
   )

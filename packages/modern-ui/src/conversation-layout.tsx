@@ -294,7 +294,7 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
   }, [editBefore, available, adjustable])
 
   const start = (event: PointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0) return
+    if (event.button !== 0 || drag.current !== null) return
     event.preventDefault()
     event.currentTarget.focus({ preventScroll: true })
     event.currentTarget.setPointerCapture(event.pointerId)
@@ -385,16 +385,17 @@ export function ConversationWidthControls({ container, phase }: ConversationWidt
             move(event, side)
           }}
           onPointerUp={event => {
+            if (drag.current?.pointer !== event.pointerId) return
             move(event, side)
             finish(false)
           }}
-          onPointerCancel={() => {
-            finish(true)
+          onPointerCancel={event => {
+            if (drag.current?.pointer === event.pointerId) finish(true)
           }}
           // pointerup and pointercancel finish first; a capture lost without either (the window lost focus mid-drag)
           // is not a release, so it restores the width from before the drag.
-          onLostPointerCapture={() => {
-            if (drag.current !== null) finish(true)
+          onLostPointerCapture={event => {
+            if (drag.current?.pointer === event.pointerId) finish(true)
           }}
           onKeyDown={event => {
             key(event, side)

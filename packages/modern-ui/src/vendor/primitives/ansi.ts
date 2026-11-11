@@ -37,10 +37,8 @@ export type AnsiLine = readonly AnsiSpan[]
  * semantic. Black and white both resolve to the primary label color so text
  * stays legible under either theme instead of matching the surface it sits
  * on; bright black takes the tertiary label color (the muted-gray role).
- * Cyan and bright cyan take two static blues: the design system has no cyan,
- * and anser's literal bright cyan is unreadable on the light theme's code
- * surface. Magenta has no token equivalent and falls through to anser's
- * literal rgb, as do all 256-palette and truecolor values.
+ * Blue, cyan, and magenta use the code palette's theme-aware colors; their
+ * literal bright colors otherwise lose contrast on light code surfaces.
  */
 const TOKEN_BY_BASIC_RGB: Record<string, string> = {
   '0,0,0': 'var(--dsw-alias-label-primary)',
@@ -53,9 +51,11 @@ const TOKEN_BY_BASIC_RGB: Record<string, string> = {
   '187,187,0': 'var(--dsw-alias-state-warn-primary)',
   '255,255,85': 'var(--dsw-alias-state-warn-secondary)',
   '0,0,187': 'var(--dsw-alias-state-business-primary)',
-  '85,85,255': 'var(--dsw-static-blue-400)',
-  '0,187,187': 'var(--dsw-static-blue-600)',
-  '85,255,255': 'var(--dsw-static-blue-500)',
+  '85,85,255': 'var(--shiki-token-constant)',
+  '0,187,187': 'var(--shiki-token-link)',
+  '85,255,255': 'var(--shiki-token-link)',
+  '187,0,187': 'var(--shiki-token-keyword)',
+  '255,85,255': 'var(--shiki-token-keyword)',
 }
 
 /**
@@ -279,8 +279,10 @@ function replayLine(line: string, entrySgr: SgrState): { text: string; sgr: SgrS
         // redraw that covers that cell covers the mark with it. With no cell to
         // attach to (line start, or straight after a redraw to column 0) a
         // terminal shows nothing rather than a lone accent.
-        const base = cursor > 0 ? columns[cursor - 1] : undefined
-        if (base !== undefined) columns[cursor - 1] = { sgr: base.sgr, char: base.char + char }
+        const previous = cursor - 1
+        const lead = columns[previous]?.spacer === true ? previous - 1 : previous
+        const base = columns[lead]
+        if (base !== undefined) columns[lead] = { ...base, char: base.char + char }
         continue
       }
       // Writing over either half of a wide pair blanks the other half, since a

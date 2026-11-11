@@ -1,0 +1,857 @@
+{
+  "groups": {
+    "shared": {
+      "path": "packages/modern-ui/src/vendor/shared/conversation-dictionaries.ts",
+      "baseline": {
+        "zh": {
+          "count": 396,
+          "hash": "7387a6666b2855937d2291d6e108d14a0022f047ebe992201f2b4a51378b4b42"
+        },
+        "en": {
+          "count": 396,
+          "hash": "e00fdcdd2f1834c864c4eee6b39392d1e5b16ce5417e5a3fa49bc5aaef0cd717"
+        },
+        "ja": {
+          "count": 396,
+          "hash": "77f3b026d8b35156ea1244f25a0cb2245890a1d5b0a675455b9cd9f45daf84b7"
+        },
+        "es": {
+          "count": 396,
+          "hash": "d6177d3e04360311f076bf8d7dfba5f5711dbacac02ad735613cd1549dde9cc2"
+        },
+        "fr": {
+          "count": 396,
+          "hash": "b173e5bb5b756adb752e396de2c9da3fa2e5135cec703ea8a6e64c0cec29964f"
+        },
+        "de": {
+          "count": 396,
+          "hash": "092bc74044c260fa6bb644ef962765cdb8df79d07bae2971682b26f97782e0e2"
+        },
+        "ru": {
+          "count": 396,
+          "hash": "9cd919e03513b7dacbec5ff7e71d408253b39c849e0c8035e7504f608faf9768"
+        },
+        "pt": {
+          "count": 396,
+          "hash": "0b8bac35d156559ba1e264d514cc1ade56cd3b206b3bdff72f16c14ccaf30c4e"
+        }
+      },
+      "changes": {
+        "es": {
+          "quote.remove": {
+            "before": "Eliminar cotización",
+            "after": "Eliminar cita"
+          },
+          "hint.plan": {
+            "before": "describe your task to generate plan",
+            "after": "Describe tu tarea para generar un plan"
+          },
+          "placeholder.plan": {
+            "before": "describe your task to generate plan",
+            "after": "Describe tu tarea para generar un plan"
+          },
+          "detail.goal.empty": {
+            "before": "Sin gol",
+            "after": "Sin objetivo"
+          },
+          "detail.seconds": {
+            "before": "{count}",
+            "after": "{count} s"
+          },
+          "detail.weekday.7": {
+            "before": "sol",
+            "after": "dom."
+          },
+          "detail.status.running": {
+            "before": "corriendo",
+            "after": "En ejecución"
+          },
+          "bash.running": {
+            "before": "corriendo",
+            "after": "En ejecución"
+          },
+          "row.running": {
+            "before": "corriendo",
+            "after": "En ejecución"
+          },
+          "terminal.running": {
+            "before": "corriendo",
+            "after": "En ejecución"
+          },
+          "tool.title.bash": {
+            "before": "golpe",
+            "after": "Bash"
+          },
+          "ask.pendingDetail": {
+            "before": "Estas cuestiones pendientes siguen siendo responsabilidad del compositor.",
+            "after": "Estas preguntas pendientes se pueden seguir respondiendo desde el cuadro de mensaje."
+          }
+        },
+        "fr": {
+          "quote.remove": {
+            "before": "Supprimer le devis",
+            "after": "Supprimer la citation"
+          },
+          "hint.plan": {
+            "before": "describe your task to generate plan",
+            "after": "Décrivez votre tâche pour générer un plan"
+          },
+          "placeholder.plan": {
+            "before": "describe your task to generate plan",
+            "after": "Décrivez votre tâche pour générer un plan"
+          },
+          "detail.goal.empty": {
+            "before": "Aucun but",
+            "after": "Aucun objectif"
+          },
+          "detail.weekday.7": {
+            "before": "Soleil",
+            "after": "dim."
+          },
+          "detail.status.running": {
+            "before": "Courir",
+            "after": "En cours"
+          },
+          "bash.running": {
+            "before": "Courir",
+            "after": "En cours"
+          },
+          "row.running": {
+            "before": "Courir",
+            "after": "En cours"
+          },
+          "terminal.running": {
+            "before": "Courir",
+            "after": "En cours"
+          },
+          "tool.title.bash": {
+            "before": "Frapper",
+            "after": "Bash"
+          },
+          "ask.pendingDetail": {
+            "before": "Ces questions en suspens restent à la charge du compositeur.",
+            "after": "Vous pouvez toujours répondre à ces questions en attente dans la zone de saisie."
+          }
+        },
+        "de": {
+          "hint.plan": {
+            "before": "describe your task to generate plan",
+            "after": "Beschreibe deine Aufgabe, um einen Plan zu erstellen"
+          },
+          "placeholder.plan": {
+            "before": "describe your task to generate plan",
+            "after": "Beschreibe deine Aufgabe, um einen Plan zu erstellen"
+          },
+          "detail.weekday.7": {
+            "before": "Sonne",
+            "after": "So."
+          },
+          "detail.status.running": {
+            "before": "Laufen",
+            "after": "Wird ausgeführt"
+          },
+          "bash.running": {
+            "before": "Laufen",
+            "after": "Wird ausgeführt"
+          },
+          "row.running": {
+            "before": "Laufen",
+            "after": "Wird ausgeführt"
+          },
+          "terminal.running": {
+            "before": "Laufen",
+            "after": "Wird ausgeführt"
+          },
+          "ask.pendingDetail": {
+            "before": "Diese offenen Fragen bleiben vom Komponisten zu beantworten.",
+            "after": "Diese offenen Fragen können weiterhin im Eingabefeld beantwortet werden."
+          }
+        },
+        "ru": {
+          "hint.plan": {
+            "before": "describe your task to generate plan",
+            "after": "Опишите задачу, чтобы составить план"
+          },
+          "placeholder.plan": {
+            "before": "describe your task to generate plan",
+            "after": "Опишите задачу, чтобы составить план"
+          },
+          "detail.weekday.7": {
+            "before": "Солнце",
+            "after": "вс"
+          },
+          "detail.status.running": {
+            "before": "Бег",
+            "after": "Выполняется"
+          },
+          "bash.running": {
+            "before": "Бег",
+            "after": "Выполняется"
+          },
+          "row.running": {
+            "before": "Бег",
+            "after": "Выполняется"
+          },
+          "terminal.running": {
+            "before": "Бег",
+            "after": "Выполняется"
+          },
+          "tool.title.bash": {
+            "before": "Баш",
+            "after": "Bash"
+          },
+          "ask.pendingDetail": {
+            "before": "На эти нерешенные вопросы остается ответ композитора.",
+            "after": "На эти ожидающие вопросы можно по-прежнему ответить в поле ввода."
+          }
+        },
+        "pt": {
+          "quote.remove": {
+            "before": "Remover cotação",
+            "after": "Remover citação"
+          },
+          "hint.plan": {
+            "before": "describe your task to generate plan",
+            "after": "Descreva sua tarefa para gerar um plano"
+          },
+          "placeholder.plan": {
+            "before": "describe your task to generate plan",
+            "after": "Descreva sua tarefa para gerar um plano"
+          },
+          "detail.weekday.7": {
+            "before": "Sol",
+            "after": "dom."
+          },
+          "detail.status.running": {
+            "before": "Correndo",
+            "after": "Em execução"
+          },
+          "bash.running": {
+            "before": "Correndo",
+            "after": "Em execução"
+          },
+          "row.running": {
+            "before": "Correndo",
+            "after": "Em execução"
+          },
+          "terminal.running": {
+            "before": "Correndo",
+            "after": "Em execução"
+          },
+          "ask.pendingDetail": {
+            "before": "Essas questões pendentes permanecem respondidas pelo compositor.",
+            "after": "Estas perguntas pendentes ainda podem ser respondidas na caixa de mensagem."
+          }
+        }
+      }
+    },
+    "chat": {
+      "path": "packages/modern-ui/src/vendor/chat/client/locale.ts",
+      "baseline": {
+        "zh": {
+          "count": 206,
+          "hash": "34f8dd80c090867fdbf976b80e31304671096b9fecad96bd3d874ca23e3b4cb4"
+        },
+        "en": {
+          "count": 206,
+          "hash": "23bcf596bc818d8250111be41ced69813ab471958d07dba63fd1f82c8363a12c"
+        },
+        "ja": {
+          "count": 206,
+          "hash": "e4758ce749fac5c1a99e4496b1255134a13e5d072aadc8f4fff77f69e3566b85"
+        },
+        "es": {
+          "count": 206,
+          "hash": "cf5661ee3facc465e0e948724af3ea995a6f2ba318dea36ba7a3029a703ef9a9"
+        },
+        "fr": {
+          "count": 206,
+          "hash": "c401d3eb0f12ac7beb21b85c1e02385919a2eeae498b7329dd904a72e8603cdc"
+        },
+        "de": {
+          "count": 206,
+          "hash": "dbc719e804eeab07561b8b052b13a12abcc24f3a9d53ee273e471c3ea20e5834"
+        },
+        "ru": {
+          "count": 206,
+          "hash": "79f2b13ea0df41dcce8b465cafe13068ba313d69fe77ef5f2893ae7fc7bcb41a"
+        },
+        "pt": {
+          "count": 206,
+          "hash": "cc2a445c1eaa86f5ac1ad0911b71f69733be061f75b6f1f55c0972a22f1dfdd6"
+        }
+      },
+      "changes": {
+        "es": {
+          "stats.dialog.llmTime": {
+            "before": "tiempo de maestría",
+            "after": "Tiempo del LLM"
+          },
+          "command.running": {
+            "before": "Corriendo…",
+            "after": "En ejecución…"
+          },
+          "row.running": {
+            "before": "corriendo",
+            "after": "En ejecución"
+          },
+          "settings.transcript.verbose": {
+            "before": "Detallado",
+            "after": "Muy detallado"
+          }
+        },
+        "fr": {
+          "message.retry.status": {
+            "before": "{label} ({retry}/{maximum}) · {seconds}",
+            "after": "{label} ({retry}/{maximum}) · {seconds} s"
+          },
+          "command.running": {
+            "before": "Courir…",
+            "after": "En cours…"
+          },
+          "row.running": {
+            "before": "Courir",
+            "after": "En cours"
+          }
+        },
+        "de": {
+          "command.running": {
+            "before": "Laufen…",
+            "after": "Wird ausgeführt…"
+          },
+          "row.running": {
+            "before": "Laufen",
+            "after": "Wird ausgeführt"
+          },
+          "settings.transcript.verbose": {
+            "before": "Ausführlich",
+            "after": "Sehr ausführlich"
+          }
+        },
+        "ru": {
+          "stats.dialog.llmTime": {
+            "before": "время магистратуры",
+            "after": "Время LLM"
+          },
+          "command.running": {
+            "before": "Бег…",
+            "after": "Выполняется…"
+          },
+          "row.running": {
+            "before": "Бег",
+            "after": "Выполняется"
+          }
+        },
+        "pt": {
+          "stats.dialog.llmTime": {
+            "before": "Horário do LLM",
+            "after": "Tempo do LLM"
+          },
+          "command.running": {
+            "before": "Correndo…",
+            "after": "Em execução…"
+          },
+          "row.running": {
+            "before": "Correndo",
+            "after": "Em execução"
+          }
+        }
+      }
+    },
+    "workspace": {
+      "path": "packages/modern-ui/src/vendor/workspace/client/locales.ts",
+      "baseline": {
+        "zh": {
+          "count": 119,
+          "hash": "ae0230aaf95a4cd0f22fad6623c602cad1cafd34a7cc9fa6cf5fc63ec49b21b0"
+        },
+        "en": {
+          "count": 119,
+          "hash": "eec5ddcbd48c04498953b49ea2d66a967edd7d551b8cf3d11bad055a8af1bdd6"
+        },
+        "ja": {
+          "count": 119,
+          "hash": "d8c73181e0333427d2302195aef56cc9ab28efb8920544fe4d36721a223492f3"
+        },
+        "es": {
+          "count": 119,
+          "hash": "0eed1194ddf5312f5f5443e224201be65c217444582c6a403e50b7288926f360"
+        },
+        "fr": {
+          "count": 119,
+          "hash": "4571147677ffce303750f5cdc630163df28373b56f9012683d876467ab1fbfc6"
+        },
+        "de": {
+          "count": 119,
+          "hash": "bee74e8c121c3ccb6003bc4a8601f7018d6f74f5e5864afcf6565b90a210192c"
+        },
+        "ru": {
+          "count": 119,
+          "hash": "81d73581b1da030868ac5ac2a4a06464f5f9021820a9d2888ba4103957e85327"
+        },
+        "pt": {
+          "count": 119,
+          "hash": "7ba7ffab27421d80bbd8c55955af8b80a426492c336c444f932afa1b033778a1"
+        }
+      },
+      "changes": {
+        "es": {
+          "status.running": {
+            "before": "corriendo",
+            "after": "En ejecución"
+          }
+        },
+        "fr": {
+          "orderBy.label": {
+            "before": "Commander par",
+            "after": "Trier par"
+          },
+          "status.running": {
+            "before": "Courir",
+            "after": "En cours"
+          }
+        },
+        "de": {
+          "orderBy.label": {
+            "before": "Bestellen nach",
+            "after": "Sortieren nach"
+          },
+          "status.running": {
+            "before": "Laufen",
+            "after": "Wird ausgeführt"
+          }
+        },
+        "ru": {
+          "orderBy.label": {
+            "before": "Заказать по",
+            "after": "Сортировать по"
+          },
+          "status.running": {
+            "before": "Бег",
+            "after": "Выполняется"
+          },
+          "time.hours": {
+            "before": "{n}h",
+            "after": "{n} ч"
+          },
+          "time.days": {
+            "before": "{n}d",
+            "after": "{n} дн."
+          },
+          "time.months": {
+            "before": "{n}mo",
+            "after": "{n} мес."
+          },
+          "time.years": {
+            "before": "{n}y",
+            "after": "{n} г."
+          }
+        },
+        "pt": {
+          "orderBy.label": {
+            "before": "Encomendar por",
+            "after": "Ordenar por"
+          },
+          "status.running": {
+            "before": "Correndo",
+            "after": "Em execução"
+          },
+          "time.years": {
+            "before": "{n}s",
+            "after": "{n} a"
+          }
+        }
+      }
+    },
+    "translation": {
+      "path": "packages/modern-ui/src/vendor/translation/client/locales.ts",
+      "baseline": {
+        "zh": {
+          "count": 32,
+          "hash": "3b7a347405ff9b4a26fd07c56535009287bd2601b2771c687f5850ebd827207f"
+        },
+        "en": {
+          "count": 32,
+          "hash": "69ee95ff45693eb2b4cd042d8d54a4adfe619e40a150385f65186d5088be7b97"
+        },
+        "ja": {
+          "count": 32,
+          "hash": "7bd580e126f0760e3fce0c128f44a33bb7e5b29f97129d873149364b18ce40fe"
+        },
+        "es": {
+          "count": 32,
+          "hash": "4640499af1998cf316c3cf409b2731a8593f637a20befcc8ccfca53f56dad601"
+        },
+        "fr": {
+          "count": 32,
+          "hash": "f37c1379c7493034ba444b21a3095a21111a5a1538c9fe236494a4e6fa68e05a"
+        },
+        "de": {
+          "count": 32,
+          "hash": "69c17875dce49d0b7d0371f887b243de4713d7266ad2a8644f82e6cf34f672a3"
+        },
+        "ru": {
+          "count": 32,
+          "hash": "f3197d0e31a17623130acf1171f5dea13f587caa8b51619e611385244fd84246"
+        },
+        "pt": {
+          "count": 32,
+          "hash": "e4d8ebae90b381d793e48b713205c3b6e78f976986b33fbf956a9cccb819506b"
+        }
+      },
+      "changes": {
+        "pt": {
+          "bing": {
+            "before": "Google",
+            "after": "Bing"
+          }
+        }
+      }
+    },
+    "model": {
+      "path": "packages/modern-ui/src/vendor/model/client/locales.ts",
+      "baseline": {
+        "zh": {
+          "count": 70,
+          "hash": "97dcabd32b535f935b122f8350d68a1f883a24760ad71052f4722ae479d845de"
+        },
+        "en": {
+          "count": 70,
+          "hash": "08d05b40302b74cdf84bd161687833afe3f84173c5db3691eefae0af7ba526c8"
+        },
+        "ja": {
+          "count": 70,
+          "hash": "7de04d8396b0e0bf89407870b3717e75cca79bf930660cadaebe4039308402db"
+        },
+        "es": {
+          "count": 70,
+          "hash": "eeb1dc31d695fbba09eaf5c110252dca1ca225cc630b6f55c5e833969f0ce4e8"
+        },
+        "fr": {
+          "count": 70,
+          "hash": "863927b8b31584b7a67c31a167515bb8f3d8fb322be6e9a43610b516370c03eb"
+        },
+        "de": {
+          "count": 70,
+          "hash": "844e025a041034f5df36a34b1b2588ebd3099a6d6de4593e059fe7b7bb737cd2"
+        },
+        "ru": {
+          "count": 70,
+          "hash": "cc97269db9aed40f11a68dab79aa27926ef533359b10b303afe8bf3ecbbdecaa"
+        },
+        "pt": {
+          "count": 70,
+          "hash": "f6761687191c8b855b7e9ddbcd50519b35065e7d3d357560dbe80103fb75c49e"
+        }
+      },
+      "changes": {
+        "zh": {
+          "effort.providerDefault": {
+            "before": "Default",
+            "after": "默认"
+          }
+        }
+      }
+    },
+    "intelligent": {
+      "path": "packages/modern-ui/src/vendor/intelligent/client/locales.ts",
+      "baseline": {
+        "zh": {
+          "count": 38,
+          "hash": "9e30d0b484f383d42102da99a75c487e7ac8fc66bedb213d49133f243b9db350"
+        },
+        "en": {
+          "count": 38,
+          "hash": "3bf99c6c0d4e94a055bbdca1d9a5d46d1d25173d97b27aab5ad8c0340c6e3a5b"
+        },
+        "ja": {
+          "count": 38,
+          "hash": "ff4e5f61659f47209c33d096efd09a841ce3f3b50529e7e4a2812777e0b947c2"
+        },
+        "es": {
+          "count": 38,
+          "hash": "bccab580e1de3a729e4f3c102e74999ad2daad854b59f33d28a763e1942f2e3e"
+        },
+        "fr": {
+          "count": 38,
+          "hash": "851d79bddf9fee13bdb703f8492ce5d984537ba4085a840c73c47b5f91801724"
+        },
+        "de": {
+          "count": 38,
+          "hash": "b275b3fdfc669b25d93237000c1d0a12f1e5b1c70571b9b779622ed93aaef81b"
+        },
+        "ru": {
+          "count": 38,
+          "hash": "8efc59666b32c68309881b636c6d763ce3484ff0c37d1764f9b9167db3e269d0"
+        },
+        "pt": {
+          "count": 38,
+          "hash": "f95fa7ae87ca8893765aeebe086d5a1222314af9440d97224319d63ba9dd8a97"
+        }
+      },
+      "changes": {
+        "zh": {
+          "chartRangeExceeded": {
+            "before": null,
+            "after": "堆叠总值超出了图表的数值范围。下方显示完整数据。"
+          }
+        },
+        "en": {
+          "chartRangeExceeded": {
+            "before": null,
+            "after": "The stacked total is outside the chart’s numeric range. The complete data is shown below."
+          }
+        },
+        "ja": {
+          "chartRangeExceeded": {
+            "before": null,
+            "after": "積み上げの合計値がグラフの数値範囲を超えています。完全なデータを以下に表示します。"
+          }
+        },
+        "de": {
+          "chartRangeExceeded": {
+            "before": null,
+            "after": "Die gestapelte Summe liegt außerhalb des Zahlenbereichs des Diagramms. Die vollständigen Daten werden unten angezeigt."
+          }
+        },
+        "es": {
+          "chartRangeExceeded": {
+            "before": null,
+            "after": "El total apilado está fuera del rango numérico del gráfico. Los datos completos se muestran a continuación."
+          }
+        },
+        "fr": {
+          "chartRangeExceeded": {
+            "before": null,
+            "after": "Le total empilé dépasse la plage numérique du graphique. Les données complètes sont affichées ci-dessous."
+          }
+        },
+        "ru": {
+          "chartRangeExceeded": {
+            "before": null,
+            "after": "Сумма значений выходит за числовой диапазон диаграммы. Полные данные приведены ниже."
+          }
+        },
+        "pt": {
+          "chartRangeExceeded": {
+            "before": null,
+            "after": "O total empilhado está fora do intervalo numérico do gráfico. Os dados completos são mostrados abaixo."
+          }
+        }
+      }
+    }
+  },
+  "languagePackChanges": [
+    {
+      "namespace": "chat",
+      "language": "es",
+      "key": "stats.dialog.llmTime",
+      "before": "tiempo de maestría",
+      "after": "Tiempo del LLM"
+    },
+    {
+      "namespace": "chat",
+      "language": "es",
+      "key": "command.running",
+      "before": "Corriendo…",
+      "after": "En ejecución…"
+    },
+    {
+      "namespace": "chat",
+      "language": "es",
+      "key": "row.running",
+      "before": "corriendo",
+      "after": "En ejecución"
+    },
+    {
+      "namespace": "chat",
+      "language": "es",
+      "key": "settings.transcript.verbose",
+      "before": "Detallado",
+      "after": "Muy detallado"
+    },
+    {
+      "namespace": "chat",
+      "language": "fr",
+      "key": "message.retry.status",
+      "before": "{label} ({retry}/{maximum}) · {seconds}",
+      "after": "{label} ({retry}/{maximum}) · {seconds} s"
+    },
+    {
+      "namespace": "chat",
+      "language": "fr",
+      "key": "command.running",
+      "before": "Courir…",
+      "after": "En cours…"
+    },
+    {
+      "namespace": "chat",
+      "language": "fr",
+      "key": "row.running",
+      "before": "Courir",
+      "after": "En cours"
+    },
+    {
+      "namespace": "chat",
+      "language": "de",
+      "key": "command.running",
+      "before": "Laufen…",
+      "after": "Wird ausgeführt…"
+    },
+    {
+      "namespace": "chat",
+      "language": "de",
+      "key": "row.running",
+      "before": "Laufen",
+      "after": "Wird ausgeführt"
+    },
+    {
+      "namespace": "chat",
+      "language": "de",
+      "key": "settings.transcript.verbose",
+      "before": "Ausführlich",
+      "after": "Sehr ausführlich"
+    },
+    {
+      "namespace": "chat",
+      "language": "ru",
+      "key": "stats.dialog.llmTime",
+      "before": "время магистратуры",
+      "after": "Время LLM"
+    },
+    {
+      "namespace": "chat",
+      "language": "ru",
+      "key": "command.running",
+      "before": "Бег…",
+      "after": "Выполняется…"
+    },
+    {
+      "namespace": "chat",
+      "language": "ru",
+      "key": "row.running",
+      "before": "Бег",
+      "after": "Выполняется"
+    },
+    {
+      "namespace": "chat",
+      "language": "pt",
+      "key": "stats.dialog.llmTime",
+      "before": "Horário do LLM",
+      "after": "Tempo do LLM"
+    },
+    {
+      "namespace": "chat",
+      "language": "pt",
+      "key": "command.running",
+      "before": "Correndo…",
+      "after": "Em execução…"
+    },
+    {
+      "namespace": "chat",
+      "language": "pt",
+      "key": "row.running",
+      "before": "Correndo",
+      "after": "Em execução"
+    },
+    {
+      "namespace": "workspace",
+      "language": "es",
+      "key": "status.running",
+      "before": "corriendo",
+      "after": "En ejecución"
+    },
+    {
+      "namespace": "workspace",
+      "language": "fr",
+      "key": "orderBy.label",
+      "before": "Commander par",
+      "after": "Trier par"
+    },
+    {
+      "namespace": "workspace",
+      "language": "fr",
+      "key": "status.running",
+      "before": "Courir",
+      "after": "En cours"
+    },
+    {
+      "namespace": "workspace",
+      "language": "de",
+      "key": "orderBy.label",
+      "before": "Bestellen nach",
+      "after": "Sortieren nach"
+    },
+    {
+      "namespace": "workspace",
+      "language": "de",
+      "key": "status.running",
+      "before": "Laufen",
+      "after": "Wird ausgeführt"
+    },
+    {
+      "namespace": "workspace",
+      "language": "ru",
+      "key": "orderBy.label",
+      "before": "Заказать по",
+      "after": "Сортировать по"
+    },
+    {
+      "namespace": "workspace",
+      "language": "ru",
+      "key": "status.running",
+      "before": "Бег",
+      "after": "Выполняется"
+    },
+    {
+      "namespace": "workspace",
+      "language": "ru",
+      "key": "time.hours",
+      "before": "{n}h",
+      "after": "{n} ч"
+    },
+    {
+      "namespace": "workspace",
+      "language": "ru",
+      "key": "time.days",
+      "before": "{n}d",
+      "after": "{n} дн."
+    },
+    {
+      "namespace": "workspace",
+      "language": "ru",
+      "key": "time.months",
+      "before": "{n}mo",
+      "after": "{n} мес."
+    },
+    {
+      "namespace": "workspace",
+      "language": "ru",
+      "key": "time.years",
+      "before": "{n}y",
+      "after": "{n} г."
+    },
+    {
+      "namespace": "workspace",
+      "language": "pt",
+      "key": "orderBy.label",
+      "before": "Encomendar por",
+      "after": "Ordenar por"
+    },
+    {
+      "namespace": "workspace",
+      "language": "pt",
+      "key": "status.running",
+      "before": "Correndo",
+      "after": "Em execução"
+    },
+    {
+      "namespace": "workspace",
+      "language": "pt",
+      "key": "time.years",
+      "before": "{n}s",
+      "after": "{n} a"
+    }
+  ],
+  "languagePacksBaselineHash": "8d5f16006a68ffd666658901b4d91459e81009054ae9c4fa46e29fa985277537"
+}

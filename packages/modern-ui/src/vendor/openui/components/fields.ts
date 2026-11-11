@@ -40,6 +40,11 @@ export class FieldRegistry {
 
 export const FieldRegistryContext = createContext<FieldRegistry | null>(null);
 
+/** Text controls accept scalar state; a reactive binding can otherwise resolve to an arbitrary object or DAG. */
+export function fieldScalar(value: unknown): string | number {
+  return typeof value === "string" || typeof value === "number" && Number.isFinite(value) ? value : "";
+}
+
 /**
  * The state key of a control: its statement name, or an id of this instance. Never the label, so two inputs
  * that share a label keep their own values; inputs bound to one $variable share it through the binding.
@@ -54,9 +59,10 @@ export function useFieldName(statementId?: string) {
  * @param label - The control's visible label, if any.
  * @param statementId - The statement that defines the control.
  * @param value - The authored value: a literal default or a $variable binding.
+ * @param project - Optional projection for controls that display only a subset of runtime values.
  * @returns The state field.
  */
-export function useField<T>(label: unknown, statementId: string | undefined, value: T) {
+export function useField<T>(label: unknown, statementId: string | undefined, value: T, project?: (value: unknown) => unknown) {
   const name = useFieldName(statementId);
   const field = useStateField(name, value);
   const form = useFormName();
@@ -65,10 +71,13 @@ export function useField<T>(label: unknown, statementId: string | undefined, val
   const key = useId();
   const shownLabel = (typeof label === "string" && label) || statementId || "value";
   // The reader resolves the latest props the way useStateField does, against the store as it is at the click.
-  const live = useRef({ name, value });
-  live.current = { name, value };
+  const live = useRef({ name, value, resolved: field.value, project });
+  live.current = { name, value, resolved: field.value, project };
   useEffect(() => {
     const read = () => {
+      // read() has just flushed pending renders. Use the resolved value for projections: getFieldValue unwraps
+      // objects with a `value` member, unlike a reactive binding's direct store.get(), and would report unseen text.
+      if (live.current.project) return live.current.project(live.current.resolved);
       const current = live.current.value;
       return isReactiveAssign(current) ? getFieldValue(undefined, current.target) : (getFieldValue(form, live.current.name) ?? current);
     };

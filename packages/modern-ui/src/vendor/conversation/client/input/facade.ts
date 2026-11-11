@@ -17,7 +17,7 @@ import type { LexicalEditor } from 'lexical'
 import type {
   CommandClaim, ConsumeTokenRequest, DraftAttachmentId, DraftInitializationOptions, DraftInitializationResult,
   InputActions, InputEffect, InputNotice, InputState, InputTriggerController, PickOutcome,
-  SessionInput, SubmitAttempt, SubmitAttachment, SubmitOutcome,
+  SessionInput, SubmitAttempt, SubmitAttachment, SubmitOutcome, FailedInputSend,
 } from '../contract/input.ts'
 import type {
   ArbitrateKey, ArbitrateOutcome, ComposerKeyboard, DraftQuote, DraftInput, DraftSnapshot, Occurrence, ReferenceInsert, TokenSpan,
@@ -26,7 +26,7 @@ import type { InputSubmitMode, MessageSubmission, MessageSubmissionState } from 
 import { serializeDraftPrompt } from './prompt.ts'
 import { SubmitMachine } from './machine.ts'
 import { resolveDraftInput, snapshotDraft } from '../draft.ts'
-import { DraftEditorRuntime } from './editor/runtime.ts'
+import { DRAFT_SUBMITTED_TAG, DraftEditorRuntime } from './editor/runtime.ts'
 import type { EditorProjection } from './editor/projection.ts'
 
 /** Popup face the shell needs (dismissal only; typed structurally to avoid a value import). */
@@ -40,6 +40,11 @@ export interface PopupDismissFace {
  * owns the lexicon subscription through the Session scope's inject lifecycle.
  */
 export interface SessionInputDeps {
+  failedSends?: readonly FailedInputSend[]
+  persistFailedSends?: (records: readonly FailedInputSend[]) => void
+  persistRecoveredDraft?: (draft: DraftSnapshot) => boolean
+  availableAttachmentIds?: (ids: readonly DraftAttachmentId[]) => readonly DraftAttachmentId[]
+  missingAttachmentsNotice?: () => string
   /** Session-scope ctx handed to claim.submit transactions. */
   actx: Context
   /** Snapshot the Session facts before asynchronous command arbitration. */
@@ -110,10 +115,12 @@ const EMPTY_LEXICON: ReadonlyMap<'/' | '@', readonly string[]> = new Map()
 
 /** Editor and attachment snapshot owned by one detached default send. */
 interface DetachedDraft {
+  readonly recoveryId: number
   readonly draft: string
   readonly occurrences: readonly Occurrence[]
   readonly quotes: readonly DraftQuote[]
   readonly attachmentIds: readonly DraftAttachmentId[]
+  restoreEpoch?: number
 }
 
 /**
@@ -132,6 +139,8 @@ export class SessionInputShell implements SessionInput {
   }
   /** The public provide-channel action face (one stable identity per session). */
   readonly actions: InputActions = {
+    restoreFailedSend: id => this.restoreFailedSend(id),
+    discardFailedSend: id => { this.discardFailedSend(id) },
     insertQuote: text => this.insertQuote(text),
     captureInsertion: () => ({ ...this.caretSpan(), draftRev: this.rev }),
     insertText: (text, span) => {
@@ -169,21 +178,28 @@ export class SessionInputShell implements SessionInput {
   private filePicker: Parameters<ComposerKeyboard['bindFilePicker']>[0] | undefined
   /** Default sends retained until admission settles or scope disposal releases their attachments. */
   private readonly detachedDrafts = new Map<number, DetachedDraft>()
-  /** Failed default sends waiting to be restored together in submission order. */
-  private readonly failedDetached = new Map<number, DetachedDraft>()
-  /** Revision of the last automatic failure restoration. */
-  private failedRestoreRev: number | undefined
-  private restoringFailures = false
+  private readonly failedDetached = new Map<number, { readonly value: FailedInputSend; readonly attachmentIds: readonly DraftAttachmentId[] }>()
+  private failedSeq = 0
+  private restoredRecordId: number | undefined
+  private editEpoch = 0
+  /** Whether the editor commit being reported is the machine's own post-send clear. */
+  private sentClear = false
   private attachmentFlightSeq = 0
   /** Attachment-only sends retained until admission settles or scope disposal releases their attachments. */
   private readonly attachmentFlights = new Map<number, {
     readonly controller: AbortController
     readonly attachmentIds: readonly DraftAttachmentId[]
+    readonly recoveryId: number
   }>()
 
   private readonly unsubscribeInbox: (() => void) | undefined
 
   constructor(private readonly deps: SessionInputDeps) {
+    for (const value of deps.failedSends ?? []) {
+      this.failedSeq = Math.max(this.failedSeq, value.id)
+      this.failedDetached.set(value.id, { value, attachmentIds: [] })
+      if (value.restored === true) this.restoredRecordId = value.id
+    }
     this.draftEditor = new DraftEditorRuntime({
       onUpdate: () => { this.onEditorUpdate() },
       quoteLabels: () => ({ remove: this.deps.quoteRemoveLabel?.() ?? '' }),
@@ -192,7 +208,16 @@ export class SessionInputShell implements SessionInput {
       lexicon: () => this.lexicon.getSnapshot(),
       resolveLexicon: () => this.deps.inputTriggers?.()?.lexicon,
     })
-    this.unregister = this.draftEditor.register()
+    // Update listeners run in registration order, so this one classifies a
+    // commit before the runtime's listener reports it to onEditorUpdate.
+    const offSentClear = this.editor.registerUpdateListener(({ tags }) => {
+      this.sentClear = tags.has(DRAFT_SUBMITTED_TAG)
+    })
+    const offEditor = this.draftEditor.register()
+    this.unregister = () => {
+      offEditor()
+      offSentClear()
+    }
     this.state = createSnapshotStore<InputState>(this.compose())
     this.unsubscribeInbox = deps.inbox?.subscribe(() => { this.publish() })
   }
@@ -208,10 +233,11 @@ export class SessionInputShell implements SessionInput {
     // caret motion and subscribers do not re-render per caret move.
     if (projectionContentChanged(prev, this.projection)) {
       this.rev += 1
-      if (!this.restoringFailures && this.failedRestoreRev !== undefined) {
-        this.failedDetached.clear()
-        this.failedRestoreRev = undefined
-      }
+      // The post-send clear is the machine's commit, not an edit. An Enter-key
+      // submit runs inside an editor update, where Lexical defers that clear
+      // until the detached send has already been stamped; counting it would
+      // cancel the failed message's recovery into its own untouched empty draft.
+      if (!this.sentClear) this.editEpoch += 1
       this.dispatchRun(({ type: 'draft-changed', command: this.projection.command }))
     }
     const caret = this.projection.caret
@@ -338,6 +364,8 @@ export class SessionInputShell implements SessionInput {
     if (this.snapshot.phase === 'adjudicating' || this.snapshot.phase === 'submitting') return false
     if (ids.length === 0) return true
     this.attachmentIds = [...this.attachmentIds, ...ids]
+    this.editEpoch += 1
+    this.clearReattachedRecovery()
     this.publish()
     return true
   }
@@ -352,6 +380,8 @@ export class SessionInputShell implements SessionInput {
     if (this.snapshot.phase === 'adjudicating' || this.snapshot.phase === 'submitting') return false
     if (!this.draftEditor.insertFileReferences(references)) return false
     this.attachmentIds = [...this.attachmentIds, ...ids]
+    this.editEpoch += 1
+    this.clearReattachedRecovery()
     this.publish()
     return true
   }
@@ -366,6 +396,7 @@ export class SessionInputShell implements SessionInput {
     const next = this.attachmentIds.filter(candidate => candidate !== id)
     if (next.length === this.attachmentIds.length) return false
     this.attachmentIds = next
+    this.editEpoch += 1
     this.publish()
     return true
   }
@@ -413,6 +444,9 @@ export class SessionInputShell implements SessionInput {
    */
   submit(mode: InputSubmitMode = 'queue', source?: 'click' | 'enter'): void {
     if (this.disposed) return
+    // A gesture with nothing to send (a second Enter on the emptied composer)
+    // is not an edit and must not cancel an in-flight message's recovery.
+    if (this.snapshot.draft.trim() !== '' || this.attachmentIds.length > 0) this.editEpoch += 1
     const timestamp = Date.now()
     let state: MessageSubmissionState | undefined
     if (this.snapshot.phase === 'plain' && (this.snapshot.draft.trim() !== '' || this.attachmentIds.length > 0)) {
@@ -427,17 +461,24 @@ export class SessionInputShell implements SessionInput {
         const controller = new AbortController()
         this.attachmentFlightSeq += 1
         const flight = this.attachmentFlightSeq
-        this.attachmentFlights.set(flight, { controller, attachmentIds })
+        const recoveryId = this.takeRecoveryId()
+        this.attachmentFlights.set(flight, { controller, attachmentIds, recoveryId })
         this.commitSend(attachmentIds)
+        const record: DetachedDraft = { recoveryId, draft: '', occurrences: [], quotes: [], attachmentIds, restoreEpoch: this.editEpoch }
         this.notifySubmission(submission)
         void this.deps.defaultSink('', attachmentIds, mode, controller.signal).then((outcome) => {
           if (this.disposed || !this.attachmentFlights.delete(flight)) return
-          if (outcome.kind === 'success') return
-          this.restoreAttachments(attachmentIds)
+          if (outcome.kind === 'success') {
+            this.failedDetached.delete(recoveryId)
+            this.persistFailures()
+            this.publish()
+            return
+          }
+          this.retainFailedSend(record)
           if (outcome.text !== undefined) this.notify('error', outcome.text)
         }, (error: unknown) => {
           if (this.disposed || !this.attachmentFlights.delete(flight)) return
-          this.restoreAttachments(attachmentIds)
+          this.retainFailedSend(record)
           this.notify('error', error instanceof Error ? error.message : String(error))
         })
       }
@@ -636,6 +677,9 @@ export class SessionInputShell implements SessionInput {
     for (const record of this.detachedDrafts.values()) {
       for (const attachmentId of record.attachmentIds) retained.add(attachmentId)
     }
+    for (const record of this.failedDetached.values()) {
+      for (const attachmentId of record.attachmentIds) retained.add(attachmentId)
+    }
     for (const flight of this.attachmentFlights.values()) {
       for (const attachmentId of flight.attachmentIds) retained.add(attachmentId)
       flight.controller.abort()
@@ -666,6 +710,62 @@ export class SessionInputShell implements SessionInput {
     return () => {
       if (this.persistDraft === write) this.persistDraft = undefined
     }
+  }
+
+  /**
+   * Move the active document through the package's Workspace wiring. The target
+   * must finish admission before the source relinquishes any runtime objects.
+   * Failed-message text backups stay in their original Session, without owning
+   * attachments that the target now owns.
+   */
+  transferDraftTo(target: SessionInputShell, acceptAttachments: (ids: readonly DraftAttachmentId[]) => void): boolean {
+    if (target === this) return true
+    const locked = (shell: SessionInputShell): boolean => shell.disposed
+      || shell.snapshot.phase === 'adjudicating' || shell.snapshot.phase === 'submitting'
+    if (locked(this) || locked(target)) return false
+    const draft = this.draftSnapshot
+    const ids = this.attachmentIds
+    if (draft.text === '' && ids.length === 0) return true
+    const previousDraft = target.draftSnapshot
+    const previousIds = target.attachmentIds
+    try {
+      target.attachmentIds = [...previousIds, ...ids]
+      if (draft.text !== '') target.setDraft(draft)
+      acceptAttachments(ids)
+    } catch (error: unknown) {
+      target.attachmentIds = previousIds
+      target.setDraft(previousDraft)
+      target.publish()
+      throw error
+    }
+    // Replacing a target draft must not make its older recovery backup belong
+    // to the incoming message. Its text remains explicitly recoverable.
+    if (draft.text !== '' && target.restoredRecordId !== undefined) {
+      const id = target.restoredRecordId
+      const record = target.failedDetached.get(id)
+      if (record !== undefined) target.failedDetached.set(id, { ...record, value: { ...record.value, restored: false } })
+      target.restoredRecordId = undefined
+      target.persistFailures()
+    }
+    const transferred = new Set(ids)
+    this.attachmentIds = this.attachmentIds.filter(id => !transferred.has(id))
+    for (const [id, record] of this.failedDetached) {
+      const retained = record.attachmentIds.filter(attachment => !transferred.has(attachment))
+      const moved = record.attachmentIds.length - retained.length
+      if (moved === 0 && id !== this.restoredRecordId) continue
+      this.failedDetached.set(id, {
+        attachmentIds: retained,
+        value: { ...record.value, missingAttachments: record.value.missingAttachments + moved, restored: false },
+      })
+    }
+    this.restoredRecordId = undefined
+    this.editEpoch += 1
+    target.editEpoch += 1
+    this.setDraft('')
+    this.persistFailures()
+    this.publish()
+    target.publish()
+    return true
   }
 
   /**
@@ -707,6 +807,11 @@ export class SessionInputShell implements SessionInput {
 
   private run(effects: readonly InputEffect[]): void {
     for (const fx of effects) this.execute(fx)
+    for (const fx of effects) {
+      if (fx.type !== 'default-sink') continue
+      const record = this.detachedDrafts.get(fx.attempt.seq)
+      if (record !== undefined) record.restoreEpoch = this.editEpoch
+    }
     this.publish()
   }
 
@@ -767,12 +872,8 @@ export class SessionInputShell implements SessionInput {
     this.attachmentIds = []
     const occurrences = this.projection.occurrences
     const quotes = this.projection.quotes
-    const record = { draft, occurrences, quotes, attachmentIds }
+    const record: DetachedDraft = { recoveryId: this.takeRecoveryId(), draft, occurrences, quotes, attachmentIds }
     this.detachedDrafts.set(attempt.seq, record)
-    if (this.failedRestoreRev === this.rev) {
-      this.failedDetached.clear()
-      this.failedRestoreRev = undefined
-    }
     const inputTriggers = this.deps.inputTriggers?.()
     const prompt = serializeDraftPrompt(snapshotDraft(draft, occurrences, undefined, quotes), async (source, ref) => {
       if (inputTriggers === undefined) throw new Error(`no serializer for reference source "${source}"`)
@@ -806,7 +907,12 @@ export class SessionInputShell implements SessionInput {
           this.settleDetachedFailure(attempt, outcome.text)
           return
         }
+        const record = this.detachedDrafts.get(attempt.seq)
         this.detachedDrafts.delete(attempt.seq)
+        if (record !== undefined) {
+          this.failedDetached.delete(record.recoveryId)
+          this.persistFailures()
+        }
         this.dispatchRun(({ type: 'sink-settled', attempt, ok: true, outcome }))
       },
       (error: unknown) => {
@@ -816,54 +922,106 @@ export class SessionInputShell implements SessionInput {
     )
   }
 
-  /** Restore one failed detached send without overwriting text entered after a restoration. */
+  /** Keep a failed message intact; only its own untouched empty draft can recover automatically. */
   private settleDetachedFailure(attempt: SubmitAttempt, message?: string): void {
     const record = this.detachedDrafts.get(attempt.seq)
     if (record === undefined) return
     this.detachedDrafts.delete(attempt.seq)
-    this.restoreAttachments(record.attachmentIds)
-    this.failedDetached.set(attempt.seq, record)
-    if (this.projection.clipboardText === '' || this.failedRestoreRev === this.rev) {
-      this.restoreFailedDrafts()
-    }
+    this.retainFailedSend(record)
     this.dispatchRun(({ type: 'sink-settled', attempt, ok: false, ...(message === undefined ? {} : { message }) }))
   }
 
-  /** Rebuild all currently failed snapshots in submission order. */
-  private restoreFailedDrafts(): void {
-    const records = [...this.failedDetached.entries()].sort(([a], [b]) => a - b).map(([, record]) => record)
-    if (records.length === 0) return
-    const separator = '\n\n'
-    let draft = ''
-    const occurrences: Occurrence[] = []
-    const quotes: DraftQuote[] = []
-    for (const record of records) {
-      const base = draft.length + (draft === '' ? 0 : separator.length)
-      if (draft !== '') draft += separator
-      draft += record.draft
-      quotes.push(...record.quotes.map(quote => ({ ...quote, offset: base + quote.offset })))
-      for (const occurrence of record.occurrences) {
-        occurrences.push({ ...occurrence, offset: base + occurrence.offset })
-      }
+  private retainFailedSend(record: DetachedDraft): void {
+    const id = record.recoveryId
+    const attachmentIds = this.deps.availableAttachmentIds?.(record.attachmentIds) ?? record.attachmentIds
+    const attachmentCount = Math.max(record.attachmentIds.length, this.failedDetached.get(id)?.value.attachmentCount ?? 0)
+    const missingAttachments = attachmentCount - attachmentIds.length
+    const value: FailedInputSend = {
+      id, draft: snapshotDraft(record.draft, record.occurrences, undefined, record.quotes),
+      attachmentCount, missingAttachments,
     }
-    this.restoringFailures = true
-    try {
-      this.draftEditor.restoreDraft(draft, occurrences, quotes, { remove: this.deps.quoteRemoveLabel?.() ?? '' })
-      this.draftEditor.clearHistory()
-      this.failedRestoreRev = this.rev
-    } finally {
-      this.restoringFailures = false
-    }
+    this.failedDetached.set(id, { value, attachmentIds })
+    if (missingAttachments === 0 && record.restoreEpoch === this.editEpoch && this.restoreFailedSend(id)) return
+    this.persistFailures()
+    this.publish()
   }
 
-  /** Return failed-send attachments to the head of the rail; release happens only after success. */
-  private restoreAttachments(attachmentIds: readonly DraftAttachmentId[]): void {
-    if (attachmentIds.length === 0) return
-    const current = new Set(this.attachmentIds)
-    const restored = attachmentIds.filter(id => !current.has(id))
-    if (restored.length === 0) return
-    this.attachmentIds = [...restored, ...this.attachmentIds]
+  private restoreFailedSend(id: number): boolean {
+    const record = this.failedDetached.get(id)
+    if (record === undefined || this.disposed || this.core.state.phase !== 'plain'
+      || this.projection.clipboardText !== '' || this.attachmentIds.length !== 0 || this.recoveryInFlight(id)) return false
+    this.attachmentIds = this.deps.availableAttachmentIds?.(record.attachmentIds) ?? record.attachmentIds
+    const missing = record.value.missingAttachments + record.attachmentIds.length - this.attachmentIds.length
+    this.editEpoch += 1
+    this.setDraft(record.value.draft)
+    this.draftEditor.clearHistory()
+    const saved = this.deps.persistRecoveredDraft?.(this.draftSnapshot) !== false
+    if (record.value.attachmentCount === 0 && saved) {
+      this.failedDetached.delete(id)
+      this.restoredRecordId = undefined
+    } else {
+      this.failedDetached.set(id, { ...record, value: { ...record.value, restored: true } })
+      this.restoredRecordId = id
+    }
+    this.persistFailures()
     this.publish()
+    if (missing > 0) this.notify('error', this.deps.missingAttachmentsNotice?.() ?? 'Attachments are unavailable. Attach them again before sending.')
+    return true
+  }
+
+  private discardFailedSend(id: number): void {
+    const record = this.failedDetached.get(id)
+    if (record === undefined || this.disposed) return
+    this.failedDetached.delete(id)
+    if (this.restoredRecordId === id) this.restoredRecordId = undefined
+    const owned = new Set([
+      ...this.attachmentIds,
+      ...[...this.detachedDrafts.values()].flatMap(draft => draft.attachmentIds),
+      ...[...this.attachmentFlights.values()].flatMap(flight => flight.attachmentIds),
+    ])
+    this.deps.commandAttachments.release(record.attachmentIds.filter(attachment => !owned.has(attachment)))
+    this.persistFailures()
+    this.publish()
+  }
+
+  private persistFailures(): void {
+    this.deps.persistFailedSends?.(this.failedSends())
+  }
+
+  private failedSends(): readonly FailedInputSend[] {
+    return [...this.failedDetached.values()].map(record => ({
+      ...record.value,
+      missingAttachments: record.value.missingAttachments + record.attachmentIds.length
+        - (this.deps.availableAttachmentIds?.(record.attachmentIds) ?? record.attachmentIds).length,
+      ...this.recoveryInFlight(record.value.id) ? { retrying: true } : {},
+    })).sort((a, b) => a.id - b.id)
+  }
+
+  private recoveryInFlight(id: number): boolean {
+    return [...this.detachedDrafts.values(), ...this.attachmentFlights.values()].some(record => record.recoveryId === id)
+  }
+
+  private takeRecoveryId(): number {
+    const id = this.restoredRecordId
+    this.restoredRecordId = undefined
+    if (id === undefined || !this.failedDetached.has(id)) return ++this.failedSeq
+    const record = this.failedDetached.get(id)
+    if (record !== undefined) this.failedDetached.set(id, { ...record, value: { ...record.value, restored: false } })
+    this.persistFailures()
+    return id
+  }
+
+  private clearReattachedRecovery(): void {
+    const id = this.restoredRecordId
+    const record = id === undefined ? undefined : this.failedDetached.get(id)
+    if (record === undefined) return
+    const missing = record.value.missingAttachments + record.attachmentIds.length
+      - (this.deps.availableAttachmentIds?.(record.attachmentIds) ?? record.attachmentIds).length
+    if (missing <= 0 || this.attachmentIds.length < record.value.attachmentCount) return
+    if (this.deps.persistRecoveredDraft?.(this.draftSnapshot) === false) return
+    this.failedDetached.delete(record.value.id)
+    this.restoredRecordId = undefined
+    this.persistFailures()
   }
 
   /** Enter adjudication: poll the session controller; failure = notice + draft retained (never a silent downgrade). */
@@ -896,6 +1054,7 @@ export class SessionInputShell implements SessionInput {
    */
   private beginSubmit(attempt: SubmitAttempt, claim: CommandClaim, args: string): void {
     const attachmentIds = claim.attachments === true ? [...this.attachmentIds] : []
+    const recoveryId = this.restoredRecordId
     Promise.resolve()
       .then(async () => {
         const attachments = attachmentIds.length > 0 ? await this.deps.commandAttachments.serialize(attachmentIds) : []
@@ -907,6 +1066,11 @@ export class SessionInputShell implements SessionInput {
       .then(
         (outcome) => {
           if (outcome === undefined || this.dead(attempt)) return
+          if (outcome.kind === 'success' && recoveryId !== undefined) {
+            this.failedDetached.delete(recoveryId)
+            if (this.restoredRecordId === recoveryId) this.restoredRecordId = undefined
+            this.persistFailures()
+          }
           if (outcome.kind === 'success' && attachmentIds.length > 0) {
             const submitted = new Set(attachmentIds)
             this.attachmentIds = this.attachmentIds.filter(id => !submitted.has(id))
@@ -937,6 +1101,7 @@ export class SessionInputShell implements SessionInput {
   private compose(): InputState {
     const core = this.core.state
     return {
+      failedSends: this.failedSends(),
       draft: this.projection.clipboardText,
       attachmentIds: this.attachmentIds,
       draftRev: this.rev,

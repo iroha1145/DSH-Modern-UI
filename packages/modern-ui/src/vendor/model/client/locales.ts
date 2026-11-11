@@ -31,7 +31,7 @@ export const zh = {
   'extras.speed.readonly': '当前环境不允许修改这项设置',
   'extras.speed.failed': '速度没有改成：{message}',
   'extras.speed.restart': '已保存，重启 DSH 后生效',
-  'effort.providerDefault': 'Default',
+  'effort.providerDefault': '默认',
   'status.loading': '正在刷新模型列表…',
   'error.action': '模型操作失败：{message}',
   'error.sessionInUse': '当前会话已被占用，可能是其他正在运行的 DSH 导致的（如其他 dsh web、桌面端），请退出其他正在运行的 DSH 后重试。',

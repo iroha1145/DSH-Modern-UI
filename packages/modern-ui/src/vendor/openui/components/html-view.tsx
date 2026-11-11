@@ -44,7 +44,8 @@ const THEMER = `<script>addEventListener("message",function(e){if(e.source!==par
 
 // Reports the content height to the outer frame, which forwards it.
 const REPORTER = `<script>(function(){var last=0;function send(){var h=Math.ceil(document.documentElement.getBoundingClientRect().height);if(Math.abs(h-last)>1){last=h;parent.postMessage({type:"${KIND}",height:h},"*")}}addEventListener("load",send);new ResizeObserver(send).observe(document.documentElement);send()})()</script>`;
-// A responsiveness watchdog, not a CPU quota: termination still depends on the browser isolating the frame's event loop.
+// A responsiveness hint, not script integrity or a CPU quota: authored code shares this realm and can stop or
+// imitate heartbeats. Termination also depends on the browser isolating the frame's event loop.
 const HEARTBEAT = `<script>(function(){function beat(){parent.postMessage({type:"${KIND}",heartbeat:true},"*")}setInterval(beat,250);beat()})()</script>`;
 
 type Palette = { fg: string; bg: string; muted: string; line: string; accent: string };
@@ -114,7 +115,7 @@ export const HtmlView = defineComponent({
     title: z.string().optional(),
   }),
   description:
-    "Sandboxed HTML page with inline JS, for a game, canvas or animation the other components cannot express. No network, libraries, external fonts or images (inline SVG and data: URLs only). Colors: CSS variables --fg, --muted, --line, --bg and --accent. Build the page with DOM methods; navigating or document.write ends the view. Fits its content unless height is set.",
+    "Sandboxed HTML page with inline JS, for a game, canvas or animation the other components cannot express. No network, libraries, external fonts or images (inline SVG and data: URLs only). Colors: CSS variables --fg, --muted, --line, --bg and --accent. Build the page with DOM methods; a second frame load ends the view. document.open/write can replace the document and break theme and sizing updates. Fits its content unless height is set.",
   component: function HtmlViewView({ props }) {
     const text = useUiText();
     const streaming = useIsStreaming();

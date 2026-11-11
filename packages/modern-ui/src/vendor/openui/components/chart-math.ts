@@ -31,8 +31,8 @@ export function makeFormat(kind: string | undefined, currency: string | undefine
     const abs = Math.abs(value);
     if (value === 0 || !Number.isFinite(value)) return write(value, { maximumFractionDigits: 0 });
     const places = compact ? stepDigits(step) : Math.max(2, stepDigits(step), abs < 1 ? 2 - Math.floor(Math.log10(abs)) : 0);
-    if (places > 20) {
-      const mantissa = stepDigits(step / 10 ** Math.floor(Math.log10(abs)));
+    if (places > 20 || abs >= 1e21) {
+      const mantissa = stepDigits(step / (10 ** Math.floor(Math.log10(abs)) || Number.MIN_VALUE));
       return write(value, compact ? { notation: "scientific", maximumFractionDigits: Math.min(20, mantissa) } : { notation: "scientific", maximumSignificantDigits: 3 });
     }
     const unit = kind === "percent" ? undefined : UNITS.find((u) => abs >= u && (compact || u >= 1e6));
@@ -64,17 +64,43 @@ export interface Range {
 
 /** A round step giving about span/step ticks: 1, 2, 2.5 or 5 times a power of ten. */
 export function niceStep(span: number) {
-  if (span <= 0) return 1;
-  const power = 10 ** Math.floor(Math.log10(span));
+  if (!Number.isFinite(span) || span <= 0) return 1;
+  const power = Math.max(Number.MIN_VALUE, 10 ** Math.floor(Math.log10(span)));
   const n = span / power;
-  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * power;
+  return Math.min(Number.MAX_VALUE, (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * power);
 }
+
+const finiteBound = (value: number) => Math.max(-Number.MAX_VALUE, Math.min(Number.MAX_VALUE, value));
 
 /** The rounded axis around [min, max] with about five steps. */
 export function niceDomain(min: number, max: number): Domain {
-  const step = niceStep((max - min) / 5);
-  const lo = Math.floor(min / step) * step;
-  return { lo, hi: Math.max(lo + step, Math.ceil(max / step) * step), step };
+  min = Number.isFinite(min) ? min : 0;
+  max = Number.isFinite(max) ? max : 0;
+  if (min > max) [min, max] = [max, min];
+  const span = max - min;
+  const step = niceStep(span === 0 ? Math.abs(max) / 5 : Number.isFinite(span) ? span / 5 : max / 5 - min / 5);
+  const lo = Math.min(min, finiteBound(Math.floor(min / step) * step));
+  const hi = Math.max(max, finiteBound(Math.max(lo + step, Math.ceil(max / step) * step)));
+  return { lo, hi, step };
+}
+
+/** A finite position even when opposite-sign finite endpoints have an infinite difference. */
+export function axisFraction(value: number, lo: number, hi: number): number {
+  const span = hi - lo;
+  if (Number.isFinite(span) && span > 0) return Math.min(1, Math.max(0, (value - lo) / span));
+  const scale = Math.max(Math.abs(lo), Math.abs(hi), Math.abs(value));
+  const ratio = (value / scale - lo / scale) / (hi / scale - lo / scale);
+  return Number.isFinite(ratio) ? Math.min(1, Math.max(0, ratio)) : 0.5;
+}
+
+/** A bounded list of distinct finite ticks, including endpoints when rounding would overflow. */
+export function domainTicks({ lo, hi, step }: Domain): number[] {
+  const count = Math.min(12, Math.max(2, Math.round(hi / step - lo / step) + 1));
+  const first = Math.round(lo / step);
+  const ticks = Number.isFinite(count)
+    ? Array.from({ length: count }, (_, k) => (first + k) * step).filter(value => Number.isFinite(value) && value >= lo && value <= hi)
+    : [];
+  return [...new Set([lo, ...ticks, hi])];
 }
 
 /** Share of the held axis the data must still span before a shrinking reading tightens it. */
@@ -93,10 +119,10 @@ export function valueDomain(min: number, max: number, held: Domain | null, range
   if (range && (range.min !== undefined || range.max !== undefined)) {
     return niceDomain(Math.min(min, range.min ?? min), Math.max(max, range.max ?? max));
   }
-  if (held === null) return niceDomain(min, max);
+  if (held === null || !Number.isFinite(held.lo) || !Number.isFinite(held.hi) || held.hi <= held.lo) return niceDomain(min, max);
   const fits = min >= held.lo && max <= held.hi;
-  if (fits) return max - min >= (held.hi - held.lo) * KEEP_SHARE ? held : niceDomain(min, max);
-  return niceDomain(min < held.lo ? min * HEADROOM : held.lo, max > held.hi ? max * HEADROOM : held.hi);
+  if (fits) return axisFraction(max, held.lo, held.hi) - axisFraction(min, held.lo, held.hi) >= KEEP_SHARE ? held : niceDomain(min, max);
+  return niceDomain(min < held.lo ? finiteBound(min - Math.abs(min) * (HEADROOM - 1)) : held.lo, max > held.hi ? finiteBound(max + Math.abs(max) * (HEADROOM - 1)) : held.hi);
 }
 
 /** Decimals that tell neighbouring ticks apart: 0 for a step of 1000, 1 for 2.5, 4 for 0.0005, 26 for 2e-26. */
@@ -171,9 +197,13 @@ export function stackAreas(values: readonly (readonly number[])[]): { bands: Poi
     columns.push({ at: i, v: [...row] });
     const next = values[i + 1];
     if (!next) return;
-    const crossings = row.map((v, s) => (v * next[s] < 0 ? v / (v - next[s]) : Number.NaN));
+    const crossings = row.map((v, s) => {
+      if (!(v < 0 && next[s] > 0 || v > 0 && next[s] < 0)) return Number.NaN;
+      const scale = Math.max(Math.abs(v), Math.abs(next[s]));
+      return (v / scale) / (v / scale - next[s] / scale);
+    });
     for (const t of [...new Set(crossings.filter((t) => !Number.isNaN(t)))].sort((a, b) => a - b)) {
-      columns.push({ at: i + t, v: row.map((v, s) => (crossings[s] === t ? 0 : v + (next[s] - v) * t)) });
+      columns.push({ at: i + t, v: row.map((v, s) => (crossings[s] === t ? 0 : v * (1 - t) + next[s] * t)) });
     }
   });
   // Each series' [base, outer edge] in the upward and in the downward stack, at every column.

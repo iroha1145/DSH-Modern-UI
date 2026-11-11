@@ -369,24 +369,7 @@ export function apply(ctx: Context, config: Config = Config({})): void {
       },
       selectWorkspace: workspaceId => workspaceNavigation.openWorkspace(workspaceId, (nextId) => {
         if (sessionId !== undefined && nextId !== sessionId) {
-          const from = inputHub.shell(sessionId)
-          const draft = from.draftSnapshot
-          const attachmentIds = from.snapshot.attachmentIds
-          const next = inputHub.shell(nextId)
-          if (attachmentIds.length === 0 || next.addAttachments(attachmentIds)) {
-            const binding = sessions.binding(nextId)
-            if (binding === undefined) {
-              throw new Error(`ui-conversation: session "${nextId}" resolved no binding`)
-            }
-            concreteConversation(ctx).rebindDraftFiles(nextId, attachmentIds)
-            if (draft.text !== '') {
-              next.setDraft(draft)
-              from.setDraft('')
-            }
-            if (attachmentIds.length > 0) {
-              for (const id of attachmentIds) from.removeAttachment(id)
-            }
-          }
+          inputHub.transferDraft(sessionId, nextId)
         }
       }),
     }),

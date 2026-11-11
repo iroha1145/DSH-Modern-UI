@@ -408,6 +408,10 @@
   color: var(--bui-ink-3);
 }
 
+@media (pointer: coarse) {
+  .searchRow .search input { font-size: 16px; }
+}
+
 .list {
   display: grid;
   flex: 0 1 auto;

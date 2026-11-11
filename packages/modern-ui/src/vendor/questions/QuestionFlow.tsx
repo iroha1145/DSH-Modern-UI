@@ -197,10 +197,13 @@ function QuestionFlow({ pending, t, useStore, useQuestionCard, actions, foldLabe
   // reader wrote was lost, and the continued card already says it can still be
   // answered.
   const sentVia = useRef<'answer' | 'cancel' | null>(null)
+  const submission = useRef<symbol | null>(null)
+  useEffect(() => () => { submission.current = null }, [])
   useEffect(() => {
     if (sentVia.current === null || card.state !== 'continued') return
     const sent = sentVia.current
     sentVia.current = null
+    submission.current = null
     setBusy(null)
     setError(sent === 'answer' ? { key: 'error.resubmit' } : null)
   }, [card.state])
@@ -301,10 +304,20 @@ function QuestionFlow({ pending, t, useStore, useQuestionCard, actions, foldLabe
   }, [pending])
 
   const dismissFlow = (): void => {
+    if (submission.current !== null) return
     // A tool-call-keyed panel only leaves the seat; nothing is sent and nothing
     // is persisted, and the tool call row brings it back.
     if (pending.dismissal === 'hide') {
-      void pending.dismiss()
+      const attempt = Symbol('hide question')
+      submission.current = attempt
+      setBusy('cancel')
+      void pending.dismiss().catch((cause: unknown) => {
+        if (submission.current === attempt) setError({ text: cause instanceof Error ? cause.message : String(cause) })
+      }).finally(() => {
+        if (submission.current !== attempt) return
+        submission.current = null
+        setBusy(null)
+      })
       return
     }
     if (!canSubmit) {
@@ -312,11 +325,15 @@ function QuestionFlow({ pending, t, useStore, useQuestionCard, actions, foldLabe
       return
     }
     setBusy('cancel')
+    const attempt = Symbol('cancel question')
+    submission.current = attempt
     setError(null)
     // A cancellation only travels through the waterfall.
     sentVia.current = 'cancel'
     void pending.dismiss()
       .catch((cause: unknown) => {
+        if (submission.current !== attempt) return
+        submission.current = null
         sentVia.current = null
         setBusy(null)
         setError({ text: cause instanceof Error ? cause.message : String(cause) })
@@ -351,6 +368,7 @@ function QuestionFlow({ pending, t, useStore, useQuestionCard, actions, foldLabe
   const completed = (item: QuestionDraftAnswer): boolean => answered(item) || item.skipped
 
   const submitDrafts = (values: QuestionDraftAnswer[]): void => {
+    if (submission.current !== null || review !== undefined) return
     const missing = values.findIndex(item => !completed(item))
     if (missing >= 0) {
       replaceProgress(missing, values)
@@ -374,6 +392,8 @@ function QuestionFlow({ pending, t, useStore, useQuestionCard, actions, foldLabe
       }),
     }
     setBusy('answer')
+    const attempt = Symbol('answer question')
+    submission.current = attempt
     setError(null)
     // The external-store render can lag the carrier as a timed call continues.
     // Read the channel used by answer() in this same event turn.
@@ -381,13 +401,20 @@ function QuestionFlow({ pending, t, useStore, useQuestionCard, actions, foldLabe
     sentVia.current = channel === 'waterfall' ? 'answer' : null
     void pending.answer(answer)
       .then(() => {
+        if (submission.current !== attempt) return
         if (channel !== 'rpc') return
         sentVia.current = null
         setBusy(null)
         setError(null)
-        void pending.dismiss().catch(() => { setError({ key: 'status.sent' }) })
+        void pending.dismiss().catch(() => {
+          if (submission.current === attempt) setError({ key: 'status.sent' })
+        }).finally(() => {
+          if (submission.current === attempt) submission.current = null
+        })
       })
       .catch((cause: unknown) => {
+        if (submission.current !== attempt) return
+        submission.current = null
         sentVia.current = null
         setBusy(null)
         setError({ text: cause instanceof Error ? cause.message : String(cause) })

@@ -10,7 +10,7 @@
   /* Above the 1000 the image lightbox backdrop uses: a failure reported while
      a preview is open must stay readable. */
   z-index: 1100;
-  /* Announcements never intercept clicks. */
+  /* Banners with no actions remain click-through. */
   pointer-events: none;
   display: flex;
   align-items: center;
@@ -44,6 +44,16 @@
   color: var(--dsw-alias-state-warn-label);
 }
 
+.toast[data-interactive] {
+  pointer-events: auto;
+}
+
+.toast[data-paused] {
+  animation-play-state: paused;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
 .icon.success {
   color: var(--dsw-alias-state-success-primary);
 }
@@ -57,15 +67,14 @@
   padding: 0;
   border: 0;
   background: none;
-  /* deepseek-400, brightened at the designer's request, reads as the action
-     against the always-dark toast surface without an underline. */
+  /* The underline distinguishes an action independently of its color. */
   color: var(--dsw-static-deepseek-400);
+  text-decoration: underline;
+  text-underline-offset: 3px;
   font: inherit;
   cursor: pointer;
   /* Breathing room where the action text meets the surrounding copy. */
   margin-inline: 3px;
-  /* The banner surface stays click-through (`pointer-events: none` above);
-     only its action text takes the pointer. */
   pointer-events: auto;
 }
 

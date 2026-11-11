@@ -67,7 +67,12 @@ function visibleBounds(root: HTMLElement, source: HTMLElement, view: Window): Bo
       bounds.right = Math.min(bounds.right, rect.right)
     }
     if (/(auto|scroll|hidden|clip)/u.test(style.overflowY)) {
-      bounds.top = Math.max(bounds.top, rect.top)
+      // Only the conversation scrollport reserves an overlaid header. Ordinary scroll padding and nested code
+      // padding do not occlude content; adding them here would exclude the same space twice.
+      const inset = node.hasAttribute('data-conversation-scroll')
+        ? Math.max(0, Number.parseFloat(style.getPropertyValue('--dsh-scrollport-top-inset')) || 0)
+        : 0
+      bounds.top = Math.max(bounds.top, rect.top + inset)
       bounds.bottom = Math.min(bounds.bottom, rect.bottom)
     }
   }

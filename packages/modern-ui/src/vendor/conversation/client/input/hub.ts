@@ -26,7 +26,7 @@ import type { InputSubmitMode } from '../contract/composer-submission.ts'
 import type { PopupDismissFace } from './facade.ts'
 import { SessionInputShell } from './facade.ts'
 import { reportMessageSubmission } from './submission-analytics.ts'
-import { readConversationDraft } from '../stores.ts'
+import { readConversationDraft, readFailedInputSends, writeFailedInputSends, writeRecoveredConversationDraft } from '../stores.ts'
 
 /** Structural command face for per-session popup resolution. */
 interface CommandFace {
@@ -51,6 +51,8 @@ interface ConversationAttachmentFace {
   ): Promise<SubmitOutcome>
   serializeDraftAttachments(attachmentIds: readonly DraftAttachmentId[]): Promise<DraftAttachmentSerializationResult>
   releaseDraftAttachment(id: DraftAttachmentId): void
+  resolveDraftAttachments(ids: readonly DraftAttachmentId[]): readonly { readonly id: DraftAttachmentId }[]
+  rebindDraftFiles(sessionId: SessionId, ids: readonly DraftAttachmentId[]): void
 }
 
 /** Session-addressed input facade registry (SessionInputResolver face + composer-layer extras). */
@@ -110,6 +112,14 @@ export class InputHub implements SessionInputResolver {
     const { session, ctx: actx } = binding
     const shell = new SessionInputShell({
       actx,
+      failedSends: readFailedInputSends(binding.sessionId),
+      persistFailedSends: records => { writeFailedInputSends(binding.sessionId, records) },
+      persistRecoveredDraft: draft => writeRecoveredConversationDraft(binding.sessionId, draft),
+      availableAttachmentIds: ids => {
+        const conversation = this.rootCtx.get('conversation') as ConversationAttachmentFace | undefined
+        return conversation?.resolveDraftAttachments(ids).map(item => item.id) ?? []
+      },
+      missingAttachmentsNotice: () => this.t('input.failedSend.missingAttachments'),
       submissionState: () => {
         const state = session.getSnapshot()
         const model = session.projections.faceOf('modelSelection').getSnapshot() as ModelSelectionProjection | undefined
@@ -205,6 +215,23 @@ export class InputHub implements SessionInputResolver {
     const binding = this.sessions().binding(id)
     if (binding === undefined) throw new Error(`conversation.input: session "${id}" resolved no binding`)
     return this.shellFor(binding)
+  }
+
+  /** Workspace-only ownership handoff; kept off the frozen input action face. */
+  transferDraft(fromId: SessionId, nextId: SessionId): void {
+    const from = this.shell(fromId)
+    const next = this.shell(nextId)
+    const conversation = this.conversation()
+    let rebound: readonly DraftAttachmentId[] | undefined
+    try {
+      if (!from.transferDraftTo(next, (ids) => {
+        rebound = ids
+        conversation.rebindDraftFiles(nextId, ids)
+      })) throw new Error(`ui-conversation: session "${nextId}" cannot accept a transferred draft`)
+    } catch (error: unknown) {
+      if (rebound !== undefined) conversation.rebindDraftFiles(fromId, rebound)
+      throw error
+    }
   }
 
   /**

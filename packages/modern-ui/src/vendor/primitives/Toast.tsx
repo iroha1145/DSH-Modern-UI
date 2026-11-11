@@ -17,6 +17,7 @@ const FADE_MS = 1000
  * transformed or filtered ancestor cannot trap the fixed banner in that
  * ancestor's box.
  * With unchanged holdMs, parent rerenders do not extend the lifetime.
+ * Hovering an actionable banner or focusing an action pauses its remaining lifetime.
  * Completion calls the latest onDone handler; fully faded actions receive no input.
  *
  * The hold is the owner's to set, because how long a banner has to stay
@@ -34,8 +35,7 @@ const FADE_MS = 1000
  * each renders its plain-text `prefix` (a connective like 或) followed by its
  * localized `label` as blue clickable text, flowing after `text` as one
  * sentence. Each press is the owner's to handle (e.g. undo the reported
- * change, then unmount the toast). The banner surface stays click-through —
- * only the action text takes the pointer.
+ * change, then unmount the toast). Banners without actions stay click-through.
  * @param props.holdMs - full-opacity hold before the fade; defaults to 3000.
  * @param props.anchor - optional element whose horizontal center the banner
  * follows (e.g. the composer card, so the banner centers over the chat column
@@ -53,11 +53,26 @@ export function Toast({ text, icon, tone, anchor, holdMs = HOLD_MS, actions, onD
   onDone: () => void
 }) {
   const latestOnDone = useRef(onDone)
+  const lifetime = useRef({ holdMs, remaining: holdMs + FADE_MS, finished: false })
+  const [hovered, setHovered] = useState(false)
+  const [focused, setFocused] = useState(false)
+  const paused = hovered || focused
   useLayoutEffect(() => { latestOnDone.current = onDone }, [onDone])
   useEffect(() => {
-    const timer = setTimeout(() => { latestOnDone.current() }, holdMs + FADE_MS)
-    return () => { clearTimeout(timer) }
-  }, [holdMs])
+    if (lifetime.current.holdMs !== holdMs) lifetime.current = { holdMs, remaining: holdMs + FADE_MS, finished: false }
+    const state = lifetime.current
+    if (paused || state.finished) return
+    const start = performance.now()
+    const timer = setTimeout(() => {
+      state.finished = true
+      state.remaining = 0
+      latestOnDone.current()
+    }, state.remaining)
+    return () => {
+      clearTimeout(timer)
+      state.remaining = Math.max(0, state.remaining - (performance.now() - start))
+    }
+  }, [holdMs, paused])
   // Anchor-centered placement re-measures on window resizes; the banner lives
   // four seconds, so sub-window layout drift within that span stays out of
   // scope.
@@ -76,6 +91,12 @@ export function Toast({ text, icon, tone, anchor, holdMs = HOLD_MS, actions, onD
     <div
       className={css.toast}
       role="alert"
+      data-interactive={actions !== undefined && actions.length > 0 || undefined}
+      data-paused={paused || undefined}
+      onPointerEnter={event => { if (event.pointerType !== 'touch') setHovered(true) }}
+      onPointerLeave={() => { setHovered(false) }}
+      onFocus={() => { setFocused(true) }}
+      onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false) }}
       style={{
         ...left === null ? {} : { left },
         '--dsh-toast-hold': `${String(holdMs)}ms`,

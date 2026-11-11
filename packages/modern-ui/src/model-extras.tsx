@@ -15,7 +15,7 @@
  *   preferences (model-extras-codex.ts) and shown here while a Codex model is selected.
  *
  * Keys: Enter or Space on the button opens; ↑/↓, Home and End move across the rows; Escape closes back to the button
- * (a row may take the first Escape to fold its own list); Tab leaves and closes.
+ * (a row may take the first Escape to fold its own list); Tab visits row controls, then leaves and closes.
  */
 import {
   Component,
@@ -99,6 +99,7 @@ const CLOSED: CSSProperties = { visibility: 'hidden', left: 0, top: 0 }
 const ITEMS = '[role^="menuitem"]:not(:disabled):not([aria-disabled="true"])'
 /** What counts as a rendered row: wrappers the slot renderer leaves around an empty entry do not. */
 const CONTENT = 'button, input, select, textarea, a[href], [role^="menuitem"], [tabindex]'
+const TABBABLE = 'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex]'
 /** Rows that take keys themselves; the marker is the one rows written for the official menu already carry. */
 const OWN_KEYS = 'input, textarea, select, [contenteditable], [data-model-parameters-fields]'
 
@@ -350,17 +351,31 @@ function ModelExtras({ locked, useModelDirectory, useModelParameters, useCodexSp
    */
   const takeKey = (event: globalThis.KeyboardEvent): boolean => {
     const panel = panelRef.current
-    if (!shown || panel === null || event.isComposing || !(event.target instanceof Element)) return false
+    if (!shown || panel === null || event.defaultPrevented || event.isComposing || !(event.target instanceof Element)) return false
+    const inMenu = panel.contains(event.target)
+    if (event.key === 'Tab') {
+      if (inMenu) {
+        const controls = [...panel.querySelectorAll<HTMLElement>(TABBABLE)].filter(
+          control => control.tabIndex >= 0 && control.getClientRects().length > 0 && !control.closest('[inert], [aria-hidden="true"]'),
+        )
+        const at = controls.indexOf(document.activeElement as HTMLElement)
+        if (at === -1 && controls.length > 0) {
+          event.preventDefault()
+          controls[event.shiftKey ? controls.length - 1 : 0]?.focus()
+          return true
+        }
+        if (at >= 0 && (event.shiftKey ? at > 0 : at < controls.length - 1)) return false
+      }
+      // At the edge, continue beside the trigger; close even if focus leaves the document.
+      buttonRef.current?.focus()
+      close()
+      return false
+    }
     if (event.key === 'Escape') {
+      if (inMenu && event.target.closest('[data-model-parameters-fields]') !== null) return false
       event.preventDefault()
       close(true)
       return true
-    }
-    const inMenu = panel.contains(event.target)
-    if (event.key === 'Tab') {
-      // Leave from the button, so the browser's own Tab order continues beside it; the focus leaving closes the menu.
-      if (inMenu) buttonRef.current?.focus()
-      return false
     }
     if (inMenu && event.target.closest(OWN_KEYS) !== null) return false
     const sideways = inMenu && event.target.closest('[data-speeds]') !== null

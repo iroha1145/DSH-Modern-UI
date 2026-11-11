@@ -15,6 +15,43 @@ const browser = await chromium.launch(
   executablePath ? { executablePath, headless: true } : existsSync(chromium.executablePath()) ? { headless: true } : { channel: 'msedge', headless: true },
 )
 afterAll(() => browser.close())
+
+test('footnote headings retain their accessible text without taking visible document space', async () => {
+  const page = await browser.newPage()
+  try {
+    await page.setContent(
+      `<style>${css} .markdown { font: 16px Arial; }</style><article class="markdown"><section data-footnotes><h2 id="footnote-label" class="sr-only">Footnotes</h2><ol><li>A source</li></ol></section></article>`,
+    )
+    const heading = page.getByRole('heading', { name: 'Footnotes' })
+    const rect = await heading.boundingBox()
+    assert.equal(rect.width, 1)
+    assert.equal(rect.height, 1)
+    assert.equal(await heading.evaluate(node => getComputedStyle(node).clipPath), 'inset(50%)')
+  } finally {
+    await page.close()
+  }
+})
+
+test('a hidden searchable process cancels exactly one assistant block gap', async () => {
+  const assistantCss = (await readFile(resolve(root, 'packages/modern-ui/src/vendor/chat/client/chat/AssistantMarkdown.module.css'), 'utf8')).replace(
+    /:global\(([^)]+)\)/g,
+    '$1',
+  )
+  const page = await browser.newPage()
+  try {
+    await page.setContent(
+      `<style>${assistantCss}</style><div class="body"><div id="before" style="height:20px">Before</div><div data-turn-process-inline hidden="until-found"></div><div id="after" style="height:20px">After</div></div>`,
+    )
+    const before = await page.locator('#before').boundingBox()
+    const after = await page.locator('#after').boundingBox()
+    assert.equal(after.y - before.y - before.height, 12)
+    await page.locator('.body').evaluate(node => node.style.setProperty('--dsh-assistant-block-gap', '18px'))
+    const changed = await page.locator('#after').boundingBox()
+    assert.equal(changed.y - before.y - before.height, 18)
+  } finally {
+    await page.close()
+  }
+})
 test('inline code shares paragraph lines without overflowing a narrow viewport', async () => {
   const page = await browser.newPage()
   try {

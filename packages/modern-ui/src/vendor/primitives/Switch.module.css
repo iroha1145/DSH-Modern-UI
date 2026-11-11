@@ -49,3 +49,16 @@
 
 /* The instance-owned Feel spring writes position and fill from the same body.
  * Without script, aria-checked still supplies the correct resting appearance. */
+@media (forced-colors: active) {
+  .switch {
+    forced-color-adjust: none;
+    border: 1px solid ButtonText;
+    padding: 1px;
+    background: Canvas;
+  }
+  .thumb { background: ButtonText; }
+  .switch[aria-checked='true'] { background: Highlight; }
+  .switch[aria-checked='true'] .thumb { background: HighlightText; }
+  .switch:disabled,
+  .switch[aria-disabled='true'] { border-color: GrayText; }
+}

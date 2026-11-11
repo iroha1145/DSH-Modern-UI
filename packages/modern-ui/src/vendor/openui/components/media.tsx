@@ -1,4 +1,4 @@
-import { defineComponent } from "@openuidev/react-lang";
+import { defineComponent, useIsStreaming } from "@openuidev/react-lang";
 import { ImageIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { z } from "zod/v4";
@@ -47,12 +47,13 @@ type PhotoProps = { query: string; src?: string | null; search: boolean; aspectR
 
 /** A photo from src; with search, the best result for query when there is no src or it fails. */
 function Photo(props: PhotoProps) {
+  const streaming = useIsStreaming();
   const alt = typeof props.query === "string" ? props.query.trim() : "";
   const src = webUrl(props.src);
   const [failed, setFailed] = useState<string[]>([]);
   const [loaded, setLoaded] = useState<string | null>(null);
   const needSearch = props.search && (!src || failed.includes(src)) && alt.length > 2;
-  const found = useImageSearch(needSearch ? alt : null);
+  const found = useImageSearch(needSearch && !streaming ? alt : null);
   const current = [src, ...(found ?? [])].find((url): url is string => !!url && !failed.includes(url));
   const settled = !current && (!needSearch || found !== undefined);
   const ratio = typeof props.aspectRatio === "number" && props.aspectRatio > 0.2 && props.aspectRatio < 5 ? props.aspectRatio : 1.5;

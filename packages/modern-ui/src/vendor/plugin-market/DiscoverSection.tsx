@@ -28,6 +28,13 @@ const TEXT_DELAY_MS = 250
 /** Artwork size inside the 48px icon frame, as on the Installed tab. */
 const ICON = 36
 
+/** Market indexes validate these on the host too; keep unexpected local data out of navigation URLs. */
+function marketHref(value: string | undefined): string | undefined {
+  if (value === undefined || !URL.canParse(value)) return undefined
+  const { protocol } = new URL(value)
+  return protocol === 'https:' || protocol === 'http:' ? value : undefined
+}
+
 const FAILURE_KEYS = {
   fetch: 'readFailed',
   invalid: 'readInvalid',
@@ -251,14 +258,14 @@ function EntryDetail({ entry, listing, t, face, language, onBack, onInstall, onO
           {entry.homepage === undefined ? null : (
             <div>
               <dt>{t('factHomepage')}</dt>
-              <dd><a className={css.link} href={entry.homepage} target="_blank" rel="noopener noreferrer">{entry.homepage}</a></dd>
+              <dd><a className={css.link} href={marketHref(entry.homepage)} target="_blank" rel="noopener noreferrer">{entry.homepage}</a></dd>
             </div>
           )}
           {entry.repository === undefined ? null : (
             <div>
               <dt>{t('factSourceCode')}</dt>
               <dd>
-                <a className={css.link} href={entry.repository.url} target="_blank" rel="noopener noreferrer">{entry.repository.url}</a>
+                <a className={css.link} href={marketHref(entry.repository.url)} target="_blank" rel="noopener noreferrer">{entry.repository.url}</a>
                 {entry.repository.directory === undefined ? null : <> <code>{entry.repository.directory}</code></>}
               </dd>
             </div>
@@ -338,7 +345,7 @@ function ConfirmDialog({ choice, t, face, onCancel, onConfirm }: {
       footer={(
         <>
           <Button variant="outline" onClick={onCancel}>{t('cancel')}</Button>
-          <Button variant="primary" autoFocus onClick={() => { onConfirm(choice) }}>{t('install')}</Button>
+          <Button variant="primary" data-modal-autofocus onClick={() => { onConfirm(choice) }}>{t('install')}</Button>
         </>
       )}>
       <div className={css.dialogBody}>

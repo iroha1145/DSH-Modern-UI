@@ -36,6 +36,8 @@ export interface ReasoningDeclarationDeps {
 
 /** One stored row addressed for a write. */
 export interface ModelTarget {
+  /** Optional row identity to reject a target whose array position was replaced. */
+  readonly modelId?: string
   /** The route id, for the per-route busy and refusal marks. */
   readonly provider: string
   /** Path of the route's profile inside the namespace section. */
@@ -145,6 +147,7 @@ export class ReasoningDeclarationController {
     const path = [...target.settingsPath, 'models']
     const models = inheritedModelDrafts(snapshot.user, snapshot.base, path)
     if (models[target.index] === undefined || validateReasoningEfforts([replacement]) !== undefined) return false
+    if (target.modelId !== undefined && models[target.index]?.['id'] !== target.modelId) return false
     const next = models.map((model, at) => at === target.index ? replacement : model)
     const ops: SettingsPathOpView[] = [{ op: 'set', path, value: structuredClone(next) as JsonValue }]
     this.store.set({ ...this.store.getSnapshot(), saving: target.provider, refused: undefined })

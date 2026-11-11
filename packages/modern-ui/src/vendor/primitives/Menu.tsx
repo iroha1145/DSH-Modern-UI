@@ -241,7 +241,14 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
   const openRef = useRef(open)
   openRef.current = open
   const [openSubmenuId, setOpenSubmenuId] = useState<string | null>(null)
-  const [fixedPos, setFixedPos] = useState<CSSProperties | null>(null)
+  const submenuRef = useRef<HTMLDivElement>(null)
+  const submenuParentRef = useRef<HTMLButtonElement | null>(null)
+  const focusSubmenu = useRef(false)
+  const returningFromSubmenu = useRef(false)
+  const [submenuPos, setSubmenuPos] = useState<CSSProperties | null>(null)
+  const [placedSide, setPlacedSide] = useState<'top' | 'bottom' | 'right' | 'left'>(side)
+  const [submenuSide, setSubmenuSide] = useState<'right' | 'left'>('right')
+  const [fixedPos, setFixedPos] = useState<(CSSProperties & { '--menu-room'?: string }) | null>(null)
   const { arm: armClose, cancel: cancelClose } = usePointerGrace(onClose)
 
   // Portal mode: fixed-position the list from the anchor rect before paint;
@@ -251,9 +258,11 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
   // effect measures stale here — the host callback owns the truth instead.
   useLayoutEffect(() => {
     if (!open || !portal) { setFixedPos(null); return }
-    const place = () => {
+    const place = (anchorRect?: DOMRect) => {
       let r: DOMRect | null
-      if (getAnchorRect !== undefined) {
+      if (anchorRect !== undefined) {
+        r = anchorRect
+      } else if (getAnchorRect !== undefined) {
         r = getAnchorRect()
       } else {
         /* v8 ignore next 2 -- the ref is attached before the layout effect runs and the listeners die with it. */
@@ -270,44 +279,110 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
         if (listEl.style.minWidth !== minimum) listEl.style.minWidth = minimum
       }
       const lw = listEl?.offsetWidth ?? 0
-      const lh = listEl?.offsetHeight ?? 0
+      const measuredHeight = listEl?.offsetHeight ?? 0
+      const viewport = listEl?.querySelector<HTMLElement>('[data-menu-viewport]')
+      const naturalHeight = viewport == null ? measuredHeight : measuredHeight - viewport.clientHeight + viewport.scrollHeight
 
+      let actualSide: typeof placedSide = side
+      const topMargin = overlayTopMargin(MARGIN, r, GAP)
+      const above = r.top - GAP - topMargin
+      const below = vh - r.bottom - GAP - MARGIN
+      if (side === 'bottom' && naturalHeight > below && above > below) actualSide = 'top'
+      else if (side === 'top' && naturalHeight > above && below > above) actualSide = 'bottom'
+      else if (side === 'right' && lw > vw - r.right - GAP - MARGIN && r.left - MARGIN > vw - r.right - MARGIN) actualSide = 'left'
+      const room = Math.max(0, Math.min(actualSide === 'top' ? above : actualSide === 'bottom' ? below : vh, vh - topMargin - MARGIN))
+      const maxHeight = `${room}px`
+      if (listEl !== null && listEl.style.getPropertyValue('--menu-room') !== maxHeight) listEl.style.setProperty('--menu-room', maxHeight)
+      const lh = listEl?.offsetHeight ?? 0
       let x: number
       let y: number
-      if (side === 'right') {
+      if (actualSide === 'right') {
         x = r.right + GAP
+        y = r.top
+      } else if (actualSide === 'left') {
+        x = r.left - lw - GAP
         y = r.top
       } else if (align === 'start') {
         x = r.left
-        y = side === 'bottom' ? r.bottom + GAP : r.top - lh - GAP
+        y = actualSide === 'bottom' ? r.bottom + GAP : r.top - lh - GAP
       } else {
         x = r.right - lw
-        y = side === 'bottom' ? r.bottom + GAP : r.top - lh - GAP
+        y = actualSide === 'bottom' ? r.bottom + GAP : r.top - lh - GAP
       }
 
       if (lw > 0) x = Math.min(Math.max(x, MARGIN), vw - lw - MARGIN)
       if (lh > 0) y = Math.min(Math.max(y, overlayTopMargin(MARGIN, r, GAP)), vh - lh - MARGIN)
 
-      setFixedPos(current => current?.left === x && current.top === y ? current : { left: x, top: y })
+      setPlacedSide(actualSide)
+      setFixedPos(current => current?.left === x && current.top === y && current['--menu-room'] === maxHeight ? current : { left: x, top: y, '--menu-room': maxHeight })
     }
     // First run measures the hidden pre-render (same commit as `open`), so
     // end/top alignment and clamping use real dimensions before anything
     // paints — no visible jump from a zero-size first guess.
     place()
-    // Dragging or transforming an ancestor moves the anchor without a scroll or resize event.
+    // Retain rect polling for position-only transforms; idle frames need no card dimension reads.
+    let seen: DOMRect | null = null
     const track = () => {
-      place()
+      const rect = getAnchorRect?.() ?? (getAnchorRect === undefined ? rootRef.current?.getBoundingClientRect() ?? null : null)
+      if (rect !== null && (seen === null || rect.left !== seen.left || rect.top !== seen.top || rect.right !== seen.right || rect.bottom !== seen.bottom)) place(rect)
+      seen = rect
       frame = requestAnimationFrame(track)
     }
     let frame = requestAnimationFrame(track)
-    window.addEventListener('scroll', place, true)
-    window.addEventListener('resize', place)
+    const update = () => place()
+    const observer = new ResizeObserver(update)
+    if (listRef.current !== null) observer.observe(listRef.current)
+    if (rootRef.current !== null) observer.observe(rootRef.current)
+    window.addEventListener('scroll', update, true)
+    window.addEventListener('resize', update)
+    window.visualViewport?.addEventListener('resize', update)
+    window.visualViewport?.addEventListener('scroll', update)
     return () => {
       cancelAnimationFrame(frame)
-      window.removeEventListener('scroll', place, true)
-      window.removeEventListener('resize', place)
+      observer.disconnect()
+      window.removeEventListener('scroll', update, true)
+      window.removeEventListener('resize', update)
+      window.visualViewport?.removeEventListener('resize', update)
+      window.visualViewport?.removeEventListener('scroll', update)
     }
   }, [open, portal, align, side, getAnchorRect, minWidthFromAnchor])
+
+  // Children escape the parent's scroll clip. React still owns the portaled card inside its parent row.
+  useLayoutEffect(() => {
+    const parent = submenuParentRef.current
+    const panel = submenuRef.current
+    if (!open || openSubmenuId === null || parent === null || panel === null) { setSubmenuPos(null); return }
+    let seen: DOMRect | null = null
+    const place = () => {
+      const rect = parent.getBoundingClientRect()
+      seen = rect
+      const width = panel.offsetWidth
+      const height = panel.offsetHeight
+      const left = rect.right + 14 + width > window.innerWidth - 12 && rect.left - 14 > window.innerWidth - rect.right
+      const x = Math.max(12, Math.min(left ? rect.left - width - 14 : rect.right + 14, window.innerWidth - width - 12))
+      const y = Math.max(overlayTopMargin(12, rect, 4), Math.min(rect.bottom - height + 4, window.innerHeight - height - 12))
+      setSubmenuSide(left ? 'left' : 'right')
+      setSubmenuPos(current => current?.left === x && current.top === y ? current : { left: x, top: y })
+    }
+    place()
+    const observer = new ResizeObserver(place)
+    observer.observe(panel)
+    const track = () => {
+      const rect = parent.getBoundingClientRect()
+      if (seen === null || rect.left !== seen.left || rect.top !== seen.top || rect.right !== seen.right || rect.bottom !== seen.bottom) place()
+      frame = requestAnimationFrame(track)
+    }
+    let frame = requestAnimationFrame(track)
+    window.addEventListener('resize', place)
+    window.addEventListener('scroll', place, true)
+    return () => { observer.disconnect(); cancelAnimationFrame(frame); window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true) }
+  }, [open, openSubmenuId])
+  useEffect(() => {
+    if (openSubmenuId !== null && focusSubmenu.current) {
+      focusSubmenu.current = false
+      submenuRef.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus()
+    }
+  }, [openSubmenuId])
 
   // Opening remembers where the keyboard was, so closing can hand it back to
   // that control — an anchor wrapping several (a split button) cannot be asked
@@ -340,7 +415,7 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
       if (!(e.target instanceof Node)) return
       // The portaled list is outside the anchor subtree; check both.
       if (rootRef.current?.contains(e.target) === true) return
-      if (listRef.current?.contains(e.target) === true) return
+      if (listRef.current?.contains(e.target) === true || submenuRef.current?.contains(e.target) === true) return
       onClose()
     }
     const onKeyDown = (e: KeyboardEvent) => {
@@ -348,8 +423,26 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
       // Where the keyboard is, computed once: the menu owns it when it holds a
       // row or sits on its anchor region.
       const focused = document.activeElement
-      const insideList = listRef.current?.contains(focused) === true
+      const inSubmenu = submenuRef.current?.contains(focused) === true
+      const insideList = listRef.current?.contains(focused) === true || inSubmenu
       const anchored = rootRef.current?.contains(focused) === true || insideList
+      if ((e.key === 'ArrowLeft' && inSubmenu) || (e.key === 'Escape' && openSubmenuId !== null)) {
+        e.preventDefault()
+        if (e.repeat) return
+        returningFromSubmenu.current = true
+        submenuParentRef.current?.focus()
+        returningFromSubmenu.current = false
+        setOpenSubmenuId(null)
+        return
+      }
+      if (e.key === 'ArrowRight' && focused instanceof HTMLButtonElement && focused.getAttribute('aria-haspopup') === 'menu' && anchored) {
+        e.preventDefault()
+        const parentId = focused.dataset.menuParent ?? null
+        submenuParentRef.current = focused
+        if (openSubmenuId === parentId && submenuRef.current !== null) submenuRef.current.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus()
+        else { focusSubmenu.current = true; setOpenSubmenuId(parentId) }
+        return
+      }
       if (e.key === 'Escape' && !e.shiftKey) {
         e.preventDefault()
         if (e.repeat) return
@@ -401,7 +494,7 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
       // otherwise re-enter at the near end on every press and the walk would
       // alternate between two rows.
       if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return
-      const list = listRef.current
+      const list = inSubmenu ? submenuRef.current : listRef.current
       if (list === null || !anchored) return
       const buttons = Array.from(list.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'))
       if (buttons.length === 0) return
@@ -435,7 +528,7 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
       document.removeEventListener('keydown', onEscape, true)
       window.removeEventListener('blur', onWindowBlur)
     }
-  }, [open, onClose, autoFocus])
+  }, [open, onClose, autoFocus, openSubmenuId])
 
   // A close from selection/Escape/outside click outruns a pending grace close;
   // left armed it would shut a list reopened inside the grace window. Its own
@@ -444,10 +537,6 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
   useEffect(() => {
     if (!open) cancelClose()
   }, [open, cancelClose])
-
-  // The submenu card is absolutely positioned outside the list box; the
-  // scroll clip would crop it, so only submenu-free menus get the height cap.
-  const scrollable = !items.some(entry => !isSeparator(entry) && !isLabel(entry) && entry.submenu !== undefined && entry.submenu.length > 0)
 
   const renderEntry = (entry: MenuEntry) => {
     if (isSeparator(entry)) {
@@ -463,8 +552,8 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
       <div
         key={entry.id}
         className={css.itemWrap}
-        onMouseEnter={hasSub ? () => { setOpenSubmenuId(entry.id) } : undefined}
-        onMouseLeave={() => { setOpenSubmenuId(null) }}
+        onMouseEnter={hasSub ? event => { submenuParentRef.current = event.currentTarget.querySelector('button'); setOpenSubmenuId(entry.id) } : undefined}
+        onMouseLeave={hasSub ? () => { setOpenSubmenuId(current => current === entry.id ? null : current) } : undefined}
       >
         <button
           type="button"
@@ -474,9 +563,11 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
           aria-keyshortcuts={entry.shortcut?.aria}
           aria-haspopup={hasSub ? 'menu' : undefined}
           aria-expanded={hasSub ? subOpen : undefined}
-          onFocus={hasSub ? () => { setOpenSubmenuId(entry.id) } : undefined}
-          onClick={() => {
+          data-menu-parent={hasSub ? entry.id : undefined}
+          onFocus={hasSub ? event => { if (returningFromSubmenu.current) { returningFromSubmenu.current = false; return }; submenuParentRef.current = event.currentTarget; setOpenSubmenuId(entry.id) } : undefined}
+          onClick={event => {
             if (hasSub) {
+              submenuParentRef.current = event.currentTarget
               setOpenSubmenuId(entry.id)
               return
             }
@@ -489,8 +580,9 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
           {/* Selection marker is a trailing check (figma .Menu_cell) unless the fill mode carries it. */}
           {selected && selection === 'check' && <IconCheckOutlineRegular className={css.check} />}
         </button>
-        {subOpen && entry.submenu !== undefined && (
-          <MenuSurface compact={compact} className={clsx(css.submenu, compact && css.compactList)} role="menu">
+        {subOpen && entry.submenu !== undefined && createPortal(
+          <MenuSurface compact={compact} ref={submenuRef} className={clsx(css.submenu, compact && css.compactList)} style={submenuPos ?? MEASURE_STYLE} data-menu-side={submenuSide} role="menu">
+            <div className={css.viewport} role="presentation">
             {entry.submenu.map(sub => (
               <button
                 key={sub.id}
@@ -506,7 +598,8 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
                 {sub.shortcut !== undefined && <span aria-hidden="true" className={css.shortcut}><ShortcutKeys keys={sub.shortcut.keys} className={css.shortcutKeys} /></span>}
               </button>
             ))}
-          </MenuSurface>
+            </div>
+          </MenuSurface>, document.body
         )}
       </div>
     )
@@ -530,10 +623,10 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
   const list = open && (
     <MenuSurface compact={compact}
       ref={listRef}
-      className={clsx(css.list, listClassName, dense && css.denseList, compact && css.compactList, scrollable && css.scrollable, portal && css.portal, side === 'top' && !portal && css.sideTop, align === 'end' && !portal && css.alignEnd)}
+      className={clsx(css.list, listClassName, dense && css.denseList, compact && css.compactList, css.scrollable, portal && css.portal, side === 'top' && !portal && css.sideTop, align === 'end' && !portal && css.alignEnd)}
       style={portal ? fixedPos ?? MEASURE_STYLE : undefined}
       role="menu"
-      data-menu-side={side}
+      data-menu-side={portal ? placedSide : side}
       data-menu-positioned={!portal || fixedPos !== null}
       // React portals bubble synthetic events through the REACT tree: without
       // this stop, an item click re-fires the anchor row's own onClick
@@ -546,10 +639,10 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
         const row = e.target instanceof Element ? e.target.closest('button[role="menuitem"]') : null
         if (row !== null && row.getAttribute('aria-haspopup') !== 'menu') refocusAfterSelection()
       }}
-      onMouseOver={collapseSubmenuFrom}
+      onPointerMove={collapseSubmenuFrom}
       onFocus={collapseSubmenuFrom}
     >
-      <div className={css.viewport} role="presentation">
+      <div className={css.viewport} role="presentation" data-menu-viewport="">
         {items.map(renderEntry)}
         {children}
       </div>

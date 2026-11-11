@@ -326,19 +326,11 @@
      takeover never grows the footer past the card it replaces. Declared on
      the seat because it is the chain's only shared ancestor — fallback and
      elected overlay are siblings — and custom properties inherit down to
-     whichever entry is mounted. */
-  --dsh-composer-text-max-height: 336px;
-}
-
-/* ConversationContent measures this scrollport after phone navigation and
-   session chrome. Reserve the default card's controls/stats (106px, 98px on phones), one line
-   of history (24px), and the seat's safe-area padding. Wide touch layouts also
-   reserve the floating header's inset. Keep at least one editable line. */
-@media (max-width: 640px), (pointer: coarse) {
-  .composerSeat {
-    --dsh-composer-chrome-reserve: 106px;
-    --dsh-composer-text-max-height: min(336px, max(36px, calc(var(--dsh-conversation-viewport-height, 100dvh) - var(--dsh-scrollport-top-inset, 0px) - var(--dsh-composer-chrome-reserve) - 24px - env(safe-area-inset-bottom, 0px))));
-  }
+     whichever entry is mounted. ConversationContent publishes the scrollport
+     height. Reserve controls/stats, one history line and the floating header,
+     including short desktop windows, while keeping one editable line. */
+  --dsh-composer-chrome-reserve: 106px;
+  --dsh-composer-text-max-height: min(336px, max(36px, calc(var(--dsh-conversation-viewport-height, 100dvh) - var(--dsh-scrollport-top-inset, 0px) - var(--dsh-composer-chrome-reserve) - 24px - env(safe-area-inset-bottom, 0px))));
 }
 
 /* Active phase: header is column chrome outside the scrollport (not sticky);
@@ -556,10 +548,11 @@
 }
 
 /* Hero: the composer sits inside the session scroll body; center there so
-   the tree seat matches active (sticky footer) without a Root remount. */
+   the tree seat matches active (sticky footer) without a Root remount. An
+   oversized stack starts at the scroll origin so its heading stays reachable. */
 .root[data-phase='hero'] .scrollBody,
 .embeddedBody[data-content-phase='hero'] .scrollBody {
-  justify-content: center;
+  justify-content: safe center;
   overflow-y: auto;
 }
 

@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef, type KeyboardEvent } from 'react'
 import clsx from 'clsx'
+import { observeComposition } from './keyboard-composition.ts'
 import css from './InlineEditor.module.css'
 
 /**
@@ -26,6 +27,13 @@ export function InlineEditor({ value, label, onChange, onSave, onCancel, classNa
   className?: string
 }) {
   const ref = useRef<HTMLTextAreaElement>(null)
+  const composition = useRef<ReturnType<typeof observeComposition> | null>(null)
+
+  useLayoutEffect(() => {
+    const observer = observeComposition((ref.current as HTMLTextAreaElement).ownerDocument)
+    composition.current = observer
+    return () => { observer.dispose(); composition.current = null }
+  }, [])
 
   useLayoutEffect(() => {
     // The textarea mounts before layout effects run.
@@ -43,13 +51,18 @@ export function InlineEditor({ value, label, onChange, onSave, onCancel, classNa
   }, [value])
 
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>): void => {
+    if (composition.current?.guards(event.nativeEvent)) {
+      // Keep candidate dismissal inside the editor without suppressing the IME's default.
+      if (event.key === 'Escape') event.stopPropagation()
+      return
+    }
     if (event.key === 'Escape') {
+      event.preventDefault()
+      event.stopPropagation()
       onCancel()
       return
     }
-    // keyCode 229 is the legacy IME-composition signal engines emit without isComposing.
-    const composing = event.nativeEvent.isComposing || Reflect.get(event.nativeEvent, 'keyCode') === 229
-    if (event.key !== 'Enter' || event.shiftKey || composing) return
+    if (event.key !== 'Enter' || event.shiftKey) return
     event.preventDefault()
     onSave()
   }

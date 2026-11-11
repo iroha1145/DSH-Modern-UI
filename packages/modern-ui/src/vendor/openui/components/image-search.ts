@@ -35,9 +35,20 @@ async function query(host: string, params: Record<string, string>): Promise<Page
 }
 
 const https = (url: string) => (url.startsWith("//") ? `https:${url}` : url);
-/** Only https photo addresses, never logos, maps or diagrams. */
-const usable = (url: string | null): url is string => !!url && url.startsWith("https://") && !SKIP.test(url);
-const fileKey = (url: string) => decodeURIComponent(url.split("?")[0].split("/").slice(-1)[0]).replace(/^\d+px-/, "");
+/** Only Wikimedia https photo addresses, never logos, maps or diagrams. */
+const usable = (url: string | null): url is string => {
+  if (!url || SKIP.test(url)) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" && !parsed.username && !parsed.password && (parsed.hostname === "wikimedia.org" || parsed.hostname.endsWith(".wikimedia.org"));
+  } catch { return false; }
+};
+const fileKey = (url: string) => {
+  const raw = url.split("?")[0].split("/").slice(-1)[0];
+  let decoded = raw;
+  try { decoded = decodeURIComponent(raw); } catch { /* Malformed filenames still have a stable deduplication key. */ }
+  return decoded.replace(/^\d+px-/, "");
+};
 
 /** The article titled like the query: its lead image, then up to two more photos. */
 async function articlePhotos(title: string): Promise<string[]> {
@@ -96,7 +107,12 @@ const searches = new Map<string, Promise<string[]>>();
  * @returns Up to seven https image addresses, best first.
  */
 export function searchImages(raw: string): Promise<string[]> {
-  const q = raw.replace(/\s+/g, " ").trim().slice(0, 200);
+  let q = "";
+  let chars = 0;
+  for (const char of raw.replace(/\s+/g, " ").trim()) {
+    if (chars++ === 200) break;
+    q += char.length === 1 && /[\uD800-\uDFFF]/.test(char) ? "\uFFFD" : char;
+  }
   let request = searches.get(q);
   if (!request) {
     request = Promise.all([articlePhotos(q).catch((): string[] => []), searchPhotos(q).catch((): string[] => [])]).then(([exact, found]) => {

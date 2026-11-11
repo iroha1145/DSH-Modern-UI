@@ -464,8 +464,11 @@ export class ModelPickerSettingsController {
   private conflicted = false
   private pricing = false
   private priceFailure: PriceFailure | undefined
+  private priceWrite: Promise<boolean> | undefined
   private abort: AbortController | undefined
   private disposed = false
+  private listedCache: { catalog: ModelCatalogState['value']; models: ListedModel[] } | undefined
+  private rowsCache: { models: ListedModel[]; settings: ModelPickerSettings; user: unknown; rows: ModelRowState[] } | undefined
   /** What the card's slot registration injects; every member is stable for the controller's lifetime. */
   readonly face: ModelSettingsFace
 
@@ -514,7 +517,7 @@ export class ModelPickerSettingsController {
 
   /** The composition layer also owns the reasoning levels a blank user choice inherits. */
   private entryFor(id: string): ListedModel | undefined {
-    const entry = listModels(this.deps.catalog.getSnapshot().value).find(listed => listed.model.id === id)
+    const entry = this.listedModels().find(listed => listed.model.id === id)
     if (entry === undefined) return undefined
     const inherited = layerOverride(this.deps.form.getSnapshot().base, id)
     return { ...entry, defaults: chosenEfforts(entry.efforts, inherited?.efforts ?? [], entry.defaults) }
@@ -525,7 +528,11 @@ export class ModelPickerSettingsController {
     const settings = form.value
     if (form.status !== 'ready' || settings === undefined) return HIDDEN
     const catalog = this.deps.catalog.getSnapshot()
-    const rows = listModels(catalog.value).map(({ model }): ModelRowState => {
+    const models = this.listedModels()
+    const cached = this.rowsCache
+    const rows = cached?.models === models && cached.settings === settings && cached.user === form.user
+      ? cached.rows
+      : models.map(({ model }): ModelRowState => {
       const profile = profileOf(model, settings)
       return {
         id: model.id,
@@ -540,7 +547,8 @@ export class ModelPickerSettingsController {
         priceSource: profile.priceSource,
         customized: hasUserOverride(form.user, model.id),
       }
-    })
+      })
+    this.rowsCache = { models, settings, user: form.user, rows }
     return {
       available: true,
       writable: form.writable,
@@ -553,6 +561,12 @@ export class ModelPickerSettingsController {
       editor: this.editorState(settings, form.user, form.base),
       prices: { busy: this.pricing, failure: this.priceFailure, updatedAt: settings.pricesUpdatedAt },
     }
+  }
+
+  private listedModels(): ListedModel[] {
+    const catalog = this.deps.catalog.getSnapshot().value
+    if (this.listedCache?.catalog !== catalog) this.listedCache = { catalog, models: listModels(catalog) }
+    return this.listedCache.models
   }
 
   private editorState(settings: ModelPickerSettings, user: unknown, base: unknown): ModelEditorState | undefined {
@@ -648,12 +662,14 @@ export class ModelPickerSettingsController {
   }
 
   private async saveModel(): Promise<void> {
+    const target = this.current()?.id
+    if (target === undefined || this.saving || !this.deps.form.getSnapshot().writable) return
+    if (this.priceWrite !== undefined && !await this.waitForPriceWrite()) return
     const current = this.current()
-    if (current === undefined || this.saving || !this.deps.form.getSnapshot().writable) return
+    const { value: settings, user, revision, writable } = this.deps.form.getSnapshot()
+    if (current === undefined || current.id !== target || !writable || settings === undefined) return
     const { override, invalid } = buildOverride(current.draft, current.entry)
     if (invalid.latency || invalid.priceInput || invalid.priceOutput) return
-    const { value: settings, user, revision } = this.deps.form.getSnapshot()
-    if (settings === undefined) return
     const previous = buildOverride(draftOf(userOverride(settings, user, current.id), current.entry), current.entry).override
     const ops: SettingsPathOpView[] = []
     for (const field of OVERRIDE_FIELDS) {
@@ -676,9 +692,12 @@ export class ModelPickerSettingsController {
   }
 
   private async restoreModel(): Promise<void> {
+    const target = this.current()?.id
+    if (target === undefined || this.saving || !this.deps.form.getSnapshot().writable) return
+    if (this.priceWrite !== undefined && !await this.waitForPriceWrite()) return
     const current = this.current()
-    if (current === undefined || this.saving || !this.deps.form.getSnapshot().writable) return
-    const { user, revision } = this.deps.form.getSnapshot()
+    const { user, revision, writable } = this.deps.form.getSnapshot()
+    if (current === undefined || current.id !== target || !writable) return
     if (JSON.stringify(layerOverride(user, current.id)) !== current.baselineUser) {
       this.failed = false
       this.conflicted = true
@@ -709,6 +728,19 @@ export class ModelPickerSettingsController {
     } catch {
       return false
     }
+  }
+
+  /** Let an already queued local cache write publish its revision before fencing the user's edit. */
+  private async waitForPriceWrite(): Promise<boolean> {
+    const pending = this.priceWrite
+    if (pending !== undefined) {
+      this.saving = true
+      this.publish()
+      await pending
+      this.saving = false
+      this.publish()
+    }
+    return !this.disposed
   }
 
   private async refreshPrices(): Promise<void> {
@@ -744,10 +776,13 @@ export class ModelPickerSettingsController {
     }
     if (this.disposed) return undefined
     const stamp = (this.deps.now ?? (() => new Date()))().toISOString()
-    const saved = await this.write([
+    const pending = this.write([
       { op: 'set', path: ['prices'], value: prices },
       { op: 'set', path: ['pricesUpdatedAt'], value: stamp },
     ])
+    this.priceWrite = pending
+    const saved = await pending
+    if (this.priceWrite === pending) this.priceWrite = undefined
     return saved ? undefined : { kind: 'save' }
   }
 }

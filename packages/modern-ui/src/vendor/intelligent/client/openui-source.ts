@@ -1,4 +1,5 @@
 /** Pure helpers for openui-lang fences: which bodies to render, size bounds, and the text a @ToAssistant click proposes. */
+import { autoClose, tokenize } from '@openuidev/lang-core'
 
 const MESSAGE_LIMIT = 4000
 const VALUE_LIMIT = 300
@@ -82,8 +83,75 @@ export interface AssistantRequest {
 const present = (value: unknown): boolean => value !== null && value !== undefined && value !== ''
 
 function show(value: unknown): string {
-  const text = typeof value === 'string' ? value : JSON.stringify(value) ?? ''
+  // Emit only the prefix we can show. JSON.stringify followed by slice first expands an entire shared DAG.
+  let text = ''
+  const active = new Set<object>()
+  let visits = 0
+  const emit = (part: string): void => { text += part.slice(0, VALUE_LIMIT + 1 - text.length) }
+  const write = (item: unknown, depth: number): void => {
+    if (text.length > VALUE_LIMIT) return
+    if (++visits > 1000 || depth > 100) { emit('…'); return }
+    if (item === null || typeof item !== 'object') {
+      emit(JSON.stringify(typeof item === 'string' ? item.slice(0, VALUE_LIMIT + 1) : item) ?? 'null')
+      return
+    }
+    if (active.has(item)) { emit('"[Circular]"'); return }
+    active.add(item)
+    const array = Array.isArray(item)
+    emit(array ? '[' : '{')
+    let first = true
+    for (const key in item) {
+      if (!Object.hasOwn(item, key)) continue
+      const child = (item as Record<string, unknown>)[key]
+      if (!array && child === undefined) continue
+      if (!first) emit(',')
+      first = false
+      if (!array) emit(`${JSON.stringify(key.slice(0, VALUE_LIMIT + 1))}:`)
+      write(child, depth + 1)
+      if (text.length > VALUE_LIMIT || visits > 1000) break
+    }
+    emit(array ? ']' : '}')
+    active.delete(item)
+  }
+  if (typeof value === 'string') text = value
+  else write(value, 0)
   return text.length > VALUE_LIMIT ? `${text.slice(0, VALUE_LIMIT - 1)}…` : text
+}
+
+/** A fence contains DSL, not Cloud transport sections. Preserve marker text as equivalent string literals. */
+export function prepareOpenUISource(code: string): string | null {
+  // Match the parser's trim before closing a partial literal (including its trailing backslash/whitespace).
+  code = code.trim()
+  let out = ''
+  for (let i = 0; i < code.length;) {
+    const char = code[i]
+    if (char === '/' && code[i + 1] === '/' || char === '#') {
+      const end = code.indexOf('\n', i)
+      const to = end < 0 ? code.length : end
+      out += code.slice(i, to).replaceAll(']]>', '] ]>')
+      i = to
+    } else if (char === '"' || char === "'") {
+      const start = i++
+      let closed = false
+      while (i < code.length) {
+        if (code[i] === '\\') { i += 2; continue }
+        if (code[i++] === char) { closed = true; break }
+      }
+      const literal = code.slice(start, i)
+      if (literal.includes(']')) {
+        const token = tokenize(autoClose(literal).text)[0] as { v?: unknown } | undefined
+        if (typeof token?.v !== 'string') return null
+        const encoded = JSON.stringify(token.v).replaceAll(']', '\\u005d')
+        out += closed ? encoded : encoded.slice(0, -1)
+      } else out += literal
+    } else {
+      if (code.startsWith(']]>', i)) return null
+      out += char
+      i++
+    }
+  }
+  // The transport parser holds even a lone closing bracket at the start of a streaming line as a partial marker.
+  return out.replace(/(^|\n)(?=])/g, '$1 ')
 }
 
 /**
@@ -93,10 +161,17 @@ function show(value: unknown): string {
  * @returns The proposed user message, at most a few thousand characters.
  */
 export function assistantMessage(request: AssistantRequest): string {
-  const lines: string[] = []
-  for (const [label, value] of request.fields ?? []) if (present(value)) lines.push(`- ${label}: ${show(value)}`)
-  if (present(request.context)) lines.push(`- context: ${show(request.context)}`)
-  const text = [request.message.trim(), lines.join('\n')].filter(part => part !== '').join('\n\n')
+  let text = request.message.trim()
+  let first = true
+  const append = (line: string): void => {
+    text += (first ? text ? '\n\n' : '' : '\n') + line
+    first = false
+  }
+  for (const [label, value] of request.fields ?? []) {
+    if (text.length > MESSAGE_LIMIT) break
+    if (present(value)) append(`- ${label.slice(0, MESSAGE_LIMIT + 1)}: ${show(value)}`)
+  }
+  if (text.length <= MESSAGE_LIMIT && present(request.context)) append(`- context: ${show(request.context)}`)
   return text.length > MESSAGE_LIMIT ? `${text.slice(0, MESSAGE_LIMIT - 1)}…` : text
 }
 

@@ -18,7 +18,7 @@ function transform(value: unknown): string | undefined {
   if (!parts.length || parts.map((p) => p[0]).join("") !== value) return undefined;
   const valid = parts.every(([, name, args]) => {
     const numbers = args.trim().split(/\s*,\s*|\s+/).filter(Boolean);
-    return (TRANSFORM_ARGS[name]?.includes(numbers.length) ?? false) && numbers.every((n) => Number.isFinite(Number(n)));
+    return Object.hasOwn(TRANSFORM_ARGS, name) && TRANSFORM_ARGS[name].includes(numbers.length) && numbers.every((n) => Number.isFinite(Number(n)));
   });
   return valid ? value.trim() : undefined;
 }

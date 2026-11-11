@@ -11,6 +11,8 @@ import type {} from '@deepseek-ai/dsh-plan-mode/client'
 import type {} from '@deepseek-ai/dsh-goal/client'
 import type { Translate } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ComposerBarProps } from '../contract/slots.ts'
+import type { InputActions, InputState } from '../contract/input.ts'
+import type { MaybeSnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
 import { DraftEditor } from '../input/editor/DraftEditor.tsx'
 import {
   focusDraftEditor, installDraftFilePicker, installDraftKeyboardDismissal, installDraftKeymap, installDraftSelectionVisibility, installDraftWheel,
@@ -29,7 +31,10 @@ const HERO_SUGGESTION_SETS = [
   [{ icon: 'code', key: 'ui' }, { icon: 'sparkle', key: 'debug' }, { icon: 'doc', key: 'spec' }],
 ] as const
 
-export type InputBarProps = ComposerBarProps
+export type InputBarProps = Omit<ComposerBarProps, 'useInput' | 'inputActions'> & {
+  useInput: MaybeSnapshotSelectorHook<InputState>
+  inputActions: InputActions | undefined
+}
 
 export const InputBar = memo(function InputBar({
   useSession, useInput, inputActions, keyboard, addFiles, removeAttachment, resolveDraftAttachments,
@@ -300,6 +305,20 @@ export const InputBar = memo(function InputBar({
           {notice.text}
         </div>
       )}
+      {(input?.failedSends ?? []).filter(record => !record.retrying && (!record.restored || record.missingAttachments > 0)).map(record => (
+        <div className={css.notice} key={record.id} role="status" data-failed-send="">
+          <strong>{t('input.failedSend')}</strong>
+          <div className={css.failedText}>{record.draft.text}</div>
+          {record.attachmentCount > 0 && <div>{t('input.failedSend.attachments', { count: record.attachmentCount })}</div>}
+          {record.missingAttachments > 0 && <div>{t('input.failedSend.missingAttachments')}</div>}
+          <button className={css.retry} type="button" disabled={!editable || draft !== '' || attachments.length > 0} onClick={() => { inputActions?.restoreFailedSend?.(record.id) }}>
+            {t('input.failedSend.restore')}
+          </button>
+          <button className={css.retry} type="button" onClick={() => { inputActions?.discardFailedSend?.(record.id) }}>
+            {t('input.failedSend.discard')}
+          </button>
+        </div>
+      ))}
       <div
         ref={cardRef}
         tabIndex={-1}
@@ -360,7 +379,8 @@ export const InputBar = memo(function InputBar({
               ref={fileInputRef}
               type="file"
               multiple
-              disabled={!canAcceptDrop || subagent !== null}
+              disabled={!canAcceptDrop}
+              accept={continuable ? 'image/png,image/jpeg,image/webp,image/gif' : undefined}
               hidden
               onChange={onPickFiles}
             />

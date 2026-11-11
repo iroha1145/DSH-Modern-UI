@@ -4,7 +4,7 @@ import { z } from "zod/v4";
 
 // Safety
 // A model-written style value could otherwise load a resource: `background: url(...)`.
-const UNSAFE_CSS = /(url|image|image-set|cross-fade|element|expression|paint|var|attr|env)\s*\(|@import|[\\;{}<>]/i;
+const UNSAFE_CSS = /(url|src|image|image-set|cross-fade|element|expression|paint|var|attr|env)\s*\(|@import|[\\;{}<>]/i;
 const isSafeCss = (value: string) => !UNSAFE_CSS.test(value);
 
 function protocolOf(value: string): string | null {
@@ -65,24 +65,37 @@ const BACKGROUND: Record<string, string> = {
 const cssValue = (value: unknown) => (typeof value === "string" && value.trim() && isSafeCss(value) ? value.trim() : undefined);
 
 /** Text, icon and stroke colors: a token or a CSS color. */
-export const fg = (value: unknown) => (typeof value === "string" ? (FOREGROUND[value] ?? cssValue(value)) : undefined);
+export const fg = (value: unknown) => (typeof value === "string" ? (Object.hasOwn(FOREGROUND, value) ? FOREGROUND[value] : cssValue(value)) : undefined);
 /** Backgrounds: status tokens become their soft tints. */
-export const bg = (value: unknown) => (typeof value === "string" ? (BACKGROUND[value] ?? cssValue(value)) : undefined);
+export const bg = (value: unknown) => (typeof value === "string" ? (Object.hasOwn(BACKGROUND, value) ? BACKGROUND[value] : cssValue(value)) : undefined);
 
 /**
  * Text color for a model-chosen CSS color background (hex or rgb). Raw colors
  * do not follow the theme, so text on them is set dark or light to stay legible.
  */
 function contrastOn(background: unknown): string | undefined {
-  if (typeof background !== "string" || background in BACKGROUND) return undefined;
+  if (typeof background !== "string" || Object.hasOwn(BACKGROUND, background)) return undefined;
   let rgb: number[] | null = null;
-  const hex = /^#([\da-f]{3}|[\da-f]{6})$/i.exec(background.trim());
+  const hex = /^#([\da-f]{3,4}|[\da-f]{6}|[\da-f]{8})$/i.exec(background.trim());
   if (hex) {
-    const h = hex[1].length === 3 ? hex[1].replace(/./g, "$&$&") : hex[1];
+    const h = hex[1].length <= 4 ? hex[1].replace(/./g, "$&$&") : hex[1];
+    if (h.length === 8 && h.slice(6).toLowerCase() !== "ff") return undefined;
     rgb = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
   } else {
-    const m = /^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/i.exec(background.trim());
-    if (m) rgb = [m[1], m[2], m[3]].map(Number);
+    const m = /^rgba?\(([^()]*)\)$/i.exec(background.trim());
+    if (m) {
+      const legacy = m[1].includes(",");
+      const slash = m[1].split("/");
+      const channels = slash[0].trim().split(/\s+/);
+      if (!legacy && (slash.length > 2 || channels.length !== 3)) return undefined;
+      const parts = legacy ? m[1].split(",").map(part => part.trim()) : [...channels, ...(slash[1] === undefined ? [] : [slash[1].trim()])];
+      if (parts.length !== 3 && parts.length !== 4 || parts.some(part => !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)%?$/.test(part))) return undefined;
+      if (legacy && parts.slice(0, 3).some(part => part.endsWith("%") !== parts[0].endsWith("%"))) return undefined;
+      const alpha = parts[3] === undefined ? 1 : parseFloat(parts[3]) / (parts[3].endsWith("%") ? 100 : 1);
+      // Without the actual composited background, a translucent color cannot determine a new foreground.
+      if (alpha < 1) return undefined;
+      rgb = parts.slice(0, 3).map(part => Math.min(255, Math.max(0, parseFloat(part) * (part.endsWith("%") ? 2.55 : 1))));
+    }
   }
   if (!rgb) return undefined;
   const [r, g, b] = rgb.map((c) => {
@@ -105,7 +118,7 @@ export function onColor(background: unknown): CSSProperties {
 }
 
 /** Spacing in 4px steps. */
-export const space = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? `${Math.max(0, value) * 4}px` : undefined);
+export const space = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? `${Math.min(MAX_PX / 4, Math.max(0, value)) * 4}px` : undefined);
 
 // Pixel lengths stay within a few screens, so one block cannot grow to an absurd height or width.
 const MAX_PX = 4000;
@@ -129,7 +142,7 @@ const RADIUS: Record<string, string> = {
   xl: "var(--iui-radius-xl)",
   full: "999px",
 };
-export const radius = (value: unknown) => (typeof value === "string" ? RADIUS[value] : size(value));
+export const radius = (value: unknown) => (typeof value === "string" ? Object.hasOwn(RADIUS, value) ? RADIUS[value] : undefined : size(value));
 
 export const cx = (...names: (string | false | null | undefined)[]) => names.filter(Boolean).join(" ") || undefined;
 

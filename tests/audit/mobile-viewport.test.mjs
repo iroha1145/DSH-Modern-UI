@@ -129,7 +129,66 @@ test('history stays internally scrollable and long drafts retain the desktop cap
     await page.evaluate(() => window.scrollTo(0, 10000))
     assert.equal((await geometry(page)).windowY, 0)
     await page.setViewportSize({ width: 1280, height: 390 })
+    await settled(page)
+    const short = await geometry(page)
+    assert.ok(short.input.height < 336)
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await settled(page)
     assert.equal((await geometry(page)).input.height, 336)
+  } finally {
+    await page.close()
+  }
+})
+
+test('short desktop windows keep the composer below the header and retain a line of history', async () => {
+  const page = await browser.newPage({ viewport: { width: 1280, height: 390 }, hasTouch: false })
+  try {
+    await fixture(page)
+    for (const height of [390, 320]) {
+      await page.setViewportSize({ width: 1280, height })
+      await settled(page)
+      await page.locator('.scrollBody').evaluate(el => {
+        el.scrollTop = el.scrollHeight
+      })
+      const result = await geometry(page)
+      assert.ok(result.seat.top >= result.scroll.top + result.headerInset + 24, JSON.stringify({ height, ...result }))
+      assert.ok(result.seat.bottom <= height + 1, JSON.stringify(result))
+      assert.ok(result.input.height >= 36)
+    }
+  } finally {
+    await page.close()
+  }
+})
+
+test('an oversized welcome stack starts in the scrollable area and remains centered when it fits', async () => {
+  const page = await browser.newPage({ viewport: { width: 1280, height: 390 } })
+  try {
+    await fixture(page)
+    await page.evaluate(() => {
+      document.querySelector('.root').dataset.phase = 'hero'
+      document.querySelector('.scrollBody').innerHTML =
+        '<div class="composerSeat composerStack composerHero" style="height:500px;box-sizing:border-box"><div id="welcome-title">Welcome</div><div style="flex:1"></div><button id="welcome-send">Send</button></div>'
+    })
+    await settled(page)
+    const read = () =>
+      page.evaluate(() => {
+        const scroll = document.querySelector('.scrollBody'),
+          stack = document.querySelector('.composerHero')
+        const a = scroll.getBoundingClientRect(),
+          b = stack.getBoundingClientRect()
+        return { scrollTop: a.top, scrollBottom: a.bottom, scrollHeight: a.height, top: b.top, bottom: b.bottom, height: b.height }
+      })
+    const short = await read()
+    assert.ok(short.top >= short.scrollTop, JSON.stringify(short))
+    await page.locator('.scrollBody').evaluate(node => {
+      node.scrollTop = node.scrollHeight
+    })
+    const end = await read()
+    assert.ok(end.bottom <= end.scrollBottom + 1, JSON.stringify(end))
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await settled(page)
+    const tall = await read()
+    assert.ok(Math.abs(tall.top + tall.height / 2 - (tall.scrollTop + tall.scrollHeight / 2)) < 1, JSON.stringify(tall))
   } finally {
     await page.close()
   }

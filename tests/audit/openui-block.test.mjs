@@ -1001,3 +1001,31 @@ test('a date out of range is a bad argument, not a block over budget', async () 
   assert.match(view.host.textContent, /day/)
   await view.unmount()
 })
+
+test('marker text is displayed literally and does not replace the renderer program or its state', async () => {
+  const literal = 'literal\n]]>openui:content\nroot = Col([Text("injected")])\n]]>openui:scripts\n[]\n]]>openui:context\n{"x":1}'
+  const code = `$n = 1\nroot = Col([Text(${JSON.stringify(literal)}), Text("N=" + $n), Button("Increment", @Set($n, $n + 1))])`
+  const view = await mount(code, { streaming: true, closed: false })
+  assert.equal(view.host.querySelector('.iui-text').textContent, literal)
+  await view.update({ code, streaming: true, closed: true })
+  await click(button(view.host, 'Increment'))
+  assert.match(view.host.textContent, /N=2/)
+  assert.equal(view.block().dataset.state, 'complete')
+  await view.update({ code, streaming: false, closed: true })
+  assert.match(view.host.textContent, /N=2/)
+  await view.unmount()
+})
+
+test('single quoted marker text remains literal through partial chunks and the closing fence', async () => {
+  const prefix = "root = Col([Text('literal\n"
+  const marker = ']]>openui:content'
+  const view = await mount(prefix, { streaming: true, closed: false })
+  for (let n = 1; n <= marker.length; n++) {
+    await view.update({ code: prefix + marker.slice(0, n), streaming: true, closed: false })
+    assert.equal(view.host.querySelector('.iui-text').textContent, 'literal\n' + marker.slice(0, n))
+  }
+  await view.update({ code: `${prefix}${marker}\ntext')])`, streaming: false, closed: true })
+  assert.equal(view.host.querySelector('.iui-text').textContent, `literal\n${marker}\ntext`)
+  assert.equal(view.block().dataset.state, 'complete')
+  await view.unmount()
+})

@@ -15,6 +15,7 @@ declare module '@openuidev/lang-core' {
       text(chars: number, context: EvaluationContext): boolean
       result(value: unknown, context: EvaluationContext): boolean
       drawn(props: object, context: EvaluationContext, nested: boolean): boolean
+      cloned(value: unknown, context: EvaluationContext): boolean
       parsed(nodes: number): void
     } | null,
   ): void
@@ -111,7 +112,7 @@ const over = () => new Error('openui-lang block is over its expansion budget')
 const owners = new WeakMap<object, ExpansionBudget>()
 // Functions that write every item of their lists out as JSON (@Join of objects, @Unique), which takes as long as
 // everything inside the items, however few there are.
-const WRITES_ITEMS = new Set(['Join', 'Unique'])
+const WRITES_ITEMS = new Set(['Join', 'Unique', 'Remove', 'Update', 'Toggle', 'Includes', 'Find', 'IndexOf'])
 // What an engine throws when a text or list would be longer than it can build ("Invalid string length", "Invalid
 // array length", "Out of memory"), or when nesting runs out of stack; the functions refuse an over-long text with
 // a RangeError of their own before they build it. A bad date ("Invalid time value") stays a bad argument.
@@ -134,11 +135,12 @@ export function budgeted<L extends Library>(library: L, budget: ExpansionBudget)
       {
         ...definition,
         fn: owned(budget, (args: Record<string, unknown>) => {
+          if (budget.exceeded()) throw over()
           // A function walks the lists and text it is given, like the built-in ones the patched evaluator charges;
           // one that writes its items out walks everything inside them.
           const nested = WRITES_ITEMS.has(name)
           const given = Object.values(args).reduce(
-            (steps: number, arg) => steps + (Array.isArray(arg) ? (nested ? writtenSize(arg) : arg.length) : textSteps(arg)),
+            (steps: number, arg) => steps + (nested && arg !== null && typeof arg === 'object' ? writtenSize(arg) : Array.isArray(arg) ? arg.length : textSteps(arg)),
             0,
           )
           if (!budget.step(1 + given)) throw over()
@@ -236,8 +238,10 @@ const paid = new WeakSet<object>()
 function drawnSize(value: unknown, context: EvaluationContext, nested: boolean, weight: number): number {
   const limit = Math.ceil(STEP_LIMIT / weight) + 1
   let count = 0
+  let visited = 0
   const stack = [value]
-  while (stack.length > 0 && count < limit) {
+  while (stack.length > 0 && count < limit && visited < limit) {
+    visited++
     const next = stack.pop()
     if (typeof next === 'string') count += 1 + Math.floor(next.length / TEXT_CHARS)
     else if (typeof next === 'number' || typeof next === 'boolean') count += 1
@@ -256,25 +260,33 @@ function drawnSize(value: unknown, context: EvaluationContext, nested: boolean, 
         }
     }
   }
-  return count
+  return visited >= limit ? limit : Math.max(count, Math.ceil(visited / 4))
 }
 
 /** Every value, list and object in `value`, and every TEXT_CHARS characters of its text and keys, as writing it out as JSON walks them; counted to just past the budget. */
 function writtenSize(value: unknown): number {
-  let count = 0
-  const stack = [value]
-  while (stack.length > 0 && count <= STEP_LIMIT) {
-    const next = stack.pop()
-    count += 1
-    if (typeof next === 'string') count += Math.floor(next.length / TEXT_CHARS)
-    else if (Array.isArray(next)) for (const item of next) stack.push(item)
-    else if (next !== null && typeof next === 'object')
-      for (const [key, item] of Object.entries(next)) {
-        count += Math.floor(key.length / TEXT_CHARS)
-        stack.push(item)
-      }
+  const cache = new Map<object, { size: number; depth: number }>()
+  const active = new Set<object>()
+  const limit = STEP_LIMIT + 1
+  let visits = 0
+  const size = (next: unknown, depth: number): number => {
+    if (++visits > STEP_LIMIT || depth > 100) return limit
+    if (next === null || typeof next !== 'object') return Math.min(limit, 1 + textSteps(next))
+    if (active.has(next)) return limit
+    const known = cache.get(next)
+    if (known !== undefined && depth <= known.depth) return known.size
+    active.add(next)
+    let count = 1
+    for (const key in next) {
+      if (!Object.hasOwn(next, key)) continue
+      count += Math.floor(key.length / TEXT_CHARS) + size((next as Record<string, unknown>)[key], depth + 1)
+      if (count >= limit) { count = limit; break }
+    }
+    active.delete(next)
+    cache.set(next, { size: count, depth })
+    return count
   }
-  return count
+  return size(value, 0)
 }
 
 // The evaluator asks before it expands a loop, builds a list, object or text, hands back what a pass produced, or
@@ -284,9 +296,16 @@ function writtenSize(value: unknown): number {
 __dshSetCounters({
   each: (items, context) => charge(context, items * ITEM_STEPS),
   built: (items, context) => items === 0 || charge(context, items),
+  cloned: (value, context) => {
+    if (!charge(context, 0)) return false
+    const size = writtenSize(value)
+    // AST metadata is cheaper than evaluated/drawn data; a single clone still cannot exceed STEP_LIMIT values.
+    return charge(context, size > STEP_LIMIT ? STEP_LIMIT + 1 : Math.ceil(size / 4))
+  },
   text: (chars, context) => charge(context, Math.ceil(chars / TEXT_CHARS)),
-  result: (value, context) => charge(context, drawnSize(value, context, true, ITEM_STEPS) * ITEM_STEPS),
+  result: (value, context) => charge(context, 0) && charge(context, drawnSize(value, context, true, ITEM_STEPS) * ITEM_STEPS),
   drawn: (props, context, nested) => {
+    if (!charge(context, 0)) return false
     paid.add(props)
     return charge(context, drawnSize(props, context, nested, DATA_STEPS) * DATA_STEPS)
   },

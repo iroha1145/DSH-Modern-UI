@@ -6,7 +6,7 @@
  * settings section is loading or not served.
  */
 
-import { useEffect, useId, useRef } from 'react'
+import { memo, useEffect, useId, useRef } from 'react'
 import type { ReactNode } from 'react'
 import clsx from 'clsx'
 import {
@@ -135,6 +135,8 @@ interface RowSummaryProps {
   row: ModelRowState
   open: boolean
   t: Translate
+  /** Translation thunks keep their identity across language changes. */
+  locale: string
 }
 
 /**
@@ -142,7 +144,7 @@ interface RowSummaryProps {
  * @param props - the row and its copy.
  * @returns the row content.
  */
-function RowSummary({ row, open, t }: RowSummaryProps): ReactNode {
+const RowSummary = memo(function RowSummary({ row, open, t }: RowSummaryProps): ReactNode {
   const priced = row.priceInput !== undefined || row.priceOutput !== undefined
   return (
     <>
@@ -165,7 +167,7 @@ function RowSummary({ row, open, t }: RowSummaryProps): ReactNode {
       </span>
     </>
   )
-}
+})
 
 /**
  * Render the card, or nothing while the section is not editable.
@@ -177,6 +179,7 @@ export function ModelPickerSettingsCard(props: ModelPickerSettingsCardProps): Re
   const state = props.useModelSettings(snapshot => snapshot)
   const base = useId()
   const openId = state.editor?.id
+  const locale = t('time.locale')
   const wasOpen = useRef<string | undefined>(undefined)
   useEffect(() => { loadCatalog() }, [loadCatalog])
   // Closing an editor removes the control that held focus, so its row takes focus back.
@@ -234,7 +237,7 @@ export function ModelPickerSettingsCard(props: ModelPickerSettingsCardProps): Re
                 disabled={state.saving}
                 onClick={() => { props.toggleModel(row.id) }}
               >
-                <RowSummary row={row} open={rowEditor !== undefined} t={t} />
+                <RowSummary row={row} open={rowEditor !== undefined} t={t} locale={locale} />
               </button>
               {rowEditor === undefined
                 ? null
