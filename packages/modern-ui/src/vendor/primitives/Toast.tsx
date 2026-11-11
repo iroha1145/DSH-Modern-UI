@@ -53,6 +53,7 @@ export function Toast({ text, icon, tone, anchor, holdMs = HOLD_MS, actions, onD
   onDone: () => void
 }) {
   const latestOnDone = useRef(onDone)
+  const banner = useRef<HTMLDivElement>(null)
   const lifetime = useRef({ holdMs, remaining: holdMs + FADE_MS, finished: false })
   const [hovered, setHovered] = useState(false)
   const [focused, setFocused] = useState(false)
@@ -73,22 +74,42 @@ export function Toast({ text, icon, tone, anchor, holdMs = HOLD_MS, actions, onD
       state.remaining = Math.max(0, state.remaining - (performance.now() - start))
     }
   }, [holdMs, paused])
-  // Anchor-centered placement re-measures on window resizes; the banner lives
-  // four seconds, so sub-window layout drift within that span stays out of
-  // scope.
-  const [left, setLeft] = useState<number | null>(null)
   useLayoutEffect(() => {
-    if (anchor == null) return
+    const element = banner.current
+    if (element === null) return
+    let previousWidth = -1
+    let previousLeft = -1
     const measure = (): void => {
-      const rect = anchor.getBoundingClientRect()
-      setLeft(rect.left + rect.width / 2)
+      const viewport = window.visualViewport
+      const width = viewport?.width ?? document.documentElement.clientWidth
+      const offset = viewport?.offsetLeft ?? 0
+      if (width !== previousWidth) {
+        element.style.setProperty('--dsh-toast-viewport-width', `${width}px`)
+        previousWidth = width
+      }
+      const half = element.getBoundingClientRect().width / 2
+      const margin = Math.min(24, width / 2)
+      const rect = anchor?.getBoundingClientRect()
+      const center = rect === undefined ? offset + width / 2 : rect.left + rect.width / 2
+      const left = Math.max(offset + margin + half, Math.min(center, offset + width - margin - half))
+      if (left !== previousLeft) {
+        element.style.left = `${left}px`
+        previousLeft = left
+      }
     }
     measure()
-    window.addEventListener('resize', measure)
-    return () => { window.removeEventListener('resize', measure) }
+    // A sidebar can move the anchor without resizing it. Track while mounted,
+    // independently of the lifetime timer (including while an action has focus).
+    const track = (): void => {
+      measure()
+      frame = requestAnimationFrame(track)
+    }
+    let frame = requestAnimationFrame(track)
+    return () => { cancelAnimationFrame(frame) }
   }, [anchor])
   return createPortal(
     <div
+      ref={banner}
       className={css.toast}
       role="alert"
       data-interactive={actions !== undefined && actions.length > 0 || undefined}
@@ -98,7 +119,6 @@ export function Toast({ text, icon, tone, anchor, holdMs = HOLD_MS, actions, onD
       onFocus={() => { setFocused(true) }}
       onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false) }}
       style={{
-        ...left === null ? {} : { left },
         '--dsh-toast-hold': `${String(holdMs)}ms`,
       } as CSSProperties}
     >

@@ -96,7 +96,7 @@ export const Badge = defineComponent({
   component: ({ props }) => (
     <span className={`iui-badge iui-badge-${props.color ?? "neutral"}`}>
       {props.icon ? <Glyph name={props.icon} size={14} /> : null}
-      {str(props.text)}
+      <span className="iui-badge-label">{str(props.text)}</span>
     </span>
   ),
 });

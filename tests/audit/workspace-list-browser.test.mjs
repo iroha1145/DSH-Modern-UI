@@ -30,6 +30,9 @@ const icons = [
   'IconTriangleRightFillRegular',
   'IconUnarchiveOutlineRegular',
   'IconEditOutlineRegular',
+  'IconCopyOutlineRegular',
+  'IconCheckOutlineRegular',
+  'IconWarningOutlineRegular',
 ]
 const result = await build({
   absWorkingDir: root,
@@ -110,6 +113,8 @@ const result = await build({
       import React from 'react';
       export {AnimatedRows} from './packages/modern-ui/src/vendor/primitives/AnimatedRows.tsx';
       export {useRowDragPreview} from './packages/modern-ui/src/vendor/primitives/useRowDragPreview.ts';
+      export {MenuItemButton} from './packages/modern-ui/src/vendor/primitives/Menu.tsx';
+      export {writeClipboard} from './packages/modern-ui/src/vendor/primitives/clipboard.ts';
       export {relativeTime} from './packages/modern-ui/src/vendor/primitives/relative-time.ts';
       export const HoverCard=({anchor})=>anchor,Tooltip=({children})=>children,Menu=({anchor})=>anchor;
       export const HoverCardGroup=({children,className})=><div className={className}>{children}</div>;

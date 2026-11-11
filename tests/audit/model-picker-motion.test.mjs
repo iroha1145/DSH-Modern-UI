@@ -136,7 +136,7 @@ test('pressed model trigger leaves stable placement while its menu enters withou
     assert.equal(new Set(frames.map(f => f.left)).size, 1, 'pressed feedback never changes the menu anchor')
     assert.equal(new Set(frames.map(f => f.bottom)).size, 1)
     assert.ok(
-      frames.every(f => Math.abs(f.width - 380) < 0.01 && Math.abs(f.height - 271) < 0.01),
+      frames.every(f => Math.abs(f.width - 380) < 0.01 && f.height > 0 && Math.abs(f.height - frames[0].height) < 0.01),
       JSON.stringify(frames[0]),
     )
     assert.ok(

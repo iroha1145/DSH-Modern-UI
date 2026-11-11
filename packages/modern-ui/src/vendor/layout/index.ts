@@ -72,7 +72,7 @@ export function apply(ctx: ClientContext): void {
     const disposeModernLayout = ctx.reflect.provide('modernLayout', modernLayout)
     const disposeRegistration = ctx.slots.register({
       name: 'root',
-      locale: 'common',
+      locale: 'modern-layout-shortcuts',
       children: {
         'sidebar': { kind: 'single', scope: 'root' },
         'main': { kind: 'keyed', scope: 'root' },

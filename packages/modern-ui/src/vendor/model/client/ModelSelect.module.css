@@ -245,6 +245,8 @@
    component reads --picker-cap to tell how tall the card will render. */
 .menu {
   --picker-cap: 560px;
+  --picker-meter-width: 48px;
+  --picker-meter-gap: 8px;
   --picker-enter-y: 2px;
   position: fixed;
   z-index: 1100;
@@ -293,7 +295,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  height: 26px;
+  min-height: 26px;
   padding: 4px 8px 0;
   color: var(--bui-ink-3);
   font-size: 10px;
@@ -307,14 +309,27 @@
 .meters {
   display: grid;
   flex: 0 0 auto;
-  grid-template-columns: repeat(3, 36px);
-  gap: 8px;
+  grid-template-columns: repeat(3, var(--picker-meter-width));
+  gap: var(--picker-meter-gap);
+}
+
+/* Full localized headings wrap within the same columns as their meters. */
+.columns {
+  align-items: end;
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 .columns > span {
-  overflow: hidden;
+  min-width: 0;
   text-align: center;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.head > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .status,
@@ -529,7 +544,7 @@
 
 .unrated {
   flex: 0 0 auto;
-  width: calc(36px * 3 + 16px);
+  width: calc(var(--picker-meter-width) * 3 + var(--picker-meter-gap) * 2);
   overflow: hidden;
   color: var(--bui-ink-3);
   font-size: 11px;
@@ -758,14 +773,9 @@
     padding-left: 8px;
   }
 
-  .columns,
-  .meters {
-    grid-template-columns: repeat(3, 28px);
-    gap: 4px;
-  }
-
-  .unrated {
-    width: calc(28px * 3 + 8px);
+  .menu {
+    --picker-meter-width: 42px;
+    --picker-meter-gap: 4px;
   }
 }
 

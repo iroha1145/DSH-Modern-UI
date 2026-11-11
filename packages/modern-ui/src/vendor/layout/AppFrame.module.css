@@ -337,3 +337,9 @@
     z-index: 90;
   }
 }
+
+.handle:focus-visible {
+  outline: 2px solid var(--dsw-alias-border-focus, Highlight);
+  outline-offset: -2px;
+  background: var(--dsw-alias-border-focus, Highlight);
+}

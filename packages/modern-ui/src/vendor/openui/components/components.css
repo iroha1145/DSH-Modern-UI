@@ -99,10 +99,11 @@
   .iui-link { color: inherit; text-decoration: underline; text-decoration-color: var(--iui-border-strong); text-underline-offset: 3px; }
   .iui-link:hover { text-decoration-color: currentColor; }
   .iui-link-arrow { display: inline; width: 0.85em; height: 0.85em; margin-left: 2px; vertical-align: -0.05em; }
-  .iui-badge { display: inline-flex; align-items: center; align-self: flex-start; gap: 5px; width: fit-content; max-width: 100%; min-height: 26px; padding: 3px 10px; border-radius: 999px; corner-shape: round; background: var(--iui-badge-neutral-soft); color: var(--iui-ink); box-shadow: inset 0 1px 0 rgb(255 255 255 / 38%), inset 0 0 0 1px color-mix(in srgb, currentColor 12%, transparent); font-size: 12.5px; line-height: 18px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -0.005em; white-space: nowrap; }
+  .iui-badge { min-width: 0; display: inline-flex; align-items: center; align-self: flex-start; gap: 5px; width: fit-content; max-width: 100%; min-height: 26px; padding: 3px 10px; border-radius: 999px; corner-shape: round; background: var(--iui-badge-neutral-soft); color: var(--iui-ink); box-shadow: inset 0 1px 0 rgb(255 255 255 / 38%), inset 0 0 0 1px color-mix(in srgb, currentColor 12%, transparent); font-size: 12.5px; line-height: 18px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -0.005em; white-space: nowrap; }
   &[data-theme="dark"] .iui-badge { box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%), inset 0 0 0 1px color-mix(in srgb, currentColor 14%, transparent); }
+  .iui-badge-label, .iui-button-label { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
   .iui-badge > svg { flex: none; margin-left: -2px; }
-  .iui-row > .iui-badge { align-self: center; flex: none; }
+  .iui-row > .iui-badge { align-self: center; flex: 0 1 auto; }
   /* Badges stay calm: info is the neutral grey pill, and the other tones are soft tints with same-hue text. */
   .iui-badge-info { background: var(--iui-info-soft); color: var(--iui-info); }
   .iui-badge-success { background: var(--iui-badge-success-soft); color: var(--iui-badge-success); }
@@ -171,9 +172,10 @@
   .iui-md-h3, .iui-md-h4 { font-size: 16px; line-height: 1.4; }
 
   /* Buttons: shared Feel press feedback & Paper Widgets sculpted rims */
-  .iui-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; align-self: flex-start; flex: none; min-height: 36px; padding: 8px 16px; border: 1px solid transparent; border-radius: 999px; corner-shape: round; font-size: 13.5px; line-height: 1.25; font-weight: 500; letter-spacing: -0.006em; white-space: nowrap; cursor: pointer; transition: background-color var(--iui-duration-feedback) var(--iui-ease-feedback), border-color var(--iui-duration-feedback) var(--iui-ease-feedback), box-shadow var(--iui-duration-feedback) var(--iui-ease-feedback), color var(--iui-duration-feedback) var(--iui-ease-feedback), filter var(--iui-duration-feedback) var(--iui-ease-feedback), transform var(--iui-btn-motion-duration, var(--iui-duration-control)) var(--iui-btn-motion-curve, var(--iui-ease-control)); }
+  .iui-button { min-width: 0; max-width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 7px; align-self: flex-start; flex: none; min-height: 36px; padding: 8px 16px; border: 1px solid transparent; border-radius: 999px; corner-shape: round; font-size: 13.5px; line-height: 1.25; font-weight: 500; letter-spacing: -0.006em; white-space: nowrap; cursor: pointer; transition: background-color var(--iui-duration-feedback) var(--iui-ease-feedback), border-color var(--iui-duration-feedback) var(--iui-ease-feedback), box-shadow var(--iui-duration-feedback) var(--iui-ease-feedback), color var(--iui-duration-feedback) var(--iui-ease-feedback), filter var(--iui-duration-feedback) var(--iui-ease-feedback), transform var(--iui-btn-motion-duration, var(--iui-duration-control)) var(--iui-btn-motion-curve, var(--iui-ease-control)); }
   .iui-button:not(:disabled):not([aria-haspopup]):active { --iui-btn-motion-duration: var(--iui-duration-press); --iui-btn-motion-curve: var(--iui-ease-feedback); transform: scale(0.985); }
-  .iui-row > .iui-button { align-self: center; }
+  .iui-button > svg { flex: none; }
+  .iui-row > .iui-button { align-self: center; flex-shrink: 1; }
   .iui-button-sm { min-height: 30px; padding: 5px 12px; font-size: 12.5px; }
   .iui-button-lg { min-height: 42px; padding: 10px 20px; font-size: 14.5px; }
   .iui-button-solid { background: var(--iui-ink); color: var(--iui-on-ink); box-shadow: var(--iui-btn-solid-shadow); }
@@ -360,12 +362,13 @@
   .iui-html-view-stopped pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 
   /* Carousel, popover, code, quote, math, flashcard */
-  /* Items keep their borders and rings inside themselves; the track's 4px block
-     padding (pulled back with a negative margin) leaves room for focus rings. */
+  /* Scrollports clip both axes. Keep card shadows and focus rings inside the
+     padded track; this space stays in layout so neighbors remain clickable. */
   .iui-carousel { position: relative; min-width: 0; }
-  .iui-carousel-track { display: flex; gap: 12px; margin-block: -4px; padding-block: 4px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: none; }
+  .iui-carousel-track { display: flex; gap: 12px; padding: 24px; scroll-padding-inline: 24px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: none; }
   .iui-carousel-track::-webkit-scrollbar { display: none; }
-  .iui-carousel-item { flex: none; max-width: 85%; min-width: 0; scroll-snap-align: start; display: flex; flex-direction: column; }
+  .iui-carousel-item { --iui-card-shadow: var(--iui-shadow-sm); --iui-card-shadow-hover: 0 4px 12px -2px rgb(0 0 0 / 14%); flex: none; max-width: 85%; min-width: 0; scroll-snap-align: start; display: flex; flex-direction: column; }
+  &[data-theme="dark"] .iui-carousel-item { --iui-card-shadow-hover: 0 4px 12px -2px rgb(0 0 0 / 48%); }
   .iui-carousel-item > .iui-card, .iui-carousel-item > .iui-pressable { height: 100%; }
   /* Frosted circular controls floating over photos and cards. */
   .iui-carousel-nav { position: absolute; top: 50%; z-index: 2; display: grid; place-items: center; width: 34px; height: 34px; margin-top: -17px; border: 1px solid transparent; border-radius: 50%; corner-shape: round; background: var(--iui-glass); -webkit-backdrop-filter: var(--iui-control-blur); backdrop-filter: var(--iui-control-blur); color: var(--iui-ink); box-shadow: inset 0 0 0 1px var(--iui-glass-ring), 0 2px 10px rgb(0 0 0 / 10%); cursor: pointer; transition: background-color var(--iui-duration-feedback) var(--iui-ease-feedback), box-shadow var(--iui-duration-feedback) var(--iui-ease-feedback), opacity var(--iui-duration-feedback) var(--iui-ease-feedback), transform var(--iui-duration-press) var(--iui-ease-feedback); }

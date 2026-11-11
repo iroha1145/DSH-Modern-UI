@@ -135,19 +135,22 @@ function ViewOptionsMenu({ groupBy, orderBy, archivedFilter, onGroupPick, onOrde
       open={open}
       onClose={() => { setOpen(false) }}
       items={[
-        { type: 'label' as const, id: 'group-by', text: t('groupBy.label') },
+        { type: 'group', id: 'group-by', label: t('groupBy.label'), items: [
         { id: 'workspace', label: t('groupBy.workspace'), icon: <IconFolderCloseRegular /> },
         { id: 'workspace-tree', label: t('groupBy.workspaceTree'), icon: <IconWorkspaceTreeOutlineRegular /> },
         { id: 'flat', label: t('groupBy.flat'), icon: <IconFlatListOutlineRegular /> },
+        ].map(item => ({ ...item, choice: 'radio' as const })) },
         { type: 'separator' as const, id: 'order-by-separator' },
-        { type: 'label' as const, id: 'order-by', text: t('orderBy.label') },
+        { type: 'group', id: 'order-by', label: t('orderBy.label'), items: [
         { id: 'manual', label: t('orderBy.manual'), icon: <IconChevronsUpDownOutlineRegular /> },
         { id: 'updated', label: t('orderBy.updated'), icon: <IconClockOutlineRegular /> },
+        ].map(item => ({ ...item, choice: 'radio' as const })) },
         { type: 'separator' as const, id: 'archived-filter-separator' },
-        { type: 'label' as const, id: 'filter-by', text: t('filterBy.label') },
+        { type: 'group', id: 'filter-by', label: t('filterBy.label'), items: [
         { id: 'hide-archived', label: t('viewOptions.hideArchived'), icon: <IconArchiveOffOutlineRegular /> },
         { id: 'show-archived', label: t('viewOptions.showArchived'), icon: <IconQueueOutlineRegular /> },
         { id: 'only-archived', label: t('viewOptions.onlyArchived'), icon: <IconArchiveCheckOutlineRegular /> },
+        ].map(item => ({ ...item, choice: 'radio' as const })) },
       ]}
       selectedIds={[
         groupBy,
