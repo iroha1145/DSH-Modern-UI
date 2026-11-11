@@ -99,7 +99,8 @@
   .iui-link { color: inherit; text-decoration: underline; text-decoration-color: var(--iui-border-strong); text-underline-offset: 3px; }
   .iui-link:hover { text-decoration-color: currentColor; }
   .iui-link-arrow { display: inline; width: 0.85em; height: 0.85em; margin-left: 2px; vertical-align: -0.05em; }
-  .iui-badge { display: inline-flex; align-items: center; align-self: flex-start; gap: 5px; width: fit-content; max-width: 100%; min-height: 26px; padding: 3px 10px; border-radius: 999px; corner-shape: round; background: var(--iui-badge-neutral-soft); color: var(--iui-ink); box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 11%, transparent); font-size: 12.5px; line-height: 18px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -0.005em; white-space: nowrap; }
+  .iui-badge { display: inline-flex; align-items: center; align-self: flex-start; gap: 5px; width: fit-content; max-width: 100%; min-height: 26px; padding: 3px 10px; border-radius: 999px; corner-shape: round; background: var(--iui-badge-neutral-soft); color: var(--iui-ink); box-shadow: inset 0 1px 0 rgb(255 255 255 / 38%), inset 0 0 0 1px color-mix(in srgb, currentColor 12%, transparent); font-size: 12.5px; line-height: 18px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -0.005em; white-space: nowrap; }
+  &[data-theme="dark"] .iui-badge { box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%), inset 0 0 0 1px color-mix(in srgb, currentColor 14%, transparent); }
   .iui-badge > svg { flex: none; margin-left: -2px; }
   .iui-row > .iui-badge { align-self: center; flex: none; }
   /* Badges stay calm: info is the neutral grey pill, and the other tones are soft tints with same-hue text. */
@@ -291,6 +292,7 @@
   .iui-radio-pills .iui-choice.is-selected { border-color: var(--iui-ink); background: var(--iui-ink); color: var(--iui-on-ink); box-shadow: var(--iui-btn-solid-shadow); }
   .iui-radio-cards .iui-choice { align-items: flex-start; padding: 14px 16px; border-color: transparent; border-radius: var(--iui-radius-xl); corner-shape: superellipse(1.5); background: var(--iui-card-bg); box-shadow: var(--iui-card-shadow); }
   .iui-radio-cards .iui-choice:hover { background: var(--iui-card-bg); box-shadow: var(--iui-card-shadow-hover); transform: translateY(-1px); }
+  .iui-radio-cards .iui-choice:active { transform: scale(0.985); }
   .iui-radio-cards .iui-choice.is-selected { border-color: transparent; background: color-mix(in srgb, var(--iui-ink) 3%, var(--iui-card-bg)); box-shadow: inset 0 0 0 1.5px var(--iui-ink), var(--iui-card-shadow); }
   .iui-radio-cards .iui-choice > .iui-choice-text > span:first-child { font-weight: 500; }
   .iui-choice-description { color: var(--iui-muted); font-size: 13px; line-height: 19px; }
@@ -453,7 +455,7 @@
   }
 
   @media (forced-colors: active) {
-    .iui-card, .iui-card-soft, .iui-card-glass, .iui-box-glass, .iui-table-scroll, .iui-timer, .iui-codeblock, .iui-quote, .iui-html-view, .iui-flashcard-face, .iui-button, .iui-segmented, .iui-carousel-nav, .iui-badge { border: 1px solid ButtonBorder; box-shadow: none; }
+    .iui-card, .iui-card-soft, .iui-card-glass, .iui-box-glass, .iui-popover, .iui-chart-tooltip, .iui-diagram-node, .iui-table-scroll, .iui-timer, .iui-codeblock, .iui-quote, .iui-html-view, .iui-flashcard-face, .iui-button, .iui-segmented, .iui-carousel-nav, .iui-badge { border: 1px solid ButtonBorder; box-shadow: none; }
     :is(.iui-button-solid, .iui-icon-button-solid, .iui-segmented > button.is-selected, .iui-radio-pills .iui-choice.is-selected, .iui-radio-cards .iui-choice.is-selected) { background: Highlight; color: HighlightText; border-color: Highlight; box-shadow: none; forced-color-adjust: none; }
   }
 
@@ -461,7 +463,7 @@
     .iui-card, .iui-button, .iui-icon-button, .iui-pressable, .iui-pressable::after, .iui-input, .iui-segmented > button, .iui-check > span, .iui-choice, .iui-table tbody tr, .iui-html-view-controls button, .iui-carousel-nav, .iui-codeblock-head button, .iui-flashcard-face, .iui-flashcard-inner, .iui-image > img { transition: none; }
     .iui-range::-webkit-slider-thumb { transition: none; }
     .iui-range::-moz-range-thumb { transition: none; }
-    .iui-button:not(:disabled):not([aria-haspopup]):active, .iui-icon-button:not(:disabled):not([aria-haspopup]):hover, .iui-icon-button:not(:disabled):not([aria-haspopup]):active, .iui-pressable:not([aria-disabled="true"]):not([aria-haspopup]):hover, .iui-pressable:not([aria-disabled="true"]):not([aria-haspopup]):active, .iui-radio-cards .iui-choice:hover, .iui-carousel-nav:active, .iui-html-view-controls button:active, .iui-codeblock-head button:active { transform: none; }
+    .iui-button:not(:disabled):not([aria-haspopup]):active, .iui-icon-button:not(:disabled):not([aria-haspopup]):hover, .iui-icon-button:not(:disabled):not([aria-haspopup]):active, .iui-pressable:not([aria-disabled="true"]):not([aria-haspopup]):hover, .iui-pressable:not([aria-disabled="true"]):not([aria-haspopup]):active, .iui-radio-cards .iui-choice:hover, .iui-radio-cards .iui-choice:active, .iui-carousel-nav:active, .iui-html-view-controls button:active, .iui-codeblock-head button:active { transform: none; }
     .iui-range:active::-webkit-slider-thumb { transform: none; }
     .iui-range:active::-moz-range-thumb { transform: none; }
     .iui-image:not(.is-loaded)::before { animation: none; }

@@ -39,7 +39,7 @@
       "source": "src/lib/components/components.css",
       "target": "src/vendor/openui/components/components.css",
       "sourceSha256": "8af6f161130ee3f70b0be7afd6b523a2a09eeb6b3c5a87d10f73a3c143789e04",
-      "targetSha256": "695bdde8d6debf827fb15e4ad3fb5ebbb39bdd03b8e901122649d27133c24188",
+      "targetSha256": "80d987defffc58fee0bec411ca3574e83fdcbb4c08aeb274ba8cb80f9bf7a7a5",
       "adapted": true
     },
     {
@@ -220,12 +220,12 @@
       "source": "src/lib/prompt-options.ts",
       "target": "src/vendor/openui/prompt-options.ts",
       "sourceSha256": "af940aab9435ee2a5400f965e8d5f3d7a188d56987c7260082df738bb24e2eb2",
-      "targetSha256": "436e807e0c674100b8e89f05d9202242c46a8708531e8fa4124aca6676956c5a",
+      "targetSha256": "baa0995c69fba5be90725f39c29fc2abedcb157ef68827720f9bad454463f015",
       "adapted": true
     },
     {
       "target": "src/vendor/openui/system-prompt.generated.ts",
-      "targetSha256": "d3176fc89022afed70978f29c8aa70d620c5f6d121380d12826fa273c991bf41",
+      "targetSha256": "6c5bcfad41152c0672f662829bce068727a52b6b5328079b483cd36dbd1bcac7",
       "authored": true
     }
   ]
