@@ -423,6 +423,23 @@
     -webkit-backdrop-filter: var(--dsw-composer-backdrop-filter);
     backdrop-filter: var(--dsw-composer-backdrop-filter);
     pointer-events: none;
+    /* Shadow fade-in: the sidebar column (z-index 5) casts its --shadow-sidebar
+       about 28px into this column, and this glass (z-index 8) used to cover it
+       as a full rectangle, so the shadow began at the header's bottom edge in a
+       hard 90° corner. Along the left strip the glass now fades out toward its
+       bottom edge, so the shadow emerges gradually instead. Layer 1 keeps the
+       glass everywhere right of the strip; layer 2 fades it out vertically; the
+       union leaves only the bottom-left corner see-through. */
+    --dsh-header-shadow-fade-x: 40px;
+    --dsh-header-shadow-fade-y: 56px;
+    -webkit-mask-image:
+      linear-gradient(to right, transparent, #000 var(--dsh-header-shadow-fade-x)),
+      linear-gradient(to bottom, #000 calc(100% - var(--dsh-header-shadow-fade-y)), transparent);
+    -webkit-mask-composite: source-over;
+    mask-image:
+      linear-gradient(to right, transparent, #000 var(--dsh-header-shadow-fade-x)),
+      linear-gradient(to bottom, #000 calc(100% - var(--dsh-header-shadow-fade-y)), transparent);
+    mask-composite: add;
   }
 
   .root[data-phase='active'] .scrollBody {
@@ -433,6 +450,21 @@
 
   .root[data-phase='active'] .scrollBody::-webkit-scrollbar-track {
     margin-top: calc(var(--dsh-scrollport-top-inset) + 2px);
+  }
+}
+
+/* Opaque header fallbacks must also remove the glass's shadow-fade mask. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .root[data-phase='active'] .header::before {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  .root[data-phase='active'] .header::before {
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 }
 
