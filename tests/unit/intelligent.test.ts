@@ -163,6 +163,7 @@ describe('presentation prompt', () => {
   test('prefers components and streams each block section by section', () => {
     expect(OPENUI_SYSTEM_PROMPT).toContain('Prefer showing to telling.')
     expect(OPENUI_SYSTEM_PROMPT).toContain('write a block section by section')
+    expect(OPENUI_SYSTEM_PROMPT).toContain('pick variant "glass" selectively for a hero KPI or highlight card')
     expect(OPENUI_SYSTEM_PROMPT).not.toContain('Data values — leaf content last')
   })
 })

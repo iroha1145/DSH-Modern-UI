@@ -37,13 +37,20 @@ export const Box = defineComponent({
   description: "Flex container, a column by default. radius also clips the content.",
   component: ({ props, renderNode }) => {
     const row = props.direction === "row";
+    const glass = props.background === "glass";
     return (
       <div
-        className={cx("iui-box", row ? "iui-row" : "iui-col", !row && props.gap == null && "iui-flow")}
+        className={cx(
+          "iui-box",
+          row ? "iui-row" : "iui-col",
+          !row && props.gap == null && "iui-flow",
+          glass && "iui-box-glass",
+          props.radius === "full" && "iui-round",
+        )}
         style={{
           ...flexStyle(props, !row),
           padding: space(props.padding),
-          background: bg(props.background),
+          background: glass ? undefined : bg(props.background),
           ...onColor(props.background),
           borderRadius: radius(props.radius),
           overflow: props.radius !== undefined ? "clip" : undefined,
@@ -122,14 +129,19 @@ export const Card = defineComponent({
   name: "Card",
   props: z.object({
     children,
-    variant: z.enum(["outline", "soft"]).optional(),
+    variant: z.enum(["outline", "soft", "glass"]).optional(),
     padding: z.number().optional(),
     gap: z.number().optional(),
   }),
-  description: "Panel with a border; soft is a filled panel for summaries.",
+  description: "Panel; soft is a recessed panel for summaries; glass is a frosted translucent panel.",
   component: ({ props, renderNode }) => (
     <section
-      className={cx("iui-card", props.variant === "soft" && "iui-card-soft", props.gap == null && "iui-flow")}
+      className={cx(
+        "iui-card",
+        props.variant === "soft" && "iui-card-soft",
+        props.variant === "glass" && "iui-card-glass",
+        props.gap == null && "iui-flow",
+      )}
       style={{ padding: space(props.padding), gap: space(props.gap) }}
     >
       {renderNode(props.children)}

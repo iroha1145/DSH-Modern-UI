@@ -24,14 +24,38 @@
   --iui-border-strong: color-mix(in srgb, var(--iui-ink) 10%, transparent);
   --iui-range-track: color-mix(in srgb, var(--iui-ink) 6%, transparent);
   --iui-range-thumb: var(--iui-ink);
-  --iui-focus: var(--iui-ink);
-  /* Frosted controls over maps and photos. */
-  --iui-glass: color-mix(in srgb, var(--iui-canvas) 70%, transparent);
-  --iui-glass-hover: color-mix(in srgb, var(--iui-canvas) 85%, transparent);
-  --iui-glass-ring: rgb(255 255 255 / 70%);
-  --iui-glass-ring-hover: rgb(255 255 255 / 85%);
+  --iui-focus: var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary, var(--iui-ink)));
+  --iui-field-focus: var(--dsw-alias-state-business-primary, var(--iui-ink));
+  /* Shared Feel & Paper Widgets motion tokens (with standalone fallbacks). */
+  --iui-ease-feedback: var(--dsh-motion-feedback-curve, cubic-bezier(0.2, 0.8, 0.2, 1));
+  --iui-duration-feedback: var(--dsh-motion-feedback-duration, 120ms);
+  --iui-duration-press: var(--dsh-motion-press-duration, 80ms);
+  --iui-ease-control: var(--dsh-feel-control-curve, cubic-bezier(0.215, 0.61, 0.355, 1));
+  --iui-duration-control: var(--dsh-feel-control-duration, 180ms);
+  --iui-ease-paper: var(--dsh-paper-micro-curve, cubic-bezier(0.215, 0.61, 0.355, 1));
+  --iui-duration-paper: var(--dsh-paper-micro-duration, 180ms);
+  /* Frosted controls, glass cards, and floating overlays. */
+  --iui-backdrop-blur: var(--dsw-composer-backdrop-filter, blur(24px) saturate(140%));
+  --iui-overlay-blur: var(--dsw-menu-backdrop-filter, blur(32px) saturate(150%));
+  --iui-control-blur: blur(14px) saturate(140%);
+  --iui-glass: color-mix(in srgb, var(--iui-canvas) 72%, transparent);
+  --iui-glass-hover: color-mix(in srgb, var(--iui-canvas) 88%, transparent);
+  --iui-glass-ring: rgb(255 255 255 / 78%);
+  --iui-glass-ring-hover: rgb(255 255 255 / 92%);
+  --iui-glass-card-bg: color-mix(in srgb, var(--iui-canvas) 66%, transparent);
+  --iui-glass-card-sheen: linear-gradient(155deg, rgb(255 255 255 / 54%) 0%, rgb(255 255 255 / 14%) 48%, color-mix(in srgb, var(--iui-ink) 2%, transparent) 100%);
+  --iui-glass-card-shadow: inset 0 1px 0 rgb(255 255 255 / 95%), inset 0 0 0 1px rgb(255 255 255 / 55%), 0 0 0 1px color-mix(in srgb, var(--iui-ink) 6.5%, transparent), 0 2px 6px -1px color-mix(in srgb, var(--iui-ink) 3.5%, transparent), 0 10px 24px -6px color-mix(in srgb, var(--iui-ink) 6%, transparent), 0 22px 44px -16px color-mix(in srgb, var(--iui-ink) 11%, transparent);
+  --iui-glass-card-shadow-hover: inset 0 1px 0 rgb(255 255 255 / 98%), inset 0 0 0 1px rgb(255 255 255 / 72%), 0 0 0 1px color-mix(in srgb, var(--iui-ink) 9%, transparent), 0 4px 10px -2px color-mix(in srgb, var(--iui-ink) 5%, transparent), 0 16px 32px -8px color-mix(in srgb, var(--iui-ink) 8.5%, transparent), 0 28px 56px -16px color-mix(in srgb, var(--iui-ink) 15%, transparent);
+  --iui-popover-bg: color-mix(in srgb, var(--iui-canvas) 76%, transparent);
+  --iui-tooltip-bg: color-mix(in srgb, var(--iui-canvas) 80%, transparent);
+  --iui-popover-shadow: inset 0 1px 0 rgb(255 255 255 / 92%), 0 2px 6px -1px rgb(0 0 0 / 5%), 0 12px 28px -6px rgb(0 0 0 / 9%), 0 26px 52px -14px rgb(0 0 0 / 13%);
   --iui-shadow: inset 0 1px 0 rgb(255 255 255 / 88%), 0 2px 6px -1px rgb(0 0 0 / 4%), 0 12px 28px -6px rgb(0 0 0 / 8%), 0 24px 48px -16px rgb(0 0 0 / 10%);
   --iui-shadow-sm: 0 1px 2px rgb(0 0 0 / 4%), 0 3px 8px -2px rgb(0 0 0 / 4%);
+  --iui-btn-outline-shadow: inset 0 1px 0 rgb(255 255 255 / 88%), 0 1px 2px color-mix(in srgb, var(--iui-ink) 3.5%, transparent);
+  --iui-btn-solid-shadow: inset 0 1px 0 rgb(255 255 255 / 18%), 0 1px 2px color-mix(in srgb, var(--iui-ink) 12%, transparent), 0 4px 10px -2px color-mix(in srgb, var(--iui-ink) 14%, transparent);
+  --iui-thumb-shadow: inset 0 1px 0 rgb(255 255 255 / 94%), 0 0 0 1px color-mix(in srgb, var(--iui-ink) 7%, transparent), 0 1px 2px color-mix(in srgb, var(--iui-ink) 6%, transparent), 0 3px 8px -2px color-mix(in srgb, var(--iui-ink) 5%, transparent);
+  --iui-field-shadow: inset 0 1px 2px color-mix(in srgb, var(--iui-ink) 3%, transparent), 0 1px 0 rgb(255 255 255 / 80%);
+  --iui-node-shadow: inset 0 1px 0 rgb(255 255 255 / 90%), 0 1px 2px color-mix(in srgb, var(--iui-ink) 3%, transparent), 0 4px 12px -3px color-mix(in srgb, var(--iui-ink) 5%, transparent);
   /* Cards are lifted Paper Widgets tiles: a subtle top rim highlight, a crisp 5% ink
      hairline ring, a contact shadow, and two soft diffuse ambient layers. */
   --iui-card-bg: var(--iui-canvas);
@@ -97,6 +121,11 @@
   color-scheme: dark;
   --iui-shadow: inset 0 1px 0 rgb(255 255 255 / 6%), 0 4px 12px rgb(0 0 0 / 32%), 0 20px 44px -10px rgb(0 0 0 / 56%);
   --iui-shadow-sm: 0 1px 3px rgb(0 0 0 / 32%), 0 3px 8px -2px rgb(0 0 0 / 24%);
+  --iui-btn-outline-shadow: inset 0 1px 0 rgb(255 255 255 / 6%), 0 1px 2px rgb(0 0 0 / 28%);
+  --iui-btn-solid-shadow: inset 0 1px 0 rgb(255 255 255 / 22%), 0 1px 3px rgb(0 0 0 / 36%), 0 6px 14px -4px rgb(0 0 0 / 44%);
+  --iui-thumb-shadow: inset 0 1px 0 rgb(255 255 255 / 9%), 0 0 0 1px rgb(255 255 255 / 8%), 0 1px 3px rgb(0 0 0 / 34%), 0 4px 10px -2px rgb(0 0 0 / 26%);
+  --iui-field-shadow: inset 0 1px 2px rgb(0 0 0 / 26%), 0 1px 0 rgb(255 255 255 / 3%);
+  --iui-node-shadow: inset 0 1px 0 rgb(255 255 255 / 6%), 0 2px 5px rgb(0 0 0 / 26%), 0 8px 20px -6px rgb(0 0 0 / 42%);
   /* On a dark page a tile is lighter than the page, with a crisp top highlight and layered dispersion. */
   --iui-card-bg: color-mix(in srgb, var(--iui-ink) 4%, var(--iui-canvas));
   --iui-card-shadow: inset 0 1px 0 rgb(255 255 255 / 6.5%), 0 0 0 1px rgb(255 255 255 / 6%), 0 2px 6px rgb(0 0 0 / 28%), 0 12px 28px -8px rgb(0 0 0 / 48%), 0 24px 48px -18px rgb(0 0 0 / 64%);
@@ -125,10 +154,17 @@
   --iui-badge-purple-soft: rgb(160 130 240 / 14%);
   --iui-badge-pink: #eeaacb;
   --iui-badge-pink-soft: rgb(230 130 180 / 14%);
-  --iui-glass: rgb(28 28 30 / 70%);
-  --iui-glass-hover: rgb(40 40 42 / 82%);
+  --iui-glass: rgb(28 28 30 / 72%);
+  --iui-glass-hover: rgb(40 40 43 / 86%);
   --iui-glass-ring: rgb(255 255 255 / 12%);
   --iui-glass-ring-hover: rgb(255 255 255 / 18%);
+  --iui-glass-card-bg: color-mix(in srgb, var(--iui-card-bg) 62%, transparent);
+  --iui-glass-card-sheen: linear-gradient(155deg, rgb(255 255 255 / 6.5%) 0%, rgb(255 255 255 / 1.5%) 46%, rgb(0 0 0 / 12%) 100%);
+  --iui-glass-card-shadow: inset 0 1px 0 rgb(255 255 255 / 11%), inset 0 0 0 1px rgb(255 255 255 / 4%), 0 0 0 1px rgb(255 255 255 / 7.5%), 0 3px 8px rgb(0 0 0 / 30%), 0 14px 32px -8px rgb(0 0 0 / 52%), 0 28px 56px -18px rgb(0 0 0 / 68%);
+  --iui-glass-card-shadow-hover: inset 0 1px 0 rgb(255 255 255 / 15%), inset 0 0 0 1px rgb(255 255 255 / 6%), 0 0 0 1px rgb(255 255 255 / 11%), 0 6px 14px rgb(0 0 0 / 36%), 0 20px 42px -8px rgb(0 0 0 / 60%), 0 34px 64px -18px rgb(0 0 0 / 76%);
+  --iui-popover-bg: color-mix(in srgb, var(--iui-card-bg) 76%, transparent);
+  --iui-tooltip-bg: color-mix(in srgb, var(--iui-card-bg) 80%, transparent);
+  --iui-popover-shadow: inset 0 1px 0 rgb(255 255 255 / 9%), 0 4px 12px rgb(0 0 0 / 34%), 0 20px 46px -10px rgb(0 0 0 / 60%);
   --iui-chart-1: #3d9dff;
   --iui-chart-2: #22bf91;
   --iui-chart-3: #a07cff;
@@ -138,4 +174,52 @@
   --iui-ring: var(--iui-ink);
   --iui-photo-empty: var(--iui-surface);
   --iui-photo-empty-icon: var(--iui-border-strong);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :is(.iui-root, .iui-root[data-theme="dark"]) {
+    --iui-backdrop-blur: none;
+    --iui-overlay-blur: none;
+    --iui-control-blur: none;
+    --iui-glass: var(--iui-card-bg);
+    --iui-glass-hover: var(--iui-card-bg);
+    --iui-glass-card-bg: var(--iui-card-bg);
+    --iui-glass-card-sheen: none;
+    --iui-popover-bg: var(--iui-card-bg);
+    --iui-tooltip-bg: var(--iui-card-bg);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  :is(.iui-root, .iui-root[data-theme="dark"]) {
+    --iui-backdrop-blur: none;
+    --iui-overlay-blur: none;
+    --iui-control-blur: none;
+    --iui-glass: var(--iui-card-bg);
+    --iui-glass-hover: var(--iui-card-bg);
+    --iui-glass-card-bg: var(--iui-card-bg);
+    --iui-glass-card-sheen: none;
+    --iui-popover-bg: var(--iui-card-bg);
+    --iui-tooltip-bg: var(--iui-card-bg);
+  }
+}
+
+@media (forced-colors: active) {
+  :is(.iui-root, .iui-root[data-theme="dark"]) {
+    --iui-canvas: Canvas;
+    --iui-card-bg: Canvas;
+    --iui-ink: CanvasText;
+    --iui-on-ink: HighlightText;
+    --iui-muted: CanvasText;
+    --iui-faint: GrayText;
+    --iui-border: ButtonBorder;
+    --iui-border-strong: ButtonBorder;
+    --iui-focus: Highlight;
+    --iui-field-focus: Highlight;
+    --iui-glass: Canvas;
+    --iui-glass-hover: Canvas;
+    --iui-glass-card-bg: Canvas;
+    --iui-popover-bg: Canvas;
+    --iui-tooltip-bg: Canvas;
+  }
 }

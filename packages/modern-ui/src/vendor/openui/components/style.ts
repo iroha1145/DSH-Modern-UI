@@ -58,6 +58,7 @@ const BACKGROUND: Record<string, string> = {
   ...FOREGROUND,
   surface: "var(--iui-surface)",
   "surface-strong": "var(--iui-surface-strong)",
+  glass: "var(--iui-glass)",
   border: "var(--iui-border)",
   ...Object.fromEntries(STATUS.map((s) => [s, `var(--iui-${s}-soft)`])),
 };

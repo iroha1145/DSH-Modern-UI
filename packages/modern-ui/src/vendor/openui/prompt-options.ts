@@ -28,16 +28,15 @@ kafka = Card([Row([Icon("activity"), Title("Kafka", "sm")], 2), Text("A replayab
 rabbit = Card([Row([Icon("git-branch"), Title("RabbitMQ", "sm")], 2), Text("Flexible routing for task queues.", "sm"), Row([Badge("Rich routing", "info"), Badge("No replay", "warning")], 1, null, null, true)])
 sqs = Card([Row([Icon("cloud"), Title("SQS", "sm")], 2), Text("Managed queue with nothing to run.", "sm"), Row([Badge("Zero ops", "success"), Badge("AWS only", "warning")], 1, null, null, true)])`;
 
-const exampleTool = `root = Col([card])
-card = Card([title, Grid([users, size], 2, 200, 4), stats, chart])
+const exampleTool = `root = Col([summary, controls])
 $users = 20000
 $kb = 40
-title = Title("Monthly storage estimate", "md")
+gb = $users * $kb * 30 / 1000000
+summary = Box([Card([Row([Icon("hard-drive"), Title("Monthly storage estimate", "md")], 2), Row([Col([Caption("Per month"), Title(@Format(gb, "number", 1) + " GB", "xl")], 1), Spacer(), Col([Caption("Per year"), Title(@Format(gb * 12, "number", 0) + " GB", "xl")], 1)])], "glass")], "col", null, 3, "info", "xl")
+controls = Card([Grid([users, size], 2, 200, 4), chart])
 users = Slider($users, 1000, 100000, 1000, "Daily active users")
 size = Slider($kb, 5, 200, 5, "Data per user per day", " KB")
-gb = $users * $kb * 30 / 1000000
-stats = Row([Col([Caption("Per month"), Title(@Format(gb, "number", 1) + " GB", "xl")], 1), Spacer(), Col([Caption("Per year"), Title(@Format(gb * 12, "number", 0) + " GB", "xl")], 1)])
-chart = Chart("bar", @Each(@Range(1, 7), "m", {month: "M" + m, gb: @Round(gb * m, 1)}), "month", ["gb"])`;
+chart = Chart("bar", @Each(@Range(1, 7), "m", {month: "M" + m, gb: @Round(gb * m, 1)}), "month", ["gb"], "number", null, false, null, null, null, "Cumulative storage over 6 months")`;
 
 /**
  * Replaces the upstream statement order, which puts every data value last: in an answer block that leaves each
@@ -55,7 +54,7 @@ export const examples: Record<string, string> = { exampleDiagram, exampleOptions
 
 const rules = [
   "Give informational Svg a meaningful title and description explaining relationships; decorative true is only for decoration. Name each SegmentedControl with label and each Popover with title. Give Chart a short summary explaining its comparison or trend; its data table is generated automatically. For localized dates, pass the user language as the final locale argument of @FormatDate; omitted locale preserves English output.",
-  "Inside a block, compose like a small page: a Title when the block needs a heading, a short Text only if needed, then the parts that show the content. Use Card only to group a block. Keep cards compact: Title \"md\" or \"sm\", Text \"sm\", facts as Badges or label and value rows (Caption, Spacer, Text). Cards side by side in a Grid share the same parts in the same order, so they line up.",
+  "Inside a block, compose like a small page: a Title when the block needs a heading, a short Text only if needed, then the parts that show the content. Use Card only to group a block: pick variant \"glass\" selectively for a hero KPI or highlight card (especially inside a soft-tinted Box such as \"info\", \"purple\" or \"surface\" so the blur refracts subtle color), \"soft\" for a quiet recessed summary well, and the default \"outline\" for dense text, controls, tables and comparison grids. Keep cards compact: Title \"md\" or \"sm\", Text \"sm\", facts as Badges or label and value rows (Caption, Spacer, Text). Cards side by side in a Grid share the same parts in the same order, so they line up.",
   "Leave gap unset on the root Col and inside cards: the interface applies its spacing tiers. Set a gap only on a Row or Grid.",
   "Pick the medium that shows the idea: Flow for architectures, request paths, pipelines and processes; Table for comparisons across several attributes; Chart for numbers across time or categories; List with numbers or a timeline for ordered steps; Svg drawings for geometry, layouts and mechanisms; HtmlView only for a game or animation that needs a loop.",
   "In a Flow, every FlowNode has a short title and at most one short detail line; join rows with FlowArrow and name the call, data or condition on the arrow; put parallel nodes in a FlowRow and a host, container or trust zone in a FlowGroup.",
