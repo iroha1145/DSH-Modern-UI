@@ -1,6 +1,7 @@
 import React, { useState, useSyncExternalStore } from 'react'
 import { createRoot } from 'react-dom/client'
-import { Menu } from '../../packages/modern-ui/src/vendor/primitives/Menu.tsx'
+import { Modal } from '../../packages/modern-ui/src/vendor/primitives/Modal.tsx'
+import { Menu, MenuItemButton } from '../../packages/modern-ui/src/vendor/primitives/Menu.tsx'
 import { PreferenceRow } from '../../packages/modern-ui/src/vendor/chat/client/settings/PreferenceRow.tsx'
 import { EnterBehaviorRow } from '../../packages/modern-ui/src/vendor/conversation/client/settings/EnterBehaviorRow.tsx'
 import { AppFrame } from '../../packages/modern-ui/src/vendor/layout/AppFrame.tsx'
@@ -12,27 +13,30 @@ import '../../packages/modern-ui/src/vendor/theme/styles/focus.css'
 const root = createRoot(document.getElementById('app'))
 const noop = () => {},
   t = (key, values) => key + (values ? ' ' + Object.values(values).join(' ') : '')
-function MenuFixture({ disabled = false }) {
+function MenuFixture({ disabled = false, portal = true, externalAnchor = false }) {
   const [open, setOpen] = useState(false),
     [checked, setChecked] = useState(['one', 'sort-a'])
+  const trigger = (
+    <button id="trigger" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(v => !v)}>
+      Menu
+    </button>
+  )
   return (
     <>
       <button id="before">Before</button>
+      {externalAnchor && trigger}
       <Menu
         open={open}
         onClose={() => setOpen(false)}
-        portal
+        portal={portal}
         selectedIds={checked}
         onSelect={id => {
           window.calls.push(id)
           if (id === 'check') setChecked(v => (v.includes(id) ? v.filter(x => x !== id) : [...v, id]))
           else setOpen(false)
         }}
-        anchor={
-          <button id="trigger" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(v => !v)}>
-            Menu
-          </button>
-        }
+        anchor={externalAnchor ? null : trigger}
+        getAnchorRect={externalAnchor ? () => document.getElementById('trigger').getBoundingClientRect() : undefined}
         items={[
           {
             id: 'parent',
@@ -64,7 +68,10 @@ function MenuFixture({ disabled = false }) {
           { id: 'action', label: 'Action' },
         ]}
         footer={[{ id: 'footer', label: 'Footer' }]}
-      />
+      >
+        <MenuItemButton onSelect={() => { window.calls.push('archive'); setOpen(false) }}>Archive session</MenuItemButton>
+        <input aria-label="Menu input" defaultValue="Edit me" />
+      </Menu>
       <button id="outside">Outside</button>
     </>
   )
@@ -136,10 +143,15 @@ function Copies() {
     </>
   )
 }
-function Questions() {
+function Questions({ flow = false, multiSelect = false, review = false }) {
+  const [progress, setProgress] = useState({})
   const pending = {
     key: 'same-request',
-    questions: [{ id: 'q', question: 'Choose a color', options: [{ label: 'Red' }, { label: 'Blue' }] }],
+    questions: [
+      { id: 'q', question: 'Choose a color', multiSelect, options: [{ label: 'Red' }, { label: 'Blue' }] },
+      ...(flow ? [{ id: 'next', question: 'Next question', options: [{ label: 'Done' }] }] : []),
+    ],
+    ...(review ? { review: [{ id: 'q', selected: ['Red'] }] } : {}),
     liveKeys: () => ['same-request'],
     takeTime: noop,
     engage: noop,
@@ -151,14 +163,21 @@ function Questions() {
     t,
     foldLabels: () => ({}),
     textLabels: () => ({ expand: 'Expand', collapse: 'Collapse' }),
-    useStore: f => f({ progressByRequest: {} }),
+    useStore: f => f({ progressByRequest: progress }),
     useQuestionCard: (_key, f) => f({ state: 'open', channel: 'rpc', closed: false }),
-    actions: { prune: noop, clear: noop, replace: noop },
+    actions: {
+      prune: noop,
+      clear: noop,
+      replace: (key, value) => {
+        window.progress = value
+        setProgress(current => ({ ...current, [key]: value }))
+      },
+    },
   }
   return (
     <>
       <QuestionPresentation {...props} />
-      <QuestionPresentation {...props} />
+      {!flow && <QuestionPresentation {...props} />}
     </>
   )
 }
@@ -211,7 +230,11 @@ window.store = store
 window.show = (mode, props = {}) =>
   root.render(
     <React.Fragment key={mode}>
-      {mode === 'menu' ? (
+      {mode === 'nested-menu' ? (
+        <Modal open title="Menu modal" closeLabel="Close modal" onClose={noop}>
+          <MenuFixture {...props} />
+        </Modal>
+      ) : mode === 'menu' ? (
         <MenuFixture {...props} />
       ) : mode === 'preferences' ? (
         <Preferences />
@@ -222,7 +245,7 @@ window.show = (mode, props = {}) =>
       ) : mode === 'copy' ? (
         <Copies />
       ) : (
-        <Questions />
+        <Questions {...props} />
       )}
     </React.Fragment>,
   )

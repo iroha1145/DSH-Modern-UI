@@ -47,6 +47,7 @@ function MenuFixture({x=600,y=540,count=3,side='bottom'}) {
 function ModalFixture() { const [open,setOpen]=useState(false);return <><button id="trigger" onClick={()=>setOpen(true)}>Open dialog</button><Modal open={open} onClose={()=>setOpen(false)} title="Tall dialog" closeLabel="Close" footer={<><button onClick={()=>setOpen(false)}>Cancel</button><button>Confirm</button></>}><button data-modal-autofocus>First field</button><div style={{height:900}}>Tall content</div><button id="last-field">Last field</button></Modal></> }
 function PickerFixture({x=600,y=540,count=50}) {
  const [state,setState]=useState({groups:[{id:'provider',name:'Provider',models:Array.from({length:count},(_,i)=>({id:'model-'+i,name:'Model '+i}))}],current:{provider:'provider',model:'model-0'},pending:null,status:'ready',error:null,failures:[]});
+ window.resizePicker = count => setState(value => ({...value, groups:[{...value.groups[0], models:Array.from({length:count},(_,i)=>({id:'model-'+i,name:'Model '+i}))}]}));
  return <><div id="moving" style={{position:'absolute',left:x,top:y}}><ModelSelect available locked={false} useModelDirectory={f=>f(state)} useModelPicker={f=>f(undefined)} t={translate} renderSlot={(name,props,options)=>options.fallback} load={()=>{}} select={async selection=>{window.selected=selection;setState(v=>({...v,current:selection}));return {ok:true}}}/></div><button id="outside">Outside</button></>
 }
 function DiscoverFixture({unsafe=false,inline=false}) {
@@ -142,6 +143,66 @@ async function fixture(props = {}, contextOptions = {}) {
   return { context, page }
 }
 
+test('model list exposes its active option on mobile and desktop, including empty filters and catalog threshold changes', async () => {
+  for (const mobile of [false, true]) {
+    const { context, page } = await fixture(
+      { kind: 'picker', count: 12, x: 300, y: 450 },
+      mobile
+        ? {
+            isMobile: true,
+            hasTouch: true,
+            userAgent: 'Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Chrome/150.0 Mobile Safari/537.36',
+          }
+        : {},
+    )
+    try {
+      await page.getByRole('button', { name: /trigger/ }).click()
+      const list = page.locator('[role="listbox"]'),
+        search = page.getByRole('combobox')
+      await page.waitForFunction(mobile => document.activeElement?.getAttribute('role') === (mobile ? 'listbox' : 'combobox'), mobile)
+      const check = async () => {
+        const result = await list.evaluate(el => {
+          const id = el.getAttribute('aria-activedescendant')
+          const active = id === null ? null : document.getElementById(id)
+          return {
+            id,
+            valid: active !== null && el.contains(active) && active.getAttribute('role') === 'option',
+            highlighted: active?.hasAttribute('data-active'),
+          }
+        })
+        assert.equal(result.valid, true, JSON.stringify(result))
+        assert.equal(result.highlighted, true)
+        assert.equal(await search.getAttribute('aria-activedescendant'), result.id)
+      }
+      await check()
+      for (const key of ['ArrowDown', 'End', 'Home', 'ArrowUp']) {
+        await page.keyboard.press(key)
+        await check()
+        assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('role')), mobile ? 'listbox' : 'combobox')
+      }
+      await search.fill('not-a-model-zzzz')
+      assert.equal(await list.getAttribute('aria-activedescendant'), null)
+      assert.equal(await search.getAttribute('aria-activedescendant'), null)
+      await search.fill('Model 1')
+      await check()
+      await page.evaluate(() => window.resizePicker(8))
+      assert.equal(await page.getByRole('combobox').count(), 0)
+      assert.equal(await list.evaluate(el => el.contains(document.getElementById(el.getAttribute('aria-activedescendant')))), true)
+      await page.evaluate(() => window.resizePicker(12))
+      await check()
+      await list.focus()
+      await page.keyboard.press('End')
+      const expected = await list.evaluate(
+        el => document.getElementById(el.getAttribute('aria-activedescendant')).querySelector('[data-model-id]').dataset.modelId,
+      )
+      await page.keyboard.press('Enter')
+      await page.waitForFunction(() => window.selected !== undefined)
+      assert.equal(await page.evaluate(() => window.selected.model), expected)
+    } finally {
+      await context.close()
+    }
+  }
+})
 test('root menus flip above near the bottom instead of covering their trigger', async () => {
   const { context, page } = await fixture({ x: 600, y: 540 })
   try {

@@ -683,7 +683,7 @@ export function ModelSelect({
             role="listbox"
             aria-label={t('menu.model')}
             tabIndex={showSearch ? -1 : 0}
-            aria-activedescendant={showSearch || activeIndex < 0 ? undefined : `${id}-option-${activeIndex}`}
+            aria-activedescendant={activeIndex < 0 ? undefined : `${id}-option-${activeIndex}`}
             data-pointing={pointing ? '' : undefined}
             hidden={filteredGroups.length === 0}
             onKeyDown={onListKeyDown}

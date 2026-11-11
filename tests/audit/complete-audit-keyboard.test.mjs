@@ -55,19 +55,103 @@ async function fixture(mode, props = {}) {
   return { page, errors }
 }
 const active = page => page.evaluate(() => document.activeElement?.textContent)
-test('Menu Tab enters an already-open submenu, radio/checkbox roles share navigation and selection focus', async () => {
+test('menu input keeps editing keys and IME; Tab closes inside a modal without escaping it', async () => {
+  const { page, errors } = await fixture('nested-menu')
+  try {
+    const trigger = page.locator('#trigger')
+    for (const reverse of [false, true]) {
+      await trigger.click()
+      const input = page.getByRole('textbox', { name: 'Menu input' })
+      await input.focus()
+      await page.keyboard.press('Home')
+      assert.equal(await input.evaluate(el => el === document.activeElement && el.selectionStart === 0), true)
+      await input.evaluate(el => {
+        el.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }))
+        for (const key of ['Tab', 'Enter', 'Escape'])
+          el.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, isComposing: true }))
+        el.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true }))
+        el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }))
+        el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', keyCode: 229, bubbles: true, cancelable: true }))
+      })
+      assert.equal(await page.locator('[role=menu]').count(), 1)
+      await page.keyboard.press(reverse ? 'Shift+Tab' : 'Tab')
+      assert.equal(await page.locator('[role=menu]').count(), 0)
+      assert.equal(await page.evaluate(() => document.activeElement?.id), reverse ? 'before' : 'outside')
+      assert.equal(await page.locator('[role=dialog]').evaluate(el => el.contains(document.activeElement)), true)
+    }
+    // The trigger is the last/first tab stop: the host modal still wraps.
+    for (const reverse of [false, true]) {
+      await page.evaluate(reverse => {
+        document.getElementById('before').hidden = true
+        document.getElementById('outside').hidden = true
+        document.querySelector('[aria-label="Close modal"]').hidden = reverse
+      }, reverse)
+      await trigger.click()
+      await page.getByRole('menuitem', { name: 'Action', exact: true }).focus()
+      await page.keyboard.press(reverse ? 'Shift+Tab' : 'Tab')
+      assert.equal(await page.locator('[role=menu]').count(), 0)
+      assert.equal(await page.locator('[role=dialog]').evaluate(el => el.contains(document.activeElement)), true)
+    }
+    assert.deepEqual(await page.evaluate(() => window.calls), [])
+    assert.deepEqual(errors, [])
+  } finally {
+    await page.close()
+  }
+})
+test('single answers remain native buttons and advance only on activation; recorded answers stay disabled', async () => {
+  const { page, errors } = await fixture('questions', { flow: true })
+  try {
+    const group = page.getByRole('group', { name: 'Choose a color' })
+    assert.equal(await page.getByRole('radio').count(), 0)
+    const red = group.getByRole('button', { name: 'Red', exact: true })
+    await red.focus()
+    await page.keyboard.press('ArrowDown')
+    assert.equal(await group.count(), 1)
+    assert.equal(await red.evaluate(el => el === document.activeElement), true)
+    await page.keyboard.press('Tab')
+    assert.equal(await group.getByRole('button', { name: 'Blue', exact: true }).evaluate(el => el === document.activeElement), true)
+    await page.keyboard.press('Space')
+    await page.getByRole('group', { name: 'Next question' }).waitFor()
+    assert.deepEqual(await page.evaluate(() => window.progress.drafts[0].selected), ['Blue'])
+    await page.getByRole('button', { name: 'nav.prev', exact: true }).click()
+    assert.equal(await group.getByRole('button', { name: 'Blue', exact: true }).getAttribute('aria-pressed'), 'true')
+    await page.evaluate(() => window.show('questions-review', { review: true }))
+    assert.equal(await page.getByRole('button', { name: 'Red', exact: true }).first().isDisabled(), true)
+    assert.equal(await page.getByRole('button', { name: 'Red', exact: true }).first().getAttribute('aria-pressed'), 'true')
+    assert.deepEqual(errors, [])
+  } finally {
+    await page.close()
+  }
+})
+test('multi answers retain independent checkboxes without advancing on arrows or activation', async () => {
+  const { page, errors } = await fixture('questions', { flow: true, multiSelect: true })
+  try {
+    const red = page.getByRole('checkbox', { name: 'Red', exact: true })
+    await red.focus()
+    await page.keyboard.press('ArrowDown')
+    assert.equal(await red.getAttribute('aria-checked'), 'false')
+    await page.keyboard.press('Space')
+    assert.equal(await red.getAttribute('aria-checked'), 'true')
+    await page.getByRole('checkbox', { name: 'Blue', exact: true }).click()
+    assert.deepEqual(await page.evaluate(() => window.progress.drafts[0].selected), ['Red', 'Blue'])
+    assert.equal(await page.getByRole('group', { name: 'Choose a color' }).count(), 1)
+    assert.deepEqual(errors, [])
+  } finally {
+    await page.close()
+  }
+})
+test('arrows enter submenus; Enter and Space activate radio and checkbox rows exactly once', async () => {
   const { page, errors } = await fixture('menu')
   try {
     await page.locator('#trigger').focus()
     await page.keyboard.press('Enter')
-    await page.keyboard.press('Tab')
+    await page.keyboard.press('ArrowDown')
     assert.equal(await active(page), 'Parent')
-    await page.keyboard.press('Tab')
+    await page.keyboard.press('ArrowRight')
     assert.equal(await active(page), 'Child')
     await page.keyboard.press('ArrowLeft')
     assert.equal(await active(page), 'Parent')
-    await page.keyboard.press('Tab')
-    assert.equal(await active(page), 'Child')
+    await page.keyboard.press('ArrowRight')
     await page.keyboard.press('Escape')
     assert.equal(await active(page), 'Parent')
     await page.keyboard.press('ArrowDown')
@@ -80,13 +164,12 @@ test('Menu Tab enters an already-open submenu, radio/checkbox roles share naviga
     await page.keyboard.press('ArrowDown')
     await page.keyboard.press('ArrowDown')
     assert.equal(await active(page), 'Check')
-    await page.keyboard.press('Tab')
+    await page.keyboard.press('Enter')
     assert.equal(await page.getByRole('menuitemcheckbox').getAttribute('aria-checked'), 'true')
-    assert.equal(await active(page), 'Check')
     await page.keyboard.press('Space')
     assert.equal(await page.getByRole('menuitemcheckbox').getAttribute('aria-checked'), 'false')
     await page.keyboard.press('ArrowUp')
-    await page.keyboard.press('Tab')
+    await page.keyboard.press('Enter')
     await page.waitForFunction(() => document.activeElement?.id === 'trigger')
     assert.deepEqual(await page.evaluate(() => window.calls), ['check', 'check', 'sort-b'])
     assert.deepEqual(errors, [])
@@ -94,21 +177,50 @@ test('Menu Tab enters an already-open submenu, radio/checkbox roles share naviga
     await page.close()
   }
 })
-test('disabled submenu children leave Tab safe; outside Tab and Shift+Tab keep their contract', async () => {
+test('Tab and Shift+Tab close all menu levels without actions and traverse from the root trigger', async () => {
+  for (const props of [{ portal: false }, { portal: true }, { portal: true, externalAnchor: true }]) {
+    const { page, errors } = await fixture('menu', props)
+    try {
+      for (const position of ['trigger', 'parent', 'child', 'action', 'archive', 'input']) {
+        for (const reverse of [false, true]) {
+          await page.locator('#trigger').focus()
+          await page.keyboard.press('Enter')
+          if (position === 'parent' || position === 'child') {
+            await page.keyboard.press('ArrowDown')
+            if (position === 'child') await page.keyboard.press('ArrowRight')
+          } else if (position === 'action') await page.getByRole('menuitem', { name: 'Action', exact: true }).focus()
+          else if (position === 'archive') await page.getByRole('menuitem', { name: 'Archive session', exact: true }).focus()
+          else if (position === 'input') await page.getByRole('textbox', { name: 'Menu input' }).focus()
+          await page.keyboard.press(reverse ? 'Shift+Tab' : 'Tab')
+          assert.equal(await page.locator('[role=menu]').count(), 0, position)
+          assert.equal(await page.evaluate(() => document.activeElement?.id), reverse ? 'before' : 'outside', position)
+          assert.deepEqual(await page.evaluate(() => window.calls), [])
+        }
+      }
+      assert.deepEqual(errors, [])
+    } finally {
+      await page.close()
+    }
+  }
+})
+test('disabled submenus never activate on Tab; unrelated page Tab keeps the open menu untouched', async () => {
   const { page, errors } = await fixture('menu', { disabled: true })
   try {
     await page.locator('#trigger').focus()
     await page.keyboard.press('Enter')
-    await page.keyboard.press('Tab')
-    await page.keyboard.press('Tab')
+    await page.keyboard.press('ArrowDown')
+    await page.keyboard.press('ArrowRight')
     assert.equal(await active(page), 'Parent')
     await page.keyboard.press('Shift+Tab')
-    await page.waitForFunction(() => document.activeElement?.id === 'trigger')
+    assert.equal(await page.evaluate(() => document.activeElement?.id), 'before')
+    assert.equal(await page.locator('[role=menu]').count(), 0)
+    await page.locator('#trigger').focus()
     await page.keyboard.press('Enter')
     await page.locator('#before').focus()
     await page.keyboard.press('Tab')
     assert.equal(await page.evaluate(() => document.activeElement?.id), 'trigger')
     assert.equal((await page.locator('[role=menu]').count()) > 0, true)
+    assert.deepEqual(await page.evaluate(() => window.calls), [])
     assert.deepEqual(errors, [])
   } finally {
     await page.close()
@@ -124,7 +236,7 @@ test('preference names contain distinct settings and live current values, descri
     await page.keyboard.press('Enter')
     await page.keyboard.press('ArrowDown')
     await page.keyboard.press('ArrowDown')
-    await page.keyboard.press('Tab')
+    await page.keyboard.press('Enter')
     await page.getByRole('button', { name: 'First setting Off', exact: true }).waitFor()
     await page.waitForFunction(() => document.activeElement?.textContent === 'Off')
     assert.equal(await page.getByRole('button', { name: 'settings.enter.title settings.enter.queue', exact: true }).count(), 1)
@@ -189,8 +301,8 @@ test('copy actions work without mutation permission and return focus with exact 
       const trigger = page.getByRole('button', { name, exact: true })
       await trigger.focus()
       await page.keyboard.press('Enter')
-      await page.keyboard.press('Tab')
-      await page.keyboard.press('Tab')
+      await page.keyboard.press('ArrowDown')
+      await page.keyboard.press('Enter')
       await page.waitForFunction(() => !document.querySelector('[role=menu]'))
       assert.equal(await trigger.evaluate(el => el === document.activeElement), true)
       assert.equal((await page.getByRole('status').filter({ hasText: 'hover.copied' }).count()) > 0, true)
@@ -204,8 +316,8 @@ test('copy actions work without mutation permission and return focus with exact 
 test('question groups name the current heading and repeated request instances have unique IDs', async () => {
   const { page, errors } = await fixture('questions')
   try {
-    await page.getByRole('radiogroup', { name: 'Choose a color' }).first().waitFor()
-    assert.equal(await page.getByRole('radiogroup', { name: 'Choose a color' }).count(), 2)
+    await page.getByRole('group', { name: 'Choose a color' }).first().waitFor()
+    assert.equal(await page.getByRole('group', { name: 'Choose a color' }).count(), 2)
     assert.equal(
       await page.evaluate(() => {
         const ids = [...document.querySelectorAll('[id]')].map(n => n.id)
@@ -213,7 +325,7 @@ test('question groups name the current heading and repeated request instances ha
       }),
       true,
     )
-    await page.getByRole('radio', { name: /Red/ }).first().focus()
+    await page.getByRole('button', { name: 'Red', exact: true }).first().focus()
     await page.keyboard.press('Space')
     assert.deepEqual(errors, [])
   } finally {
@@ -225,7 +337,7 @@ test('radio and checkbox siblings collapse submenus; ordinary action and footer 
   try {
     await page.locator('#trigger').focus()
     await page.keyboard.press('Enter')
-    await page.keyboard.press('Tab')
+    await page.keyboard.press('ArrowDown')
     await page.getByRole('menuitem', { name: 'Child', exact: true }).waitFor()
     await page.getByRole('menuitemcheckbox').focus()
     assert.equal(await page.getByRole('menuitem', { name: 'Child', exact: true }).count(), 0)
@@ -260,8 +372,8 @@ test('copy fallback restores the trigger and denied clipboard writes never claim
     const trigger = page.getByRole('button', { name: 'actions.workspace.aria Workspace', exact: true })
     await trigger.focus()
     await page.keyboard.press('Enter')
-    await page.keyboard.press('Tab')
-    await page.keyboard.press('Tab')
+    await page.keyboard.press('ArrowDown')
+    await page.keyboard.press('Enter')
     assert.equal(await trigger.evaluate(el => el === document.activeElement), true)
     assert.equal(await page.evaluate(() => window.fallbackText), '/home/user/full/path')
     await page.evaluate(() => {
@@ -278,8 +390,8 @@ test('copy fallback restores the trigger and denied clipboard writes never claim
     const session = page.getByRole('button', { name: 'actions.session.aria Full session title', exact: true })
     await session.focus()
     await page.keyboard.press('Enter')
-    await page.keyboard.press('Tab')
-    await page.keyboard.press('Tab')
+    await page.keyboard.press('ArrowDown')
+    await page.keyboard.press('Enter')
     assert.equal(await session.evaluate(el => el === document.activeElement), true)
     assert.equal(await page.locator('[data-row-key="session:s"] [role=status]').textContent(), 'toast.sessionIdCopyFailed')
     assert.deepEqual(errors, [])
@@ -297,7 +409,7 @@ test('production Discover label filters are independent checkboxes and source/so
     assert.equal(await alpha.getAttribute('aria-checked'), 'true')
     assert.equal(await beta.getAttribute('aria-checked'), 'false')
     await beta.focus()
-    await page.keyboard.press('Tab')
+    await page.keyboard.press('Enter')
     assert.equal(await beta.getAttribute('aria-checked'), 'true')
     assert.equal(await alpha.getAttribute('aria-checked'), 'true')
     await page.keyboard.press('Space')
@@ -344,8 +456,8 @@ test('copy feedback changes success to failure and back without keeping stale su
       }, denied)
       await trigger.focus()
       await page.keyboard.press('Enter')
-      await page.keyboard.press('Tab')
-      await page.keyboard.press('Tab')
+      await page.keyboard.press('ArrowDown')
+      await page.keyboard.press('Enter')
       await page.waitForFunction(message => document.querySelector('[data-row-key="workspace:w"] [role=status]')?.textContent === message, message)
       assert.equal(await status.textContent(), message)
       assert.equal(await trigger.getAttribute('title'), message)

@@ -5,6 +5,7 @@ import { Check, ChevronLeft, ChevronRight, Copy } from "lucide-react";
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { z } from "zod/v4";
+import { KATEX_SAFE_OPTIONS } from "../../primitives/markdown/katex-options";
 import { copy as copyText } from "../actions";
 import { inline } from "./markdown";
 import { children, cx, space } from "./style";
@@ -304,7 +305,7 @@ export const MathBlock = defineComponent({
   props: z.object({ tex: z.string(), inline: z.boolean().optional() }),
   description: 'LaTeX formula, e.g. Math("E = mc^2"); inline true to sit in a Text list.',
   component: ({ props }) => {
-    const html = katex.renderToString(str(props.tex), { displayMode: !props.inline, throwOnError: false, trust: false, strict: "ignore", output: "htmlAndMathml" });
+    const html = katex.renderToString(str(props.tex), { ...KATEX_SAFE_OPTIONS, displayMode: !props.inline, throwOnError: false, strict: "ignore", output: "htmlAndMathml" });
     // KaTeX escapes its input and is configured without \href or \includegraphics.
     return props.inline ? <span className="iui-math" dangerouslySetInnerHTML={{ __html: html }} /> : <div className="iui-math is-block" dangerouslySetInnerHTML={{ __html: html }} />;
   },
@@ -314,23 +315,36 @@ export const MathBlock = defineComponent({
 export const Flashcard = defineComponent({
   name: "Flashcard",
   props: z.object({ front: slot, back: slot, hint: z.string().optional() }),
-  description: "Card that flips between front and back when tapped. Put several in a Carousel or Grid.",
+  description: "Card with a flip button to switch between front and back. Put several in a Carousel or Grid.",
   component: function FlashcardView({ props, renderNode }) {
     const text = useUiText();
     const [flipped, setFlipped] = useState(false);
+    const front = useRef<HTMLDivElement>(null);
+    const back = useRef<HTMLDivElement>(null);
+    const toggle = useRef<HTMLButtonElement>(null);
+    useLayoutEffect(() => {
+      if (front.current) front.current.inert = flipped;
+      if (back.current) back.current.inert = !flipped;
+    }, [flipped]);
+    const flip = () => {
+      // Scripted activation can leave focus in the face that is about to become inert.
+      if ((flipped ? back : front).current?.contains(document.activeElement)) toggle.current?.focus();
+      setFlipped(!flipped);
+    };
     const face = (value: unknown) => (typeof value === "string" ? <span className="iui-flashcard-word">{inline(value)}</span> : renderSlot(value, renderNode));
     return (
-      <button type="button" className={cx("iui-flashcard", flipped && "is-flipped")} aria-pressed={flipped} onClick={() => setFlipped(!flipped)}>
-        <span className="iui-flashcard-inner">
-          <span className="iui-flashcard-face is-front" aria-hidden={flipped}>
+      <article className={cx("iui-flashcard", flipped && "is-flipped")}>
+        <div className="iui-flashcard-inner">
+          <div ref={front} className="iui-flashcard-face is-front" aria-hidden={flipped}>
             {face(props.front)}
-            <span className="iui-flashcard-hint">{str(props.hint) || text.tapToFlip}</span>
-          </span>
-          <span className="iui-flashcard-face is-back" aria-hidden={!flipped}>
+            {props.hint && <span className="iui-flashcard-hint">{str(props.hint)}</span>}
+          </div>
+          <div ref={back} className="iui-flashcard-face is-back" aria-hidden={!flipped}>
             {face(props.back)}
-          </span>
-        </span>
-      </button>
+          </div>
+        </div>
+        <button ref={toggle} type="button" className="iui-flashcard-toggle" aria-pressed={flipped} onClick={flip}>{text.tapToFlip}</button>
+      </article>
     );
   },
 });
