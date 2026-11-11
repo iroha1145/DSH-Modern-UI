@@ -65,6 +65,18 @@ jobs:
         run: npm run typecheck
       - name: Unit tests
         run: npx vitest run --project unit
+      # The runner image points apt at azure.archive.ubuntu.com, then archive.ubuntu.com and security.ubuntu.com. When the
+      # ubuntu.com names stop resolving on the runner (2026-11-11), every entry fails and the browser's font packages cannot be
+      # installed. Put a mirror outside that domain first; apt still verifies the archive signatures, and the Ubuntu hosts stay
+      # as fallbacks.
+      - name: Prefer an apt mirror outside ubuntu.com for the browser packages
+        run: |
+          if [ -f /etc/apt/apt-mirrors.txt ]; then
+            printf '%s\tpriority:%s\n' \
+              https://mirrors.edge.kernel.org/ubuntu/ 1 \
+              https://archive.ubuntu.com/ubuntu/ 2 \
+              https://security.ubuntu.com/ubuntu/ 3 | sudo tee /etc/apt/apt-mirrors.txt
+          fi
       - name: Install the browser for audit regressions
         run: node node_modules/playwright-core/cli.js install --with-deps chromium
       - run: npm run build
