@@ -116,8 +116,12 @@ test('single answers remain native buttons and advance only on activation; recor
     await page.getByRole('button', { name: 'nav.prev', exact: true }).click()
     assert.equal(await group.getByRole('button', { name: 'Blue', exact: true }).getAttribute('aria-pressed'), 'true')
     await page.evaluate(() => window.show('questions-review', { review: true }))
-    assert.equal(await page.getByRole('button', { name: 'Red', exact: true }).first().isDisabled(), true)
-    assert.equal(await page.getByRole('button', { name: 'Red', exact: true }).first().getAttribute('aria-pressed'), 'true')
+    const recordedAnswers = page.getByRole('button', { name: 'Red', exact: true })
+    // The review mounts two cards. Its first Red also exists in the live view,
+    // so wait for the new tree before taking non-retrying state snapshots.
+    await recordedAnswers.nth(1).waitFor()
+    assert.deepEqual(await recordedAnswers.evaluateAll(buttons => buttons.map(button => button.disabled)), [true, true])
+    assert.equal(await recordedAnswers.first().getAttribute('aria-pressed'), 'true')
     assert.deepEqual(errors, [])
   } finally {
     await page.close()
