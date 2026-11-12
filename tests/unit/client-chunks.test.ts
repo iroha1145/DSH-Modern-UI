@@ -12,6 +12,7 @@ const hostRequire = process.env.COMPAT_BACKEND_PACKAGE ? createRequire(path.reso
 const owner = '@test/chunks'
 
 test('split factories use the official loader, share state, deduplicate requests, surface failures and reload together', async () => {
+  await mkdir(path.resolve('.artifacts'), { recursive: true })
   const directory = await mkdtemp(path.resolve('.artifacts/client-chunks-'))
   try {
     await mkdir(path.join(directory, 'src'))
