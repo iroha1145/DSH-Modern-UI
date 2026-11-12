@@ -120,7 +120,6 @@ function startWorker(): Promise<Worker | undefined> {
         }
       }
       worker.onerror = event => { event.preventDefault(); failWorker(new HighlightWorkerError(event.message)) }
-      worker.onmessageerror = () => failWorker(new HighlightWorkerError('Highlighter worker could not decode its message'))
     })
   }).catch(error => {
     if (epoch !== generation) return undefined

@@ -112,7 +112,6 @@ export class StreamingHighlightSession {
   private generation = 0
   private lastFrame: StreamingHighlightFrame | undefined
 
-  get prefixLength(): number { return this.prefix.length }
   get completedLineCount(): number { return this.spans.length }
   completedSince(index: number, end = this.spans.length): HighlightSpan[][] { return this.spans.slice(index, end) }
   prefixOffset(lines: number): number { return this.prefixOffsets[lines]! }

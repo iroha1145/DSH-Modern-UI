@@ -6,14 +6,16 @@ import css from './OpenUIBlock.module.css'
 
 type Renderer = typeof import('./OpenUIBlock.tsx').OpenUIBlock
 type Props = Parameters<Renderer>[0]
+/** The arrived renderer: later blocks start with it instead of painting the loading card again. */
+let arrived: { Renderer: Renderer } | undefined
 
 export function OpenUILoader(props: Props) {
-  const [read, setRead] = useState<{ Renderer: Renderer } | { error: unknown }>()
+  const [read, setRead] = useState<{ Renderer: Renderer } | { error: unknown } | undefined>(arrived)
   const [attempt, setAttempt] = useState(0)
   useEffect(() => {
     let active = true
     void import('./OpenUIBlock.tsx').then(
-      module => { if (active) setRead({ Renderer: module.OpenUIBlock }) },
+      module => { arrived ??= { Renderer: module.OpenUIBlock }; if (active) setRead(arrived) },
       error => { if (active) setRead({ error }) },
     )
     return () => { active = false }

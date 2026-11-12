@@ -130,11 +130,12 @@ export function CodeBlock({
         groups, pending, nextLine, prefix: result.code.slice(0, frame.prefixLength), source: result.code, language: result.language, frame }
       lineCacheRef.current = cache
     }
-    if (cache === null || result?.kind !== 'frame' || (streaming !== true && (cache.source !== trimmed || !cache.frame.settled))) return undefined
+    // A fence that settles with new text or an untokenized backlog keeps its streamed lines until the settled result replaces them.
+    if (cache === null || result?.kind !== 'frame') return undefined
     const tail = cache.source === trimmed ? cache.frame.tail : trimmed.slice(cache.prefix.length).split(/\r?\n/).map(text => [{ text, style: {} }])
     const tailGroup = <Fragment key={cache.nextLine - cache.pending.length}>{[...cache.pending, ...tail.map((line, index) => renderLine(line, cache.nextLine + index))]}</Fragment>
     return <pre {...SHIKI_PRE_PROPS}><code>{[...cache.groups, tailGroup]}</code></pre>
-  }, [highlighting, trimmed, lang, result, streaming])
+  }, [highlighting, trimmed, lang, result])
   const current = result?.code === trimmed && result.language === grammarForHint(lang) ? result : undefined
   const html = current?.kind === 'html' ? current.html : undefined
   const deferredBody = current?.kind === 'lines' ? <DeferredCode code={trimmed} chunks={current.chunks} numbered={lineNumbers} />

@@ -207,6 +207,7 @@ async function fixture(kind, mode, run) {
       root.render(createElement('div', {}, createElement('p', {}, 'Earlier answer'), cloneElement(content), createElement('p', {}, 'Later answer')))
     await run({
       root,
+      content,
       requests,
       pending: () => pending,
       transfer: () => transfer,
@@ -377,6 +378,19 @@ createRoot(document.getElementById('root')).render(React.createElement('article'
     await new Promise(resolve => server.close(resolve))
   }
 })
+
+for (const kind of ['openui', 'math']) {
+  test(`a later ${kind} block starts with the arrived renderer instead of its loading state`, async () => {
+    await fixture(kind, 'load', async ({ root, content, transfer }) => {
+      await act(() => transfer())
+      assert.equal(document.querySelectorAll(`[data-loaded="${kind}"]`).length, 1)
+      // Two new instances; nothing awaited between their first render and the assertion.
+      const settled = act(() => root.render(createElement('div', {}, content, cloneElement(content, { key: 'later' }))))
+      assert.equal(document.querySelectorAll(`[data-loaded="${kind}"]`).length, 2)
+      await settled
+    })
+  })
+}
 
 for (const kind of ['openui', 'math', 'highlight-code', 'highlight-read']) {
   test(`${kind} preserves the answer on a real chunk failure and user retry loads it again successfully`, async () => {

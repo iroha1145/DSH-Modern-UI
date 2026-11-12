@@ -1502,7 +1502,7 @@
       "source": "packages/client/ui-primitives/src/markdown/CodeBlock.tsx",
       "target": "src/vendor/primitives/markdown/CodeBlock.tsx",
       "sourceSha256": "1829b570450f386cfe50054b3705af70fb0b75189e7bcf2786245b7b8632c93d",
-      "targetSha256": "a55bf44f24cb97371d49bf3e287ddcd551aeaada83e0761dc643a78c1dcbdbfb",
+      "targetSha256": "4cf07d14f7656eb08362e39107b97c40b366f26fa11f6dd40cdb6db4d95e22d8",
       "adapted": true
     },
     {
@@ -1517,7 +1517,7 @@
       "source": "packages/client/ui-primitives/src/markdown/highlight.ts",
       "target": "src/vendor/primitives/markdown/highlight.ts",
       "sourceSha256": "8f641cddd716d1d96908784514e8e557a882d8547a2f2a60f6bb8e19855709b0",
-      "targetSha256": "4f878b668fe58c5feeab33976187460e5daf10fac14ddc6606e596078c46cd5c",
+      "targetSha256": "713325261653f4ca0f4846048ee504b989e9d29a49f504a066c9ac6689bfa433",
       "adapted": true,
       "adaptation": "Visible code requests share a dedicated Worker through the official asynchronous module transport. Grammar readiness, explicit failure/retry and owner lifetime stay on the main thread; the existing tokenizer, aliases and budgets are extracted below."
     },
@@ -3593,7 +3593,7 @@
       "source": "packages/client/ui-primitives/src/markdown/highlight.ts",
       "target": "src/vendor/primitives/markdown/highlight-tokenizer.ts",
       "sourceSha256": "8f641cddd716d1d96908784514e8e557a882d8547a2f2a60f6bb8e19855709b0",
-      "targetSha256": "df77b879be8276dc47e2c17d6095e3033fb6aee7ece0801f4403c43e38b6b4bb",
+      "targetSha256": "8909fb6a6ab8f5c72c634f8913f717b406cba8e71e362828513ae7f0dbe832a6",
       "adapted": true,
       "adaptation": "Extracted tokenization, line HTML and incremental grammar-state session. The Worker sends committed prefixes in bounded batches and retains offsets across discarded responses."
     }
@@ -3781,7 +3781,7 @@
     },
     {
       "target": "src/vendor/intelligent/client/OpenUILoader.tsx",
-      "targetSha256": "aea8b1be55c7a0295dc2d9b6b68d2a0a0e3e86f26f3527c7de2c475372cb7a37",
+      "targetSha256": "898f92014baaebd736bb83afe417d9a224170db2435dc50a1d352f32669dd34b",
       "description": "Loads the existing OpenUI renderer on demand, preserving source text and explicit retry after a confirmed script transport failure."
     },
     {
@@ -3791,7 +3791,7 @@
     },
     {
       "target": "src/vendor/primitives/markdown/LazyMath.tsx",
-      "targetSha256": "117536dab1d5ef540d23e8e5eae8aa4a904f954a1d3de60d5dafeea15d580034",
+      "targetSha256": "6df94fc3e2fe034a6cef326c12ecd4cdeb0bc22ee5cfe16ceb60b04789427ebe",
       "description": "Loads the existing KaTeX renderer on demand, preserving TeX and explicit retry after a confirmed script transport failure."
     },
     {
@@ -3811,7 +3811,7 @@
     },
     {
       "target": "src/vendor/primitives/markdown/highlight.worker.ts",
-      "targetSha256": "dede757e6edbd9b23ad68eb550bbdbb16223d73f5d88e18012e48ea4b6342588",
+      "targetSha256": "002a299d35430c14b3e73c0cca88f63c2d2cb9e230a44092ae9eab4dcccd1960",
       "description": "Dedicated Worker entry executing the attributed tokenizer with per-view cancellation and incremental result delivery."
     }
   ],

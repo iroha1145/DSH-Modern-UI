@@ -6,14 +6,16 @@ import css from './MathLoad.module.css'
 export interface MathLoadLabels { retry: string; failed: string }
 const defaultLabels: MathLoadLabels = { retry: 'Retry loading math', failed: 'Math could not be loaded; source preserved' }
 type Renderer = typeof import('./MathContent.tsx').default
+/** The arrived renderer: later formulas start with it instead of painting their TeX source again. */
+let arrived: { Renderer: Renderer } | undefined
 
 function MathContent({ value, displayMode, labels = defaultLabels }: { value: string; displayMode: boolean; labels?: MathLoadLabels | undefined }) {
-  const [read, setRead] = useState<{ Renderer: Renderer } | { error: unknown }>()
+  const [read, setRead] = useState<{ Renderer: Renderer } | { error: unknown } | undefined>(arrived)
   const [attempt, setAttempt] = useState(0)
   useEffect(() => {
     let active = true
     void import('./MathContent.tsx').then(
-      module => { if (active) setRead({ Renderer: module.default }) },
+      module => { arrived ??= { Renderer: module.default }; if (active) setRead(arrived) },
       error => { if (active) setRead({ error }) },
     )
     return () => { active = false }

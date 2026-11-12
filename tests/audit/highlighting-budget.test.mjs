@@ -292,6 +292,35 @@ test('contained chunks preserve nowrap scrolling and reflow when wrapping change
   })
 })
 
+test('a fence that settles with new text or a backlog keeps its colored lines until the settled result arrives', async () => {
+  await fixture(async page => {
+    const lines = count => Array.from({ length: count }, (_, index) => `const value${index}: number = ${index}`).join('\n')
+    const colored = () => [...document.querySelectorAll('pre .line')].filter(line => line.querySelector('[style*="--shiki-"]')).length
+    // The last line and the end of streaming arrive in one render.
+    await page.evaluate(code => window.show([{ code, lang: 'ts', streaming: true }]), lines(19))
+    await page.waitForFunction(`(${colored})() === 19`)
+    const closing = await page.evaluate(`(() => {
+      window.show([{ code: ${JSON.stringify(lines(20))}, lang: 'ts', streaming: false }])
+      return { colored: (${colored})(), text: document.querySelector('pre').textContent }
+    })()`)
+    assert.deepEqual(closing, { colored: 18, text: lines(20) })
+    await page.waitForFunction(`(${colored})() === 20`)
+    // A fence first seen beyond one frame's budget settles with 40 untokenized lines.
+    await page.evaluate(code => {
+      window.show([])
+      window.show([{ code, lang: 'ts', streaming: true }])
+    }, lines(120))
+    await page.waitForFunction(`(${colored})() === 80`)
+    const backlog = await page.evaluate(`(() => {
+      window.show([{ code: ${JSON.stringify(lines(120))}, lang: 'ts', streaming: false }])
+      return { colored: (${colored})(), text: document.querySelector('pre').textContent }
+    })()`)
+    assert.deepEqual(backlog, { colored: 80, text: lines(120) })
+    await page.waitForFunction(`(${colored})() === 120`)
+    assert.equal(await page.locator('pre').textContent(), lines(120))
+  })
+})
+
 for (const [name, engine] of [
   ['chromium', chromium],
   ['firefox', firefox],

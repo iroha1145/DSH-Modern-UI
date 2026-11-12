@@ -44,13 +44,11 @@ async function highlight(request: Extract<HighlightRequest, { kind: 'highlight' 
       sessions.delete(request.viewId)
       const html = request.format === 'html' ? highlightToHtml(request.code, request.language) : undefined
       if (html !== undefined) send({ kind: 'html', jobId: request.jobId, html })
-      else await highlightLinesAsync(request.code, request.language, controller.signal, lines => {
-        if (!controller.signal.aborted) send({ kind: 'chunk', jobId: request.jobId, lines })
-      })
+      else await highlightLinesAsync(request.code, request.language, controller.signal, lines => send({ kind: 'chunk', jobId: request.jobId, lines }))
     }
     if (!controller.signal.aborted) send({ kind: 'done', jobId: request.jobId })
   } catch (error) {
-    if (!controller.signal.aborted) send({ kind: 'job-error', jobId: request.jobId, message: (error as Error).message })
+    send({ kind: 'job-error', jobId: request.jobId, message: (error as Error).message })
   } finally {
     if (jobs.get(request.viewId)?.id === request.jobId) jobs.delete(request.viewId)
   }

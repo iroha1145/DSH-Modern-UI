@@ -7,7 +7,6 @@ const live = new Set()
 class FixtureWorker {
   onmessage = null
   onerror = null
-  onmessageerror = null
   thread
   stopped = false
   queue = []
@@ -22,7 +21,6 @@ class FixtureWorker {
           { eval: true },
         )
         this.thread.on('message', data => this.onmessage?.({ data }))
-        this.thread.on('messageerror', error => this.onmessageerror?.(error))
         this.thread.on('error', error => this.onerror?.({ message: error.message, preventDefault() {} }))
         for (const value of this.queue) this.thread.postMessage(value)
         this.queue = []

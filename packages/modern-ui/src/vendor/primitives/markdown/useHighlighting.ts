@@ -51,9 +51,7 @@ export function useWorkerHighlight(code: string, lang: string | undefined, enabl
       return
     }
     const chunks: HighlightSpan[][][] = []
-    let active = true
-    const cancel = owner.run(code, language, streaming, format, progress?.(), reply => {
-      if (!active) return
+    return owner.run(code, language, streaming, format, progress?.(), reply => {
       const source = { code, language, viewId: owner.id, jobId: reply.jobId }
       const publish = (value: HighlightResult): void => { latest.current = value; setResult(value) }
       switch (reply.kind) {
@@ -69,7 +67,6 @@ export function useWorkerHighlight(code: string, lang: string | undefined, enabl
         case 'job-error': publish({ ...source, kind: 'error', error: new HighlightWorkerError(reply.message) }); break
       }
     })
-    return () => { active = false; cancel() }
   }, [code, enabled, format, language, loaded, streaming, attempt, progress])
   const retry = useCallback(() => {
     if (error !== undefined) retryGrammar(lang)
