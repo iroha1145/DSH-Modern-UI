@@ -88,6 +88,7 @@ Worker 没有让首次着色免费；它使原文和输入在等待计算时保�
 
 ```sh
 npm ci --ignore-scripts --no-audit --no-fund
+node node_modules/playwright-core/cli.js install --with-deps chromium firefox webkit
 npm run lint
 npm run typecheck
 npm run build
@@ -95,4 +96,4 @@ npm run build
 npm test
 ```
 
-全量测试需要 Playwright 浏览器；跨引擎本地检查另外使用 Firefox/WebKit。若设置 `SIDEBAR_MOTION_EVIDENCE`，先创建其父目录。分发包为未发布的本地预览，版本号保留 0.1.17；是否发布新版本、合并或部署由后续动作决定。
+全量测试需要上述三个 Playwright 浏览器。若设置 `SIDEBAR_MOTION_EVIDENCE`，先创建其父目录。分发包为未发布的本地预览，版本号保留 0.1.17；是否发布新版本、合并或部署由后续动作决定。

@@ -68,13 +68,12 @@ const server = createServer(async (req, res) => {
   )
 })
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
-const browser = await chromium.launch(
-  process.env.MODERN_UI_BROWSER
-    ? { executablePath: process.env.MODERN_UI_BROWSER, headless: true }
-    : existsSync(chromium.executablePath())
-      ? { headless: true }
-      : { channel: 'msedge', headless: true },
-)
+const chromiumOptions = process.env.MODERN_UI_BROWSER
+  ? { executablePath: process.env.MODERN_UI_BROWSER, headless: true }
+  : existsSync(chromium.executablePath())
+    ? { headless: true }
+    : { channel: 'msedge', headless: true }
+const browser = await chromium.launch(chromiumOptions)
 afterAll(async () => {
   await browser.close()
   await new Promise(resolve => server.close(resolve))
@@ -294,12 +293,12 @@ test('contained chunks preserve nowrap scrolling and reflow when wrapping change
 })
 
 for (const [name, engine] of [
-  ['edge', chromium],
+  ['chromium', chromium],
   ['firefox', firefox],
   ['webkit', webkit],
 ]) {
   test(`${name}: real worker keeps streaming source, bounds upgrades and rebuilds both grammars after owner disposal`, async () => {
-    const instance = await engine.launch(name === 'edge' ? { channel: 'msedge', headless: true } : { headless: true })
+    const instance = await engine.launch(engine === chromium ? chromiumOptions : { headless: true })
     const page = await instance.newPage()
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
