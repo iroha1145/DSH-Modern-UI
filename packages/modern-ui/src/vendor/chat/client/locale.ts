@@ -5,6 +5,10 @@ export const NS = 'modern-chat'
 
 /** Simplified Chinese dictionary and key-set source of truth. */
 export const zh = {
+  'highlight.loadFailed': '语法高亮加载失败，已保留原文',
+  'highlight.retry': '重新加载高亮',
+  'math.loadFailed': '数学内容加载失败，已保留原文',
+  'math.retry': '重新加载数学内容',
   'codeBlock.collapse': '收起代码',
   'codeBlock.expand': '展开代码',
   'markdown.sources': '来源',
@@ -218,6 +222,10 @@ export type ChatKey = keyof typeof zh
 
 /** English dictionary, checked against the Chinese key set. */
 export const en = {
+  'highlight.loadFailed': 'Syntax highlighting could not be loaded; source preserved',
+  'highlight.retry': 'Retry highlighting',
+  'math.loadFailed': 'Math could not be loaded; source preserved',
+  'math.retry': 'Retry loading math',
   'codeBlock.collapse': 'Collapse code',
   'codeBlock.expand': 'Expand code',
   'markdown.sources': 'Sources',
@@ -428,6 +436,10 @@ export const en = {
 
 /** Japanese copy, checked against the English keys. */
 export const ja = {
+  'highlight.loadFailed': '構文ハイライトを読み込めませんでした。原文は保持されています',
+  'highlight.retry': 'ハイライトを再読み込み',
+  'math.loadFailed': '数式を読み込めませんでした。原文は保持されています',
+  'math.retry': '数式を再読み込み',
   'codeBlock.collapse': 'コードを折りたたむ',
   'codeBlock.expand': 'コードを展開',
   'markdown.sources': '出典',
@@ -638,6 +650,10 @@ export const ja = {
 
 /** Spanish dictionary, checked against the English keys. */
 export const es = {
+  'highlight.loadFailed': 'No se pudo cargar el resaltado de sintaxis; se conserva el texto original',
+  'highlight.retry': 'Volver a cargar el resaltado',
+  'math.loadFailed': 'No se pudieron cargar las fórmulas; se conserva el texto original',
+  'math.retry': 'Volver a cargar las fórmulas',
   'codeBlock.collapse': 'Contraer código',
   'codeBlock.expand': 'Expandir código',
   'markdown.sources': 'Fuentes',
@@ -848,6 +864,10 @@ export const es = {
 
 /** French dictionary, checked against the English keys. */
 export const fr = {
+  'highlight.loadFailed': 'Impossible de charger la coloration syntaxique ; le texte source est conservé',
+  'highlight.retry': 'Réessayer la coloration',
+  'math.loadFailed': 'Impossible de charger les formules ; le texte source est conservé',
+  'math.retry': 'Réessayer de charger les formules',
   'codeBlock.collapse': 'Réduire le code',
   'codeBlock.expand': 'Développer le code',
   'markdown.sources': 'Sources',
@@ -1058,6 +1078,10 @@ export const fr = {
 
 /** German dictionary, checked against the English keys. */
 export const de = {
+  'highlight.loadFailed': 'Syntaxhervorhebung konnte nicht geladen werden; der Quelltext bleibt erhalten',
+  'highlight.retry': 'Syntaxhervorhebung erneut laden',
+  'math.loadFailed': 'Formeln konnten nicht geladen werden; der Quelltext bleibt erhalten',
+  'math.retry': 'Formeln erneut laden',
   'codeBlock.collapse': 'Code einklappen',
   'codeBlock.expand': 'Code ausklappen',
   'markdown.sources': 'Quellen',
@@ -1268,6 +1292,10 @@ export const de = {
 
 /** Russian dictionary, checked against the English keys. */
 export const ru = {
+  'highlight.loadFailed': 'Не удалось загрузить подсветку синтаксиса; исходный текст сохранён',
+  'highlight.retry': 'Загрузить подсветку повторно',
+  'math.loadFailed': 'Не удалось загрузить формулы; исходный текст сохранён',
+  'math.retry': 'Загрузить формулы повторно',
   'codeBlock.collapse': 'Свернуть код',
   'codeBlock.expand': 'Развернуть код',
   'markdown.sources': 'Источники',
@@ -1478,6 +1506,10 @@ export const ru = {
 
 /** Portuguese dictionary, checked against the English keys. */
 export const pt = {
+  'highlight.loadFailed': 'Não foi possível carregar o realce de sintaxe; o texto original foi preservado',
+  'highlight.retry': 'Tentar carregar o realce novamente',
+  'math.loadFailed': 'Não foi possível carregar as fórmulas; o texto original foi preservado',
+  'math.retry': 'Tentar carregar as fórmulas novamente',
   'codeBlock.collapse': 'Recolher código',
   'codeBlock.expand': 'Expandir código',
   'markdown.sources': 'Fontes',

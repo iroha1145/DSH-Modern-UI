@@ -120,35 +120,44 @@ function restTitle(title: HTMLSpanElement): void {
  * @returns stable pointer enter/leave handlers for the row.
  */
 function useTitleMarquee(title: RefObject<HTMLSpanElement | null>): { enter: () => void; leave: () => void } {
-  const frame = useRef(0)
-  useEffect(() => () => { cancelAnimationFrame(frame.current) }, [])
+  const stop = useRef<() => void>(() => {})
+  useEffect(() => () => { stop.current() }, [])
   return useMemo(() => ({
     enter: (): void => {
-      /* v8 ignore next -- defensive: the title span renders unconditionally. */
-      if (title.current === null) return
-      const element = title.current
+      stop.current()
+      const element = title.current!
       const range = element.scrollWidth - element.clientWidth
       if (range <= MIN_TITLE_REVEAL_PX) return
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+      if (reducedMotion.matches) {
         placeTitle(element, range, range)
         return
       }
-      cancelAnimationFrame(frame.current)
+      let frame = 0
+      const onMotionPreference = (): void => {
+        if (!reducedMotion.matches) return
+        stop.current()
+        placeTitle(element, range, range)
+      }
+      stop.current = () => {
+        cancelAnimationFrame(frame)
+        reducedMotion.removeEventListener('change', onMotionPreference)
+      }
+      reducedMotion.addEventListener('change', onMotionPreference)
       let previous: number | undefined
       let position = 0
       const step = (now: DOMHighResTimeStamp): void => {
         position += previous === undefined ? 0 : (now - previous) * TITLE_MARQUEE_PX_PER_MS
         previous = now
         placeTitle(element, Math.min(position, range), range)
-        if (position < range) frame.current = requestAnimationFrame(step)
+        if (position < range) frame = requestAnimationFrame(step)
+        else stop.current()
       }
-      frame.current = requestAnimationFrame(step)
+      frame = requestAnimationFrame(step)
     },
     leave: (): void => {
-      cancelAnimationFrame(frame.current)
-      /* v8 ignore next -- defensive: the title span renders unconditionally. */
-      if (title.current === null) return
-      restTitle(title.current)
+      stop.current()
+      restTitle(title.current!)
     },
   }), [title])
 }

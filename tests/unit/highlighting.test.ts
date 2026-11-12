@@ -1,12 +1,36 @@
-import { expect, test } from 'vitest'
+import { beforeAll, expect, test } from 'vitest'
+import { splitLines } from 'shiki/core'
 import {
   StreamingHighlightSession,
   highlightLines,
   highlightLinesAsync,
   highlightToHtml,
-  isGrammarLoaded,
-  subscribeGrammarLoaded,
-} from '../../packages/modern-ui/src/vendor/primitives/markdown/highlight.ts'
+} from '../../packages/modern-ui/src/vendor/primitives/markdown/highlight-tokenizer.ts'
+
+import { withinHighlightBudget } from '../../packages/modern-ui/src/vendor/primitives/markdown/highlight-language.ts'
+import { registerGrammar } from '../../packages/modern-ui/src/vendor/primitives/markdown/highlight-engine.ts'
+import typescript from '@shikijs/langs/typescript'
+import json from '@shikijs/langs/json'
+beforeAll(() => {
+  registerGrammar(typescript, 'typescript')
+  registerGrammar(json, 'json')
+})
+
+test('native line splitting preserves Shiki CR, LF, CRLF and terminal-line budget semantics', async () => {
+  for (const code of ['', 'a', 'a\n', 'a\r', 'a\r\n', 'a\rb\nc\r\nd', '\n\n', '\r\n\r\n']) {
+    expect(code.split(/\r?\n/)).toEqual(splitLines(code).map(([line]) => line))
+    expect(withinHighlightBudget(code)).toBe(true)
+    const lines = await highlightLinesAsync(code, 'json', new AbortController().signal)
+    expect(lines?.map(line => line.map(span => span.text).join('')).join('\n')).toBe(
+      splitLines(code)
+        .map(([line]) => line)
+        .join('\n'),
+    )
+  }
+  expect(withinHighlightBudget('a\n'.repeat(80))).toBe(false)
+  expect(withinHighlightBudget('a\r\n'.repeat(80))).toBe(false)
+  expect(withinHighlightBudget('a\r'.repeat(80))).toBe(true)
+})
 
 test('large completed source uses the plain synchronous fallback and retains all text asynchronously', async () => {
   const source = Array.from({ length: 20 }, (_, index) => `const text${index} = "${'a'.repeat(945)}"`).join('\n')
@@ -54,25 +78,12 @@ test('a slower line finishes its grammar state before coloring later lines', asy
   }
 })
 
-test('lazy grammar notifications follow normalized aliases and unsubscribe cleanly', async () => {
-  let unrelated = 0
-  let aliases = 0
-  let disposed = 0
-  const unwatchTs = subscribeGrammarLoaded('TS', () => unrelated++)
-  const unwatchPy = subscribeGrammarLoaded('PY', () => aliases++)
-  const unwatchDisposed = subscribeGrammarLoaded('python', () => disposed++)
-  unwatchDisposed()
-  try {
-    expect(highlightToHtml('print(42)', 'py')).toBeUndefined()
-    await expect.poll(() => isGrammarLoaded('python')).toBe(true)
-    expect(aliases).toBe(1)
-    expect(unrelated).toBe(0)
-    expect(disposed).toBe(0)
-    expect(highlightToHtml('print(42)', 'PY')).toContain('--shiki-')
-  } finally {
-    unwatchTs()
-    unwatchPy()
-  }
+test('worker grammar registration preserves aliases and does not change completed TypeScript output', async () => {
+  const before = highlightToHtml('const answer=42', 'TS')
+  const grammar = structuredClone((await import('@shikijs/langs/python')).default)
+  registerGrammar(grammar, 'python')
+  expect(highlightToHtml('print(42)', 'PY')).toContain('--shiki-')
+  expect(highlightToHtml('const answer=42', 'ts')).toBe(before)
 })
 
 const lineText = (lines: readonly (readonly { text: string }[])[] | undefined) => lines?.map(line => line.map(span => span.text).join('')).join('\n')

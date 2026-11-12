@@ -15,7 +15,7 @@
  * are slot entries with their own behavior, so this component threads no
  * action callbacks and hosts no action surface.
  */
-import { type CSSProperties, type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
+import { type CSSProperties, type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import {
   AnimatedRows, Button, HoverCardGroup, IconArchiveCheckOutlineRegular, IconArchiveOffOutlineRegular, IconArchiveOutlineRegular,
@@ -52,7 +52,7 @@ const EXPAND_SLIDE_MS = 300
 const SEARCH_DEBOUNCE_MS = 250
 /** `session.search` wire bound, measured in JavaScript UTF-16 code units. */
 const SEARCH_QUERY_MAX_CODE_UNITS = 500
-/** Non-blank Session rows visible per Workspace while no Session raises its watermark. */
+/** Minimum non-blank Session rows per Workspace before fitting the available list space. */
 const SESSION_WATERMARK_BASE = 5
 /** Highest watermark that attention-bearing Sessions raise automatically; Show more and search reveals may exceed it. */
 const SESSION_WATERMARK_AUTO_MAX = 50
@@ -319,6 +319,9 @@ function SessionTree({
   const revealGroup = revealSessionId === undefined || !workspaceReady
     ? undefined
     : owningGroupKey(workspaces, revealSessionId)
+  const treeSeat = useRef<HTMLDivElement>(null)
+  // Keep the fitted minimum separate so Show less restores a filled viewport.
+  const [fittedWatermarks, setFittedWatermarks] = useState<Readonly<Record<string, number>>>({})
   // Per-group raised watermarks; an absent key means the base watermark.
   const [storedWatermarks, setStoredWatermarks] = useState<Readonly<Record<string, number>>>({})
   // Advances on user-driven watermark changes so AnimatedRows settles them; automatic raises animate.
@@ -371,7 +374,7 @@ function SessionTree({
       }
     }
   }, [groupExpansion, parents, revealGroup, setGroupExpanded])
-  const baselines = new Map(groups.map(group => [group.key, Math.max(SESSION_WATERMARK_BASE, requiredWatermark(
+  const baselines = new Map(groups.map(group => [group.key, Math.max(fittedWatermarks[group.key] ?? SESSION_WATERMARK_BASE, requiredWatermark(
     group.sessions,
     current,
     group.key === revealGroup ? revealSessionId : undefined,
@@ -649,24 +652,70 @@ function SessionTree({
   }
 
   const groupRows = rootGroups.map(group => renderGroup(group, 0))
+  const fitRows = useRef(() => {})
+  fitRows.current = () => {
+    const tree = treeSeat.current!.querySelector<HTMLElement>('[role="tree"]')!
+    if (tree.clientHeight === 0) return
+    const candidates = groups.filter(group => group.expanded && !underFoldedAncestor(group.key)).map(group => {
+      const watermark = sessionWatermarks[group.key] ?? SESSION_WATERMARK_BASE
+      return { key: group.key, watermark, hiddenCount: watermarkRows(group.sessions, watermark).hiddenCount }
+    }).filter(group => group.hiddenCount > 0)
+    if (candidates.length === 0) return
+    const row = tree.querySelector<HTMLElement>('[data-row-key^="session:"]')!
+    // Layout dimensions exclude the transforms used by row movement animations.
+    const rowHeight = row.offsetHeight + parseFloat(getComputedStyle(row).marginTop)
+    const contentHeight = [...tree.children].reduce((height, child) => {
+      const element = child as HTMLElement
+      return height + element.offsetHeight + parseFloat(getComputedStyle(element).marginTop)
+    }, 0) + parseFloat(getComputedStyle(tree).paddingBottom)
+    let remaining = Math.ceil((tree.clientHeight - contentHeight) / rowHeight)
+    if (remaining <= 0) return
+    while (remaining > 0) {
+      let added = false
+      for (const group of candidates) {
+        if (group.hiddenCount === 0) continue
+        group.watermark += 1
+        group.hiddenCount -= 1
+        remaining -= 1
+        added = true
+        if (remaining === 0) break
+      }
+      if (!added) break
+    }
+    setFittedWatermarks(marks => raiseWatermarks(marks, new Map(candidates.map(group => [group.key, group.watermark]))))
+  }
+  const fitKey = JSON.stringify(rowKeys)
+  useLayoutEffect(() => { fitRows.current() }, [fitKey])
+  useLayoutEffect(() => {
+    const seat = treeSeat.current!
+    let frame = 0
+    const resize = new ResizeObserver(() => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => { fitRows.current() })
+    })
+    resize.observe(seat)
+    return () => { resize.disconnect(); cancelAnimationFrame(frame) }
+  }, [])
   return (
-    <HoverCardGroup className={clsx(css.treeBody, css.wide)}>
-      {workspaceDropAtListStart && <span className={css.listTopDropIndicator} aria-hidden="true" />}
-      <AnimatedRows
-        className={clsx(css.list, workspaceDropAtListStart && css.listTopDropActive)}
-        role="tree"
-        label={t('section.sessions')}
-        rowKeys={rowKeys}
-        ready={list.phase === 'ready' && workspaceReady && !nativeDragActive}
-        resetKey={JSON.stringify([animationResetKey, watermarkMotionKey])}
-      >
-        {groups.length === 0 && (
-          <EmptySessions rowState={rowState} onLeaveArchivedOnly={onLeaveArchivedOnly} t={t} />
-        )}
-        {groupRows}
-      </AnimatedRows>
-      <span className={css.fade} />
-    </HoverCardGroup>
+    <div ref={treeSeat} className={css.treeBody}>
+      <HoverCardGroup className={clsx(css.treeBody, css.wide)}>
+        {workspaceDropAtListStart && <span className={css.listTopDropIndicator} aria-hidden="true" />}
+        <AnimatedRows
+          className={clsx(css.list, workspaceDropAtListStart && css.listTopDropActive)}
+          role="tree"
+          label={t('section.sessions')}
+          rowKeys={rowKeys}
+          ready={list.phase === 'ready' && workspaceReady && !nativeDragActive}
+          resetKey={JSON.stringify([animationResetKey, watermarkMotionKey])}
+        >
+          {groups.length === 0 && (
+            <EmptySessions rowState={rowState} onLeaveArchivedOnly={onLeaveArchivedOnly} t={t} />
+          )}
+          {groupRows}
+        </AnimatedRows>
+        <span className={css.fade} />
+      </HoverCardGroup>
+    </div>
   )
 }
 

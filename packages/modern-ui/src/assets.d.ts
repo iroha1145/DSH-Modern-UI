@@ -19,3 +19,8 @@ declare module '*.webp' {
   const url: string
   export default url
 }
+
+declare module '*?worker-source' {
+  const source: string
+  export default source
+}

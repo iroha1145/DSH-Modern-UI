@@ -31,6 +31,8 @@ export function apply(ctx: Context): void {
     ...locale[language],
     'codeBlock.collapse': chatLocale[language]['codeBlock.collapse'],
     'codeBlock.expand': chatLocale[language]['codeBlock.expand'],
+    'highlight.loadFailed': chatLocale[language]['highlight.loadFailed'],
+    'highlight.retry': chatLocale[language]['highlight.retry'],
     ...jevToolLocale[language],
   })
   const dictionaries = {

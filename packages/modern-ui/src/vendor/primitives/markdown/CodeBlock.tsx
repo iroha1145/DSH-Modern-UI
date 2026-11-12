@@ -2,13 +2,14 @@ import { Fragment, memo, useCallback, useEffect, useId, useMemo, useRef, useStat
 import type { CSSProperties, ReactNode, Ref } from 'react'
 import clsx from 'clsx'
 import { writeClipboard } from '../clipboard.ts'
-import { CodeToolbar, type CodeToolbarLabels } from '../CodeToolbar.tsx'
+import { CodeToolbar, HighlightLoadNotice, type CodeToolbarLabels } from '../CodeToolbar.tsx'
 import {
-  HIGHLIGHT_CHUNK_LINES, StreamingHighlightSession, highlightToHtml, withinHighlightBudget,
+  HIGHLIGHT_CHUNK_LINES, grammarForHint, withinHighlightBudget,
 } from './highlight.ts'
-import type { HighlightSpan, StreamingHighlightFrame } from './highlight.ts'
+import type { HighlightSpan } from './highlight.ts'
+import type { StreamProgress, WorkerFrame } from './highlight-protocol.ts'
 import { useViewportHighlighting } from './useViewportHighlighting.ts'
-import { useDeferredHighlightChunks, useGrammarReady } from './useHighlighting.ts'
+import { useWorkerHighlight } from './useHighlighting.ts'
 import css from './CodeBlock.module.css'
 
 export interface CodeBlockProps {
@@ -98,91 +99,46 @@ export function CodeBlock({
   const sourceLines = lineNumbers ? trimmed.split('\n') : undefined
   const rootRef = useRef<HTMLDivElement>(null)
   const highlighting = useViewportHighlighting(rootRef, lang)
-  const loaded = useGrammarReady(lang)
-  const withinBudget = useMemo(() => withinHighlightBudget(trimmed), [trimmed])
-  // Streaming state lives in refs mutated inside the memo (the MarkdownText
-  // streaming-cache pattern): the session's caches carry across chunks only
-  // because the owner keys this instance stably while the fence grows.
-  const sessionRef = useRef<StreamingHighlightSession | null>(null)
   const lineCacheRef = useRef<{
-    code: string
-    lang: string | undefined
-    generation: number
-    frame: StreamingHighlightFrame
-    groups: ReactNode[]
-    pending: ReactNode[]
-    nextLine: number
-    body: ReactNode
+    viewId: number; jobId: number; generation: number; sessionId: number; groups: ReactNode[]; pending: ReactNode[];
+    nextLine: number; prefix: string; source: string; language: string; frame: WorkerFrame;
   } | null>(null)
-  const settledRef = useRef(false)
+  const progress = useCallback((): StreamProgress | undefined => {
+    const cache = lineCacheRef.current
+    return cache === null ? undefined : { viewId: cache.viewId, sessionId: cache.sessionId, generation: cache.generation, lines: cache.nextLine }
+  }, [])
+  const { result, error: highlightError, retry: retryHighlight } = useWorkerHighlight(trimmed, lang, highlighting, streaming === true, 'html', progress)
   const streamedBody = useMemo(() => {
-    if (!highlighting) {
-      sessionRef.current = null
-      lineCacheRef.current = null
-      settledRef.current = false
-      return undefined
-    }
-    if (streaming !== true) {
-      const previous = lineCacheRef.current
-      if (previous !== null && previous.code === trimmed && previous.lang === lang && previous.frame.settled) {
-        // The settled fence keeps the streamed lines; the session's tokenizer caches are no longer needed, and a
-        // fence that streams again starts a new session (settledRef). A frame that still shows backlog lines as
-        // plain text is not kept: the completed fence takes the ordinary synchronous or deferred path instead.
-        sessionRef.current = null
-        settledRef.current = true
-        return previous.body
+    if (!highlighting) { lineCacheRef.current = null; return undefined }
+    const language = grammarForHint(lang)
+    let cache = lineCacheRef.current
+    if (cache !== null && (cache.language !== language || !trimmed.startsWith(cache.prefix))) cache = lineCacheRef.current = null
+    if (result?.kind === 'frame' && result.language === language && trimmed.startsWith(result.code) && cache?.frame !== result.frame) {
+      const frame = result.frame
+      const same = cache?.viewId === result.viewId && cache.sessionId === frame.sessionId && cache.generation === frame.generation
+      const groups = same ? [...cache!.groups] : []
+      let pending = same ? [...cache!.pending] : []
+      let nextLine = same ? cache!.nextLine : 0
+      for (const line of frame.appended.slice(nextLine - frame.from)) {
+        pending.push(renderLine(line, nextLine))
+        nextLine += 1
+        if (pending.length !== STREAMING_LINE_GROUP_SIZE) continue
+        groups.push(<Fragment key={nextLine - pending.length}>{pending}</Fragment>)
+        pending = []
       }
-      sessionRef.current = null
-      lineCacheRef.current = null
-      settledRef.current = true
-      return undefined
+      cache = { viewId: result.viewId, jobId: result.jobId, generation: frame.generation, sessionId: frame.sessionId,
+        groups, pending, nextLine, prefix: result.code.slice(0, frame.prefixLength), source: result.code, language: result.language, frame }
+      lineCacheRef.current = cache
     }
-    if (settledRef.current) {
-      sessionRef.current = null
-      lineCacheRef.current = null
-      settledRef.current = false
-    }
-    sessionRef.current ??= new StreamingHighlightSession()
-    const frame = sessionRef.current.updateFrame(trimmed, lang)
-    if (frame === undefined) {
-      lineCacheRef.current = null
-      return undefined
-    }
-    const previous = lineCacheRef.current
-    if (previous?.frame === frame && previous.code === trimmed && previous.lang === lang) {
-      return previous.body
-    }
-    const sameGeneration = previous?.generation === frame.generation
-    const groups = sameGeneration ? [...previous.groups] : []
-    let pending = sameGeneration ? [...previous.pending] : []
-    let nextLine = sameGeneration ? previous.nextLine : 0
-    for (const line of frame.appended) {
-      pending.push(renderLine(line, nextLine))
-      nextLine += 1
-      if (pending.length !== STREAMING_LINE_GROUP_SIZE) continue
-      const start = nextLine - pending.length
-      groups.push(<Fragment key={start}>{pending}</Fragment>)
-      pending = []
-    }
-    const tail = frame.tail.map((line, index) => renderLine(line, nextLine + index))
-    const tailGroup = <Fragment key={nextLine - pending.length}>{[...pending, ...tail]}</Fragment>
-    const body = <pre {...SHIKI_PRE_PROPS}><code>{groups}{tailGroup}</code></pre>
-    lineCacheRef.current = {
-      code: trimmed, lang, generation: frame.generation, frame, groups, pending, nextLine, body,
-    }
-    return body
-  }, [streaming, highlighting, trimmed, lang, loaded])
-  const html = useMemo(
-    () => (highlighting && withinBudget && streaming !== true && streamedBody === undefined
-      ? highlightToHtml(trimmed, lang)
-      : undefined),
-    [streaming, highlighting, withinBudget, streamedBody, trimmed, lang, loaded],
-  )
-  const deferredChunks = useDeferredHighlightChunks(
-    trimmed, lang, highlighting && !withinBudget && streaming !== true && streamedBody === undefined, loaded,
-  )
-  const deferredBody = !withinBudget && streaming !== true && streamedBody === undefined
-    ? <DeferredCode code={trimmed} chunks={deferredChunks} numbered={lineNumbers} /> : undefined
+    if (cache === null || result?.kind !== 'frame' || (streaming !== true && (cache.source !== trimmed || !cache.frame.settled))) return undefined
+    const tail = cache.source === trimmed ? cache.frame.tail : trimmed.slice(cache.prefix.length).split(/\r?\n/).map(text => [{ text, style: {} }])
+    const tailGroup = <Fragment key={cache.nextLine - cache.pending.length}>{[...cache.pending, ...tail.map((line, index) => renderLine(line, cache.nextLine + index))]}</Fragment>
+    return <pre {...SHIKI_PRE_PROPS}><code>{[...cache.groups, tailGroup]}</code></pre>
+  }, [highlighting, trimmed, lang, result, streaming])
+  const current = result?.code === trimmed && result.language === grammarForHint(lang) ? result : undefined
+  const html = current?.kind === 'html' ? current.html : undefined
+  const deferredBody = current?.kind === 'lines' ? <DeferredCode code={trimmed} chunks={current.chunks} numbered={lineNumbers} />
+    : streaming !== true && !withinHighlightBudget(trimmed) ? <DeferredCode code={trimmed} chunks={undefined} numbered={lineNumbers} /> : undefined
   const [copied, setCopied] = useState(false)
   const copyTimer = useRef<number | undefined>(undefined)
   const mounted = useRef(false)
@@ -253,6 +209,7 @@ export function CodeBlock({
           </div>
         </div>}
       </div>}
+      {highlightError !== undefined && <HighlightLoadNotice error={highlightError} labels={toolbarLabels?.highlight} onRetry={retryHighlight} />}
       <div ref={contentRef} id={contentId} className={css.content} data-code-block-content hidden={contentHidden}>{body}</div>
     </div>
   )

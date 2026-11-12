@@ -59,6 +59,14 @@ flowchart LR
 9. 主题通过公开 override layer，官方控件与菜单通过限定到 rc.4 的样式适配；启动和失败页通过公开 `webserver/index-inject` 注入样式。样式和监听器随 owner 卸载释放。
 10. 会话联网按钮、`/web on|off` 与旧 `web/search` 策略已取消。官方搜索/抓取工具、provider 配置、结果卡与来源引用保留。
 
+## 客户端分块与代码高亮
+
+`scripts/client-chunks.mjs` 将 esbuild 的拆分图转换为官方模块工厂。首屏静态依赖合入 `client.js`，OpenUI、KaTeX、语法数据和高亮 Worker 在使用时通过官方 `require.async` 加载；缓存、并发去重和脚本传输仍由 Host 负责。共享初始工厂的异步请求绑定到包入口 owner，延迟到达的 CSS 也由同一个 Cordis owner 安装、卸载。没有新增资源路由或修改官方模块表。
+
+代码先显示原文。可见代码请求共享一个专用 Worker，原有 Shiki tokenizer、语言别名、长行限制和流式语法状态继续复用；主线程处理源文本、取消、DOM 更新和显式重试。Worker 源码作为普通异步模块中的字符串传输，再生成经典 Blob Worker。最后一个 owner 释放时终止 Worker、撤销 Blob URL 并清理语法状态；尚未完成的模块请求不能在卸载后创建孤立 Worker。加载失败保留可读原文，由用户主动重试。
+
+构建指标分别记录初始文件和所有客户端分块，Worker 字符串及其依赖包含在总量中。官方共享 `ui-primitives` 的独立高亮初始化仍由官方包管理，因此“Modern 首包不包含 Shiki”不等于整个 Host 没有高亮初始化成本。当前改造的测量方法和边界见 [前端优化验收](history/frontend-optimization-20261112.md)。
+
 ## 验证入口
 
 本轮实现、独立审查和剩余边界见 [迁移缺口补齐记录](history/migration-parity-20261028.md)。`npm run build` 检查 TypeScript、共享 runtime import 边界及实际打包许可证；`npm test` 覆盖真实官方 renderer、SlotCore、HostConnectionService、配置组合、数据和启动生命周期。

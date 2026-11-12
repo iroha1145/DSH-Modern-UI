@@ -50,13 +50,19 @@ export class AnimatedRows extends Component<AnimatedRowsProps> {
   private readonly overlay = createRef<HTMLDivElement>()
   private readonly movements = new Map<HTMLElement, Animation>()
   private readonly exits = new Map<string, { element: HTMLElement; animation: Animation }>()
+  private readonly reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+  private readonly onMotionPreference = () => { if (this.reducedMotion.matches) this.clear() }
+
+  override componentDidMount(): void {
+    this.reducedMotion.addEventListener('change', this.onMotionPreference)
+  }
 
   override getSnapshotBeforeUpdate(previous: AnimatedRowsProps): RowSnapshot | null {
     const list = this.list.current
     if (!this.armed || sameRows(previous, this.props) || previous.resetKey !== this.props.resetKey
       || !previous.ready || !this.props.ready || list === null
       || typeof list.animate !== 'function'
-      || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return null
+      || this.reducedMotion.matches) return null
 
     const viewport = list.getBoundingClientRect()
     const positions = this.readPositions()
@@ -124,6 +130,7 @@ export class AnimatedRows extends Component<AnimatedRowsProps> {
   }
 
   override componentWillUnmount(): void {
+    this.reducedMotion.removeEventListener('change', this.onMotionPreference)
     this.clear()
   }
 

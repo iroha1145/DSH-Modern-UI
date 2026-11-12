@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { createRequire, Module } from 'node:module'
 import path from 'node:path'
-import { build } from 'esbuild'
+import { build } from './helpers/client-build.mjs'
 import { chromium } from 'playwright-core'
 
 const repo = path.resolve(import.meta.dirname, '../..')

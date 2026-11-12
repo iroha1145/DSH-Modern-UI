@@ -298,6 +298,22 @@
           "settings.transcript.verbose": {
             "before": "Detallado",
             "after": "Muy detallado"
+          },
+          "math.loadFailed": {
+            "before": null,
+            "after": "No se pudieron cargar las fórmulas; se conserva el texto original"
+          },
+          "math.retry": {
+            "before": null,
+            "after": "Volver a cargar las fórmulas"
+          },
+          "highlight.loadFailed": {
+            "before": null,
+            "after": "No se pudo cargar el resaltado de sintaxis; se conserva el texto original"
+          },
+          "highlight.retry": {
+            "before": null,
+            "after": "Volver a cargar el resaltado"
           }
         },
         "fr": {
@@ -312,6 +328,22 @@
           "row.running": {
             "before": "Courir",
             "after": "En cours"
+          },
+          "math.loadFailed": {
+            "before": null,
+            "after": "Impossible de charger les formules ; le texte source est conservé"
+          },
+          "math.retry": {
+            "before": null,
+            "after": "Réessayer de charger les formules"
+          },
+          "highlight.loadFailed": {
+            "before": null,
+            "after": "Impossible de charger la coloration syntaxique ; le texte source est conservé"
+          },
+          "highlight.retry": {
+            "before": null,
+            "after": "Réessayer la coloration"
           }
         },
         "de": {
@@ -326,6 +358,22 @@
           "settings.transcript.verbose": {
             "before": "Ausführlich",
             "after": "Sehr ausführlich"
+          },
+          "math.loadFailed": {
+            "before": null,
+            "after": "Formeln konnten nicht geladen werden; der Quelltext bleibt erhalten"
+          },
+          "math.retry": {
+            "before": null,
+            "after": "Formeln erneut laden"
+          },
+          "highlight.loadFailed": {
+            "before": null,
+            "after": "Syntaxhervorhebung konnte nicht geladen werden; der Quelltext bleibt erhalten"
+          },
+          "highlight.retry": {
+            "before": null,
+            "after": "Syntaxhervorhebung erneut laden"
           }
         },
         "ru": {
@@ -340,6 +388,22 @@
           "row.running": {
             "before": "Бег",
             "after": "Выполняется"
+          },
+          "math.loadFailed": {
+            "before": null,
+            "after": "Не удалось загрузить формулы; исходный текст сохранён"
+          },
+          "math.retry": {
+            "before": null,
+            "after": "Загрузить формулы повторно"
+          },
+          "highlight.loadFailed": {
+            "before": null,
+            "after": "Не удалось загрузить подсветку синтаксиса; исходный текст сохранён"
+          },
+          "highlight.retry": {
+            "before": null,
+            "after": "Загрузить подсветку повторно"
           }
         },
         "pt": {
@@ -354,6 +418,76 @@
           "row.running": {
             "before": "Correndo",
             "after": "Em execução"
+          },
+          "math.loadFailed": {
+            "before": null,
+            "after": "Não foi possível carregar as fórmulas; o texto original foi preservado"
+          },
+          "math.retry": {
+            "before": null,
+            "after": "Tentar carregar as fórmulas novamente"
+          },
+          "highlight.loadFailed": {
+            "before": null,
+            "after": "Não foi possível carregar o realce de sintaxe; o texto original foi preservado"
+          },
+          "highlight.retry": {
+            "before": null,
+            "after": "Tentar carregar o realce novamente"
+          }
+        },
+        "zh": {
+          "math.loadFailed": {
+            "before": null,
+            "after": "数学内容加载失败，已保留原文"
+          },
+          "math.retry": {
+            "before": null,
+            "after": "重新加载数学内容"
+          },
+          "highlight.loadFailed": {
+            "before": null,
+            "after": "语法高亮加载失败，已保留原文"
+          },
+          "highlight.retry": {
+            "before": null,
+            "after": "重新加载高亮"
+          }
+        },
+        "en": {
+          "math.loadFailed": {
+            "before": null,
+            "after": "Math could not be loaded; source preserved"
+          },
+          "math.retry": {
+            "before": null,
+            "after": "Retry loading math"
+          },
+          "highlight.loadFailed": {
+            "before": null,
+            "after": "Syntax highlighting could not be loaded; source preserved"
+          },
+          "highlight.retry": {
+            "before": null,
+            "after": "Retry highlighting"
+          }
+        },
+        "ja": {
+          "math.loadFailed": {
+            "before": null,
+            "after": "数式を読み込めませんでした。原文は保持されています"
+          },
+          "math.retry": {
+            "before": null,
+            "after": "数式を再読み込み"
+          },
+          "highlight.loadFailed": {
+            "before": null,
+            "after": "構文ハイライトを読み込めませんでした。原文は保持されています"
+          },
+          "highlight.retry": {
+            "before": null,
+            "after": "ハイライトを再読み込み"
           }
         }
       }

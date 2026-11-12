@@ -4,7 +4,8 @@ import { dictionaries } from './locale-dictionaries.ts'
 import { installThemeStyles } from './vendor/theme/client/styles.ts'
 import { installIconSprite } from './vendor/theme/client/icon-sprite.ts'
 import * as chatLocale from './vendor/chat/client/locale.ts'
-import { OpenUIBlock, type ThemeInjected } from './vendor/intelligent/client/OpenUIBlock.tsx'
+import type { ThemeInjected } from './vendor/intelligent/client/OpenUIBlock.tsx'
+import { OpenUILoader as OpenUIBlock } from './vendor/intelligent/client/OpenUILoader.tsx'
 import { looksLikeOpenUI } from './vendor/intelligent/client/openui-source.ts'
 import { Followups } from './vendor/intelligent/client/Followups.tsx'
 import * as intelligentLocale from './vendor/intelligent/client/locales.ts'
@@ -17,6 +18,7 @@ import { EFFORT_SHORT } from './vendor/model/client/profiles.ts'
 import { ModelCatalogDirectory, refreshOnModelsUpdated } from './vendor/model/client/catalog.ts'
 import { ModelDirectoryResolver } from './vendor/model/client/service.ts'
 import { installPluginStyles } from './styles.ts'
+import { installHighlighting } from './vendor/primitives/markdown/highlight.ts'
 import { AgentsView } from './vendor/subagent/client/agent-tree/AgentsView.tsx'
 import { SubagentHeaderLineage, SubagentCatalogAction } from './vendor/subagent/client/SubagentHeaderLineage.tsx'
 import * as subagentLocale from './vendor/subagent/client/locales.ts'
@@ -55,6 +57,7 @@ export { installIconSprite }
 /** Mount selected Modern owners before dependent presentation cells. */
 export async function apply(ctx: Context): Promise<void> {
   installPluginStyles(ctx)
+  installHighlighting(ctx)
   installThemeStyles(ctx)
   installIconSprite(ctx)
   installOfficialControls(ctx)

@@ -217,14 +217,14 @@
       "source": "packages/client/ui-chat/src/client/locale.ts",
       "target": "src/vendor/chat/client/locale.ts",
       "sourceSha256": "9df06d01dba1aaa060c6f42b1b473d6fbe33a8a9e703ab69121568478e2dd1b0",
-      "targetSha256": "098d2e218cbf0487f8f011b89a9de3d3729b7007eb12029ffa65728eae7c944c",
+      "targetSha256": "d7e2368353e61277cab8a2d5b14d336403120df7367d85e9ffb8294290ac0f35",
       "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/markdown-labels.ts",
       "target": "src/vendor/chat/client/markdown-labels.ts",
       "sourceSha256": "fe2c1f58f8c5206d0e0e0bb6466018ee614729966423267cd7095f46a6d12a6d",
-      "targetSha256": "1a2fd754798e08fe37aefd7bb6377a90504a5e1e11bb16f8bff0789c3b656e3a",
+      "targetSha256": "3b50b21b78b46453bdac060f95bdddc809dfba353c14c63d8f98c0cf0e632f3f",
       "adapted": true
     },
     {
@@ -913,14 +913,14 @@
       "source": "packages/client/ui-layout/src/client/AppFrame.module.css",
       "target": "src/vendor/layout/AppFrame.module.css",
       "sourceSha256": "cf23e7703655143656d73b628f579be01cdb7ec62feaff5c9fc913b6f17403e4",
-      "targetSha256": "b4e1b7c76ceeee6b985667f7f14e42c2e876e34636de162789483a87acbe6c49",
+      "targetSha256": "eff456afb7a4197763f2bf3f3c93e4d61e86c2f9ef6335c0a37fe905a760a57c",
       "adapted": true
     },
     {
       "source": "packages/client/ui-layout/src/client/AppFrame.tsx",
       "target": "src/vendor/layout/AppFrame.tsx",
       "sourceSha256": "f4d0ff65db73b83c93f2d068991c2c02e1018adacc4979c17b188d76e81b29d1",
-      "targetSha256": "ca64f78d4042ca25b608613c2b809b131f0bc217b9c82dcdeac4e34197426a6f",
+      "targetSha256": "cf852a8628aad8470784d7da4a45a822c2774515e3ee186882fdc3b61c92e9f5",
       "adapted": true
     },
     {
@@ -1117,8 +1117,8 @@
       "source": "packages/client/ui-primitives/src/AnimatedRows.tsx",
       "target": "src/vendor/primitives/AnimatedRows.tsx",
       "sourceSha256": "9856d16dfb8446a10193a2351d34740c378f4378a2fa0b166597372aeaee4bc9",
-      "targetSha256": "9856d16dfb8446a10193a2351d34740c378f4378a2fa0b166597372aeaee4bc9",
-      "adapted": false
+      "targetSha256": "3cebbad22061b78b2063e70571757af1d7ad0dcf2f64718b571670d5f92cf47e",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/ansi.ts",
@@ -1180,14 +1180,14 @@
       "source": "packages/client/ui-primitives/src/code-highlighting.ts",
       "target": "src/vendor/primitives/code-highlighting.ts",
       "sourceSha256": "595e6554e9d5c14e91f09de15030e016200010c6af77a9e47e15b8d7e4fa58b2",
-      "targetSha256": "997e9bdf8da423a9f235a35b32a7a7c3d95f8b30b69817836faa07f10021c63f",
+      "targetSha256": "8820f48358ca6eda3664b44b7a2fcfe3ada64cd052cbaada561da31eaab0a266",
       "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/CodeCard.module.css",
       "target": "src/vendor/primitives/CodeCard.module.css",
       "sourceSha256": "81648bc452651b1c29f1b09e21d5bf7aba49c7a86a14d38cded32041a4ab0ee9",
-      "targetSha256": "e267a6f96e837b3f169deac81a4ee2a18ae4f86adc9b02c3d3a8120e0d3b888b",
+      "targetSha256": "99b47cce4ba55581fc6c38726b6c9c00c06fad0655e2f8bf31edf193bf0e4ac1",
       "adapted": true
     },
     {
@@ -1201,8 +1201,8 @@
       "source": "packages/client/ui-primitives/src/CodeToolbar.tsx",
       "target": "src/vendor/primitives/CodeToolbar.tsx",
       "sourceSha256": "a57e928ba2dbf0ccacca3994eda025cf6d03c75d256fcd0a46ba557bcac4c56a",
-      "targetSha256": "a57e928ba2dbf0ccacca3994eda025cf6d03c75d256fcd0a46ba557bcac4c56a",
-      "adapted": false
+      "targetSha256": "83acf7feb9285b0f303fc1a487a98443860aee00b8480d1891e9a3ddd3314845",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/CommandText.module.css",
@@ -1502,7 +1502,7 @@
       "source": "packages/client/ui-primitives/src/markdown/CodeBlock.tsx",
       "target": "src/vendor/primitives/markdown/CodeBlock.tsx",
       "sourceSha256": "1829b570450f386cfe50054b3705af70fb0b75189e7bcf2786245b7b8632c93d",
-      "targetSha256": "a6a72350837aac2f9479c0bebbf06f4e73ea0b970e9ee32ed39c1229b5a3cdf8",
+      "targetSha256": "a55bf44f24cb97371d49bf3e287ddcd551aeaada83e0761dc643a78c1dcbdbfb",
       "adapted": true
     },
     {
@@ -1517,9 +1517,9 @@
       "source": "packages/client/ui-primitives/src/markdown/highlight.ts",
       "target": "src/vendor/primitives/markdown/highlight.ts",
       "sourceSha256": "8f641cddd716d1d96908784514e8e557a882d8547a2f2a60f6bb8e19855709b0",
-      "targetSha256": "cce28c9e7ce5809989ae3562ca24b1b486e5480cfd6f7e86fcc5fdabf788fa84",
+      "targetSha256": "4f878b668fe58c5feeab33976187460e5daf10fac14ddc6606e596078c46cd5c",
       "adapted": true,
-      "adaptation": "A lazy grammar whose import fails is forgotten, so a later render can import it again instead of staying plain for the session."
+      "adaptation": "Visible code requests share a dedicated Worker through the official asynchronous module transport. Grammar readiness, explicit failure/retry and owner lifetime stay on the main thread; the existing tokenizer, aliases and budgets are extracted below."
     },
     {
       "source": "packages/client/ui-primitives/src/markdown/incremental.ts",
@@ -1574,7 +1574,7 @@
       "source": "packages/client/ui-primitives/src/markdown/MarkdownText.tsx",
       "target": "src/vendor/primitives/markdown/MarkdownText.tsx",
       "sourceSha256": "d27787888fe57d91ca7cd03450e76dec4205d306680f3445d8716a2670afb65b",
-      "targetSha256": "98d3f906068468d8eb0860b2e1747c85069ae99808ad0de1b387c36dd11e655c",
+      "targetSha256": "48616b8366fef7dbba2a80b10549c54613b0092e249e68d61c288314cb8f186a",
       "adapted": true
     },
     {
@@ -1610,7 +1610,7 @@
       "source": "packages/client/ui-primitives/src/markdown/render.tsx",
       "target": "src/vendor/primitives/markdown/render.tsx",
       "sourceSha256": "214e07ee8b0c0932692127b8c4a80e6f7d5c1b5e60d2c7b8853517f5474f4db0",
-      "targetSha256": "e3a8b5f8bff5218c5e7c672d5249d1c5218a88d01cf06b158c57f53e66f448f8",
+      "targetSha256": "4c85cd1140d6776ff98fad556bcaf943a9022a902e707e130bfdb4e96d0e82d8",
       "adapted": true
     },
     {
@@ -1743,7 +1743,7 @@
       "source": "packages/client/ui-primitives/src/ReadBlock.tsx",
       "target": "src/vendor/primitives/ReadBlock.tsx",
       "sourceSha256": "51826cdfc3e53abf381423087c1a96fc87a97031c602bb917b8f8c1040801610",
-      "targetSha256": "05b9d0903807a9c8b46cc3f5213ca5bb12b02561216220a59ba08b0e213b98e7",
+      "targetSha256": "f0191ce2fafedc5fffed65c58497684b566c7b9f6f1bd66d26a07b4451b2805c",
       "adapted": true
     },
     {
@@ -1974,7 +1974,7 @@
       "source": "packages/client/ui-settings-general/src/client/SettingsRoot.module.css",
       "target": "src/vendor/settings-shell/settings-shell.css",
       "sourceSha256": "c6a47f4d8f4abd80e1b23148c2d3b135b051cc4f7c8098d40c3c731b3f8ed8fc",
-      "targetSha256": "3874589fb399bf0b8a9ceb55d514e2fe1aaece3934e18c6c81e784b065bd9070",
+      "targetSha256": "065f9fce576ef52a7372d5409fb849c515df07958e07c8a06c84b6d083a3aac2",
       "adapted": true
     },
     {
@@ -2030,14 +2030,14 @@
       "source": "packages/client/ui-sidebar/src/client/SidebarRoot.module.css",
       "target": "src/vendor/sidebar/client/SidebarRoot.module.css",
       "sourceSha256": "30601460ee35c02b0c8465eaa772a97acead4596dcafc7baf358e5e059d716d9",
-      "targetSha256": "4e10432d711afc62dc423c0f37e76f992e4ff15452778d6da1a152ae5695fc9b",
+      "targetSha256": "730487e585155843364aebf9939f3ae847c6514dc0c84497fd6dadca5bd50327",
       "adapted": true
     },
     {
       "source": "packages/client/ui-sidebar/src/client/SidebarRoot.tsx",
       "target": "src/vendor/sidebar/client/SidebarRoot.tsx",
       "sourceSha256": "9b0f10a46deb7900d5d583ad1228bab540c7385a437c445c013ff2ce3689b291",
-      "targetSha256": "c993ea4424e9bb7526d889df30283ecbba0a52937360a2350c065efd8ccd6c3e",
+      "targetSha256": "07e5b2345275d7bf277c769d895f263dec555721e4c71575c0b1440348c5883b",
       "adapted": true
     },
     {
@@ -2093,8 +2093,8 @@
       "source": "packages/client/ui-subagent/src/client/SubagentHeaderLineage.module.css",
       "target": "src/vendor/subagent/client/SubagentHeaderLineage.module.css",
       "sourceSha256": "8669584a4f467c4f6bab29c8dee8584762058d5bbc0c2c1f9c69ec660c68949a",
-      "targetSha256": "8669584a4f467c4f6bab29c8dee8584762058d5bbc0c2c1f9c69ec660c68949a",
-      "adapted": false
+      "targetSha256": "085604504be17417eaadc6f7a9731110559fcde2d89ef371f53057cdec97cbcd",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-subagent/src/client/SubagentHeaderLineage.tsx",
@@ -2212,7 +2212,7 @@
       "source": "packages/client/ui-tool/src/client/locale.ts",
       "target": "src/vendor/tool/client/locale.ts",
       "sourceSha256": "eb9b8f7ac08faedf7647b5dd64e8d30be6e34d9bddf25895b131faa177e1e3aa",
-      "targetSha256": "a146ed267ab2d131cdeb59ff55c9658e1cd813cded472fea662e0268bb46d785",
+      "targetSha256": "3ae0705894621d6ffb88d46a2260053f633598f7ec6df99d0c8bb417729c6114",
       "adapted": true
     },
     {
@@ -2345,7 +2345,7 @@
       "source": "packages/client/ui-tool/src/client/tool/models/primitive-labels.ts",
       "target": "src/vendor/tool/client/tool/models/primitive-labels.ts",
       "sourceSha256": "726976792a0b61d9d63e6047803d062fb0fefdc3254759b256aecf8c0ea86b53",
-      "targetSha256": "3e98d71542e5ab35d7138fbeff70e7017f1fbcf61b8180957da3149f308785ff",
+      "targetSha256": "846f0b6e9e520dd7bd8b19d4c0d32a8cea960e7116eddbe63b5d5418576f4412",
       "adapted": true
     },
     {
@@ -2584,7 +2584,7 @@
       "source": "packages/client/ui-workspace/src/client/rows/Rows.tsx",
       "target": "src/vendor/workspace/client/rows/Rows.tsx",
       "sourceSha256": "d8b7103c28e8aa8b3dd444992a30552e392a7f164966819e62466cae6bcf60f6",
-      "targetSha256": "74f9802150316ac4559e0dbffa04b7acae32da2451777c477252654d3644b161",
+      "targetSha256": "ded381d9e54e58e3017e4d7b4ee96a5d80ea0bb0920eb7d4923fd322b6552dd0",
       "adapted": true
     },
     {
@@ -2598,7 +2598,7 @@
       "source": "packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.tsx",
       "target": "src/vendor/workspace/client/rows/WorkspaceBrowser.tsx",
       "sourceSha256": "733c94a0b663b7f112b5a296689fcbae86ea7dc7927ec7a3159996cb0957e719",
-      "targetSha256": "d0f680f796a00b3b4840928a25ad7adf7928f883877f9574a528a10f73e5e0be",
+      "targetSha256": "241e7a9b56dccbaf591c5894e9e5addc9c5ed3c2bcd002b54ae5dc4b4f4990a4",
       "adapted": true
     },
     {
@@ -2888,7 +2888,7 @@
       "source": "packages/client/ui-chat/src/client/chat/flow-motion.ts",
       "target": "src/vendor/chat/client/chat/flow-motion.ts",
       "sourceSha256": "6ddaf028928af612e859f8f2dc7ee238c5adb582d3800d6ab371ab8d62565589",
-      "targetSha256": "91d9a0cb05c003b0a2c8e9a8df8e22f793811dc80f653142b997ba465aadf926",
+      "targetSha256": "7c18c0df122643198026f275e31bccd2828d2fe89ea23f329fa6b1f00e9e47b2",
       "adapted": true
     },
     {
@@ -3008,8 +3008,8 @@
       "source": "packages/client/ui-chat/src/client/chat/use-scroll-follow.ts",
       "target": "src/vendor/chat/client/chat/use-scroll-follow.ts",
       "sourceSha256": "fd0734320e326292e614991476c1ffe492a40b90e44534b47a0368528a9415f0",
-      "targetSha256": "fd0734320e326292e614991476c1ffe492a40b90e44534b47a0368528a9415f0",
-      "adapted": false
+      "targetSha256": "3fd4a32b15c7d660f36e97d414e17c6e8d5c3f84f36105c15646ec30bf1946d0",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/chat/use-turn-data.ts",
@@ -3564,6 +3564,38 @@
       "targetSha256": "c0a3b3a1c9eead4c16421c2b60773a3692b507eb6e1e38004c26393b7d483a34",
       "adapted": true,
       "description": "Moved the existing eight-language shared base here; Tool and Conversation retain their namespace adapters without duplicate key/value copies."
+    },
+    {
+      "source": "packages/client/ui-primitives/src/markdown/highlight.ts",
+      "target": "src/vendor/primitives/markdown/highlight-engine.ts",
+      "sourceSha256": "8f641cddd716d1d96908784514e8e557a882d8547a2f2a60f6bb8e19855709b0",
+      "targetSha256": "9bed3cb380ce914d7b5314e2d661007f7fc4c5191456f5f56a9d0bf7c1c61c2c",
+      "adapted": true,
+      "adaptation": "Extracted CSS-variable theme and JavaScript-regex engine; grammar initialization and warmups now execute in the dedicated Worker."
+    },
+    {
+      "source": "packages/client/ui-primitives/src/markdown/highlight.ts",
+      "target": "src/vendor/primitives/markdown/highlight-grammars.ts",
+      "sourceSha256": "8f641cddd716d1d96908784514e8e557a882d8547a2f2a60f6bb8e19855709b0",
+      "targetSha256": "93398e8df065748d966bde0ee6745de4c333e82ab0021d7a05a3a225686383c1",
+      "adapted": true,
+      "adaptation": "Extracted language imports and original Go grammar correction; all 60 grammars remain available on demand."
+    },
+    {
+      "source": "packages/client/ui-primitives/src/markdown/highlight.ts",
+      "target": "src/vendor/primitives/markdown/highlight-language.ts",
+      "sourceSha256": "8f641cddd716d1d96908784514e8e557a882d8547a2f2a60f6bb8e19855709b0",
+      "targetSha256": "d3c7027cba3c711dbd17e0bf1e42d50a49c118645e6a5ad5647f36300a57401f",
+      "adapted": true,
+      "adaptation": "Extracted language aliases, long-line limit, synchronous-work budget and streaming quotas shared by main thread and Worker."
+    },
+    {
+      "source": "packages/client/ui-primitives/src/markdown/highlight.ts",
+      "target": "src/vendor/primitives/markdown/highlight-tokenizer.ts",
+      "sourceSha256": "8f641cddd716d1d96908784514e8e557a882d8547a2f2a60f6bb8e19855709b0",
+      "targetSha256": "df77b879be8276dc47e2c17d6095e3033fb6aee7ece0801f4403c43e38b6b4bb",
+      "adapted": true,
+      "adaptation": "Extracted tokenization, line HTML and incremental grammar-state session. The Worker sends committed prefixes in bounded batches and retains offsets across discarded responses."
     }
   ],
   "authored": [
@@ -3604,7 +3636,7 @@
     },
     {
       "target": "src/client.tsx",
-      "targetSha256": "316ab6ef374801ca420eddfda4d790dc30f69dcb09af70b309122252db7eba1a",
+      "targetSha256": "18988299a8e06a4ccfd75ee5c5b4b941ba80525fe3862b673ba672932b7d649a",
       "description": "Original plugin composition, public owner selection and presentation/service registration."
     },
     {
@@ -3746,6 +3778,41 @@
       "target": "src/vendor/conversation/client/skeleton/view-tab-ids.ts",
       "targetSha256": "690ac8d764702f1564f961d125247007dd914f644df599f750940554e44f0f9a",
       "description": "Original stable tab/panel IDs shared by the conversation header and view shell."
+    },
+    {
+      "target": "src/vendor/intelligent/client/OpenUILoader.tsx",
+      "targetSha256": "aea8b1be55c7a0295dc2d9b6b68d2a0a0e3e86f26f3527c7de2c475372cb7a37",
+      "description": "Loads the existing OpenUI renderer on demand, preserving source text and explicit retry after a confirmed script transport failure."
+    },
+    {
+      "target": "src/vendor/primitives/chunk-load-error.ts",
+      "targetSha256": "a2b11f94d0d81dbefe8178d7829ea23151fe4590866e7589feac8821b2d7ee07",
+      "description": "Identifies the official module loader script-request error at the optional-renderer boundary."
+    },
+    {
+      "target": "src/vendor/primitives/markdown/LazyMath.tsx",
+      "targetSha256": "117536dab1d5ef540d23e8e5eae8aa4a904f954a1d3de60d5dafeea15d580034",
+      "description": "Loads the existing KaTeX renderer on demand, preserving TeX and explicit retry after a confirmed script transport failure."
+    },
+    {
+      "target": "src/vendor/primitives/markdown/MathContent.tsx",
+      "targetSha256": "19b59c8148dfc126bdc9927c981854e33446fe97eae3dfb9ac6b9dce2607f9d0",
+      "description": "Optional entry that reuses the existing bounded KaTeX renderer and its stylesheet."
+    },
+    {
+      "target": "src/vendor/primitives/markdown/MathLoad.module.css",
+      "targetSha256": "57425bacf490661871807ea31190da44e99ead967fa1683cf1299797bc101144",
+      "description": "Pending formula source and retry-action layout for narrow viewports."
+    },
+    {
+      "target": "src/vendor/primitives/markdown/highlight-protocol.ts",
+      "targetSha256": "a8d2c56d6a4534d74a91d68ccb042d97c838b04b6b687ca6c67ab2e117c8b3b4",
+      "description": "Typed messages for grammar registration, cancellable code views, incremental line progress and worker results."
+    },
+    {
+      "target": "src/vendor/primitives/markdown/highlight.worker.ts",
+      "targetSha256": "dede757e6edbd9b23ad68eb550bbdbb16223d73f5d88e18012e48ea4b6342588",
+      "description": "Dedicated Worker entry executing the attributed tokenizer with per-view cancellation and incremental result delivery."
     }
   ],
   "adapters": [
@@ -4024,7 +4091,7 @@
     },
     {
       "target": "src/tool-owner.ts",
-      "targetSha256": "21f5e9e0b5328851338b94705c92821b939c2020a45b02548524775866562b6f",
+      "targetSha256": "ac9a17c5fb3fde43dac382188925097d1526eb7db0cfb76f0f6d23322f6b4bf0",
       "sources": [
         {
           "source": "packages/client/ui-tool/src/client/apply.ts",

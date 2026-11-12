@@ -1,4 +1,4 @@
-import { build } from 'esbuild'
+import { build } from './client-build.mjs'
 import { JSDOM } from 'jsdom'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'

@@ -44,7 +44,17 @@ export class ScrollFollow {
    */
   bind(element: HTMLElement): () => void {
     ScrollFollow.owners.set(element, this)
-    return () => { if (ScrollFollow.owners.get(element) === this) ScrollFollow.owners.delete(element) }
+    const reducedMotion = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null
+    const onMotionPreference = () => {
+      if (!reducedMotion?.matches || !this.animating) return
+      const metrics = scrollMetrics(element)
+      this.jump(element, metrics, metrics.floor)
+    }
+    reducedMotion?.addEventListener('change', onMotionPreference)
+    return () => {
+      reducedMotion?.removeEventListener('change', onMotionPreference)
+      if (ScrollFollow.owners.get(element) === this) ScrollFollow.owners.delete(element)
+    }
   }
 
   /**
@@ -138,6 +148,9 @@ export class ScrollFollow {
   toBottom(element: HTMLElement, metrics: ViewportMetrics, behavior: 'instant' | 'smooth'): ViewportMetrics {
     this.following = true
     if (metrics.top === metrics.floor) return this.jump(element, metrics, metrics.floor)
+    if (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return this.jump(element, metrics, metrics.floor)
+    }
     if (behavior === 'instant' && this.animating) {
       // Content grew under an outstanding animation: retarget it instead of cutting to the floor.
       if (this.target !== metrics.floor) {
@@ -147,9 +160,6 @@ export class ScrollFollow {
       return metrics
     }
     if (behavior === 'instant' || (!this.animating && this.nearBottom(metrics))) return this.jump(element, metrics, metrics.floor)
-    if (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      return this.jump(element, metrics, metrics.floor)
-    }
     if (this.target === null) {
       this.target = metrics.floor
       element.scrollTo({ top: metrics.floor, behavior: 'smooth' })

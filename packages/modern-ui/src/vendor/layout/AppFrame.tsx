@@ -243,7 +243,7 @@ export function AppFrame({
   const [dragging, setDragging] = useState(false)
   // Track easing is scoped to a discrete open/close toggle: data-animating
   // goes up when the collapse state or the rightbar track flips and comes down
-  // at transition end (timeout as the reduced-motion/covered-frame fallback).
+  // when the actual CSS transition finishes or is cancelled.
   // Steady-state viewport updates stay instant (AppFrame.module.css), and so
   // does a toggle arriving together with a viewport change — that is the
   // responsive auto-collapse firing mid window-resize, where easing would
@@ -266,22 +266,18 @@ export function AppFrame({
   }, [trackToggle, viewport, dragging])
   useEffect(() => {
     if (animating === 0) return
-    const frame = frameRef.current
-    /* v8 ignore next -- the ref is always attached by effect time: the frame div renders unconditionally. */
-    if (frame === null) return
-    const settle = () => { setAnimating(0) }
-    const onTransitionEnd = (event: TransitionEvent) => {
-      if (event.target === frame && event.propertyName === 'grid-template-columns') settle()
-    }
+    const frame = frameRef.current!
+    let active = true
+    const settle = () => { if (active) setAnimating(0) }
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
     const onReducedMotion = () => { if (reducedMotion.matches) settle() }
-    frame.addEventListener('transitionend', onTransitionEnd)
+    const transitions = frame.getAnimations().filter(animation => animation instanceof CSSTransition
+      && animation.transitionProperty === 'grid-template-columns')
+    void Promise.allSettled(transitions.map(animation => animation.finished)).then(settle)
     reducedMotion.addEventListener('change', onReducedMotion)
-    const timer = setTimeout(settle, 600)
     return () => {
-      frame.removeEventListener('transitionend', onTransitionEnd)
+      active = false
       reducedMotion.removeEventListener('change', onReducedMotion)
-      clearTimeout(timer)
     }
   }, [animating])
   const onDragEnd = useCallback(() => { setDragging(false) }, [])
@@ -321,6 +317,7 @@ export function AppFrame({
   return (
     <div
       ref={frameRef}
+      data-layout-frame
       className={css.frame}
       style={{
         ...(document.documentElement.hasAttribute('data-windows-titlebar')

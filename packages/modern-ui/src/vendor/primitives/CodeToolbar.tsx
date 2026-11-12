@@ -4,11 +4,13 @@ import {
   IconChevronDownOutlineRegular, IconChevronUpOutlineRegular,
 } from './icons/index.tsx'
 import { Tooltip } from './Tooltip.tsx'
+import { Button } from './Button.tsx'
 import { supportsHighlighting } from './markdown/highlight.ts'
 import css from './CodeCard.module.css'
 
 /** Localized language fallback and wrapping actions supplied by the card owner. */
 export interface CodeToolbarLabels {
+  highlight?: { failed: string; retry: string } | undefined
   /** Title for an absent or unsupported language. */
   codeLabel: string
   /** Action that enables wrapping. */
@@ -18,6 +20,15 @@ export interface CodeToolbarLabels {
   /** Optional pair of localized code-body disclosure actions. */
   collapseLabel?: string | undefined
   expandLabel?: string | undefined
+}
+
+const highlightLabels = { failed: 'Syntax highlighting could not be loaded; source preserved', retry: 'Retry highlighting' }
+
+export function HighlightLoadNotice({ error, labels = highlightLabels, onRetry }: { error: Error; labels?: CodeToolbarLabels['highlight']; onRetry: () => void }) {
+  return <div className={css.highlightFailure} role="alert">
+    <span>{labels.failed}: {error.message}</span>
+    <Button variant="outline" size="sm" onClick={onRetry}>{labels.retry}</Button>
+  </div>
 }
 
 /** Display state and callbacks for a code card's toolbar. */

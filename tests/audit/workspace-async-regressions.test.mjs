@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { createRequire, Module } from 'node:module'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { build } from 'esbuild'
+import { build } from './helpers/client-build.mjs'
 import { JSDOM } from 'jsdom'
 
 const repo = fileURLToPath(new URL('../../', import.meta.url))

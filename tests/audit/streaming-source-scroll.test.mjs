@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
-import { build } from 'esbuild'
+import { build } from './helpers/client-build.mjs'
 import { chromium } from 'playwright-core'
 
 const repo = path.resolve(import.meta.dirname, '../..')

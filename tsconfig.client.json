@@ -15,5 +15,10 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "files": ["packages/modern-ui/src/client.tsx", "packages/modern-ui/src/index.ts", "packages/modern-ui/src/assets.d.ts"]
+  "files": [
+    "packages/modern-ui/src/client.tsx",
+    "packages/modern-ui/src/index.ts",
+    "packages/modern-ui/src/assets.d.ts",
+    "packages/modern-ui/src/vendor/primitives/markdown/highlight.worker.ts"
+  ]
 }

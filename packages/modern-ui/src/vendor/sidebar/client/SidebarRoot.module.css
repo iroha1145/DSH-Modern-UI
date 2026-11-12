@@ -8,6 +8,8 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  width: calc(100% - 16px);
+  margin-left: 16px;
   padding: 16px var(--dsh-sidebar-inline-padding) 14px;
   box-sizing: border-box;
   border: 0;
@@ -47,6 +49,28 @@
   padding: 16px 6px 14px;
   border-radius: var(--dsw-radius-panel);
   align-items: center;
+}
+
+/* Freeze the single content tree while the capsule follows the live grid track. */
+.root[data-desktop-wide] > :is(.logoRow, .copyVersion, .panelList, .regionArea, .footArea) {
+  box-sizing: border-box;
+  min-width: var(--dsh-sidebar-content-width);
+  max-width: var(--dsh-sidebar-content-width);
+}
+
+.root[data-desktop-wide] > .navSectionLabel {
+  min-width: calc(var(--dsh-sidebar-content-width) - 20px);
+  max-width: calc(var(--dsh-sidebar-content-width) - 20px);
+}
+
+.root[data-desktop-wide] > .topStrip {
+  min-width: calc(var(--dsh-sidebar-content-width) + 2 * var(--dsh-sidebar-inline-padding));
+  max-width: calc(var(--dsh-sidebar-content-width) + 2 * var(--dsh-sidebar-inline-padding));
+}
+
+.root[data-desktop-wide] > .regionArea {
+  min-width: calc(var(--dsh-sidebar-content-width) + var(--dsh-sidebar-inline-padding) + 4px);
+  max-width: calc(var(--dsh-sidebar-content-width) + var(--dsh-sidebar-inline-padding) + 4px);
 }
 
 /* Cloud-Monitor top handle strip (.feel-nav-handle) */
@@ -593,6 +617,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .iconButton,
+  .newSession,
+  .panelRow,
+  .newSessionContent > svg,
+  .panelGlyph,
   .wide,
   .fading > *,
   .railIn .iconButton,
@@ -603,6 +632,10 @@
     transition: none;
     animation: none;
   }
+  .iconButton:active,
+  .newSession:active,
+  .panelRow:active,
+  .panelRow:hover .panelGlyph { transform: none; }
 }
 
 
@@ -619,6 +652,7 @@
 
 @media (max-width: 640px) {
   .root[data-mobile-drawer] {
+    margin-left: 0;
     position: fixed;
     inset: var(--dsh-frame-chrome-top, 0px) auto auto 0;
     z-index: 82;

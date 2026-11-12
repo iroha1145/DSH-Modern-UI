@@ -10,8 +10,9 @@ import type { ChatViewSlotProps } from './contract/slots.ts'
  */
 export function markdownLabels(t: ChatViewSlotProps['t']): MarkdownLabels {
   return {
-    code: { copyLabel: t('copy'), copiedLabel: t('copied'), toolbarLabels: { codeLabel: t('codeBlock.title'), wrapLabel: t('codeBlock.wrap'), unwrapLabel: t('codeBlock.unwrap'), collapseLabel: t('codeBlock.collapse'), expandLabel: t('codeBlock.expand') } },
+    code: { copyLabel: t('copy'), copiedLabel: t('copied'), toolbarLabels: { highlight: { failed: t('highlight.loadFailed'), retry: t('highlight.retry') }, codeLabel: t('codeBlock.title'), wrapLabel: t('codeBlock.wrap'), unwrapLabel: t('codeBlock.unwrap'), collapseLabel: t('codeBlock.collapse'), expandLabel: t('codeBlock.expand') } },
     footnotes: t('markdown.footnotes'),
+    math: { failed: t('math.loadFailed'), retry: t('math.retry') },
     citations: { sources: t('markdown.sources'), source: t('markdown.source') },
   }
 }
