@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.1.18] - 2026-11-12
+
 ### 调整
 
 - 侧栏收缩、展开和中途反转按实际过渡结束时间收尾，内容在过程中保持尺寸，减少跳变；拖动和窗口大小改变时会结束当前过渡。
@@ -470,7 +472,8 @@
 
 - 会话里的联网开关（`/web on|off`）和它用的协议。联网工具统一在官方的插件管理里开关。
 
-[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.17...HEAD
+[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.18...HEAD
+[0.1.18]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.17...v0.1.18
 [0.1.17]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.16...v0.1.17
 [0.1.16]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.15...v0.1.16
 [0.1.15]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.14...v0.1.15
