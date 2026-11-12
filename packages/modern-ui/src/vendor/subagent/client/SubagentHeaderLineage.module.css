@@ -405,3 +405,9 @@
     background: var(--dsw-alias-interactive-bg-hover);
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .trigger svg,
+  .switcherTrigger svg,
+  .disclosure { transition: none; }
+}

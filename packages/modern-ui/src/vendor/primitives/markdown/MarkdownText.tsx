@@ -22,7 +22,6 @@ import {
 import type { MarkdownCodeRenderer, MarkdownFileMentions, MarkdownLabels, MarkdownPathImages, MarkdownRenderContext, ReferenceTargets } from './render.tsx'
 import { CitationDocument, CitationSection } from './citations.tsx'
 import type { CitationSources } from './citations.tsx'
-import 'katex/dist/katex.min.css'
 import css from './MarkdownText.module.css'
 
 export type { MarkdownCodeLabels, MarkdownCodeRenderer, MarkdownFileMentions, MarkdownLabels, MarkdownPathImages } from './render.tsx'

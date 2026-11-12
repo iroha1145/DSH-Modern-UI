@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, writeFile, rm, symlink, realpath } from 'node:fs/promis
 import os from 'node:os'
 import path from 'node:path'
 import { test } from 'vitest'
-import { build } from 'esbuild'
+import { build } from './helpers/client-build.mjs'
 import { collectExposure } from '../../scripts/dependency-exposure.mjs'
 
 const json = async (file, value) => {

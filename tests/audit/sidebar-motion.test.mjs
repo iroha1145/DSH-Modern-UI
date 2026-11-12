@@ -1,6 +1,6 @@
 import { afterAll, test } from 'vitest'
 import assert from 'node:assert/strict'
-import { build } from 'esbuild'
+import { build } from './helpers/client-build.mjs'
 import { execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
@@ -42,7 +42,7 @@ function snapshot(){
  const shell=document.querySelector('.'+frame.frame);const col=shell.querySelector('.'+frame.sidebarCol);const content=shell.querySelector('.'+frame.centerCol);const side=shell.querySelector('.'+sidebar.root);const glyph=side.querySelector('.'+sidebar.panelGlyph);const handle=shell.querySelector('[data-side="sidebar"]');
  const rect=el=>{if(!el)return null;const r=el.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height,right:r.right}};
  const opacity=el=>{let value=1;for(let node=el;node&&node!==side.parentElement;node=node.parentElement)value*=Number(getComputedStyle(node).opacity);return value};
- return {time:performance.now(),viewport:store.getSnapshot().layoutInfo.viewportWidth,frameWidth:shell.getBoundingClientRect().width,track:rect(col),center:rect(content),sidebar:rect(side),glyph:rect(glyph),handle:rect(handle),glyphOpacity:opacity(glyph),hidden:side.hidden,inert:side.inert,ariaHidden:side.getAttribute('aria-hidden'),role:side.getAttribute('role'),display:getComputedStyle(side).display,collapsed:shell.hasAttribute('data-sidebar-collapsed'),animating:shell.hasAttribute('data-animating'),dragging:shell.hasAttribute('data-dragging'),rail:side.classList.contains(sidebar.collapsed),drawerOpen:side.hasAttribute('data-drawer-open'),transform:getComputedStyle(side).transform,animations:document.getAnimations().filter(a=>a.playState==='running').length};
+ return {time:performance.now(),viewport:store.getSnapshot().layoutInfo.viewportWidth,frameWidth:shell.getBoundingClientRect().width,track:rect(col),center:rect(content),sidebar:rect(side),body:rect(side.querySelector('.'+sidebar.panelList)),workspaceWide:side.querySelector('[data-motion-workspace]').dataset.motionWorkspace==='wide',glyph:rect(glyph),handle:rect(handle),glyphOpacity:opacity(glyph),hidden:side.hidden,inert:side.inert,ariaHidden:side.getAttribute('aria-hidden'),role:side.getAttribute('role'),display:getComputedStyle(side).display,collapsed:shell.hasAttribute('data-sidebar-collapsed'),animating:shell.hasAttribute('data-animating'),dragging:shell.hasAttribute('data-dragging'),rail:side.classList.contains(sidebar.collapsed),drawerOpen:side.hasAttribute('data-drawer-open'),transform:getComputedStyle(side).transform,animations:document.getAnimations().filter(a=>a.playState==='running').length};
 }
 window.motionFixture={snapshot,toggle:()=>store.actions.toggleSidebar(),resize:width=>document.getElementById('app').style.width=width+'px',
  async sample(steps,duration){const start=performance.now();const frames=[];let next=0;return new Promise(resolve=>{function frame(){const elapsed=performance.now()-start;while(next<steps.length&&elapsed>=steps[next].at){const step=steps[next++];if(step.type==='toggle')store.actions.toggleSidebar();else document.getElementById('app').style.width=step.width+'px'}frames.push({...snapshot(),elapsed});if(elapsed>=duration)resolve(frames);else requestAnimationFrame(frame)}requestAnimationFrame(frame)})}};
@@ -94,13 +94,20 @@ afterAll(async () => {
     if (value === undefined) delete process.env[key]
     else process.env[key] = value
 })
-async function open(options = {}) {
+async function open({ platform, ...options } = {}) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, ...options })
   const page = await context.newPage()
   await page.setContent(
     '<meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body,#app{height:100%;margin:0}body{font:14px Arial}button{font:inherit}:root{--dsw-alias-label-primary:#111;--dsw-alias-state-business-primary:#06c;--dsw-alias-bg-base:#fff;--dsw-radius-panel:16px;--dsw-alias-bg-mask-1:#0004;--dsw-alias-bg-layer-2:#fff}</style><div id="app"></div>',
   )
   await page.addStyleTag({ content: result.outputFiles.find(file => file.path.endsWith('.css')).text })
+  if (platform)
+    await page.evaluate(value => {
+      if (value === 'windows') {
+        document.documentElement.setAttribute('data-windows-titlebar', '')
+        document.documentElement.style.setProperty('--dsh-windows-titlebar-height', '32px')
+      } else document.documentElement.dataset.platform = value
+    }, platform)
   await page.addScriptTag({ content: result.outputFiles.find(file => file.path.endsWith('.js')).text })
   await page.waitForFunction(() => window.motionFixture && document.querySelector('[data-motion-main]'))
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
@@ -131,6 +138,65 @@ test('desktop collapse crossfades without a translated rail jump, including rapi
       'Sidebar resize handle left the live grid edge',
     )
     assert.ok(Math.abs(reverse.at(-1).track.width - 264) < 1)
+  } finally {
+    await context.close()
+  }
+})
+
+for (const platform of [undefined, 'windows', 'darwin'])
+  test(`the ${platform ?? 'web'} capsule follows the whole closing track with one frozen content tree`, async () => {
+    const { page, context } = await open({ platform })
+    try {
+      const initial = await page.evaluate(() => motionFixture.snapshot())
+      await page.evaluate(() => {
+        window.workspaceElement = document.querySelector('[data-motion-workspace]')
+      })
+      const frames = await page.evaluate(() => motionFixture.sample([{ at: 0, type: 'toggle' }], 460))
+      evidence.cases.push({ name: `continuous-${platform ?? 'web'}`, frames })
+      const moving = frames.filter(frame => frame.animating && frame.track.width > (platform ? 40 : 68.5) && frame.elapsed > 30)
+      assert.ok(moving.length > 3)
+      assert.ok(
+        moving.some(frame => frame.elapsed > 140),
+        'The regression must sample after the old 120ms content swap',
+      )
+      for (const frame of moving) {
+        assert.ok(Math.abs(frame.sidebar.right - frame.center.x) < 1, JSON.stringify(frame))
+        assert.ok(Math.abs(frame.body.width - initial.body.width) < 1, 'Wide content reflowed during the column transition')
+        assert.ok(Math.abs(frame.glyph.y - initial.glyph.y) < 1, 'Navigation rows jumped vertically during collapse')
+        assert.equal(frame.workspaceWide, true)
+      }
+      assert.equal(await page.evaluate(() => window.workspaceElement === document.querySelector('[data-motion-workspace]')), true)
+      const end = frames.at(-1)
+      assert.equal(end.animating, false)
+      if (platform) {
+        assert.equal(end.hidden, true)
+        assert.ok(end.center.x < 1)
+      } else {
+        assert.equal(end.rail, true)
+        assert.equal(end.sidebar.width, 52)
+      }
+    } finally {
+      await context.close()
+    }
+  })
+
+test('reversing before the column settles keeps the same wide content and continues its geometry', async () => {
+  const { page, context } = await open()
+  try {
+    const frames = await page.evaluate(() =>
+      motionFixture.sample(
+        [
+          { at: 0, type: 'toggle' },
+          { at: 170, type: 'toggle' },
+        ],
+        550,
+      ),
+    )
+    evidence.cases.push({ name: 'wide-content-reversal', frames })
+    assert.ok(frames.every(frame => frame.workspaceWide && Math.abs(frame.body.width - frames[0].body.width) < 1))
+    const jumps = frames.slice(1).map((frame, index) => Math.abs(frame.sidebar.width - frames[index].sidebar.width))
+    assert.ok(Math.max(...jumps) < 35, `Capsule jumped ${Math.max(...jumps)}px during reversal`)
+    assert.ok(Math.abs(frames.at(-1).sidebar.width - 248) < 1)
   } finally {
     await context.close()
   }
@@ -258,6 +324,34 @@ test('enabling reduced motion during a toggle cancels both feedback and track mo
     assert.equal(state.rail, true)
     assert.equal(state.animations, 0)
     assert.equal(state.track.width, 68)
+  } finally {
+    await context.close()
+  }
+})
+
+test('reduced-motion sidebar controls retain their geometry on hover and press', async () => {
+  const { page, context } = await open({ reducedMotion: 'reduce' })
+  try {
+    const panel = page.getByRole('button', { name: 'Conversations', exact: true })
+    const initial = await panel.boundingBox()
+    await panel.hover()
+    await page.mouse.down()
+    const state = await panel.evaluate(element => {
+      const box = element.getBoundingClientRect()
+      return {
+        x: box.x,
+        y: box.y,
+        transform: getComputedStyle(element).transform,
+        transitions: element.getAnimations({ subtree: true }).length,
+        glyphTransform: getComputedStyle(element.firstElementChild).transform,
+      }
+    })
+    assert.equal(state.x, initial.x)
+    assert.equal(state.y, initial.y)
+    assert.equal(state.transform, 'none')
+    assert.equal(state.glyphTransform, 'none')
+    assert.equal(state.transitions, 0)
+    await page.mouse.up()
   } finally {
     await context.close()
   }

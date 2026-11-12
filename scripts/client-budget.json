@@ -1,4 +1,8 @@
 {
-  "bytes": 10000000,
-  "gzipBytes": 2200000
+  "bytes": 4500000,
+  "gzipBytes": 1250000,
+  "total": {
+    "bytes": 10000000,
+    "gzipBytes": 2200000
+  }
 }

@@ -4,7 +4,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { Worker } from 'node:worker_threads'
-import { build } from 'esbuild'
+import { build } from './helpers/client-build.mjs'
 import { afterAll, test } from 'vitest'
 
 const root = path.resolve(import.meta.dirname, '../..')

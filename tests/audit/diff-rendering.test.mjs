@@ -1,6 +1,6 @@
 import { afterAll, test } from 'vitest'
 import assert from 'node:assert/strict'
-import { build } from 'esbuild'
+import { build } from './helpers/client-build.mjs'
 import { readFile, rm, writeFile } from 'node:fs/promises'
 import { execFileSync } from 'node:child_process'
 import { resolve, relative, dirname } from 'node:path'

@@ -2,15 +2,11 @@ import { memo, useCallback, useMemo, useRef, useState, type CSSProperties } from
 import clsx from 'clsx'
 import { FoldToggle } from './FoldToggle.tsx'
 import { writeClipboard } from './clipboard.ts'
-import { CodeToolbar, type CodeToolbarLabels } from './CodeToolbar.tsx'
+import { CodeToolbar, HighlightLoadNotice, type CodeToolbarLabels } from './CodeToolbar.tsx'
 import cardCss from './CodeCard.module.css'
-import {
-  highlightLines,
-  withinHighlightBudget,
-  type HighlightSpan,
-} from './markdown/highlight.ts'
+import { grammarForHint, type HighlightSpan } from './markdown/highlight.ts'
 import { useViewportHighlighting } from './markdown/useViewportHighlighting.ts'
-import { useDeferredHighlightChunks, useGrammarReady } from './markdown/useHighlighting.ts'
+import { useWorkerHighlight } from './markdown/useHighlighting.ts'
 import css from './ReadBlock.module.css'
 
 /**
@@ -87,14 +83,8 @@ export function ReadBlock({
   // Whole-window highlighting preserves multiline grammar context; copy uses
   // the same text without gutter or banner chrome.
   const raw = useMemo(() => lines.map(line => line.text).join('\n'), [lines])
-  const loaded = useGrammarReady(lang)
-  const withinBudget = useMemo(() => withinHighlightBudget(raw), [raw])
-  const immediate = useMemo(
-    () => highlighting && withinBudget ? highlightLines(raw, lang) : undefined,
-    [highlighting, withinBudget, raw, lang, loaded],
-  )
-  const deferred = useDeferredHighlightChunks(raw, lang, highlighting && !withinBudget, loaded)
-  const highlighted = useMemo(() => immediate ?? deferred?.flat(), [immediate, deferred])
+  const { result, error: highlightError, retry: retryHighlight } = useWorkerHighlight(raw, lang, highlighting, false, 'lines')
+  const highlighted = useMemo(() => result?.kind === 'lines' && result.code === raw && result.language === grammarForHint(lang) ? result.chunks.flat() : undefined, [result, raw, lang])
   const [expanded, setExpanded] = useState(false)
   const [copied, setCopied] = useState(false)
   const [wrapped, setWrapped] = useState(false)
@@ -137,6 +127,7 @@ export function ReadBlock({
         // Empty files must not replace the clipboard with empty text.
         onCopy={lines.length > 0 ? onCopy : undefined} onWrap={() => { setWrapped(value => !value) }}
       />
+      {highlightError !== undefined && <HighlightLoadNotice error={highlightError} labels={labels.highlight} onRetry={retryHighlight} />}
       <div className={cardCss.body}>
         {rows(capped ? paired.slice(0, headLines) : paired)}
         {hidden > 0 && (

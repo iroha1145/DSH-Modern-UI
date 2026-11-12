@@ -6,7 +6,7 @@ import assert from 'node:assert/strict'
 import { createRequire, Module } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { build } from 'esbuild'
+import { build } from './helpers/client-build.mjs'
 
 const repo = fileURLToPath(new URL('../../', import.meta.url))
 const require = createRequire(import.meta.url)

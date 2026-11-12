@@ -4,7 +4,7 @@ import { readFile, mkdtemp, rm } from 'node:fs/promises'
 import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { build } from 'esbuild'
+import { build } from './helpers/client-build.mjs'
 import { countEach, EDITS } from '../../scripts/openui-each-counter.mjs'
 
 const repo = path.resolve(import.meta.dirname, '../..')

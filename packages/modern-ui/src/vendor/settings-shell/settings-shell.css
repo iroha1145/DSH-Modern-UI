@@ -83,6 +83,19 @@
 [data-modern-settings-seat] button[aria-haspopup="dialog"][aria-expanded]:active,
 [data-shortcut-modal="settings"][role="dialog"] > nav > div > button:active { transform: translateY(1px); }
 [data-modern-settings-seat][data-rail] button[aria-haspopup="dialog"][aria-expanded] { padding: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-modern-settings-seat] button[aria-haspopup="menu"][data-signed-out],
+  [data-modern-settings-seat] button[aria-haspopup="dialog"][aria-expanded],
+  [data-shortcut-modal="settings"][role="dialog"] > nav > div > button {
+    transition: none;
+  }
+  [data-modern-settings-seat] button[aria-haspopup="menu"][data-signed-out]:active,
+  [data-modern-settings-seat] button[aria-haspopup="dialog"][aria-expanded]:active,
+  [data-shortcut-modal="settings"][role="dialog"] > nav > div > button:active {
+    transform: none;
+  }
+}
 /* Phone portrait. The official dialog keeps its desktop row (a 188px nav beside the content), which leaves the
    options about 140px on a phone, so labels and controls stack one character per line. Below 641px the dialog
    fills the screen and stacks: the title and close button, the horizontally scrolling tabs, the header

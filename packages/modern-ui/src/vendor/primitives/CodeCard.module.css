@@ -66,6 +66,22 @@
   white-space: nowrap;
 }
 
+.highlightFailure {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  color: var(--dsw-alias-label-secondary);
+  font: 12px/18px var(--dsw-font-family);
+  overflow-wrap: anywhere;
+}
+
+.highlightFailure > span {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .action {
   display: inline-flex;
   align-items: center;

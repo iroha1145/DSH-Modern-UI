@@ -150,9 +150,25 @@ export function createFlowMotion(driver: () => InputFoldDriver | null, foldingCh
   let clearEpoch = 0
   let batchCleanup: (() => void) | null = null
   let cancelEmptyBatch: (() => void) | null = null
+  let finishBatch: (() => void) | null = null
+  const reducedMotion = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null
   /** The batch is committing hidden rows and its final geometry; idle listeners wait until both land. */
   let settling = false
   let anchoringDisabled = false
+
+  function onMotionPreference(): void {
+    if (!reducedMotion?.matches) return
+    if (batch) {
+      if (frameRequest !== null) cancelAnimationFrame(frameRequest)
+      frameRequest = null
+      finishBatch!()
+    } else {
+      for (const box of [...boxes.values()]) {
+        box.take()
+        box.finish()
+      }
+    }
+  }
 
   function cancelInput(): void {
     if (batch) cancelled = true
@@ -229,13 +245,13 @@ export function createFlowMotion(driver: () => InputFoldDriver | null, foldingCh
       }
     }
     freezeTravelling()
-    const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
     let started: number | undefined
     let displacement = 0
     const settle = (finishCancelled: boolean): void => {
       batch = false
       batchCleanup = null
       cancelEmptyBatch = null
+      finishBatch = null
       settling = true
       try {
         for (const box of owned) if (boxes.get(box.element) === box) box.finish()
@@ -256,7 +272,7 @@ export function createFlowMotion(driver: () => InputFoldDriver | null, foldingCh
     const tick = (now: number): void => {
       frameRequest = null
       started ??= now
-      const elapsed = reduced ? CLOSE_DELAY_MS + CLOSE_MS : now - started
+      const elapsed = reducedMotion?.matches ? CLOSE_DELAY_MS + CLOSE_MS : now - started
       const linear = Math.min(1, Math.max(0, (elapsed - CLOSE_DELAY_MS) / CLOSE_MS))
       const progress = linear * linear * (3 - 2 * linear)
       current.prepare(progress, cancelled)
@@ -289,7 +305,8 @@ export function createFlowMotion(driver: () => InputFoldDriver | null, foldingCh
       }
       settle(cancelled)
     }
-    if (reduced) tick(0)
+    finishBatch = () => { tick(performance.now()) }
+    if (reducedMotion?.matches) tick(0)
     else frameRequest = requestAnimationFrame(tick)
     return true
   }
@@ -308,15 +325,16 @@ export function createFlowMotion(driver: () => InputFoldDriver | null, foldingCh
     if (batch) return
     const current = [...boxes.values()].some(box => box.closing) ? driver() : null
     if (current !== null && runBatch(current)) return
-    const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reducedMotion?.matches) { onMotionPreference(); return }
     // Without a batch, a held closing row finishes at once and a held revealing row starts its own transition.
     for (const box of [...boxes.values()]) {
-      if (reduced || (box.held && box.closing)) box.finish()
+      if (box.held && box.closing) box.finish()
       else if (box.held) box.release()
     }
   }
 
   function scheduleBatch(): void {
+    reducedMotion?.addEventListener('change', onMotionPreference)
     if (batchScheduled) return
     batchScheduled = true
     // After the whole commit's collapses and reveals have started, before any box changes size.
@@ -355,6 +373,7 @@ export function createFlowMotion(driver: () => InputFoldDriver | null, foldingCh
     clearTimeout(timer)
     running.delete(element)
     boxes.delete(element)
+    if (boxes.size === 0 && !batch) reducedMotion?.removeEventListener('change', onMotionPreference)
     const { style } = element
     style.height = ''
     style.marginTop = ''
@@ -416,7 +435,11 @@ export function createFlowMotion(driver: () => InputFoldDriver | null, foldingCh
     running.set(element, cancel)
     boxes.set(element, { element, height, marginTop, fromHeight: height, fromMarginTop: marginTop, closing: true, held, finish,
       release: () => {},
-      take: () => { element.removeEventListener('transitionend', onEnd); clearTimeout(timer) } })
+      take: () => {
+        element.removeEventListener('transitionend', onEnd)
+        clearTimeout(timer)
+        for (const animation of element.getAnimations()) animation.cancel()
+      } })
   }
 
   function reveal(element: HTMLElement): void {
@@ -459,7 +482,11 @@ export function createFlowMotion(driver: () => InputFoldDriver | null, foldingCh
         box.held = false
         startTransition()
       },
-      take: () => { element.removeEventListener('transitionend', onEnd); clearTimeout(timer) } }
+      take: () => {
+        element.removeEventListener('transitionend', onEnd)
+        clearTimeout(timer)
+        for (const animation of element.getAnimations()) animation.cancel()
+      } }
     boxes.set(element, box)
   }
 
@@ -473,6 +500,8 @@ export function createFlowMotion(driver: () => InputFoldDriver | null, foldingCh
     batchCleanup?.()
     batchCleanup = null
     cancelEmptyBatch = null
+    finishBatch = null
+    reducedMotion?.removeEventListener('change', onMotionPreference)
     foldIdleListeners.clear()
     for (const cancel of [...running.values()]) cancel()
   }

@@ -13,7 +13,7 @@ const packageName = specifier =>
 function pathResolver(root) {
   const cache = new Map()
   return input => {
-    const file = path.resolve(root, input.replace(/^(?:owned-css|inline-css):/, '').replaceAll('\\', '/'))
+    const file = path.resolve(root, input.replace(/^(?:owned-css|inline-css|worker-source):/, '').replaceAll('\\', '/'))
     if (!cache.has(file))
       cache.set(
         file,

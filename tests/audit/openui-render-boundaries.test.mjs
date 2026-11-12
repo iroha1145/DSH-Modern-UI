@@ -1,7 +1,7 @@
 // Exercise math resource limits and rich Flashcard faces through the real OpenUI Renderer.
 import { afterAll, test } from 'vitest'
 import assert from 'node:assert/strict'
-import { build } from 'esbuild'
+import { build } from './helpers/client-build.mjs'
 import { createServer } from 'node:http'
 import { existsSync } from 'node:fs'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'

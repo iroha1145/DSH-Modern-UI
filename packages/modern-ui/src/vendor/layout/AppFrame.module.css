@@ -7,6 +7,7 @@
   box-sizing: border-box;
   padding: 0;
   overflow: hidden;
+  transition: none;
   background: var(--page, var(--dsw-alias-bg-base));
 }
 
@@ -62,7 +63,7 @@
   overflow: visible;
   background: transparent;
   border-right: none;
-  padding: 16px 0 16px 16px;
+  padding: 16px 0;
   box-sizing: border-box;
   z-index: 5;
 }
@@ -71,11 +72,6 @@
    keep their viewport containing block and remain available when it closes. */
 .frame:not([data-mobile-layout])[data-sidebar-collapsed] .sidebarCol {
   overflow: clip;
-}
-
-:global([data-platform='darwin']) .frame[data-sidebar-collapsed] .sidebarCol,
-:global([data-windows-titlebar]) .frame[data-sidebar-collapsed] .sidebarCol {
-  padding-left: 0;
 }
 
 .centerCol {

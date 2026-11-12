@@ -5,7 +5,7 @@ import assert from 'node:assert/strict'
 import { createRequire, Module } from 'node:module'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { build } from 'esbuild'
+import { build } from './helpers/client-build.mjs'
 import ts from 'typescript'
 import { JSDOM } from 'jsdom'
 

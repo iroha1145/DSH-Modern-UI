@@ -4,10 +4,10 @@
  * Collapse is a clipped column resize plus a short crossfade:
  * content freezes at its expanded width (inline style) and fades out in place
  * while the sliding column (AppFrame grid tracks) clips it — nothing reflows
- * mid-slide. At settle the wide-only content unmounts and the upper
+ * mid-slide. At the column's actual settle the wide-only content unmounts and the upper
  * controls fade into their final rail positions, without an independent slide.
  */
-import { useEffect, useLayoutEffect, useRef, useState, type FocusEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type FocusEvent } from 'react'
 import clsx from 'clsx'
 import {
   FishLogo, IconCloseOutlineRegular, IconAppsAddOutlineRegular,
@@ -163,24 +163,30 @@ export function SidebarRoot({
     if (!collapsed) { setSettled(false); return }
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
     if (reducedMotion.matches) { setSettled(true); return }
-    const token = mobile ? '--dsh-feel-panel-duration' : '--dsh-motion-feedback-duration'
-    const value = getComputedStyle(column.current ?? document.documentElement).getPropertyValue(token).trim()
-    const amount = Number.parseFloat(value)
-    const duration = Number.isFinite(amount) ? amount * (value.endsWith('ms') ? 1 : 1000) : mobile ? 297 : 120
-    const timer = window.setTimeout(() => { setSettled(true) }, duration)
+    let active = true
+    // The frame enables track easing in its layout effect. Read its CSS transition
+    // on the next frame, after that render, so reversal and resize cancellation share its lifetime.
+    const frame = requestAnimationFrame(() => {
+      const element = mobile ? column.current! : column.current!.closest<HTMLElement>('[data-layout-frame]')!
+      const transitions = element.getAnimations().filter(animation => animation instanceof CSSTransition
+        && animation.transitionProperty === (mobile ? 'transform' : 'grid-template-columns'))
+      void Promise.allSettled(transitions.map(animation => animation.finished)).then(() => {
+        if (active) setSettled(true)
+      })
+    })
     const onReducedMotion = () => {
       if (!reducedMotion.matches) return
-      window.clearTimeout(timer)
       setSettled(true)
     }
     reducedMotion.addEventListener('change', onReducedMotion)
     return () => {
-      window.clearTimeout(timer)
+      active = false
+      cancelAnimationFrame(frame)
       reducedMotion.removeEventListener('change', onReducedMotion)
     }
   }, [collapsed, mobile])
   const windowsTitlebar = document.documentElement.hasAttribute('data-windows-titlebar')
-  const wide = mobile || (windowsTitlebar ? !collapsed : !collapsed || !settled)
+  const wide = mobile || !collapsed || !settled
 
   const openNewSession = (): void => {
     trackEntryClick({ menu_name: 'new_session', position: windowsTitlebar && collapsed ? 'titlebar' : 'sidebar' })
@@ -325,11 +331,12 @@ export function SidebarRoot({
         aria-label={mobile ? t('mobile.sessions') : undefined}
         data-mobile-drawer={mobile || undefined}
         data-drawer-open={mobile && !collapsed || undefined}
+        data-desktop-wide={!mobile && wide || undefined}
         className={clsx(
           css.root, !wide && css.collapsed, !wide && everWide.current && css.railIn,
           collapsed && wide && css.fading, !pointerInside && css.quietBars,
         )}
-        style={!mobile && wide ? { width: collapsed ? Math.max(0, lastWideWidth.current - 16) : Math.max(0, width - 16) } : undefined}
+        style={!mobile && wide ? { '--dsh-sidebar-content-width': `${lastWideWidth.current - 40}px` } as CSSProperties : undefined}
         onPointerEnter={() => {
           cancelLinger()
           setPointerInside(true)
@@ -396,7 +403,7 @@ export function SidebarRoot({
 
         {/* Cloud-Monitor .nav-list for New Session & Panels */}
         <nav className={css.panelList} aria-label={t('panels.label')}>
-          {!(windowsCaption && collapsed) && newSession}
+          {!(windowsCaption && !wide) && newSession}
 
           {panels.filter(({ id }) => id === FIXED_PANEL_ID || !unpinned.includes(id)).map(({ id, label }) => (
             <PanelRow

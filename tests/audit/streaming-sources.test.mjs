@@ -1,7 +1,7 @@
 import { afterAll, afterEach, describe, expect, test } from 'vitest'
 import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
-import { build } from 'esbuild'
+import { build } from './helpers/client-build.mjs'
 import { readFile, writeFile, rm } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'

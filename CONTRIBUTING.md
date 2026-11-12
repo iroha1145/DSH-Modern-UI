@@ -7,6 +7,7 @@
 - `npm run dev:layout` 构建当前插件并启动真实 DSH 布局预览，终端会打印本地地址。预览使用仓库的官方 rc.4 依赖、本地示例模型和独立的 `../.tools/conversation-layout-preview/home`，不调用外部模型、不使用日常 DSH 数据；发送任意普通消息可查看中文长文、代码和表格。Ctrl+C 停止。
 - 提交前：
   ```bash
+  node node_modules/playwright-core/cli.js install --with-deps chromium firefox webkit
   npm run lint
   npm run typecheck
   npm run build
@@ -14,14 +15,14 @@
   ```
   `npm run format` 按 Biome 配置改写 `scripts/`、`tests/` 和自有产品 TS/TSX。产品源码都纳入 lint；`vendor/` 与 `host-compat/` 保留上游格式，只启用配置中列出的基础规则。其 Hook factory、依赖捕获、按位置构造的静态子节点和经过边界处理的 HTML 各有原实现契约，暂不批量套用对应规则；修改时仍须行为审查、严格类型检查和回归测试。`provenance.json` 按原始字节记录登记文件的摘要，修改后须同步更新。
 
-构建会写入 `packages/modern-ui/lib/build-metrics.json`（原始字节、gzip level 9 / mtime 0、实际包版本与输出贡献）和 `.artifacts/build-metafiles/`（未丢失嵌套依赖位置的原始元数据），PR CI 保存这些附件。`scripts/client-budget.json` 限制客户端为 10,000,000 原始字节与 2,200,000 gzip 字节；超过时构建失败，调整预算须给出贡献分析与原因。KaTeX 每个字体保留 WOFF2，删除支持浏览器不会使用的重复 WOFF/TTF 内联副本；所有高亮语言仍随插件安装。
+构建会写入 `packages/modern-ui/lib/build-metrics.json`（原始字节、gzip level 9 / mtime 0、实际包版本与输出贡献）和 `.artifacts/build-metafiles/`（未丢失嵌套依赖位置的原始元数据），PR CI 保存这些附件。`scripts/client-budget.json` 分别限制首包为 4,500,000 原始字节与 1,250,000 gzip 字节、全部客户端分块合计为 10,000,000 原始字节与 2,200,000 gzip 字节；嵌入的 Worker 源码也计入总量。超过时构建失败，调整预算须给出贡献分析与原因。KaTeX 每个字体保留 WOFF2，删除支持浏览器不会使用的重复 WOFF/TTF 内联副本；所有高亮语言仍随插件安装，按需加载。
 
 ## 测试分层
 
 | 层 | 位置 | 命令 | 内容 | 何时跑 |
 | --- | --- | --- | --- | --- |
 | unit | `tests/unit/*.test.ts` | `npm run test:unit` | 纯函数：openui-lang 代码块识别与「发给助手」消息拼接、生成的提示词是否最新、markdown 语法、高亮，会话组装器与聊天快照构建器等 | 每次提交，PR 门禁 |
-| audit | `tests/audit/*.test.mjs` | `npx vitest run --project audit` | 先 `npm run build`；打包体积、jsdom 与真实 Chromium 中的交互和布局 | PR 门禁 |
+| audit | `tests/audit/*.test.mjs` | `npx vitest run --project audit` | 先 `npm run build`；打包体积、jsdom、真实 Chromium 中的交互和布局，以及 Chromium/Firefox/WebKit 的高亮回归 | PR 门禁 |
 | compat（单元） | `tests/compat/*.test.mjs` | `npx vitest run --project compat` | 安装器选择、profile 迁移、聊天契约，翻译与 MCP 替代插件的行为基线；先 `npm run build`，需要 `COMPAT_BACKEND_PACKAGE` | PR 门禁 |
 | compat（隔离消费者） | `tests/compat/run.mjs` | `npm run test:compat -- --preview .artifacts/plugin-preview --host <版本> --root <隔离目录>` | 装一套独立的官方宿主，跑 MCP、生命周期、浏览器、升级失败回滚等 9 层 | 改到安装或兼容逻辑时；CI 在手动触发和 `v*` tag 时跑 |
 

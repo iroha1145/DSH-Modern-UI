@@ -1,0 +1,10 @@
+.source {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.failure {
+  overflow-wrap: anywhere;
+}

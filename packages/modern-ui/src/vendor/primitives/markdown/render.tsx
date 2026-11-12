@@ -25,7 +25,7 @@ import { normalizeUri } from 'micromark-util-sanitize-uri'
 import type { CodeToolbarLabels } from '../CodeToolbar.tsx'
 import { CodeBlock } from './CodeBlock.tsx'
 import { parseFileLink } from './file-link.ts'
-import { renderTexToReact } from './katex.tsx'
+import { renderTexToReact, type MathLoadLabels } from './LazyMath.tsx'
 import { LinkIconMedium, classifyLinkPath } from '../LinkIcon.tsx'
 import { useMarkdownDelegate } from './MarkdownDelegate.tsx'
 import { HoverCard } from '../HoverCard.tsx'
@@ -67,6 +67,7 @@ export type MarkdownCodeRenderer = (input: {
 export interface MarkdownLabels {
   code: MarkdownCodeLabels
   footnotes: string
+  math?: MathLoadLabels | undefined
   /** Optional heading and accessible names for explicitly enabled source citations. */
   citations?: MarkdownCitationLabels | undefined
 }
@@ -429,9 +430,9 @@ function renderNode(node: Md.RootContent, key: Key, context: MarkdownRenderConte
     case 'code':
       return renderCode(node, key, context)
     case 'math':
-      return <Fragment key={key}>{renderTexToReact(node.value, true)}</Fragment>
+      return <Fragment key={key}>{renderTexToReact(node.value, true, context.labels.math)}</Fragment>
     case 'inlineMath':
-      return <Fragment key={key}>{renderTexToReact(node.value, false)}</Fragment>
+      return <Fragment key={key}>{renderTexToReact(node.value, false, context.labels.math)}</Fragment>
     case 'list':
       return renderList(node, key, context)
     case 'listItem':
@@ -512,7 +513,7 @@ function renderCode(node: Md.Code, key: Key, context: MarkdownRenderContext): Re
   const language = node.lang ?? undefined
   const lang = language === undefined ? undefined : /^[\w-]+/.exec(language)?.[0]
   if (node.value !== '' && !context.streaming && lang === 'math') {
-    return <Fragment key={key}>{renderTexToReact(`${node.value}\n`, true)}</Fragment>
+    return <Fragment key={key}>{renderTexToReact(`${node.value}\n`, true, context.labels.math)}</Fragment>
   }
   // Keep the stock empty-fence DOM and synthetic display newline, including
   // when an owner declines to replace this fence.

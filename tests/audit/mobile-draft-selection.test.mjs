@@ -1,6 +1,6 @@
 import { afterAll, test } from 'vitest'
 import assert from 'node:assert/strict'
-import { build } from 'esbuild'
+import { build } from './helpers/client-build.mjs'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { chromium } from 'playwright-core'

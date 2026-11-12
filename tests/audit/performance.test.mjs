@@ -1,6 +1,6 @@
 import { test } from 'vitest'
 import assert from 'node:assert/strict'
-import { build } from 'esbuild'
+import { build } from './helpers/client-build.mjs'
 import { JSDOM } from 'jsdom'
 import { pathToFileURL } from 'node:url'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
@@ -33,6 +33,25 @@ test('site glyph barrel retains only referenced icon paths in output', async () 
   assert.ok(icon)
   assert.ok(icon[1].bytesInOutput < 200_000, `retained icon bytes: ${icon[1].bytesInOutput}`)
   console.info(`simple-icons bytes retained in the full production bundle: ${icon[1].bytesInOutput}`)
+})
+
+test('optional renderers and grammars remain available without contributing to the initial client payload', () => {
+  const initial = production.outputs['client.js'].inputs
+  const retained = Object.entries(production.outputs).flatMap(([file, output]) =>
+    Object.entries(output.inputs).map(([input, value]) => ({ file, input, ...value })),
+  )
+  for (const pattern of [/lucide-react\//, /katex\//, /@shikijs\/|node_modules\/shiki\/|oniguruma-to-es\//]) {
+    assert.ok(
+      retained.some(value => pattern.test(value.input) && value.bytesInOutput > 0),
+      `Missing optional resource ${pattern}`,
+    )
+    assert.ok(
+      !Object.entries(initial).some(([input, value]) => pattern.test(input) && value.bytesInOutput > 0),
+      `Optional bytes in initial payload: ${pattern}`,
+    )
+  }
+  assert.ok(Object.keys(production.outputs).some(file => file.startsWith('client.OpenUIBlock-')))
+  assert.ok(Object.keys(production.outputs).some(file => file.startsWith('client.MathContent-')))
 })
 
 test('chat builder keeps the node store stable across updates and replaces it with the builder', async () => {

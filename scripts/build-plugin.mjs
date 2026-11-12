@@ -4,6 +4,8 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { buildQuotesTypes } from './build-quotes-types.mjs'
 import { eachCounterPlugin } from './openui-each-counter.mjs'
+import { emitClientChunks } from './client-chunks.mjs'
+import { highlightWorkerPlugin } from './highlight-worker.mjs'
 import { modernKatexFonts, logicalBuildInput, recordMetafile, recordClientMetrics } from './build-metrics.mjs'
 import { defaultHostVersion, hostRange, platformPeers, runtimeVersions, supportedHostVersions, getHostCompatibility } from './distribution/compatibility.mjs'
 
@@ -38,7 +40,7 @@ await writeFile(
 const require = createRequire(
   process.env.MODERN_UI_BUILD_DEPS ? path.join(path.resolve(process.env.MODERN_UI_BUILD_DEPS), 'package.json') : path.join(root, 'package.json'),
 )
-const { build } = require('esbuild')
+const { build, transform: transformJs } = require('esbuild')
 const { transform } = require('lightningcss')
 const rootRequire = createRequire(path.join(root, 'package.json'))
 const ts = rootRequire('typescript')
@@ -132,7 +134,12 @@ const stylePlugin = {
       })
       const text = result.code.toString()
       if (args.namespace === 'inline-css') return { contents: `export default ${JSON.stringify(text)}`, loader: 'js' }
-      const names = Object.fromEntries(Object.entries(result.exports ?? {}).map(([key, value]) => [key, value.name]))
+      // Lightning CSS export-map order varies; stable keys keep unchanged styles from changing chunk hashes.
+      const names = Object.fromEntries(
+        Object.entries(result.exports ?? {})
+          .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+          .map(([key, value]) => [key, value.name]),
+      )
       return {
         contents: `import {registerStyle} from ${JSON.stringify(path.join(pkg, 'src/styles.ts'))};registerStyle(${JSON.stringify(path.relative(pkg, args.path).replaceAll('\\', '/'))},${JSON.stringify(text)});export default ${JSON.stringify(names)};`,
         loader: 'js',
@@ -147,10 +154,14 @@ await mkdir(path.join(pkg, 'lib'), { recursive: true })
 const client = await build({
   absWorkingDir: root,
   entryPoints: [path.join(pkg, 'src/client.tsx')],
-  outfile: path.join(pkg, 'lib/client.js'),
+  outdir: path.join(pkg, 'lib'),
+  entryNames: 'client',
+  chunkNames: 'client.[name]-[hash]',
+  splitting: true,
+  write: false,
   bundle: true,
   platform: 'browser',
-  format: 'cjs',
+  format: 'esm',
   jsx: 'automatic',
   target: 'es2022',
   charset: 'utf8',
@@ -163,6 +174,7 @@ const client = await build({
   define: { 'process.env.NODE_ENV': '"production"' },
   loader: { '.png': 'dataurl', '.svg': 'dataurl', '.webp': 'dataurl' },
   plugins: [
+    highlightWorkerPlugin(build),
     stylePlugin,
     eachCounterPlugin(),
     {
@@ -176,9 +188,8 @@ const client = await build({
       },
     },
   ],
-  banner: { js: `window.__ModuleLoader__.load({id:${JSON.stringify(id)},factory:(require)=>{const module={exports:{}};const exports=module.exports;` },
-  footer: { js: 'return module.exports;}});' },
 })
+client.metafile = await emitClientChunks(root, id, client, transformJs)
 const hostMain = await build({
   absWorkingDir: root,
   entryPoints: [path.join(pkg, 'src/index.ts')],
@@ -239,6 +250,8 @@ await writeFile(
   JSON.stringify(
     {
       host: defaultHostVersion,
+      contributionBasis:
+        'esbuild split ESM before CJS adaptation; embedded worker string bytes attributed in proportion to worker inputs; output sizes measure final files',
       compatibleHosts: supportedHostVersions,
       shared: platform,
       inputs: Object.keys(client.metafile.inputs).map(logicalInput),

@@ -2,7 +2,7 @@ import { afterAll, test } from 'vitest'
 import assert from 'node:assert/strict'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { build } from 'esbuild'
+import { build } from './helpers/client-build.mjs'
 import { chromium } from 'playwright-core'
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
@@ -59,7 +59,7 @@ const result = await build({
     let controller,statuses, mode;
     window.fixture={
       records:{orders:[],workspaces:[],events:[]},
-      mount(nextMode,count=500){
+      mount(nextMode,count=500,options={}){
         flushSync(()=>root.render(null)); controller?.dispose();controller=undefined;mode=nextMode;
         this.records.orders=[];this.records.workspaces=[];this.records.events=[];
         const started=performance.now();let projectionMs=0;
@@ -76,8 +76,12 @@ const result = await build({
           const props={...common,list,useSessionStatus:observe(statuses),rowState:{pinnedSessionIds:[],archivedSessionIds:[],archivedFilter:'default'},setSessionOrder:(...args)=>this.records.orders.push(args)};
           if(mode==='flat')flushSync(()=>root.render(<FlatList {...props} sessionIds={ids}/>));
           else {
-            const workspaces=Array.from({length:mode==='workspace-drag'?2:1},(_,i)=>({workspaceId:'w'+i,title:'Workspace '+i,path:'/workspace/'+i,createdAt:new Date(0).toISOString(),sessionIds:mode==='workspace-drag'?ids.slice(i*3,i*3+3):ids}));
-            flushSync(()=>root.render(<SessionTree {...props} workspaces={workspaces} ungroupedSessionIds={[]} nestWorkspaces={false} groupExpansion={{w0:true,w1:true}} setGroupExpanded={()=>{}} startSession={()=>{}} insertWorkspaceBefore={async(...args)=>this.records.workspaces.push(args)} onRenameRequest={()=>{}} onDeleteRequest={()=>{}} shortcuts={[]}/>));
+            const groupCount=mode==='workspace-drag'?2:options.groups??1;
+            const perGroup=Math.ceil(count/groupCount);
+            const workspaces=Array.from({length:groupCount},(_,i)=>({workspaceId:'w'+i,title:'Workspace '+i,path:options.nested?'/workspace'+'/child'.repeat(i):'/workspace/'+i,createdAt:new Date(0).toISOString(),sessionIds:ids.slice(i*perGroup,(i+1)*perGroup)}));
+            let groupExpansion=options.expansion??Object.fromEntries(workspaces.map(w=>[w.workspaceId,true]));
+            const renderTree=()=>flushSync(()=>root.render(<SessionTree {...props} workspaces={workspaces} ungroupedSessionIds={[]} nestWorkspaces={options.nested??false} groupExpansion={groupExpansion} setGroupExpanded={(key,expanded)=>{groupExpansion={...groupExpansion,[key]:expanded};renderTree()}} startSession={()=>{}} insertWorkspaceBefore={async(...args)=>this.records.workspaces.push(args)} onRenameRequest={()=>{}} onDeleteRequest={()=>{}} shortcuts={[]}/>));
+            renderTree();
           }
         }
         return {mode,count,projectionMs,mountMs:performance.now()-started,rows:document.querySelectorAll('#app [data-row-key],#app li').length,nodes:document.querySelectorAll('#app *').length};
@@ -143,10 +147,10 @@ const browser = await chromium.launch(
   executablePath ? { executablePath, headless: true } : existsSync(chromium.executablePath()) ? { headless: true } : { channel: 'msedge', headless: true },
 )
 afterAll(() => browser.close())
-async function pageFixture() {
-  const page = await browser.newPage({ viewport: { width: 1000, height: 800 } })
+async function pageFixture(options = {}) {
+  const page = await browser.newPage({ viewport: { width: 1000, height: 800 }, ...options })
   await page.setContent(
-    '<style>body{margin:0;font:14px Arial}#app{width:350px;height:600px;display:flex;flex-direction:column;--dsh-session-list-scrollbar-offset:0px;--dsh-session-list-edge-inset:8px;--dsh-session-list-scrollbar-width:8px}button{font:inherit}</style><div id="app"></div><div id="outside" style="position:absolute;left:700px;top:200px;width:200px;height:200px">Outside</div>',
+    '<meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;font:14px Arial}#app{width:350px;height:600px;display:flex;flex-direction:column;--dsh-session-list-scrollbar-offset:0px;--dsh-session-list-edge-inset:8px;--dsh-session-list-scrollbar-width:8px}button{font:inherit}</style><div id="app"></div><div id="outside" style="position:absolute;left:700px;top:200px;width:200px;height:200px">Outside</div>',
   )
   await page.addStyleTag({ content: result.outputFiles.find(file => file.path.endsWith('.css')).text })
   await page.addScriptTag({ content: result.outputFiles.find(file => file.path.endsWith('.js')).text })
@@ -212,6 +216,107 @@ test('flat paging preserves row focus while expanding and through live status up
     assert.equal(await page.locator('#app [data-row-key^="session:"]').count(), 120)
     await overflow.click()
     assert.equal(await page.locator('#app [data-row-key^="session:"]').count(), 50)
+  } finally {
+    await page.close()
+  }
+})
+
+test('grouped sessions fill the available viewport without mounting the full inventory', async () => {
+  const page = await pageFixture()
+  const errors = []
+  page.on('pageerror', error => errors.push(error.message))
+  try {
+    for (const [width, height] of [
+      [1280, 800],
+      [1280, 1400],
+      [390, 844],
+      [390, 320],
+    ]) {
+      await page.setViewportSize({ width, height })
+      await page.evaluate(() => {
+        document.querySelector('#app').style.cssText = 'width:min(350px,100vw);height:calc(100dvh - 160px);display:flex;flex-direction:column'
+      })
+      for (const count of [20, 2000]) {
+        await page.evaluate(count => fixture.mount('grouped', count), count)
+        await page.waitForFunction(() => {
+          const tree = document.querySelector('#app [role="tree"]')
+          const rows = tree.querySelectorAll('[data-row-key^="session:"]')
+          return rows.length === 20 || tree.scrollHeight >= tree.clientHeight
+        })
+        const geometry = await page.evaluate(() => {
+          const tree = document.querySelector('#app [role="tree"]')
+          return { height: tree.clientHeight, content: tree.scrollHeight, rows: tree.querySelectorAll('[data-row-key^="session:"]').length }
+        })
+        assert.ok(geometry.rows <= Math.max(5, Math.ceil(geometry.height / 38)))
+        if (geometry.rows < count) assert.ok(geometry.content >= geometry.height, JSON.stringify({ width, height, count, ...geometry }))
+        assert.ok(geometry.rows < 100)
+      }
+    }
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await page.evaluate(() => fixture.mount('grouped', 2000))
+    const before = await page.locator('#app [data-row-key^="session:"]').count()
+    await page.setViewportSize({ width: 1280, height: 1400 })
+    await page.waitForFunction(before => document.querySelectorAll('#app [data-row-key^="session:"]').length > before, before)
+    assert.deepEqual(errors, [])
+  } finally {
+    await page.close()
+  }
+})
+
+test('automatic group fitting preserves folded ancestors and the manual collapse minimum', async () => {
+  const page = await pageFixture()
+  try {
+    await page.evaluate(() => fixture.mount('grouped', 30, { groups: 3, nested: true, expansion: { w0: false, w1: true, w2: true } }))
+    assert.equal(await page.locator('#app [data-row-key^="session:"]').count(), 0)
+    assert.equal(await page.locator('#app [data-row-key="workspace:w1"]').count(), 0)
+    await page.evaluate(() => fixture.mount('grouped', 60, { groups: 3, expansion: { w0: true, w1: false, w2: true } }))
+    assert.equal(await page.locator('#app [data-row-key="session:s20"]').count(), 0)
+    assert.equal(await page.locator('#app [data-row-key="workspace:w1"]').getAttribute('aria-expanded'), 'false')
+    await page.evaluate(() => fixture.mount('grouped', 35))
+    const minimum = await page.locator('#app [data-row-key^="session:"]').count()
+    assert.ok(minimum > 5)
+    const overflow = page.locator('#app [data-row-key="overflow:w0"]')
+    await page.locator('#app [data-row-key="session:s3"]').focus()
+    await page.evaluate(() => {
+      window.focusedRow = document.activeElement
+      fixture.update(2)
+    })
+    assert.equal(await page.evaluate(() => window.focusedRow === document.activeElement), true)
+    while ((await overflow.getAttribute('aria-expanded')) === 'false') await overflow.click()
+    assert.equal(await page.locator('#app [data-row-key^="session:"]').count(), 35)
+    await overflow.click()
+    await page.waitForTimeout(100)
+    assert.equal(await page.locator('#app [data-row-key^="session:"]').count(), minimum)
+  } finally {
+    await page.close()
+  }
+})
+
+test('touch session rows fill tall phones and scroll within a short phone viewport', async () => {
+  const page = await pageFixture({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } })
+  try {
+    await page.addStyleTag({ content: '#app{height:calc(100dvh - 160px)}' })
+    for (const height of [844, 320]) {
+      await page.setViewportSize({ width: 390, height })
+      await page.evaluate(() => fixture.mount('grouped', 2000))
+      const geometry = await page.evaluate(() => {
+        const tree = document.querySelector('#app [role="tree"]')
+        const row = tree.querySelector('[data-row-key^="session:"]')
+        return {
+          rowHeight: row.offsetHeight,
+          height: tree.clientHeight,
+          content: tree.scrollHeight,
+          rows: tree.querySelectorAll('[data-row-key^="session:"]').length,
+        }
+      })
+      assert.equal(geometry.rowHeight, 44)
+      assert.ok(geometry.content >= geometry.height)
+      assert.ok(geometry.rows < 30)
+      await page.evaluate(() => {
+        document.querySelector('#app [role="tree"]').scrollTop = 100
+      })
+      assert.ok(await page.evaluate(() => document.querySelector('#app [role="tree"]').scrollTop > 0))
+    }
   } finally {
     await page.close()
   }

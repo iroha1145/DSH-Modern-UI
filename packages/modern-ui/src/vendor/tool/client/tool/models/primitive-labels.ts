@@ -19,7 +19,7 @@ type T = TranslateNS<'modern-tool'>
  * @returns Language fallback and wrapping actions.
  */
 export function codeToolbarLabels(t: T): CodeToolbarLabels {
-  return { codeLabel: t('codeBlock.title'), wrapLabel: t('codeBlock.wrap'), unwrapLabel: t('codeBlock.unwrap'), collapseLabel: t('codeBlock.collapse'), expandLabel: t('codeBlock.expand') }
+  return { highlight: { failed: t('highlight.loadFailed'), retry: t('highlight.retry') }, codeLabel: t('codeBlock.title'), wrapLabel: t('codeBlock.wrap'), unwrapLabel: t('codeBlock.unwrap'), collapseLabel: t('codeBlock.collapse'), expandLabel: t('codeBlock.expand') }
 }
 
 /**

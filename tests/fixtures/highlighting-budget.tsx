@@ -3,8 +3,12 @@ import { createRoot } from 'react-dom/client'
 import { flushSync } from 'react-dom'
 import { CodeBlock, type CodeBlockProps } from '../../packages/modern-ui/src/vendor/primitives/markdown/CodeBlock.tsx'
 import { ReadBlock } from '../../packages/modern-ui/src/vendor/primitives/ReadBlock.tsx'
-import { highlightToHtml, highlightLinesAsync } from '../../packages/modern-ui/src/vendor/primitives/markdown/highlight.ts'
+import { installHighlighting, isGrammarLoaded, requestGrammar, subscribeGrammarLoaded } from '../../packages/modern-ui/src/vendor/primitives/markdown/highlight.ts'
+import { LAZY_GRAMMARS } from '../../packages/modern-ui/src/vendor/primitives/markdown/highlight-grammars.ts'
 
+let releaseOwner: () => void
+const mountOwner=()=>installHighlighting({effect: (effect:()=>()=>void)=>{releaseOwner=effect()}} as never)
+mountOwner()
 const app = createRoot(document.getElementById('app')!)
 const labels = {
   codeLabel: 'Code',
@@ -19,6 +23,10 @@ Object.assign(window, {
         : <CodeBlock {...block} copyLabel="Copy" copiedLabel="Copied" />}
     </section>)}</>))
   },
-  highlightToHtml,
-  highlightLinesAsync,
+  isGrammarLoaded,
+  requestGrammar,
+  languages: [...LAZY_GRAMMARS.keys()],
+  subscribeGrammarLoaded,
+  releaseHighlightOwner:()=>releaseOwner(),
+  mountHighlightOwner:mountOwner,
 })

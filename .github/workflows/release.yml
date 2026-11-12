@@ -38,8 +38,8 @@ jobs:
               https://archive.ubuntu.com/ubuntu/ 2 \
               https://security.ubuntu.com/ubuntu/ 3 | sudo tee /etc/apt/apt-mirrors.txt
           fi
-      - name: Install the browser for audit regressions
-        run: node node_modules/playwright-core/cli.js install --with-deps chromium
+      - name: Install the browsers for audit regressions
+        run: node node_modules/playwright-core/cli.js install --with-deps chromium firefox webkit
       - run: npm run build
       - name: Unit, audit and compat regressions
         run: npx vitest run

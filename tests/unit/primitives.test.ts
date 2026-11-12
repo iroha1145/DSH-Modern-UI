@@ -1,10 +1,19 @@
-import { describe, expect, test } from 'vitest'
+import { beforeAll, describe, expect, test } from 'vitest'
 import { parseGfm, parseGfmWithMath } from '../../packages/modern-ui/src/vendor/primitives/markdown/parse.ts'
-import { grammarForHint, highlightLines, highlightToHtml, supportsHighlighting } from '../../packages/modern-ui/src/vendor/primitives/markdown/highlight.ts'
+import { highlightLines, highlightLinesAsync, highlightToHtml } from '../../packages/modern-ui/src/vendor/primitives/markdown/highlight-tokenizer.ts'
 import { headTailCap } from '../../packages/modern-ui/src/vendor/primitives/head-tail-cap.ts'
 import { fileSizeText } from '../../packages/modern-ui/src/vendor/primitives/file-size.ts'
 import { rankByName } from '../../packages/modern-ui/src/vendor/primitives/rank-by-name.ts'
 import { relativeTime } from '../../packages/modern-ui/src/vendor/primitives/relative-time.ts'
+
+import { grammarForHint, supportsHighlighting } from '../../packages/modern-ui/src/vendor/primitives/markdown/highlight-language.ts'
+import { registerGrammar } from '../../packages/modern-ui/src/vendor/primitives/markdown/highlight-engine.ts'
+import typescript from '@shikijs/langs/typescript'
+import json from '@shikijs/langs/json'
+beforeAll(() => {
+  registerGrammar(typescript, 'typescript')
+  registerGrammar(json, 'json')
+})
 
 const types = (text: string, parse = parseGfm): string[] => parse(text).children.map(node => node.type)
 
@@ -45,14 +54,16 @@ describe('syntax highlighting', () => {
     expect(supportsHighlighting('json')).toBe(true)
   })
 
-  test('highlights eagerly bundled grammars to css-variable HTML', () => {
+  test('worker tokenization emits css-variable HTML without altering the source', async () => {
+    await highlightLinesAsync('const a = 1', 'ts', new AbortController().signal)
     const html = highlightToHtml('const a = 1', 'ts')
     expect(html).toContain('<pre')
     expect(html).toContain('--shiki-')
     expect(highlightToHtml('x', 'definitely-not-a-language')).toBeUndefined()
   })
 
-  test('returns one run list per source line without the trailing terminator line', () => {
+  test('returns one run list per source line without the trailing terminator line', async () => {
+    await highlightLinesAsync('{"a": 1}', 'json', new AbortController().signal)
     const lines = highlightLines('{"a": 1}\n[2]\n', 'json')
     expect(lines).toHaveLength(2)
     expect(lines?.[0]?.map(span => span.text).join('')).toBe('{"a": 1}')

@@ -6,7 +6,16 @@ export default defineConfig({
   test: {
     projects: [
       { test: { name: 'unit', include: ['tests/unit/**/*.test.ts'] } },
-      { test: { name: 'audit', include: ['tests/audit/**/*.test.mjs'], testTimeout: 120_000, hookTimeout: 120_000, fileParallelism: false } },
+      {
+        test: {
+          name: 'audit',
+          include: ['tests/audit/**/*.test.mjs'],
+          setupFiles: ['tests/audit/helpers/worker-environment.mjs'],
+          testTimeout: 120_000,
+          hookTimeout: 120_000,
+          fileParallelism: false,
+        },
+      },
       { test: { name: 'compat', include: ['tests/compat/**/*.test.mjs'], testTimeout: 120_000, hookTimeout: 120_000 } },
     ],
   },

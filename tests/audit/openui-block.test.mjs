@@ -6,7 +6,7 @@ import assert from 'node:assert/strict'
 import { createRequire, Module } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { build } from 'esbuild'
+import { build } from './helpers/client-build.mjs'
 import { JSDOM } from 'jsdom'
 import { eachCounterPlugin } from '../../scripts/openui-each-counter.mjs'
 
