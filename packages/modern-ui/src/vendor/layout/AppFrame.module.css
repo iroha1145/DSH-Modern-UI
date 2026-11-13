@@ -165,6 +165,13 @@
   }
 }
 
+/* Inside the macOS shell the capsule sidebar sits 8px from the window's edges, so the traffic lights the window
+   draws over the top-left corner fall inside it (ui-sidebar SidebarRoot.module.css has the other half). The
+   narrow-window drawer keeps its own box. */
+:global(html[data-platform='darwin']) .frame:not([data-mobile-layout]) .sidebarCol {
+  padding: 8px 0;
+}
+
 :global([data-platform='darwin']) .centerCol {
   background: var(--dsw-alias-bg-base);
   border-left: 0.5px solid var(--dsw-alias-border-l3);

@@ -913,7 +913,7 @@
       "source": "packages/client/ui-layout/src/client/AppFrame.module.css",
       "target": "src/vendor/layout/AppFrame.module.css",
       "sourceSha256": "cf23e7703655143656d73b628f579be01cdb7ec62feaff5c9fc913b6f17403e4",
-      "targetSha256": "eff456afb7a4197763f2bf3f3c93e4d61e86c2f9ef6335c0a37fe905a760a57c",
+      "targetSha256": "4d5fdff5ce3b448ab134160864f84a503de3f87b1197569a71d4d61f53003f1e",
       "adapted": true
     },
     {
@@ -2030,7 +2030,7 @@
       "source": "packages/client/ui-sidebar/src/client/SidebarRoot.module.css",
       "target": "src/vendor/sidebar/client/SidebarRoot.module.css",
       "sourceSha256": "30601460ee35c02b0c8465eaa772a97acead4596dcafc7baf358e5e059d716d9",
-      "targetSha256": "730487e585155843364aebf9939f3ae847c6514dc0c84497fd6dadca5bd50327",
+      "targetSha256": "c39cb3d67da9f17b0a20e02e665a58bfd39d489ac79eb57801a2290093e45196",
       "adapted": true
     },
     {
