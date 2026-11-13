@@ -513,7 +513,15 @@ export function installJevTool(ctx: Context, settings: () => JevSettings, prompt
         scope.logger.warn(`jev: removing the tool failed: ${error instanceof Error ? error.message : String(error)}`)
       })
     }
-    const isMain = (agent: Agent) => agent.session.header.origin !== 'subagent' && scope.agents.roots().includes(agent)
+    // Hosts up to 0.2.2-rc.1 record which live agent created another and list the rest as `roots()`: an agent
+    // owned by another one is not a main agent even without the subagent origin. 0.2.2-rc.2 removed that
+    // relation (`roots`, `isOwnedBy`, `parentAgent`); every delegated agent, team members included, carries the
+    // subagent origin there, and the official packages test the live entry plus that origin instead.
+    const isMain = (agent: Agent) => {
+      if (agent.session.header.origin === 'subagent') return false
+      const registry: { roots?: () => Agent[] } = scope.agents
+      return typeof registry.roots === 'function' ? registry.roots().includes(agent) : scope.agents.get(agent.id) === agent
+    }
     const reconcile = (agent: Agent): Fiber | undefined => {
       // Inactive once unloading began: a creation that was still reading the key must not register afterwards.
       if (!(active && keyState === 'ready' && advisor.allowed() && isMain(agent))) {

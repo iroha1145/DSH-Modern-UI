@@ -1,8 +1,9 @@
 import { test } from 'vitest'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
-import { readFileSync, realpathSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chatContract } from './chat-contract-versions.mjs'
@@ -37,15 +38,64 @@ function region(name) {
   assert.ok(end > start)
   return official.slice(start, end)
 }
-// Execute the exact published pure projector and its helpers, with no replacement Host API or rc4 dependency fallback.
-const OfficialProjector = new Function(
-  [
-    region('contract/group-tree'),
-    region('contract/chat-visibility'),
-    region('conversation-nodes/turn-process-presentation'),
-    'return ChatTurnProcessProjector',
-  ].join('\n'),
-)()
+/**
+ * The published pure projector and its helpers, with no replacement Host API or rc4 dependency fallback.
+ * Releases up to 0.2.2-rc.1 ship a readable bundle with one region per module, which is executed as it is.
+ * 0.2.2-rc.2 ships a minified bundle without regions and, beside it, a source map that carries the original
+ * modules; those published sources are compiled here, and may import nothing outside the chat package.
+ */
+function publishedProjector() {
+  if (official.includes('//#region lib/types/client/')) {
+    return new Function(
+      [
+        region('contract/group-tree'),
+        region('contract/chat-visibility'),
+        region('conversation-nodes/turn-process-presentation'),
+        'return ChatTurnProcessProjector',
+      ].join('\n'),
+    )()
+  }
+  const map = JSON.parse(readFileSync(consumer.resolve('@deepseek-ai/dsh-client-ui-chat/client') + '.map', 'utf8'))
+  const base = 'packages/client/ui-chat/src/'
+  const directory = mkdtempSync(path.join(tmpdir(), 'modern-chat-contract-'))
+  try {
+    let entry
+    map.sources.forEach((source, index) => {
+      const at = source.indexOf(base)
+      const text = map.sourcesContent?.[index]
+      if (at < 0 || typeof text !== 'string') return
+      const file = path.resolve(directory, source.slice(at + base.length))
+      assert.ok(file.startsWith(directory + path.sep), `Published source path leaves the chat package: ${source}`)
+      mkdirSync(path.dirname(file), { recursive: true })
+      writeFileSync(file, text)
+      if (source.endsWith('/client/conversation-nodes/turn-process-presentation.ts')) entry = file
+    })
+    assert.ok(entry, 'Missing published source conversation-nodes/turn-process-presentation')
+    const built = buildSync({
+      absWorkingDir: directory,
+      entryPoints: [entry],
+      bundle: true,
+      write: false,
+      format: 'cjs',
+      platform: 'node',
+      packages: 'external',
+      metafile: true,
+      logLevel: 'silent',
+    })
+    assert.deepEqual(
+      Object.values(built.metafile.outputs).flatMap(output => output.imports),
+      [],
+      'the published projector must not need anything outside the chat package',
+    )
+    const published = { exports: {} }
+    new Function('module', 'exports', built.outputFiles[0].text)(published, published.exports)
+    assert.equal(typeof published.exports.ChatTurnProcessProjector, 'function', 'Missing published ChatTurnProcessProjector')
+    return published.exports.ChatTurnProcessProjector
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
+}
+const OfficialProjector = publishedProjector()
 
 const copyFile = path.join(root, 'packages/modern-ui/src/vendor/chat/client/chat/TurnTailNodeView.tsx')
 const copySource = ts.createSourceFile(copyFile, readFileSync(copyFile, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
@@ -159,7 +209,7 @@ test('published projection semantics follow the selected Host, including steerin
 })
 
 test('unsupported versions fail explicitly instead of bypassing assertions', () => {
-  assert.throws(() => chatContract('0.2.2-rc.2'), /Unsupported chat contract version/)
+  assert.throws(() => chatContract('0.2.2-rc.99'), /Unsupported chat contract version/)
 })
 
 test('reply-only and hidden rows do not become non-reply process; visible reasoning does', () => {

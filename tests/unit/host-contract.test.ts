@@ -14,6 +14,7 @@ describe('attachment read protocol', () => {
     ['0.2.2-alpha.2', 'attachment-ref'],
     ['0.2.2-alpha.3', 'attachment-ref'],
     ['0.2.2-rc.1', 'attachment-ref'],
+    ['0.2.2-rc.2', 'attachment-ref'],
     ['0.2.2', 'attachment-ref'],
     ['0.2.10', 'attachment-ref'],
     ['0.3.0-alpha.1', 'attachment-ref'],

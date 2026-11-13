@@ -3736,7 +3736,7 @@
     },
     {
       "target": "src/jev-tool.ts",
-      "targetSha256": "8560c5b0b3cdfc5c683b6755407e13b4a010d2655b3366bf752b4d8a11b3d6aa",
+      "targetSha256": "2095b89122180a0e7cdc0dc43b423d4d8945fd5ed4aa9334e146896f4629aa13",
       "description": "Original optional TypeSafe Jev presentation advice tool: registered only in main agents' own tool scopes while the presentation prompt, jev.enabled and a resolvable key allow it; on a model call it sends the user messages of the turn being processed plus the model's structure summary (at most 600 characters) as one System One choice per turn, and returns an ordinary, ignorable tool result; a missing key, errors and cancellation return \"no suggestion\" and never fail a turn."
     },
     {
@@ -3974,7 +3974,7 @@
     },
     {
       "target": "src/official-controls.css",
-      "targetSha256": "22467db4e292122f9b48dfe2d0c67ec3e5e60fa6aca7de6c92c4b876db98d0a0",
+      "targetSha256": "6020c3cbd9e54796db650ecf8a43d52776de94f5ae240f6100cef00c670484f4",
       "sources": [
         {
           "source": "packages/client/ui-primitives/src/Button.module.css",
@@ -4061,7 +4061,7 @@
           "sourceSha256": "d1ea993723f44e3d657af171fa25678d421665211110140b0c5e1554805ff48a"
         }
       ],
-      "description": "Selected patched style deltas mapped to exact published rc.4 Web/client classes. The seven Web modules that 0.2.2-rc.1 rebuilt under new hashes (Button, HoverCard, DisclosureRow, ConfigField, SegmentedTabs, MenuSurface, Modal) also list their published 0.2.2-rc.1 class names as alternatives; the deltas themselves are unchanged. The retired ConfigField delta applies only to the current SettingsValueField gap; no retired component or business owner is restored."
+      "description": "Selected patched style deltas mapped to exact published rc.4 Web/client classes. The seven Web modules that 0.2.2-rc.1 rebuilt under new hashes (Button, HoverCard, DisclosureRow, ConfigField, SegmentedTabs, MenuSurface, Modal) also list their published 0.2.2-rc.1 class names as alternatives; HoverCard and Modal, which 0.2.2-rc.2 rebuilt again, and the account notice card, which 0.2.2-rc.2 moved from ui-settings-account to ui-account-notifications, list that release's names as a third. The deltas themselves are unchanged, except that the HoverCard delta also points the hover-card theme tokens 0.2.2-rc.2 introduced at the same surface and labels. The retired ConfigField delta applies only to the current SettingsValueField gap; no retired component or business owner is restored."
     },
     {
       "target": "src/plugin-documents/locales.ts",

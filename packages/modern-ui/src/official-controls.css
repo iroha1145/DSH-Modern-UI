@@ -1,7 +1,9 @@
 /* Exact private classes from the official releases. A CSS-module class carries a hash of its
- * module's source, so a release that edits a module renames every class in it. Where 0.2.2-rc.1
- * renamed a module, each rule lists both names in one :is(), which keeps the specificity of a
- * single class: the rc.2/rc.3/rc.4 name first, the 0.2.2-rc.1 name second.
+ * module's source, so a release that edits a module renames every class in it. Where a later
+ * release renamed a module, each rule lists the names together in one :is(), which keeps the
+ * specificity of a single class: the 0.2.1 rc.2/rc.3/rc.4 name first, then the 0.2.2-rc.1 name,
+ * then the 0.2.2-rc.2 name where that release renamed it again (HoverCard, Modal, and the account
+ * notice card, which moved to its own package).
  * tests/compat/official-controls.test.mjs checks all 49 targets against the actual installed
  * release's CSS and runtime mappings (the release must ship one complete variant of every
  * renamed module), plus switch/menu structure.
@@ -80,12 +82,18 @@ body[data-modern-official-controls] ._wrap_14sgc_1 {
 body[data-modern-official-controls] ._input_14sgc_25 { font-size: var(--fs-body); }
 @media (pointer: coarse) { body[data-modern-official-controls] ._input_14sgc_25 { font-size: 16px; } }
 
-body[data-modern-official-controls] :is(._card_38jqx_9, ._card_bgejw_9) {
+body[data-modern-official-controls] :is(._card_38jqx_9, ._card_bgejw_9, ._card_l6gf9_9) {
   --dsw-hovercard-bg: var(--dsw-alias-bg-layer-2);
+  /* 0.2.2-rc.2 paints the card, and the official contents shown inside it, from theme tokens made for a
+     dark card. They follow the same surface and labels here. */
+  --dsw-alias-hovercard-bg: var(--dsw-alias-bg-layer-2);
+  --dsw-alias-hovercard-label-primary: var(--dsw-alias-label-primary);
+  --dsw-alias-hovercard-label-secondary: var(--dsw-alias-label-secondary);
+  --dsw-alias-hovercard-label-tertiary: var(--dsw-alias-label-tertiary);
   color: var(--dsw-alias-label-primary);
   box-shadow: var(--dsw-elevation-panel);
 }
-body[data-modern-official-controls] :is(._copied_38jqx_36, ._copied_bgejw_36) { color: var(--dsw-alias-label-primary); }
+body[data-modern-official-controls] :is(._copied_38jqx_36, ._copied_bgejw_36, ._copied_l6gf9_35) { color: var(--dsw-alias-label-primary); }
 body[data-modern-official-controls] :is(._row_k7ery_26, ._row_l4nv8_26) {
   padding: 0 6px;
   border-radius: var(--dsw-radius-md);
@@ -101,8 +109,8 @@ body[data-modern-official-controls] :is(._indicator_1p79o_9, ._indicator_1lga9_1
 body[data-modern-official-controls] :is(._tab_1p79o_1, ._tab_1lga9_1) { transition: color var(--dsh-feel-control-duration) var(--dsh-feel-control-curve); }
 body[data-modern-official-controls] :is(._tab_1p79o_1, ._tab_1lga9_1)[aria-selected='true'] { font-weight: 500; }
 body[data-modern-official-controls] :is(._material_ri079_21, ._material_1w4el_21) { -webkit-backdrop-filter: var(--dsw-menu-backdrop-filter); }
-body[data-modern-official-controls] :is(._mask_o6lrb_18, ._mask_14mp3_18)::after,
-body[data-modern-official-controls] :is(._dialog_o6lrb_33, ._dialog_14mp3_33) {
+body[data-modern-official-controls] :is(._mask_o6lrb_18, ._mask_14mp3_18, ._mask_1ytzq_18)::after,
+body[data-modern-official-controls] :is(._dialog_o6lrb_33, ._dialog_14mp3_33, ._dialog_1ytzq_33) {
   animation-duration: var(--dsh-motion-feedback-duration);
   animation-timing-function: var(--dsh-motion-feedback-curve);
 }
@@ -140,7 +148,7 @@ body[data-modern-official-controls] .yHnPSG_signedOutMenu [role='menuitem'] {
   font-size: var(--fs-body, .8125rem);
   line-height: 20px;
 }
-body[data-modern-official-controls] .zwW4-W_card { border-radius: var(--dsw-radius-lg); }
+body[data-modern-official-controls] :is(.zwW4-W_card, .JZqiVa_card) { border-radius: var(--dsw-radius-lg); }
 body[data-modern-official-controls] .JqwYuG_panelHeader h3 { font-weight: 500; }
 body[data-modern-official-controls] .Y0dWHa_requestBoundaryControl::after { border: 0; box-shadow: var(--shadow-dropdown, var(--dsw-elevation-panel)); }
 body[data-modern-official-controls] .Y0dWHa_kindTag,
@@ -186,6 +194,6 @@ body[data-modern-official-controls] ._UE8Aa_root {
   body[data-modern-official-controls] :is(._indicator_1p79o_9, ._indicator_1lga9_11),
   body[data-modern-official-controls] :is(._tab_1p79o_1, ._tab_1lga9_1) { transition: none; }
   body[data-modern-official-controls] :is(._button_1rv3m_2, ._button_1ulci_2):active:not(:disabled) { transform: none; }
-  body[data-modern-official-controls] :is(._mask_o6lrb_18, ._mask_14mp3_18)::after,
-  body[data-modern-official-controls] :is(._dialog_o6lrb_33, ._dialog_14mp3_33) { animation: none; }
+  body[data-modern-official-controls] :is(._mask_o6lrb_18, ._mask_14mp3_18, ._mask_1ytzq_18)::after,
+  body[data-modern-official-controls] :is(._dialog_o6lrb_33, ._dialog_14mp3_33, ._dialog_1ytzq_33) { animation: none; }
 }
