@@ -913,7 +913,7 @@
       "source": "packages/client/ui-layout/src/client/AppFrame.module.css",
       "target": "src/vendor/layout/AppFrame.module.css",
       "sourceSha256": "cf23e7703655143656d73b628f579be01cdb7ec62feaff5c9fc913b6f17403e4",
-      "targetSha256": "4d5fdff5ce3b448ab134160864f84a503de3f87b1197569a71d4d61f53003f1e",
+      "targetSha256": "9077619cc2a7e646b67570b746e3adaea9d7589efab73885c7ff9b9988e505c4",
       "adapted": true
     },
     {
@@ -2591,7 +2591,7 @@
       "source": "packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.module.css",
       "target": "src/vendor/workspace/client/rows/WorkspaceBrowser.module.css",
       "sourceSha256": "177921134100acc06b6e49c442f0595b7f35d2933b690712dfe65a8d3570201b",
-      "targetSha256": "ecf397240988ab5d08a3446cf375630f1b754ecb282894f1d99a6cf2f3da6098",
+      "targetSha256": "5125b11f9ec1f7aa3a5d1a60a95e0bf57ff5f7d67c2373dae0ca8c9af8f874c2",
       "adapted": true
     },
     {

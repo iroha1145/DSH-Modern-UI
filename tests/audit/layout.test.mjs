@@ -72,3 +72,51 @@ test('collapsed desktop sidebar does not paint over the conversation or clip cap
     await page.close()
   }
 })
+
+test('macOS desktop paints the page ground across the whole frame, as the web does', async () => {
+  const page = await browser.newPage()
+  try {
+    // The Electron window is see-through: whatever the frame leaves unpainted shows the OS material instead of the page.
+    await page.setContent(
+      `<style>${await css('vendor/layout/AppFrame.module.css')} html,body{margin:0;height:100%;background:transparent} body{--page:rgb(255, 255, 255);--dsw-alias-bg-base:var(--page);--dsw-specific-sidebar-fill:var(--page);--dsw-alias-border-l3:rgb(0, 0, 0)} body[data-ds-dark-theme]{--page:rgb(17, 17, 17)} .frame{grid-template-columns:240px 1fr 320px}</style><div class="frame"><div class="sidebarCol"></div><main class="centerCol"></main><aside class="rightbarCol"></aside></div>`,
+    )
+    const session = await page.context().newCDPSession(page)
+    const read = () =>
+      page.evaluate(() => {
+        const style = name => getComputedStyle(document.querySelector(name))
+        const ground = name => [style(name).backgroundColor, style(name).backgroundImage]
+        return {
+          frame: ground('.frame'),
+          sidebar: ground('.sidebarCol'),
+          centre: ground('.centerCol'),
+          right: ground('.rightbarCol'),
+          seam: style('.centerCol').borderLeftWidth,
+        }
+      })
+    for (const [dark, ground] of [
+      [false, 'rgb(255, 255, 255)'],
+      [true, 'rgb(17, 17, 17)'],
+    ]) {
+      await page.locator('body').evaluate((body, dark) => body.toggleAttribute('data-ds-dark-theme', dark), dark)
+      for (const collapsed of [false, true]) {
+        await page.locator('.frame').evaluate((frame, collapsed) => frame.toggleAttribute('data-sidebar-collapsed', collapsed), collapsed)
+        for (const value of ['no-preference', 'reduce']) {
+          await session.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-transparency', value }] })
+          const reduced = await page.evaluate(() => matchMedia('(prefers-reduced-transparency: reduce)').matches)
+          assert.equal(reduced, value === 'reduce', 'the reduced-transparency preference is not emulated')
+          await page.locator('html').evaluate(html => delete html.dataset.platform)
+          const web = await read()
+          await page.locator('html').evaluate(html => (html.dataset.platform = 'darwin'))
+          const state = JSON.stringify({ dark, collapsed, value })
+          assert.deepEqual(await read(), web, state)
+          assert.deepEqual(web.frame, [ground, 'none'], state)
+          assert.deepEqual(web.sidebar, ['rgba(0, 0, 0, 0)', 'none'], state)
+          assert.deepEqual(web.centre, [ground, 'none'], state)
+          assert.equal(web.seam, '0px', state)
+        }
+      }
+    }
+  } finally {
+    await page.close()
+  }
+})
