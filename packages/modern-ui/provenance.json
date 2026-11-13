@@ -2030,14 +2030,14 @@
       "source": "packages/client/ui-sidebar/src/client/SidebarRoot.module.css",
       "target": "src/vendor/sidebar/client/SidebarRoot.module.css",
       "sourceSha256": "30601460ee35c02b0c8465eaa772a97acead4596dcafc7baf358e5e059d716d9",
-      "targetSha256": "c39cb3d67da9f17b0a20e02e665a58bfd39d489ac79eb57801a2290093e45196",
+      "targetSha256": "7906e887d763501d89549149f70341c42d09a1f716d4a5963ad6dfdffb4fbedd",
       "adapted": true
     },
     {
       "source": "packages/client/ui-sidebar/src/client/SidebarRoot.tsx",
       "target": "src/vendor/sidebar/client/SidebarRoot.tsx",
       "sourceSha256": "9b0f10a46deb7900d5d583ad1228bab540c7385a437c445c013ff2ce3689b291",
-      "targetSha256": "07e5b2345275d7bf277c769d895f263dec555721e4c71575c0b1440348c5883b",
+      "targetSha256": "bdb806ed9603bc38d2eb9840046e0ac13ebf52bbb095be83710afcd0a6142533",
       "adapted": true
     },
     {

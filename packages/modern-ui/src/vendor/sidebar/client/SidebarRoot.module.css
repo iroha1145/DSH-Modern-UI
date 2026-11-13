@@ -46,13 +46,14 @@
 /* macOS desktop shell. The window draws its traffic lights over the content's top-left corner: their box starts
    16 to 20px from the corner and their centre line is at y = 24. With the web insets (16px from the left and the
    top) the capsule's rounded corner cuts through the first light, and the toggle strip sits a row below them.
-   Here the capsule keeps its width and moves to 8px from the window's edges (ui-layout gives the column the
-   matching 8px above and below), so the lights sit inside it with air on both sides and the same 8px separates it
-   from the centre column's border, which the web layout does not draw. The strip is centred on the lights' line:
-   y 25, level with the reopen controls the frame shows while the sidebar is collapsed. Fullscreen hides the lights
-   and keeps the same box, so entering or leaving it moves nothing. The narrow-window drawer has no strip and is
-   left alone. */
+   Here the capsule starts 8px from the window's left edge (ui-layout gives the column the matching 8px above and
+   below), so the lights sit inside it with air on both sides; its right edge stays on the column's edge, as on
+   every platform. The strip is centred on the lights' line: y 25, level with the reopen controls the frame shows
+   while the sidebar is collapsed. Fullscreen hides the lights and keeps the same box, so entering or leaving it
+   moves nothing. The narrow-window drawer has no strip and is left alone. SidebarRoot.tsx subtracts the same
+   inset when it freezes the content width. */
 :global(html[data-platform='darwin']) .root[data-desktop-wide] {
+  width: calc(100% - 8px);
   margin-left: 8px;
   padding-top: 0;
 }
