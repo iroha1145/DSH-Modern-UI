@@ -7,6 +7,7 @@ import { QuoteSelectionAction } from './vendor/message-quotes/QuoteSelection.tsx
 import { QuotedUserText } from './vendor/message-quotes/QuotedUserText.tsx'
 import { quoteRule } from './vendor/message-quotes/quote-rule.ts'
 import { en, zh, ja, es, fr, de, ru, pt, NS, type MessageQuotesKey } from './vendor/message-quotes/locales.ts'
+import { parentAvailability } from './host-contract.ts'
 
 export type {
   TextInteractionDefinition,
@@ -37,7 +38,10 @@ export function installQuotes(ctx: Context): void {
           const binding = scope.sessions.binding(request.sessionId)
           if (binding === undefined) return
           const session = binding.session.getSnapshot()
-          if (session.removed || (session.subagent !== null && (session.subagent.address.mode !== 'continuable' || session.subagent.parentAvailable !== true)))
+          if (
+            session.removed ||
+            (session.subagent !== null && (session.subagent.address.mode !== 'continuable' || parentAvailability(session.subagent) !== true))
+          )
             return
           request.open()
         },

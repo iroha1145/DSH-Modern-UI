@@ -27,7 +27,7 @@ test('all 49 official control targets exist in published CSS and runtime mapping
 
 test('every renamed module resolves to the one build this release publishes', async () => {
   const { classes, modules } = await check()
-  assert.equal(modules.length, 7)
+  assert.equal(modules.length, 8)
   for (const module of modules) {
     assert.ok(module.builds.includes(module.published), JSON.stringify(module))
     const other = module.builds.filter(build => build !== module.published)

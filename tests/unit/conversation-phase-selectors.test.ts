@@ -2,6 +2,7 @@ import { expect, test } from 'vitest'
 import type { SessionSnapshot } from '@deepseek-ai/dsh-api-session-controller/client'
 import { conversationPhase } from '../../packages/modern-ui/src/vendor/conversation/client/contract/snapshot.ts'
 import { blankConversation, mainPanelPhase } from '../../packages/modern-ui/src/vendor/conversation/client/skeleton/session-phase.ts'
+import { bindHostContract } from '../../packages/modern-ui/src/host-contract.ts'
 
 const empty = {
   sessionId: 'session',
@@ -46,4 +47,21 @@ test('narrow selectors preserve audited lifecycle derivation for roots and conti
                   expect(blankConversation(session, active)).toBe(blank && shellPhase === 'blank')
                 }
   expect(mainPanelPhase(undefined, undefined, undefined, undefined)).toBe('hero')
+})
+
+test('a continuable child never waits for its parent on a Host that no longer reports one', () => {
+  const child = {
+    ...empty,
+    blank: false,
+    openState: 'open',
+    subagent: { address: { mode: 'continuable', parentSessionId: 'parent', childSessionId: 'session' } },
+  } as SessionSnapshot
+  // Up to 0.2.2-rc.1 a missing value means the parent is still being resolved.
+  expect(mainPanelPhase('session', child, true, false)).toBe('settling')
+  bindHostContract({ get: (name: string) => (name === 'modules' ? { manifest: { release: { version: '0.2.2-rc.2' } } } : undefined) } as never)
+  try {
+    expect(mainPanelPhase('session', child, true, false)).toBe('active')
+  } finally {
+    bindHostContract(undefined)
+  }
 })

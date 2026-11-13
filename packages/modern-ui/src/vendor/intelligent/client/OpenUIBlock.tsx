@@ -13,6 +13,7 @@ import { UI_TEXT, UiLocaleContext, UiTextContext, type UiText } from '../../open
 import { assistantMessage, CONTENT_LIMIT, EXPANSION_LIMIT, expansionEstimate, NESTING_LIMIT, nestingDepth, prepareOpenUISource } from './openui-source.ts'
 import { budgeted, ExpansionBudget, ParseLimitError } from './openui-budget.ts'
 import './locales.ts'
+import { parentAvailability } from '../../../host-contract.ts'
 import css from './OpenUIBlock.module.css'
 
 /** Framework-bound resolved application palette. */
@@ -78,7 +79,7 @@ export function OpenUIBlock(props: BlockProps) {
   const busy = useInput(input => input.phase === 'adjudicating' || input.phase === 'submitting')
   const composerFree = useInput(input => input.phase === 'plain' && input.draft.trim() === '' && input.attachmentIds.length === 0)
   const writable = useSession(session => !session.removed && (session.subagent === null
-    || (session.subagent.address.mode === 'continuable' && session.subagent.parentAvailable === true)))
+    || (session.subagent.address.mode === 'continuable' && parentAvailability(session.subagent) === true)))
   const allowed = useAccess('session/prompt')
   const [renderErrors, setRenderErrors] = useState(0)
   const [notice, setNotice] = useState<Notice | null>(null)

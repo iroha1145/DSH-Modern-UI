@@ -179,6 +179,19 @@
   margin-left: auto;
 }
 
+/* The context-menu service's "more" button (official 0.2.2-rc.2 on), sized like the header's other icon buttons. */
+.headerMenuButton {
+  flex: none;
+  width: 28px;
+  padding: 0;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.headerMenuButton svg {
+  width: 15px;
+  height: 15px;
+}
+
 .headerCorner {
   display: flex;
   flex: none;

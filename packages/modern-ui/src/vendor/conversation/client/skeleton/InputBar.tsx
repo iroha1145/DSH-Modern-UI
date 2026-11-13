@@ -24,6 +24,7 @@ import { attachmentErrorText, imageSizeText } from '../image-labels.ts'
 import { isImageMediaType } from '../service.ts'
 import { ContextMeter } from './ContextMeter.tsx'
 import { observeControlRow } from './control-row-layout.ts'
+import { parentAvailability } from '../../../../host-contract.ts'
 import css from './InputBar.module.css'
 
 const HERO_SUGGESTION_SETS = [
@@ -113,7 +114,7 @@ export const InputBar = memo(function InputBar({
   const scrollRef = useRef<HTMLDivElement | null>(null)
 
   const continuable = subagent?.address.mode === 'continuable'
-  const parentOffline = continuable && subagent.parentAvailable !== true
+  const parentOffline = continuable && parentAvailability(subagent) !== true
   const disabled = removed || inert || !live || blocked !== undefined || parentOffline
   const locked = disabled
   const modelSeatLocked = removed || inert || !live

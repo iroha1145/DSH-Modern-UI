@@ -155,6 +155,7 @@ test('tabs link panels and support roving Left/Right/Home/End focus across overf
   ])
   const store = source({ view: 'chat' })
   const pins = source([])
+  const factoryCalls = []
   const headerProps = {
     sessionId: 'session',
     hideChrome: false,
@@ -169,6 +170,11 @@ test('tabs link panels and support roving Left/Right/Home/End focus across overf
     selectView: id => store.set({ view: id }),
     setPinned: (id, pinned) => pins.set(pinned ? pins.getSnapshot().filter(value => value !== id) : [...pins.getSnapshot(), id]),
     renderSlot: () => null,
+    // The header asks the Host for its context-menu button; a Host without that Factory renders nothing.
+    renderFactorySlot: (name, props) => {
+      factoryCalls.push([name, props])
+      return null
+    },
   }
   const bodyProps = {
     sessionId: 'session',
@@ -195,6 +201,11 @@ test('tabs link panels and support roving Left/Right/Home/End focus across overf
   try {
     Object.defineProperty(h.window.HTMLElement.prototype, 'clientWidth', { configurable: true, get: () => 600 })
     await h.act(async () => reactRoot.render(render()))
+    // Official 0.2.2-rc.2 keeps the session's "more" actions in its context-menu service under this target.
+    assert.equal(factoryCalls.at(-1)[0], 'contextMenu.button')
+    assert.deepEqual(factoryCalls.at(-1)[1].target, { kind: 'sessionHeader', value: { sessionId: 'session' } })
+    assert.equal(factoryCalls.at(-1)[1].label, t('header.more'))
+    assert.equal(factoryCalls.at(-1)[1].size, 'sm')
     assert.ok(h.document.querySelector('[role=tablist]').getAttribute('aria-label'))
     const tabs = () => [...h.document.querySelectorAll('[role=tab]')]
     const selected = () => h.document.querySelector('[role=tab][aria-selected=true]')

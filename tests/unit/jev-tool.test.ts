@@ -545,7 +545,9 @@ describe('installJevTool', () => {
     return agent
   }
 
-  function host(initialKey: string | undefined) {
+  // `ownership: false` is a Host from 0.2.2-rc.2 on: its registry has no `roots()`, and delegated agents are told
+  // apart by the subagent origin alone.
+  function host(initialKey: string | undefined, { ownership = true } = {}) {
     const state = { key: initialKey, enabled: true, prompt: true, hold: false }
     // While `hold` is set, each key read waits until the test releases it.
     const reads: (() => void)[] = []
@@ -563,7 +565,11 @@ describe('installJevTool', () => {
           return state.key === undefined ? undefined : { value: state.key, source: 'file' }
         }),
       },
-      agents: { list: () => [...agents], roots: () => agents.filter(agent => roots.has(agent)) },
+      agents: {
+        list: () => [...agents],
+        get: (id: string) => agents.find(agent => agent.id === id),
+        ...(ownership ? { roots: () => agents.filter(agent => roots.has(agent)) } : {}),
+      },
       logger: { warn: vi.fn() },
       on: (event: string, fn: Listener) => {
         listeners.set(event, fn)
@@ -750,6 +756,26 @@ describe('installJevTool', () => {
     expect(sub.state.live).toBeUndefined()
     // Only a new main session re-reads the key.
     expect(env.scope.credentials.resolve.mock.calls.length).toBe(reads)
+  })
+
+  test('a Host without the ownership relation tells main agents by the live entry and the subagent origin', async () => {
+    const env = host('test-key', { ownership: false })
+    const main = env.main()
+    const sub = env.subagent()
+    await env.install()
+    expect(main.state.live?.name).toBe(JEV_TOOL)
+    expect(sub.state.live).toBeUndefined()
+    // The Host fails the whole session when a creation listener throws, so neither kind of agent may.
+    const later = env.main('later')
+    await expect(env.creating(later)).resolves.toBeUndefined()
+    expect(later.state.live?.name).toBe(JEV_TOOL)
+    const laterSub = env.subagent('later-sub')
+    await expect(env.creating(laterSub)).resolves.toBeUndefined()
+    expect(laterSub.state.live).toBeUndefined()
+    // An agent the registry does not hold is not a main agent, whatever its origin says.
+    const stray = fakeAgent('stray')
+    await expect(env.creating(stray)).resolves.toBeUndefined()
+    expect(stray.state.live).toBeUndefined()
   })
 
   test('a new main session reads the key before its creation settles, so a change no event announced still counts', async () => {

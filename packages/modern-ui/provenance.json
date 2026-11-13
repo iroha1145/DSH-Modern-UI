@@ -315,7 +315,7 @@
       "source": "packages/client/ui-conversation/src/client/contract/slots.ts",
       "target": "src/vendor/conversation/client/contract/slots.ts",
       "sourceSha256": "8a56dfab0c74a506a7c58d8ce49521c3fa999a3db078597a62d5cd27486db196",
-      "targetSha256": "cdcc7a265b8f7390de5d406812b21cab87726d3ad5fdc36e417491d00e5f2912",
+      "targetSha256": "dd9a34a791e50b80f6d02c7a2488d22103ac1ad2e79526a032749ffd486def39",
       "adapted": true
     },
     {
@@ -610,7 +610,7 @@
       "source": "packages/client/ui-conversation/src/client/input/hub.ts",
       "target": "src/vendor/conversation/client/input/hub.ts",
       "sourceSha256": "c4f5dc61fc83acc3c6cad6b80ead070187c74766668833c0d4a2b20f6f015ca6",
-      "targetSha256": "f2c32af202cc8795b51288a90930823ed1075f00f7000bc7a426f56c87624eeb",
+      "targetSha256": "740c8ac5ca317e7e1f926429f9a9c4d738d457eae4251f4f0cf245c3eb817f7e",
       "adapted": true
     },
     {
@@ -737,7 +737,7 @@
       "source": "packages/client/ui-conversation/src/client/skeleton/ConversationRoot.module.css",
       "target": "src/vendor/conversation/client/skeleton/ConversationRoot.module.css",
       "sourceSha256": "e53de4d68f1e88bb602d68bdeb8996034752c1fcbc3652ced44c0429ca9cbcc0",
-      "targetSha256": "5e2de54d4ce1918c64659532026642e042d2bdc5c210fd36922976ebccdd3351",
+      "targetSha256": "f199950891f2ffd536c1f3db1b76eb844d590a3304ee109ca2a137bc68d06455",
       "adapted": true
     },
     {
@@ -751,7 +751,7 @@
       "source": "packages/client/ui-conversation/src/client/skeleton/ConversationSession.tsx",
       "target": "src/vendor/conversation/client/skeleton/ConversationSession.tsx",
       "sourceSha256": "dfcd81e81a7b5c9a98d1ea3c5d68b30d3607b8cb539b47872d037bf82cd2a9e7",
-      "targetSha256": "d4fe6ee0e4ea547c469274f042acc3a0127d76c2de27782fff02034cedad9f65",
+      "targetSha256": "cc39f6d61589a788e36b6deb17c042ffdae6e3246b599bea4a3ed03d3625c780",
       "adapted": true
     },
     {
@@ -787,7 +787,7 @@
       "source": "packages/client/ui-conversation/src/client/skeleton/InputBar.tsx",
       "target": "src/vendor/conversation/client/skeleton/InputBar.tsx",
       "sourceSha256": "81b1dc23d316e5d1eacb847d539c7676d7699e33ff969f11a09080266bfa85b1",
-      "targetSha256": "30dfd99b40abc11686a0c826aad2444e5baf1b72601970553e045dca0c712d2c",
+      "targetSha256": "27ce42d17e57aa83a67d32a8f102895e09995b094a2fa2e6040f1cb6814d56c1",
       "adapted": true
     },
     {
@@ -885,7 +885,7 @@
       "source": "packages/client/ui-intelligent-ui/src/client/Followups.tsx",
       "target": "src/vendor/intelligent/client/Followups.tsx",
       "sourceSha256": "9a8a12c14b40c9fe1f625c775b1ce370d0ef7ec41c02d5311b35c64c8bd88e8c",
-      "targetSha256": "c2e3a55fdb65f9977ed93a6340b9348747e18f4d6012ce166d6f6c998d38f28c",
+      "targetSha256": "2921910e14f96c046c3c7748422f5552486b8ac90bbaa762db9b492706cd985d",
       "adapted": true
     },
     {
@@ -913,7 +913,7 @@
       "source": "packages/client/ui-layout/src/client/AppFrame.module.css",
       "target": "src/vendor/layout/AppFrame.module.css",
       "sourceSha256": "cf23e7703655143656d73b628f579be01cdb7ec62feaff5c9fc913b6f17403e4",
-      "targetSha256": "eff456afb7a4197763f2bf3f3c93e4d61e86c2f9ef6335c0a37fe905a760a57c",
+      "targetSha256": "4d5fdff5ce3b448ab134160864f84a503de3f87b1197569a71d4d61f53003f1e",
       "adapted": true
     },
     {
@@ -983,7 +983,7 @@
       "source": "packages/client/ui-model-selection/src/client/locales.ts",
       "target": "src/vendor/model/client/locales.ts",
       "sourceSha256": "34c4e4f38a3d4de48acee1b56d135c525840e26ac89beee564af1a97cb78f2e7",
-      "targetSha256": "4a86b2487cead3d7315e5c56718afbebc5693e0ea27eadb0c734134b1a532273",
+      "targetSha256": "16a786fde77bbcf1f614edf0add50ab76cfe1c6afad81155331c78f9c99f4f9a",
       "adapted": true
     },
     {
@@ -2030,14 +2030,14 @@
       "source": "packages/client/ui-sidebar/src/client/SidebarRoot.module.css",
       "target": "src/vendor/sidebar/client/SidebarRoot.module.css",
       "sourceSha256": "30601460ee35c02b0c8465eaa772a97acead4596dcafc7baf358e5e059d716d9",
-      "targetSha256": "730487e585155843364aebf9939f3ae847c6514dc0c84497fd6dadca5bd50327",
+      "targetSha256": "7906e887d763501d89549149f70341c42d09a1f716d4a5963ad6dfdffb4fbedd",
       "adapted": true
     },
     {
       "source": "packages/client/ui-sidebar/src/client/SidebarRoot.tsx",
       "target": "src/vendor/sidebar/client/SidebarRoot.tsx",
       "sourceSha256": "9b0f10a46deb7900d5d583ad1228bab540c7385a437c445c013ff2ce3689b291",
-      "targetSha256": "07e5b2345275d7bf277c769d895f263dec555721e4c71575c0b1440348c5883b",
+      "targetSha256": "bdb806ed9603bc38d2eb9840046e0ac13ebf52bbb095be83710afcd0a6142533",
       "adapted": true
     },
     {
@@ -2303,7 +2303,7 @@
       "source": "packages/client/ui-tool/src/client/tool/models/control-details-model.ts",
       "target": "src/vendor/tool/client/tool/models/control-details-model.ts",
       "sourceSha256": "8d22c29ab0286e036cb863f87b9a9431bc08a6cce1bcfa16de9253c3a9fefd8d",
-      "targetSha256": "0359fe28ed05cdccba050eec05f23278769fe69abb53fb76fc9284b360ea7fbf",
+      "targetSha256": "2cf4d9c6f5a5781cefd4e38ee1fb04a23479d299976a85255cfebe6bd911f2f9",
       "adapted": true
     },
     {
@@ -3463,7 +3463,7 @@
       "source": "packages/session/message-quotes/src/client/QuoteSelection.tsx",
       "sourceSha256": "b8ce0819ab472ca04d328d1cb6ae532cc975b6decae0ef155da359eafe356d13",
       "target": "src/vendor/message-quotes/QuoteSelection.tsx",
-      "targetSha256": "02a62d9bc1b57ada41b7916bc2031e7fa2c7db3416ce89eb1c01afb05f1cd2f3",
+      "targetSha256": "949b0f9ff2e8031ab7428bcdc5ed5ddcd9a37a89bdd6cfc53ca6bf9544d3805d",
       "adapted": true
     },
     {
@@ -3561,7 +3561,7 @@
       "source": "packages/client/ui-conversation/src/client/locales.ts",
       "target": "src/vendor/shared/conversation-dictionaries.ts",
       "sourceSha256": "b613c7b44f3c888a330581d372e7f0b2f439a085b0a5e12243fec4deb8c2711a",
-      "targetSha256": "c0a3b3a1c9eead4c16421c2b60773a3692b507eb6e1e38004c26393b7d483a34",
+      "targetSha256": "11e0b6d147832dee6fa29c2a50479c94d8ab5e3c557a8c89b65e3433ecbaf446",
       "adapted": true,
       "description": "Moved the existing eight-language shared base here; Tool and Conversation retain their namespace adapters without duplicate key/value copies."
     },
@@ -3636,7 +3636,7 @@
     },
     {
       "target": "src/client.tsx",
-      "targetSha256": "18988299a8e06a4ccfd75ee5c5b4b941ba80525fe3862b673ba672932b7d649a",
+      "targetSha256": "54e078924fe284ffb040b69dbaeb010e255a574bb7f5c6623d95941a5517dcc5",
       "description": "Original plugin composition, public owner selection and presentation/service registration."
     },
     {
@@ -3721,7 +3721,7 @@
     },
     {
       "target": "src/vendor/intelligent/client/OpenUIBlock.tsx",
-      "targetSha256": "c61c0efe829a138cde61f3a238f197fc8eada0289232402cd5e61731bc434454",
+      "targetSha256": "0b24d78853fc43e8cd09a6bb8342a22d6ae7a53abcc2d5d89eb9db02919b340e",
       "description": "Original code-fence presenter that renders openui-lang blocks with @openuidev/react-lang inside answers, routes @ToAssistant through the Session input actions, and keeps unparsable source readable."
     },
     {
@@ -3736,7 +3736,7 @@
     },
     {
       "target": "src/jev-tool.ts",
-      "targetSha256": "8560c5b0b3cdfc5c683b6755407e13b4a010d2655b3366bf752b4d8a11b3d6aa",
+      "targetSha256": "db763caa413006f74c7044c6776921127ca85a33f49285ada5f384375196597f",
       "description": "Original optional TypeSafe Jev presentation advice tool: registered only in main agents' own tool scopes while the presentation prompt, jev.enabled and a resolvable key allow it; on a model call it sends the user messages of the turn being processed plus the model's structure summary (at most 600 characters) as one System One choice per turn, and returns an ordinary, ignorable tool result; a missing key, errors and cancellation return \"no suggestion\" and never fail a turn."
     },
     {
@@ -3766,12 +3766,12 @@
     },
     {
       "target": "src/host-contract.ts",
-      "targetSha256": "37c84cd41a3af7a580702d83c2b9586dc209d3849e0968e3298ed8411e10ea8c",
-      "description": "Host contract differences one build bridges across releases, chosen from the published Host release: the Session image read argument (attachment id before 0.2.2, complete reference from 0.2.2)."
+      "targetSha256": "4ab12fcdba2cd4156128d95833e9508261261f19bf75c3c2aebc5f206b69bd2f",
+      "description": "Host contract differences one build bridges across releases, chosen from the published Host release: the Session image read argument (attachment id before 0.2.2, complete reference from 0.2.2), and whether a continuable subagent's parent availability is reported at all (SessionSnapshot.subagent.parentAvailable, removed in 0.2.2-rc.2, from which on the child always takes input)."
     },
     {
       "target": "src/vendor/conversation/client/skeleton/session-phase.ts",
-      "targetSha256": "e1a1e36b7d3ea68fcffb116caefbb9c5db4dcb61fd503ce770e0ae9bf80ef4c7",
+      "targetSha256": "ea965f0b673cfb1432fd2792a06df7fc30943daae652841badfa9678a5209277",
       "description": "Original scalar lifecycle selectors preserving the existing main/header/view phase semantics."
     },
     {
@@ -3959,7 +3959,7 @@
     },
     {
       "target": "src/model-owner.ts",
-      "targetSha256": "bd946c7fecfd03f229c3c2077fc88e46e7b43927e84195573cbdc588c10da2d1",
+      "targetSha256": "447265d6f2e73f3713f1dfd589c0a4c8eb01e4f576caa819d051e84023da736f",
       "sources": [
         {
           "source": "packages/client/ui-model-selection/src/client/index.ts",
@@ -3974,7 +3974,7 @@
     },
     {
       "target": "src/official-controls.css",
-      "targetSha256": "22467db4e292122f9b48dfe2d0c67ec3e5e60fa6aca7de6c92c4b876db98d0a0",
+      "targetSha256": "6020c3cbd9e54796db650ecf8a43d52776de94f5ae240f6100cef00c670484f4",
       "sources": [
         {
           "source": "packages/client/ui-primitives/src/Button.module.css",
@@ -4061,7 +4061,7 @@
           "sourceSha256": "d1ea993723f44e3d657af171fa25678d421665211110140b0c5e1554805ff48a"
         }
       ],
-      "description": "Selected patched style deltas mapped to exact published rc.4 Web/client classes. The seven Web modules that 0.2.2-rc.1 rebuilt under new hashes (Button, HoverCard, DisclosureRow, ConfigField, SegmentedTabs, MenuSurface, Modal) also list their published 0.2.2-rc.1 class names as alternatives; the deltas themselves are unchanged. The retired ConfigField delta applies only to the current SettingsValueField gap; no retired component or business owner is restored."
+      "description": "Selected patched style deltas mapped to exact published rc.4 Web/client classes. The seven Web modules that 0.2.2-rc.1 rebuilt under new hashes (Button, HoverCard, DisclosureRow, ConfigField, SegmentedTabs, MenuSurface, Modal) also list their published 0.2.2-rc.1 class names as alternatives; HoverCard and Modal, which 0.2.2-rc.2 rebuilt again, and the account notice card, which 0.2.2-rc.2 moved from ui-settings-account to ui-account-notifications, list that release's names as a third. The deltas themselves are unchanged, except that the HoverCard delta also points the hover-card theme tokens 0.2.2-rc.2 introduced at the same surface and labels. The retired ConfigField delta applies only to the current SettingsValueField gap; no retired component or business owner is restored."
     },
     {
       "target": "src/plugin-documents/locales.ts",
@@ -4080,7 +4080,7 @@
     },
     {
       "target": "src/quotes.ts",
-      "targetSha256": "51ee6436bc37e043bc19938cc0caa33f570bb2ea0dd9e65fa6c67231a547f9dc",
+      "targetSha256": "05847a118bb9858db06b0ca51bf76caf622b11d6b3e0887cdbe9f9b9b4e899a1",
       "sources": [
         {
           "source": "packages/session/message-quotes/src/client/index.ts",

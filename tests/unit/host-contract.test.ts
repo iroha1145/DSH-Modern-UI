@@ -1,5 +1,12 @@
-import { describe, expect, it } from 'vitest'
-import { attachmentReadProtocol, hostReleaseVersion, readImageAttachment } from '../../packages/modern-ui/src/host-contract.ts'
+import { afterEach, describe, expect, it } from 'vitest'
+import {
+  attachmentReadProtocol,
+  bindHostContract,
+  hostReleaseVersion,
+  hostReportsParentAvailability,
+  parentAvailability,
+  readImageAttachment,
+} from '../../packages/modern-ui/src/host-contract.ts'
 
 // Session.readAttachment keeps its name and arity across Host releases but changed its argument:
 // 0.2.1 sends the attachment id, every 0.2.2 prerelease (alpha.2 onward) sends the full reference.
@@ -14,6 +21,7 @@ describe('attachment read protocol', () => {
     ['0.2.2-alpha.2', 'attachment-ref'],
     ['0.2.2-alpha.3', 'attachment-ref'],
     ['0.2.2-rc.1', 'attachment-ref'],
+    ['0.2.2-rc.2', 'attachment-ref'],
     ['0.2.2', 'attachment-ref'],
     ['0.2.10', 'attachment-ref'],
     ['0.3.0-alpha.1', 'attachment-ref'],
@@ -63,5 +71,69 @@ describe('readImageAttachment', () => {
     const { value, calls } = session()
     await readImageAttachment(value as never, 'attachment-ref', attachment)
     expect(calls).toEqual([{ argument: attachment, bound: true }])
+  })
+})
+
+// SessionSnapshot.subagent.parentAvailable: published up to 0.2.2-rc.1, removed in 0.2.2-rc.2, where a
+// continuable subagent takes input regardless of its parent.
+describe('parent availability of a continuable subagent', () => {
+  afterEach(() => {
+    bindHostContract(undefined)
+  })
+  const host = (version: string | undefined) =>
+    ({ get: (name: string) => (name === 'modules' ? { manifest: version === undefined ? {} : { release: { version } } } : undefined) }) as never
+
+  it.each([
+    ['0.2.1-rc.2', true],
+    ['0.2.1-rc.4', true],
+    ['0.2.1', true],
+    ['0.2.2-alpha.3', true],
+    ['0.2.2-rc.1', true],
+    ['0.2.2-rc.2', false],
+    ['0.2.2-rc.10', false],
+    ['0.2.2', false],
+    ['0.2.3-rc.1', false],
+    ['0.3.0-alpha.1', false],
+    ['1.0.0', false],
+    [undefined, true],
+    ['dev', true],
+  ])('%s reports it: %s', (version, reported) => {
+    expect(hostReportsParentAvailability(version)).toBe(reported)
+  })
+
+  it('passes the Host value through where the Host reports one, and without a bound Host', () => {
+    for (const bound of [undefined, host('0.2.1-rc.4'), host('0.2.2-rc.1')]) {
+      bindHostContract(bound)
+      expect(parentAvailability({})).toBeUndefined()
+      expect(parentAvailability({ parentAvailable: true })).toBe(true)
+      expect(parentAvailability({ parentAvailable: false })).toBe(false)
+    }
+  })
+
+  it('is always available on a Host that no longer tracks the parent', () => {
+    bindHostContract(host('0.2.2-rc.2'))
+    expect(parentAvailability({})).toBe(true)
+    // A record written by an older Host cannot keep the child locked either.
+    expect(parentAvailability({ parentAvailable: false })).toBe(true)
+  })
+
+  it('keeps the older reading until the Host has published its release, then settles', () => {
+    const state: { version: string | undefined } = { version: undefined }
+    const late = {
+      get: (name: string) => (name === 'modules' ? { manifest: state.version === undefined ? {} : { release: { version: state.version } } } : undefined),
+    }
+    bindHostContract(late as never)
+    expect(parentAvailability({})).toBeUndefined()
+    state.version = '0.2.2-rc.2'
+    expect(parentAvailability({})).toBe(true)
+  })
+
+  it('a stale unbind leaves a later binding in place', () => {
+    const first = bindHostContract(host('0.2.1-rc.4'))
+    const second = bindHostContract(host('0.2.2-rc.2'))
+    first()
+    expect(parentAvailability({})).toBe(true)
+    second()
+    expect(parentAvailability({})).toBeUndefined()
   })
 })

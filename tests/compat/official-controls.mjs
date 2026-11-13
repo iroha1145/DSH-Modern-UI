@@ -112,14 +112,15 @@ export async function runOfficialControlsChecks(backendPackage, options = {}) {
   const contract = readSelectorContract(readFileSync(options.cssPath ?? path.join(root, 'packages/modern-ui/src/official-controls.css'), 'utf8'))
   assert.deepEqual(
     { targets: contract.targets.length, names: contract.names.length },
-    { targets: 49, names: 66 },
+    { targets: 49, names: 71 },
     'Review and document every change to the private selector contract',
   )
 
   // A class counts as published when the release ships both its CSS rule and the runtime mapping that applies it.
   const inspect = name => {
     const rule = new RegExp('\\.' + escapeRegex(name) + '(?![\\w-])')
-    const mapping = new RegExp('(?:["\\\'][\\w$-]+["\\\']|[\\w$]+)\\s*[:=]\\s*["\\\']' + escapeRegex(name) + '["\\\']')
+    // 0.2.2-rc.2 bundles write string literals as template literals: {"avatar":`yHnPSG_avatar`}.
+    const mapping = new RegExp('(?:["\\\'`][\\w$-]+["\\\'`]|[\\w$]+)\\s*[:=]\\s*["\\\'`]' + escapeRegex(name) + '["\\\'`]')
     const styles = files.filter(file => file.text.includes(name) && rule.test(file.text))
     const runtime = files.filter(file => file.filename.endsWith('.js') && file.text.includes(name) && mapping.test(file.text))
     const gaps = [!styles.length && 'CSS rule', !runtime.length && 'runtime mapping'].filter(Boolean)

@@ -268,6 +268,9 @@ export function SidebarRoot({
   }
 
   const darwinDesktop = isDarwinDesktop()
+  // What the capsule takes from the column's width: its inset from the column's left edge and its inline padding
+  // on both sides. The macOS shell uses the narrower 8px inset (SidebarRoot.module.css).
+  const capsuleChrome = darwinDesktop ? 32 : 40
   const windowsCaption = windowsTitlebar && !mobile
   const toggle = (
     <Tooltip label={toggleLabel} shortcutKeys={shortcut?.keys} delayMs={500} side={captionTooltipSide} portal={windowsCaption}>
@@ -336,7 +339,7 @@ export function SidebarRoot({
           css.root, !wide && css.collapsed, !wide && everWide.current && css.railIn,
           collapsed && wide && css.fading, !pointerInside && css.quietBars,
         )}
-        style={!mobile && wide ? { '--dsh-sidebar-content-width': `${lastWideWidth.current - 40}px` } as CSSProperties : undefined}
+        style={!mobile && wide ? { '--dsh-sidebar-content-width': `${lastWideWidth.current - capsuleChrome}px` } as CSSProperties : undefined}
         onPointerEnter={() => {
           cancelLinger()
           setPointerInside(true)

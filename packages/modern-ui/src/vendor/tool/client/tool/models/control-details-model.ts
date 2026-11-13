@@ -110,7 +110,9 @@ function lspDetails(args: Record<string, unknown>, text: string, t: DetailTransl
 export function controlDetails(
   name: string, args: Record<string, unknown>, text: string, json: unknown, t: DetailTranslate,
 ): ToolDetailsModel | null {
-  const target = arg(args, 'target') || arg(args, 'agent_id') || arg(args, 'sessionId') || arg(args, 'job_id')
+  // `send_message` and `interrupt_agent` name their target with `agent` from official 0.2.2-rc.2 on (an agent name);
+  // records written before it use `agent_id`.
+  const target = arg(args, 'target') || arg(args, 'agent') || arg(args, 'agent_id') || arg(args, 'sessionId') || arg(args, 'job_id')
   switch (name) {
     case 'list_agents': return agentList(text, json, t)
     case 'job_list': return jobList(text, t)
