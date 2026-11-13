@@ -152,7 +152,10 @@ for (const platform of [undefined, 'windows', 'darwin'])
       // or the content stops short of the capsule's inline padding. The macOS shell uses the narrower inset.
       const inset = platform === 'darwin' ? 8 : 16
       assert.ok(Math.abs(initial.sidebar.x - initial.track.x - inset) < 1, `Capsule inset is ${initial.sidebar.x - initial.track.x}px`)
-      assert.ok(Math.abs(initial.sidebar.right - initial.body.right - 12) < 1, `Content ends ${initial.sidebar.right - initial.body.right}px inside the capsule`)
+      assert.ok(
+        Math.abs(initial.sidebar.right - initial.body.right - 12) < 1,
+        `Content ends ${initial.sidebar.right - initial.body.right}px inside the capsule`,
+      )
       await page.evaluate(() => {
         window.workspaceElement = document.querySelector('[data-motion-workspace]')
       })
