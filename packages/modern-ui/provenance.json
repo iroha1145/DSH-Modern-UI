@@ -983,7 +983,7 @@
       "source": "packages/client/ui-model-selection/src/client/locales.ts",
       "target": "src/vendor/model/client/locales.ts",
       "sourceSha256": "34c4e4f38a3d4de48acee1b56d135c525840e26ac89beee564af1a97cb78f2e7",
-      "targetSha256": "4a86b2487cead3d7315e5c56718afbebc5693e0ea27eadb0c734134b1a532273",
+      "targetSha256": "16a786fde77bbcf1f614edf0add50ab76cfe1c6afad81155331c78f9c99f4f9a",
       "adapted": true
     },
     {
@@ -3636,7 +3636,7 @@
     },
     {
       "target": "src/client.tsx",
-      "targetSha256": "bdfe7b5d26dadca0d21d9672a605515d7f0d81a3478eacc08c4dd728e21d2766",
+      "targetSha256": "54e078924fe284ffb040b69dbaeb010e255a574bb7f5c6623d95941a5517dcc5",
       "description": "Original plugin composition, public owner selection and presentation/service registration."
     },
     {
@@ -3766,8 +3766,8 @@
     },
     {
       "target": "src/host-contract.ts",
-      "targetSha256": "abad2ed7d028b44f22df2edc7aa05a904d4a945789e968337149ff28d50e1f2b",
-      "description": "Host contract differences one build bridges across releases, chosen from the published Host release: the Session image read argument (attachment id before 0.2.2, complete reference from 0.2.2)."
+      "targetSha256": "4ab12fcdba2cd4156128d95833e9508261261f19bf75c3c2aebc5f206b69bd2f",
+      "description": "Host contract differences one build bridges across releases, chosen from the published Host release: the Session image read argument (attachment id before 0.2.2, complete reference from 0.2.2), and whether a continuable subagent's parent availability is reported at all (SessionSnapshot.subagent.parentAvailable, removed in 0.2.2-rc.2, from which on the child always takes input)."
     },
     {
       "target": "src/vendor/conversation/client/skeleton/session-phase.ts",

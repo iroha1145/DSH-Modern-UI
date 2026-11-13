@@ -23,13 +23,13 @@ function Row({model,fieldsOnly}) { useEffect(()=>{window.rowMounts=(window.rowMo
 <button role="menuitem" id="first" onKeyDown={e=>{if(e.key==='Escape' && window.consume){ e.preventDefault(); window.consume=false; }}}>First</button>
 <div data-model-parameters-fields><input id="field"/><button id="inner">Inner</button></div>
 <button role="menuitem" id="last" onKeyDown={e=>{if(e.key==='Tab' && window.consumeTab) e.preventDefault()}}>Last</button></div> }
-function Fixture({model='good',fieldsOnly=false}={}) {
+function Fixture({model='good',fieldsOnly=false,parameters=1,options=0}={}) {
  const [selected,setSelected]=useState(model); window.selectModel=setSelected;
  const state={groups:[{id:'provider',name:'Provider',models:[{id:selected,name:selected}]}],current:{provider:'provider',model:selected},pending:null,status:'ready',error:null,failures:[]};
  return <><button id="before">Before</button><div id="moving" style={{position:'absolute',left:600,top:400}}><ModelSeat available locked={false}
- useModelDirectory={selector=>selector(state)} useModelPicker={selector=>selector(undefined)} useModelParameters={selector=>selector(1)} useModelOptions={selector=>selector(0)}
+ useModelDirectory={selector=>selector(state)} useModelPicker={selector=>selector(undefined)} useModelParameters={selector=>selector(parameters)} useModelOptions={selector=>selector(options)}
  useCodexSpeed={selector=>selector({status:'unknown',mode:'standard',writable:false,ultrafastModels:[]})} codex={{refresh(){},choose(){}}}
- t={key=>key} renderSlot={()=> <Row model={selected} fieldsOnly={fieldsOnly}/>}/></div><button id="after">After</button></>
+ t={key=>key} renderSlot={name=> name==='conversation.input.model.options' ? <button role="switch" aria-checked="false" id="team">Team</button> : <Row model={selected} fieldsOnly={fieldsOnly}/>}/></div><button id="after">After</button></>
 }
 window.show=props=>app.render(<Fixture {...props}/>);`,
   },
@@ -258,6 +258,41 @@ test('plain input-only rows admit Tab from the panel and allow normal Escape dis
     await page.keyboard.press('Escape')
     assert.equal(await page.locator('[role="menu"]').count(), 0)
     assert.equal(await page.locator('[aria-haspopup="menu"]').evaluate(el => el === document.activeElement), true)
+  } finally {
+    await context.close()
+  }
+})
+
+// Official 0.2.2-rc.2 registers session options (its Team mode switch) beside the provider's rows.
+test('session options alone get their own button name, no provider heading, and the keyboard reaches the switch', async () => {
+  const { context, page } = await fixture({ parameters: 0, options: 1 })
+  try {
+    const button = page.locator('[aria-haspopup="menu"]')
+    assert.equal(await button.getAttribute('aria-label'), 'extras.trigger.session')
+    // The mark a phone-width composer hides the button by.
+    assert.equal(await button.getAttribute('data-session-only'), '')
+    await button.focus()
+    await page.keyboard.press('Enter')
+    await page.waitForFunction(() => document.activeElement?.id === 'team')
+    assert.equal((await page.locator('[role="menu"]').innerText()).includes('extras.heading'), false)
+    await page.keyboard.press('Escape')
+    await page.waitForFunction(() => document.activeElement?.getAttribute('aria-haspopup') === 'menu')
+  } finally {
+    await context.close()
+  }
+})
+
+test('beside provider rows the button keeps the provider name and heading, and arrow keys run on into the switch', async () => {
+  const { context, page } = await fixture({ options: 1 })
+  try {
+    const button = page.locator('[aria-haspopup="menu"]')
+    await page.waitForFunction(() => document.querySelector('[aria-haspopup="menu"]')?.getAttribute('aria-label') === 'extras.trigger')
+    assert.equal(await button.getAttribute('data-session-only'), null)
+    await button.click()
+    assert.equal((await page.locator('[role="menu"]').innerText()).includes('extras.heading'), true)
+    await page.locator('#last').focus()
+    await page.keyboard.press('ArrowDown')
+    await page.waitForFunction(() => document.activeElement?.id === 'team')
   } finally {
     await context.close()
   }

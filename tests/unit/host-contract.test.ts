@@ -127,4 +127,13 @@ describe('parent availability of a continuable subagent', () => {
     state.version = '0.2.2-rc.2'
     expect(parentAvailability({})).toBe(true)
   })
+
+  it('a stale unbind leaves a later binding in place', () => {
+    const first = bindHostContract(host('0.2.1-rc.4'))
+    const second = bindHostContract(host('0.2.2-rc.2'))
+    first()
+    expect(parentAvailability({})).toBe(true)
+    second()
+    expect(parentAvailability({})).toBeUndefined()
+  })
 })

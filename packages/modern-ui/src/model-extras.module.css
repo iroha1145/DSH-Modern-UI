@@ -36,6 +36,16 @@
   }
 }
 
+/* A narrow composer (a phone) was tuned so the access mode and the model name stay readable; one more button
+   cuts both short. The button stays there while the selected model's provider has options of its own, as before.
+   With session options alone (the Team switch of official 0.2.2-rc.2) it steps aside, and the switch is reached
+   from a wider window. The nearest container is the composer's control row, as for the model button's rules. */
+@container (max-width: 480px) {
+  .trigger[data-session-only] {
+    display: none;
+  }
+}
+
 .trigger[aria-expanded='true'] {
   background: var(--extras-fill);
   color: var(--bui-ink);
@@ -186,6 +196,11 @@
 .rows {
   display: flex;
   flex-direction: column;
+}
+
+/* The provider's rows and the session options sit in one column; the wrappers only tell the two apart. */
+.group {
+  display: contents;
 }
 
 /* Handed to plugin rows as class names, for rows that take the menu's row geometry instead of bringing their own. */

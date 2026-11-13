@@ -69,10 +69,16 @@ let reportsParentAvailability: boolean | undefined
  * Tell the pure conversation helpers which Host they run under. Called once when the client plugin
  * starts; a second call replaces the first, and `undefined` forgets it.
  * @param ctx - the client plugin's context, or undefined to return to the pre-0.2.2-rc.2 reading.
+ * @returns a function that forgets this binding, and does nothing once a later call has replaced it.
  */
-export function bindHostContract(ctx: Context | undefined): void {
+export function bindHostContract(ctx: Context | undefined): () => void {
   contractContext = ctx
   reportsParentAvailability = undefined
+  return () => {
+    if (contractContext !== ctx) return
+    contractContext = undefined
+    reportsParentAvailability = undefined
+  }
 }
 
 /**

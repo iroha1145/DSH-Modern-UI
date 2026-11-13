@@ -721,6 +721,52 @@
           "effort.providerDefault": {
             "before": "Default",
             "after": "默认"
+          },
+          "extras.trigger.session": {
+            "before": null,
+            "after": "会话选项"
+          }
+        },
+        "en": {
+          "extras.trigger.session": {
+            "before": null,
+            "after": "Session options"
+          }
+        },
+        "ja": {
+          "extras.trigger.session": {
+            "before": null,
+            "after": "セッションのオプション"
+          }
+        },
+        "es": {
+          "extras.trigger.session": {
+            "before": null,
+            "after": "Opciones de la sesión"
+          }
+        },
+        "fr": {
+          "extras.trigger.session": {
+            "before": null,
+            "after": "Options de la session"
+          }
+        },
+        "de": {
+          "extras.trigger.session": {
+            "before": null,
+            "after": "Sitzungsoptionen"
+          }
+        },
+        "ru": {
+          "extras.trigger.session": {
+            "before": null,
+            "after": "Параметры сессии"
+          }
+        },
+        "pt": {
+          "extras.trigger.session": {
+            "before": null,
+            "after": "Opções da sessão"
           }
         }
       }

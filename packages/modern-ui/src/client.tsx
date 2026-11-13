@@ -58,12 +58,7 @@ export { installIconSprite }
 /** Mount selected Modern owners before dependent presentation cells. */
 export async function apply(ctx: Context): Promise<void> {
   // First, so every owner mounted below already reads Session snapshots the way the running Host publishes them.
-  ctx.effect(() => {
-    bindHostContract(ctx)
-    return () => {
-      bindHostContract(undefined)
-    }
-  })
+  ctx.effect(() => bindHostContract(ctx))
   installPluginStyles(ctx)
   installHighlighting(ctx)
   installThemeStyles(ctx)
