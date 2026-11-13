@@ -1,4 +1,5 @@
 import type { SessionSnapshot } from '@deepseek-ai/dsh-api-session-controller/client'
+import { parentAvailability } from '../../../../host-contract.ts'
 
 /** Select only the lifecycle result needed by shell chrome. */
 export function blankConversation(session: SessionSnapshot | undefined, hasActiveTargets: boolean | undefined): boolean {
@@ -16,7 +17,7 @@ export function mainPanelPhase(
   const blank = session === undefined || hasActiveTargets === undefined
     || !(hasActiveTargets || (!session.blank && !session.awaitingFirstTurn) || session.running || session.promptAttempted)
   const parentPending = session?.subagent?.address.mode === 'continuable'
-    && session.subagent.parentAvailable === undefined
+    && parentAvailability(session.subagent) === undefined
   if (sessionId !== undefined && ((blank && session?.openState === 'loading' && summaryBlank !== true) || parentPending)) return 'settling'
   return sessionId === undefined || (blank && (session?.openState === 'open' || summaryBlank === true)) ? 'hero' : 'active'
 }

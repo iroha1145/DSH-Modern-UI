@@ -16,6 +16,7 @@ import type {} from './contracts.ts'
 
 /** Child slot for rows a provider's plugin shows beside the model button (see model-extras.tsx). */
 const MODEL_PARAMETERS = 'conversation.input.model.parameters'
+const MODEL_OPTIONS = 'conversation.input.model.options'
 
 /** One selectable row's id: an opaque row key (resolved by lookup, never parsed). */
 function rowId(providerId: string, modelId: string): string {
@@ -145,6 +146,10 @@ export function apply(ctx: ClientContext): void {
       getSnapshot: () => scope.slots.entries(MODEL_PARAMETERS).length,
       subscribe: listener => scope.slots.subscribe(MODEL_PARAMETERS, listener),
     }
+    const modelOptions: ObservableSnapshot<number> = {
+      getSnapshot: () => scope.slots.entries(MODEL_OPTIONS).length,
+      subscribe: listener => scope.slots.subscribe(MODEL_OPTIONS, listener),
+    }
     scope.slots.inject('conversation.input.model', () =>
       scope.slots.register(
         {
@@ -160,13 +165,16 @@ export function apply(ctx: ClientContext): void {
             'conversation.input.model.label': { kind: 'single', scope: 'session', inline: true },
             // A list: each provider's plugin adds its rows and renders nothing for other providers' models.
             [MODEL_PARAMETERS]: { kind: 'list', scope: 'session' },
+            // Official 0.2.2-rc.2 declares this list on its own model menu (the Team mode switch registers there).
+            // With that menu disabled nobody would declare it, and a registration would wait for ever.
+            [MODEL_OPTIONS]: { kind: 'list', scope: 'session' },
           },
           inject: sessionId => {
             const directory = models.directoryFor(sessionId)
             const available = scope.sessions.subagentAddress(sessionId) === undefined
             return {
               available,
-              hooks: { modelDirectory: directory.store, modelPicker: picker, modelParameters, codexSpeed: codex.store },
+              hooks: { modelDirectory: directory.store, modelPicker: picker, modelParameters, modelOptions, codexSpeed: codex.store },
               codex: codexVerbs,
               load: () => {
                 if (available) void directory.load().catch(() => {})

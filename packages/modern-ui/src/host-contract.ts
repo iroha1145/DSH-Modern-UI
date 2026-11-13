@@ -43,6 +43,54 @@ export function attachmentReadProtocol(version: string | undefined): AttachmentR
   return newer ? 'attachment-ref' : 'attachment-id'
 }
 
+/**
+ * Whether a Host release reports if a continuable subagent's parent Session is reachable
+ * (`SessionSnapshot.subagent.parentAvailable`: undefined while the parent is being resolved, then
+ * true or false). Releases up to 0.2.2-rc.1 do. 0.2.2-rc.2 removed the field together with the
+ * agent ownership relation: a continuable subagent takes input whatever its parent does, and the
+ * official conversation tests the mode alone.
+ * @param version - official release version, e.g. `0.2.2-rc.1`.
+ * @returns false from 0.2.2-rc.2 on; true before it and for a missing or unparseable version.
+ */
+export function hostReportsParentAvailability(version: string | undefined): boolean {
+  const match = version === undefined ? null : /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+.*)?$/.exec(version)
+  if (match === null) return true
+  const [major, minor, patch] = match.slice(1, 4).map(Number) as [number, number, number]
+  if (major !== 0 || minor !== 2 || patch !== 2) return major === 0 && (minor < 2 || (minor === 2 && patch < 2))
+  // Within 0.2.2 only the alpha and beta lines and rc.1 still publish the field.
+  const candidate = match[4] === undefined ? null : /^rc\.(\d+)$/.exec(match[4])
+  return match[4] !== undefined && (candidate === null || Number(candidate[1]) < 2)
+}
+
+let contractContext: Context | undefined
+let reportsParentAvailability: boolean | undefined
+
+/**
+ * Tell the pure conversation helpers which Host they run under. Called once when the client plugin
+ * starts; a second call replaces the first, and `undefined` forgets it.
+ * @param ctx - the client plugin's context, or undefined to return to the pre-0.2.2-rc.2 reading.
+ */
+export function bindHostContract(ctx: Context | undefined): void {
+  contractContext = ctx
+  reportsParentAvailability = undefined
+}
+
+/**
+ * A continuable subagent's parent availability as the conversation should read it: the Host's
+ * value where the Host reports one, and `true` on a Host that no longer tracks it. Without a
+ * bound context, or before the Host has published its release, the older reading applies.
+ * @param subagent - the Session snapshot's subagent record.
+ * @returns undefined while an older Host is still resolving the parent, otherwise whether input may reach the child.
+ */
+export function parentAvailability(subagent: { readonly parentAvailable?: boolean }): boolean | undefined {
+  if (reportsParentAvailability === undefined && contractContext !== undefined) {
+    const version = hostReleaseVersion(contractContext)
+    // Not cached until the release is known, so an early read cannot pin the older reading.
+    if (version !== undefined) reportsParentAvailability = hostReportsParentAvailability(version)
+  }
+  return reportsParentAvailability === false ? true : subagent.parentAvailable
+}
+
 /** The official plugin that owns browser file-drag transfers from the 0.2.2 prereleases on. */
 const OFFICIAL_FILE_DRAG = '@deepseek-ai/dsh-client-ui-file-drag'
 

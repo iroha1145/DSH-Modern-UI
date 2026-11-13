@@ -11,6 +11,8 @@ const addedKeys = new Set([
   'input.failedSend.discard',
   'input.failedSend.attachments',
   'input.failedSend.missingAttachments',
+  // The label of the session header's context-menu button, shown on official 0.2.2-rc.2 and later.
+  'header.more',
 ])
 
 // Export values captured from the audited 5b1acbd baseline, independently of the shared source.

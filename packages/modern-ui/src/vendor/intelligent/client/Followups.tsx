@@ -5,6 +5,7 @@ import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots
 import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 import { parseFollowups } from './parse-followups.ts'
 import './locales.ts'
+import { parentAvailability } from '../../../host-contract.ts'
 import css from './Followups.module.css'
 
 type FollowupsProps = PropsRuntime<'conversation.chat.message.code'> & PropsLocale<'modern-intelligent'> & { matched: object }
@@ -25,7 +26,7 @@ export function Followups({ code, closed, inputActions, useInput, useSession, us
   const busy = useInput(input => input.phase === 'adjudicating' || input.phase === 'submitting')
   const composerFree = useInput(input => input.phase === 'plain' && input.draft.trim() === '' && input.attachmentIds.length === 0)
   const writable = useSession(session => !session.removed && (session.subagent === null
-    || (session.subagent.address.mode === 'continuable' && session.subagent.parentAvailable === true)))
+    || (session.subagent.address.mode === 'continuable' && parentAvailability(session.subagent) === true)))
   const allowed = useAccess('session/prompt')
   const [insertionRejected, setInsertionRejected] = useState(false)
   const [asked, setAsked] = useState<ReadonlySet<string>>(() => new Set())

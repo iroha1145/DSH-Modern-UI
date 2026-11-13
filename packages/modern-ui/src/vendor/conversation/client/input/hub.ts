@@ -27,6 +27,7 @@ import type { PopupDismissFace } from './facade.ts'
 import { SessionInputShell } from './facade.ts'
 import { reportMessageSubmission } from './submission-analytics.ts'
 import { readConversationDraft, readFailedInputSends, writeFailedInputSends, writeRecoveredConversationDraft } from '../stores.ts'
+import { parentAvailability } from '../../../../host-contract.ts'
 
 /** Structural command face for per-session popup resolution. */
 interface CommandFace {
@@ -148,7 +149,7 @@ export class InputHub implements SessionInputResolver {
       quoteInsertionAllowed: () => {
         const state = session.getSnapshot()
         return !state.removed && (state.subagent === null
-          || (state.subagent.address.mode === 'continuable' && state.subagent.parentAvailable === true))
+          || (state.subagent.address.mode === 'continuable' && parentAvailability(state.subagent) === true))
           && this.conversation().blocks.storeFor(session.sessionId).getSnapshot() === undefined
       },
       steerQueue: () => { void this.steerQueue(session, shell) },

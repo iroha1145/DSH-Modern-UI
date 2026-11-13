@@ -2,6 +2,7 @@
 /** Quote action rendered through the Chat text-interaction Slot. */
 import { useEffect } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import { parentAvailability } from '../../host-contract.ts'
 import css from './QuoteSelection.module.css'
 
 /**
@@ -12,7 +13,7 @@ import css from './QuoteSelection.module.css'
 export function QuoteSelectionAction({ dismiss, readText, clearSelection, inputActions, useSession, t }:
 PropsRuntime<'conversation.chat.text-interaction'> & PropsLocale<'messageQuotes'>) {
   const enabled = useSession(s => !s.removed && (s.subagent === null
-    || (s.subagent.address.mode === 'continuable' && s.subagent.parentAvailable === true)))
+    || (s.subagent.address.mode === 'continuable' && parentAvailability(s.subagent) === true)))
   useEffect(() => {
     if (!enabled) dismiss()
   }, [enabled, dismiss])

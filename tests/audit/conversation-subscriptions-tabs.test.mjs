@@ -169,6 +169,8 @@ test('tabs link panels and support roving Left/Right/Home/End focus across overf
     selectView: id => store.set({ view: id }),
     setPinned: (id, pinned) => pins.set(pinned ? pins.getSnapshot().filter(value => value !== id) : [...pins.getSnapshot(), id]),
     renderSlot: () => null,
+    // The header asks the Host for its context-menu button; a Host without that Factory renders nothing.
+    renderFactorySlot: () => null,
   }
   const bodyProps = {
     sessionId: 'session',

@@ -1,6 +1,6 @@
 /** Strict per-session header/body content inserted into the resident conversation layout. */
 
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import clsx from 'clsx'
 import { Button, IconEllipsisOutlineRegular, Menu, Tooltip } from '@iroha1145/dsh-modern-ui/primitives'
 import type { SessionListState, SessionSummary } from '@deepseek-ai/dsh-api-session-controller/client'
@@ -94,13 +94,39 @@ function equalBreadcrumbs(left: readonly Breadcrumb[], right: readonly Breadcrum
 }
 
 /**
+ * The session header's "more" menu on official 0.2.2-rc.2 and later. There the official plugins that used to put
+ * a button of their own into `conversation.session.header.utilities` (copy the session as Markdown, download the
+ * Session log, feedback, open in an app) add rows to the context-menu service under the `sessionHeader` target
+ * instead, and the header shows that service's button; the button hides itself while nothing is registered.
+ * Earlier releases register no such Factory, so nothing renders there and their utilities buttons stay as they
+ * are. The installed typings predate the Factory.
+ * @param renderFactorySlot - the header entry's Factory renderer.
+ * @param sessionId - the Session the menu acts on.
+ * @param label - the button's accessible name and tooltip.
+ * @param className - the header's icon-button class.
+ * @returns the button, or nothing on a Host without the Factory.
+ */
+function sessionHeaderMenu(
+  renderFactorySlot: ConversationSessionHeaderProps['renderFactorySlot'],
+  sessionId: SessionId,
+  label: string,
+  className: string | undefined,
+): ReactNode {
+  const render = renderFactorySlot as unknown as (
+    name: 'contextMenu.button',
+    props: { target: { kind: 'sessionHeader'; value: { sessionId: SessionId } }; label: string; className?: string | undefined; size?: 'sm' },
+  ) => ReactNode
+  return render('contextMenu.button', { target: { kind: 'sessionHeader', value: { sessionId } }, label, className, size: 'sm' })
+}
+
+/**
  * Renders Session header chrome above the resident conversation scrollport.
  * @param props - Strict Session store, view ledger, navigation, render, and locale shares.
  * @returns Session navigation controls, with title and tabs after conversation starts.
  */
 export function ConversationSessionHeader({
   sessionId, hideChrome, useSessions, useConversationViews, useStore,
-  renderSlot, open, selectView, setPinned, t, useEntryPins, useEntryActions, usePinSaveFailed,
+  renderSlot, renderFactorySlot, open, selectView, setPinned, t, useEntryPins, useEntryActions, usePinSaveFailed,
 }: ConversationSessionHeaderProps) {
   const tabs = useConversationViews(value => value)
   const selectedId = useStore(s => s.view)
@@ -222,6 +248,7 @@ export function ConversationSessionHeader({
             </div>
             <div className={css.headerUtilities}>
               {renderSlot('conversation.session.header.utilities', {})}
+              {sessionHeaderMenu(renderFactorySlot, sessionId, t('header.more'), css.headerMenuButton)}
             </div>
           </>
         )}

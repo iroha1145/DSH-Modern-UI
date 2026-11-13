@@ -27,7 +27,7 @@ function Fixture({model='good',fieldsOnly=false}={}) {
  const [selected,setSelected]=useState(model); window.selectModel=setSelected;
  const state={groups:[{id:'provider',name:'Provider',models:[{id:selected,name:selected}]}],current:{provider:'provider',model:selected},pending:null,status:'ready',error:null,failures:[]};
  return <><button id="before">Before</button><div id="moving" style={{position:'absolute',left:600,top:400}}><ModelSeat available locked={false}
- useModelDirectory={selector=>selector(state)} useModelPicker={selector=>selector(undefined)} useModelParameters={selector=>selector(1)}
+ useModelDirectory={selector=>selector(state)} useModelPicker={selector=>selector(undefined)} useModelParameters={selector=>selector(1)} useModelOptions={selector=>selector(0)}
  useCodexSpeed={selector=>selector({status:'unknown',mode:'standard',writable:false,ultrafastModels:[]})} codex={{refresh(){},choose(){}}}
  t={key=>key} renderSlot={()=> <Row model={selected} fieldsOnly={fieldsOnly}/>}/></div><button id="after">After</button></>
 }

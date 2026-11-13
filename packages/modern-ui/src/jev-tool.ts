@@ -519,7 +519,8 @@ export function installJevTool(ctx: Context, settings: () => JevSettings, prompt
     // subagent origin there, and the official packages test the live entry plus that origin instead.
     const isMain = (agent: Agent) => {
       if (agent.session.header.origin === 'subagent') return false
-      const registry: { roots?: () => Agent[] } = scope.agents
+      // Through unknown: the 0.2.2-rc.2 typings have no `roots`, and a type without it shares nothing with this one.
+      const registry = scope.agents as unknown as { roots?: () => Agent[] }
       return typeof registry.roots === 'function' ? registry.roots().includes(agent) : scope.agents.get(agent.id) === agent
     }
     const reconcile = (agent: Agent): Fiber | undefined => {

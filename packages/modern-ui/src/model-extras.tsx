@@ -13,6 +13,9 @@
  * - Closing the menu remounts the rows: an expanded list, or a key listener a row left on the document, ends with it.
  * - The Codex subscription plugin offers no rows; its speed setting is read and written through that plugin's own
  *   preferences (model-extras-codex.ts) and shown here while a Codex model is selected.
+ * - Official 0.2.2-rc.2 adds session options that are not about a provider (`conversation.input.model.options`,
+ *   where its Team mode switch registers). They follow the provider's rows in the same menu; the provider heading
+ *   shows only while something of the provider's is registered.
  *
  * Keys: Enter or Space on the button opens; ↑/↓, Home and End move across the rows; Escape closes back to the button
  * (a row may take the first Escape to fold its own list); Tab visits row controls, then leaves and closes.
@@ -72,11 +75,23 @@ export interface ModelParametersOwner {
   valueClassName: string
 }
 
+/** What the seat hands to rows registered in `conversation.input.model.options`; the official owner's shape. */
+export interface ModelOptionsOwner {
+  /** The session takes no changes: rows show their values and change nothing. */
+  locked: boolean
+  /** Close the menu and return focus to its button, before a row opens another overlay. */
+  dismiss: () => void
+  /** Tell the user that a change did not go through. */
+  reportFailure: (message: string) => void
+}
+
 /** Injected face of the model seat: the picker's, plus what the provider menu reads. */
 export interface ModelSeatInjected extends Omit<ModelSelectInjected, 'hooks'> {
   hooks: ModelSelectInjected['hooks'] & {
     /** How many plugins registered rows; with none, the seat mounts nothing for them. */
     modelParameters: ObservableSnapshot<number>
+    /** How many plugins registered session options. */
+    modelOptions: ObservableSnapshot<number>
     /** The Codex subscription plugin's speed preference. */
     codexSpeed: SnapshotStore<CodexSpeedState>
   }
@@ -88,7 +103,7 @@ export interface ModelSeatInjected extends Omit<ModelSelectInjected, 'hooks'> {
 export type ModelSeatProps = InjectFace<ModelSeatInjected> &
   Pick<PropsRuntime<'conversation.input.model'>, 'locked' | 'useProjection'> &
   PropsLocale<'modern-model'> &
-  Omit<PropsRenderSlots<'conversation.input.model.label' | 'conversation.input.model.parameters'>, 'SessionProvider'>
+  Omit<PropsRenderSlots<'conversation.input.model.label' | 'conversation.input.model.parameters' | 'conversation.input.model.options'>, 'SessionProvider'>
 
 const GAP = 8
 const MARGIN = 12
@@ -121,9 +136,10 @@ class Rows extends Component<{ children: ReactNode }, { failed: boolean }> {
  * @param props - the seat's props.
  * @returns the button and the portaled menu.
  */
-function ModelExtras({ locked, useModelDirectory, useModelParameters, useCodexSpeed, codex, t, renderSlot }: ModelSeatProps) {
+function ModelExtras({ locked, useModelDirectory, useModelParameters, useModelOptions, useCodexSpeed, codex, t, renderSlot }: ModelSeatProps) {
   const state = useModelDirectory(snapshot => snapshot)
   const registered = useModelParameters(count => count)
+  const sessionOptions = useModelOptions(count => count)
   const speed = useCodexSpeed(snapshot => snapshot)
   const id = useId()
   const rootRef = useRef<HTMLSpanElement | null>(null)
@@ -161,7 +177,9 @@ function ModelExtras({ locked, useModelDirectory, useModelParameters, useCodexSp
   const speeds = codexModel === undefined ? [] : codexSpeedChoices(speed, codexModel)
   const chosenSpeed = effectiveCodexSpeed(speed, speeds)
 
-  const hostsRows = choice !== undefined && registered > 0
+  const hostsProviderRows = choice !== undefined && registered > 0
+  const hostsOptions = sessionOptions > 0
+  const hostsRows = hostsProviderRows || hostsOptions
   const mounted = speeds.length > 0 || hostsRows
   const visible = speeds.length > 0 || (hostsRows && filled)
   const shown = open && visible && !locked
@@ -320,13 +338,32 @@ function ModelExtras({ locked, useModelDirectory, useModelParameters, useCodexSp
     [choice, locked, close, reportFailure],
   )
 
+  const optionsOwner = useMemo(
+    (): ModelOptionsOwner => ({
+      locked,
+      dismiss: () => {
+        close(true)
+      },
+      reportFailure,
+    }),
+    [locked, close, reportFailure],
+  )
+
   let rows: ReactNode = null
-  if (hostsRows && owner !== undefined) {
+  if (hostsProviderRows && owner !== undefined) {
     // An entry whose registration went away between renders makes the binding throw; the menu simply has no rows.
     try {
       rows = renderSlot('conversation.input.model.parameters', owner)
     } catch {
       rows = null
+    }
+  }
+  let options: ReactNode = null
+  if (hostsOptions) {
+    try {
+      options = renderSlot('conversation.input.model.options', optionsOwner)
+    } catch {
+      options = null
     }
   }
 
@@ -462,7 +499,7 @@ function ModelExtras({ locked, useModelDirectory, useModelParameters, useCodexSp
             onKeyDown={onKeyDown}
           >
             <div ref={bodyRef} className={clsx(css.body, 'scrollable')}>
-              {choice !== undefined && (
+              {choice !== undefined && (speeds.length > 0 || hostsProviderRows) && (
                 <div className={css.heading} aria-hidden="true">
                   {t('extras.heading', { provider: choice.provider.name })}
                 </div>
@@ -495,6 +532,7 @@ function ModelExtras({ locked, useModelDirectory, useModelParameters, useCodexSp
               {hostsRows && (
                 <div ref={rowsRef} className={css.rows}>
                   <Rows key={generation}>{rows}</Rows>
+                  <Rows key={`options:${generation}`}>{options}</Rows>
                 </div>
               )}
             </div>

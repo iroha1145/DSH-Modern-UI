@@ -466,6 +466,7 @@ export type ConversationSessionHeaderSlotProps =
     | 'conversation.session.header.corner'
     | 'conversation.session.header.views.actions'
   >
+  & PropsRenderFactories
   & PropsStore<ConversationStore>
   & InjectFace<ConversationSessionHeaderInjected>
   & PropsLocale<'modern-conversation'>

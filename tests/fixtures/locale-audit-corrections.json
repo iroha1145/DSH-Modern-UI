@@ -37,6 +37,24 @@
         }
       },
       "changes": {
+        "zh": {
+          "header.more": {
+            "before": null,
+            "after": "更多操作"
+          }
+        },
+        "en": {
+          "header.more": {
+            "before": null,
+            "after": "More actions"
+          }
+        },
+        "ja": {
+          "header.more": {
+            "before": null,
+            "after": "その他の操作"
+          }
+        },
         "es": {
           "quote.remove": {
             "before": "Eliminar cotización",
@@ -85,6 +103,10 @@
           "ask.pendingDetail": {
             "before": "Estas cuestiones pendientes siguen siendo responsabilidad del compositor.",
             "after": "Estas preguntas pendientes se pueden seguir respondiendo desde el cuadro de mensaje."
+          },
+          "header.more": {
+            "before": null,
+            "after": "Más acciones"
           }
         },
         "fr": {
@@ -131,6 +153,10 @@
           "ask.pendingDetail": {
             "before": "Ces questions en suspens restent à la charge du compositeur.",
             "after": "Vous pouvez toujours répondre à ces questions en attente dans la zone de saisie."
+          },
+          "header.more": {
+            "before": null,
+            "after": "Autres actions"
           }
         },
         "de": {
@@ -165,6 +191,10 @@
           "ask.pendingDetail": {
             "before": "Diese offenen Fragen bleiben vom Komponisten zu beantworten.",
             "after": "Diese offenen Fragen können weiterhin im Eingabefeld beantwortet werden."
+          },
+          "header.more": {
+            "before": null,
+            "after": "Weitere Aktionen"
           }
         },
         "ru": {
@@ -203,6 +233,10 @@
           "ask.pendingDetail": {
             "before": "На эти нерешенные вопросы остается ответ композитора.",
             "after": "На эти ожидающие вопросы можно по-прежнему ответить в поле ввода."
+          },
+          "header.more": {
+            "before": null,
+            "after": "Другие действия"
           }
         },
         "pt": {
@@ -241,6 +275,10 @@
           "ask.pendingDetail": {
             "before": "Essas questões pendentes permanecem respondidas pelo compositor.",
             "after": "Estas perguntas pendentes ainda podem ser respondidas na caixa de mensagem."
+          },
+          "header.more": {
+            "before": null,
+            "after": "Mais ações"
           }
         }
       }
