@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.1.21] - 2026-11-14
+
 ### 改进
 
 - OpenUI 下拉选项与日期日历改为应用内统一浮层，支持明暗主题、键盘导航、日期边界和窄屏避让；复选框、单选框采用同一套绘制样式，保留原生输入语义与数据绑定。
@@ -564,7 +566,8 @@ macOS 桌面客户端里，左侧栏四周不再有一圈灰边：整个窗口�
 
 - 会话里的联网开关（`/web on|off`）和它用的协议。联网工具统一在官方的插件管理里开关。
 
-[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.20...HEAD
+[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.21...HEAD
+[0.1.21]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.20...v0.1.21
 [0.1.20]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.19...v0.1.20
 [0.1.19]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.17...v0.1.18
