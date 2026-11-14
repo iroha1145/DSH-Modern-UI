@@ -1,7 +1,8 @@
 name: Upstream canary
 
 # Daily: run the compatibility suite against the newest official DSH prerelease and release that
-# are not yet verified. A failure opens (or comments on) one issue per host version; a pass is the
+# are not yet verified, plus a newer out-of-range version if it exceeds every admitted version.
+# Superseded out-of-range alphas are skipped. A failure opens (or comments on) one issue per host version; a pass is the
 # signal to follow CONTRIBUTING.md and add the host to verifiedHosts. Each host also gets a vendor
 # drift report (scripts/vendor-drift.mjs): which vendored upstream sources it changed, the first clue
 # for a failure; the issue quotes its part since the newest verified host.
