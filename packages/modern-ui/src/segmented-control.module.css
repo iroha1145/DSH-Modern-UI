@@ -25,14 +25,17 @@
   position: absolute;
   top: 1px;
   bottom: 1px;
-  left: 1px;
+  inset-inline-start: 1px;
   width: calc((100% - 2px) / var(--dsh-segment-count));
   border-radius: inherit;
   corner-shape: round;
   background: var(--dsw-segment-thumb-fill, var(--iui-card-bg, Canvas));
   box-shadow: var(--shadow-thumb, var(--iui-thumb-shadow, 0 1px 3px rgb(0 0 0 / 8%)));
   pointer-events: none;
+  transform: translateX(calc(var(--dsh-segment-index) * var(--dsh-segment-direction, 1) * 100%));
 }
+
+.indicator:dir(rtl) { --dsh-segment-direction: -1; }
 
 @media (prefers-reduced-motion: no-preference) {
   .indicator:not([data-static]) {

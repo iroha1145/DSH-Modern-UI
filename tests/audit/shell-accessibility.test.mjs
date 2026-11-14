@@ -146,9 +146,14 @@ test('text field focus keeps thin edges and geometry in light, dark, zoom and fo
           const ring = await field.evaluate(el => {
             const target = el.tagName === 'INPUT' && el.getAttribute('aria-label') === 'Search' ? el.parentElement : el
             const s = getComputedStyle(target)
-            return { style: s.outlineStyle, width: s.outlineWidth, color: s.outlineColor }
+            return { style: s.outlineStyle, width: s.outlineWidth, offset: s.outlineOffset, color: s.outlineColor, border: s.borderColor }
           })
-          assert.equal(ring.style, 'none', 'text entry does not add an outer focus frame')
+          if (label === 'Rename' && forcedColors === 'active') {
+            assert.equal(ring.style, 'solid', 'system contrast keeps the rename focus boundary visible')
+            assert.equal(ring.width, '1px')
+            assert.equal(ring.offset, '-1px', 'the contrast boundary stays inside the field')
+            assert.equal(ring.color, ring.border)
+          } else assert.equal(ring.style, 'none', 'text entry does not add an outer focus frame')
           assert.equal(await field.evaluate(el => document.activeElement === el), true)
           assert.deepEqual(await field.boundingBox(), before)
         }

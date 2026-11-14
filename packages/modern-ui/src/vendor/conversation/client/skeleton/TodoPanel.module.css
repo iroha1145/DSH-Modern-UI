@@ -80,6 +80,7 @@
 .item:last-child { border-bottom: 0; }
 .glyph { display: grid; flex: none; place-items: center; width: 24px; height: 24px; }
 .content { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.statusProgress { flex: none; white-space: nowrap; }
 .statusCompleted {
   corner-shape: round;
   flex: none;

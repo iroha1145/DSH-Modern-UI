@@ -180,6 +180,13 @@
   background: var(--dsw-alias-interactive-bg-hover);
 }
 
+@media (forced-colors: active) {
+  .row:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}
+
 @media (hover: hover) {
   .row:hover > .clickarea {
     background: var(--dsw-alias-interactive-bg-hover);

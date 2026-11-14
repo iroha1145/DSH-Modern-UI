@@ -54,6 +54,7 @@ import type { InjectFace, PropsLocale, PropsRenderSlots, PropsRuntime } from '@d
 import { ModelSelect } from './vendor/model/client/ModelSelect.tsx'
 import type { ModelLabelOwner, ModelSelectInjected } from './vendor/model/client/slots.ts'
 import { useDismissBehindModal } from './vendor/primitives/useDismissBehindModal.ts'
+import { overlayTopMargin } from './vendor/primitives/overlay-top-margin.ts'
 import { CODEX_PROVIDER, codexSpeedChoices, effectiveCodexSpeed, type CodexSpeed, type CodexSpeedMode, type CodexSpeedState } from './model-extras-codex.ts'
 import css from './model-extras.module.css'
 
@@ -285,7 +286,7 @@ function ModelExtras({ locked, useModelDirectory, useModelParameters, useModelOp
       const width = document.documentElement.clientWidth
       const height = document.documentElement.clientHeight
       const natural = panel.offsetHeight - body.clientHeight + body.scrollHeight
-      const above = rect.top - GAP - MARGIN
+      const above = rect.top - GAP - overlayTopMargin(MARGIN, rect, GAP)
       const below = height - rect.bottom - GAP - MARGIN
       const down = natural > above && below > above
       const next: CSSProperties & { '--extras-room': string } = {

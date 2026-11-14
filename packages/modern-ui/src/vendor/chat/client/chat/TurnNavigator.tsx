@@ -271,6 +271,7 @@ function TurnNavigatorRail(
             className={css.preview}
             style={{
               '--turn-preview-center': `${String(previewPosition.start + previewPosition.size / 2 - scrollTop)}px`,
+              '--turn-rail-height': `${String(viewHeight)}px`,
             } as CSSProperties}
           >
             <div className={css.previewPrompt}>

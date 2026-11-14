@@ -145,8 +145,10 @@ export function WorkspacePickFlow({
     : addEntries
   // Nothing listed and nothing to add with (a composition that mounts this
   // package without any directory-picker): an empty popover would claim a
-  // choice that does not exist, so the anchor gesture shows nothing at all.
-  const menuIsEmpty = items.length === 0
+  // choice that does not exist, so the anchor gesture shows nothing at all
+  // once the initial snapshot settles. Until then the status is meaningful content.
+  const listPending = !addOnly && workspaceSnapshot.phase === 'pending'
+  const menuIsEmpty = items.length === 0 && !listPending
 
   const closeModal = (): void => {
     setErrorOpen(false)
@@ -224,8 +226,9 @@ export function WorkspacePickFlow({
         side={side}
         portal
         getAnchorRect={getAnchorRect}
-      />
-      {open && !addIsTheOnlyEntry && !menuIsEmpty && workspaceSnapshot.phase === 'pending' && <div className={css.menuStatus} role="status">{t('picker.loading')}</div>}
+      >
+        {listPending && <div className={css.menuStatus} role="status">{t('picker.loading')}</div>}
+      </Menu>
       {renderDirectoryFlow(flowOwner)}
       <Modal
         open={errorOpen}

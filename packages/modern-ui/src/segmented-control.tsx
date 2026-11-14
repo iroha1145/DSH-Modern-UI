@@ -29,7 +29,7 @@ export const SegmentedTrack = forwardRef<HTMLDivElement, SegmentedTrackProps>(fu
           data-segment-indicator=""
           data-static={animate ? undefined : ''}
           className={css.indicator}
-          style={{ transform: `translateX(${selectedIndex * 100}%)` }}
+          style={{ '--dsh-segment-index': selectedIndex } as CSSProperties}
         />
       )}
       {children}

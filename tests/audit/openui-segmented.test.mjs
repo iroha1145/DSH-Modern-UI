@@ -6,7 +6,7 @@ import { existsSync } from 'node:fs'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { chromium } from 'playwright-core'
+import { chromium, firefox, webkit } from 'playwright-core'
 
 const repo = path.resolve(import.meta.dirname, '../..')
 const directory = await mkdtemp(path.join(tmpdir(), 'modern-openui-segment-'))
@@ -44,8 +44,9 @@ const server = createServer((request, response) => {
 })
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
 const executablePath = process.env.MODERN_UI_BROWSER
-const browser = await chromium.launch(
-  executablePath ? { executablePath, headless: true } : existsSync(chromium.executablePath()) ? { headless: true } : { channel: 'msedge', headless: true },
+const engine = { chromium, firefox, webkit }[process.env.MODERN_UI_TEST_ENGINE ?? 'chromium']
+const browser = await engine.launch(
+  executablePath ? { executablePath, headless: true } : existsSync(engine.executablePath()) ? { headless: true } : { channel: 'msedge', headless: true },
 )
 afterAll(async () => {
   await browser.close()
@@ -256,3 +257,39 @@ test('reduced motion moves directly to the final selection with no spatial trans
     { reducedMotion: 'reduce' },
   )
 })
+for (const direction of ['ltr', 'rtl'])
+  for (const dark of [false, true])
+    for (const forcedColors of ['none', 'active']) {
+      test(`audit segmented geometry and selected contrast (${direction}/${dark ? 'dark' : 'light'}/${forcedColors})`, async () => {
+        await withPage(
+          async (page, show) => {
+            await page.evaluate(dir => {
+              document.documentElement.dir = dir
+            }, direction)
+            await show(TWO, false, dark)
+            const group = page.getByRole('radiogroup', { name: 'First' })
+            for (const index of [0, 1, 2]) {
+              await group.getByRole('radio').nth(index).click()
+              await settle(group)
+              const geometry = await group.evaluate(el => ({
+                selected: el.querySelector('[aria-checked="true"]').getBoundingClientRect().toJSON(),
+                indicator: el.querySelector('[data-segment-indicator]').getBoundingClientRect().toJSON(),
+              }))
+              assert.ok(Math.abs(geometry.selected.x - geometry.indicator.x) < 1.1, JSON.stringify(geometry))
+              await aligned(group)
+              if (forcedColors === 'active') {
+                const colors = await group.getByRole('radio', { checked: true }).evaluate(el => ({
+                  foreground: getComputedStyle(el).color,
+                  background: getComputedStyle(el).backgroundColor,
+                  track: getComputedStyle(el.parentElement).backgroundColor,
+                  indicator: getComputedStyle(el.parentElement.querySelector('[data-segment-indicator]')).backgroundColor,
+                }))
+                assert.notEqual(colors.foreground, colors.indicator, JSON.stringify(colors))
+                assert.notEqual(colors.indicator, colors.track, JSON.stringify(colors))
+              }
+            }
+          },
+          { forcedColors },
+        )
+      })
+    }

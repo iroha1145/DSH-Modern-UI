@@ -228,8 +228,17 @@ export function HoverCard({
         })
         return
       }
-      const top = r.top + h > window.innerHeight - VIEWPORT_MARGIN ? window.innerHeight - h - VIEWPORT_MARGIN : r.top
-      publish({ left: r.right + ANCHOR_GAP, top })
+      const topMargin = overlayTopMargin(VIEWPORT_MARGIN, r, ANCHOR_GAP)
+      const maxWidth = Math.max(0, window.innerWidth - VIEWPORT_MARGIN * 2)
+      const maxHeight = Math.max(0, window.innerHeight - topMargin - VIEWPORT_MARGIN)
+      const width = Math.min(244, maxWidth)
+      const beside = r.right + ANCHOR_GAP
+      const preferredLeft = beside + width <= window.innerWidth - VIEWPORT_MARGIN ? beside : r.left - ANCHOR_GAP - width
+      publish({
+        left: Math.max(VIEWPORT_MARGIN, Math.min(preferredLeft, window.innerWidth - width - VIEWPORT_MARGIN)),
+        top: Math.max(topMargin, Math.min(r.top, window.innerHeight - Math.min(h, maxHeight) - VIEWPORT_MARGIN)),
+        maxWidth, maxHeight,
+      })
     }
     place()
     let frame: number | undefined
@@ -237,7 +246,7 @@ export function HoverCard({
       if (frame !== undefined) return
       frame = window.requestAnimationFrame(() => { frame = undefined; place() })
     }
-    const observer = (variant === 'preview' || inline) && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(schedule) : null
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(schedule) : null
     for (const element of [cardRef.current, rootRef.current, widthAnchorRef?.current]) {
       if (element !== null && element !== undefined) observer?.observe(element)
     }
@@ -250,18 +259,6 @@ export function HoverCard({
       window.removeEventListener('resize', schedule)
     }
   }, [open, variant, widthAnchorRef, positioned, inline, fitContent])
-
-  // The first placement ran before the card mounted (height read 0): once the
-  // card's real height is measurable, correct the bottom-edge clamp. The
-  // correction converges — a clamped top satisfies the guard, so it runs once.
-  useLayoutEffect(() => {
-    if (!open || pos === null || variant === 'preview' || inline) return
-    /* v8 ignore next -- the card is mounted whenever pos is set, so the ref is attached here. */
-    const h = cardRef.current?.offsetHeight ?? 0
-    if (pos.top + h > window.innerHeight - VIEWPORT_MARGIN) {
-      setPos({ left: pos.left, top: window.innerHeight - h - VIEWPORT_MARGIN })
-    }
-  }, [open, pos, variant, inline])
 
   const copy = async (text: string): Promise<void> => {
     if (copied || copyingRef.current) return
@@ -288,11 +285,13 @@ export function HoverCard({
   const card = open && pos !== null && (
     <div
       ref={cardRef}
-      className={clsx(css.card, variant === 'preview' && css.preview, inline && css.media, inline && fitContent && css.fitContent, copyable && css.copyable, copied && css.feedback)}
+      className={clsx(css.card, variant === 'compact' && !inline && css.compact, variant === 'preview' && css.preview, inline && css.media, inline && fitContent && css.fitContent, copyable && css.copyable, copied && css.feedback)}
       data-closing={closing || undefined}
       style={{
         left: pos.left, top: pos.top, width: pos.width, maxWidth: pos.maxWidth, maxHeight: pos.maxHeight,
-        minHeight: copied && copyHeightRef.current !== null ? copyHeightRef.current : undefined,
+        minHeight: copied && copyHeightRef.current !== null
+          ? variant === 'compact' && !inline ? Math.min(copyHeightRef.current, pos.maxHeight ?? copyHeightRef.current) : copyHeightRef.current
+          : undefined,
         '--dsh-hover-preview-fade': `${PREVIEW_FADE_MS}ms`,
       } as CSSProperties}
       role={copyable ? 'button' : undefined}

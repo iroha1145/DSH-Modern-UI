@@ -96,6 +96,7 @@
   background: transparent;
   color: inherit;
   font: inherit;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
 }
 
