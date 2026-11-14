@@ -19,10 +19,12 @@ await build({
 import React from 'react'; import {createRoot} from 'react-dom/client'; import {Renderer} from '@openuidev/react-lang';
 import {library} from './packages/modern-ui/src/vendor/openui/library.ts';
 import {onColor} from './packages/modern-ui/src/vendor/openui/components/style.ts';
+import {pointerModality} from './packages/modern-ui/src/vendor/primitives/input-modality.ts';
 import blockCss from './packages/modern-ui/src/vendor/intelligent/client/OpenUIBlock.module.css';
 const app = createRoot(document.getElementById('app'));
 window.actions = [];
 window.onColor = onColor;
+window.pointerModality = pointerModality;
 window.show = (response, scheme = 'light', streaming = false) => {
   document.body.toggleAttribute('data-ds-dark-theme', scheme === 'dark');
   app.render(
@@ -172,6 +174,8 @@ for (const dark of [false, true]) {
           boxTextColor: getComputedStyle(boxText).color,
           placeholderSelfBlur: getComputedStyle(placeholder).backdropFilter,
           placeholderBeforeBlur: getComputedStyle(placeholder, '::before').backdropFilter,
+          placeholderBackground: getComputedStyle(placeholder).backgroundColor,
+          placeholderColor: getComputedStyle(placeholder).color,
           popoverBlur: getComputedStyle(popover).backdropFilter,
           tooltipBlur: getComputedStyle(tooltip).backdropFilter,
           navBlur: getComputedStyle(nav).backdropFilter,
@@ -191,7 +195,9 @@ for (const dark of [false, true]) {
       assert.match(metrics.boxBeforeBlur, /blur/)
       assert.equal(metrics.boxTextColor, dark ? 'rgb(238, 238, 238)' : 'rgb(23, 23, 23)')
       assert.equal(metrics.placeholderSelfBlur, 'none')
-      assert.match(metrics.placeholderBeforeBlur, /blur/)
+      assert.equal(metrics.placeholderBeforeBlur, 'none')
+      assert.equal(metrics.placeholderBackground, dark ? 'rgb(35, 35, 37)' : 'rgb(255, 255, 255)')
+      assert.equal(metrics.placeholderColor, dark ? 'rgb(161, 161, 170)' : 'rgb(85, 85, 85)')
       assert.match(metrics.popoverBlur, /blur/)
       assert.match(metrics.tooltipBlur, /blur/)
       assert.match(metrics.navBlur, /blur/)
@@ -205,7 +211,212 @@ for (const dark of [false, true]) {
       assert.ok(hoverAlpha >= 0.75, `expected glass hover alpha >= 0.75, received ${navHoverBg}`)
 
       assert.equal(await underlayHiddenUnder(page, '.iui-card.iui-card-glass'), false)
-      assert.equal(await underlayHiddenUnder(page, '#placeholder'), false)
+      assert.equal(await underlayHiddenUnder(page, '#placeholder'), true)
+    } finally {
+      await context.close()
+    }
+  })
+
+  test(`fields keep disabled feedback and preserve error borders through hover and focus (${scheme})`, async () => {
+    const { context, page } = await openShowcase({
+      dark,
+      reducedMotion: 'reduce',
+      code: 'root = Col([Input("Sample", "Name"), Select("A", ["A", "B"], "Choice")])',
+    })
+    try {
+      for (const selector of ['input.iui-input', 'button.iui-input']) {
+        const field = page.locator(selector)
+        // Exercise native field states without adding new model-facing component props.
+        await field.evaluate(el => {
+          el.disabled = true
+        })
+        const read = () =>
+          field.evaluate(el => {
+            const style = getComputedStyle(el)
+            return { border: style.borderTopColor, background: style.backgroundColor, shadow: style.boxShadow, cursor: style.cursor, opacity: style.opacity }
+          })
+        const disabled = await read()
+        assert.equal(disabled.shadow, 'none')
+        assert.equal(disabled.cursor, 'not-allowed')
+        assert.ok(Number(disabled.opacity) < 1)
+        await field.hover()
+        assert.deepEqual(await read(), disabled, 'hover does not reactivate a disabled field')
+        await field.evaluate(el => {
+          el.disabled = false
+          el.setAttribute('aria-invalid', 'true')
+        })
+        const error = await read()
+        assert.equal(error.border, dark ? 'rgb(255, 125, 116)' : 'rgb(193, 50, 44)')
+        await field.hover()
+        assert.equal((await read()).border, error.border)
+        await field.focus()
+        assert.equal((await read()).border, error.border, 'focus preserves the error border')
+        assert.equal(await field.evaluate(el => getComputedStyle(el).outlineStyle), 'none')
+      }
+    } finally {
+      await context.close()
+    }
+  })
+
+  test(`pointer clicks omit rings, keyboard fields retain their thin border and buttons retain neutral rings (${scheme})`, async () => {
+    const { context, page } = await openShowcase({
+      dark,
+      reducedMotion: 'reduce',
+      code: '$mode = "A"\nroot = Col([Input("Sample", "Name"), TextArea("Draft", "Draft text"), Select("A", ["A", "B"], "Choice"), Button("Action"), Pressable([Text("Tile")]), SegmentedControl($mode, ["A", "B"], false, "Mode"), Popover("Details", [Text("Panel")])])',
+    })
+    try {
+      await page.locator('#block').evaluate(el => el.style.setProperty('--dsw-alias-state-business-primary', 'rgb(0, 0, 255)'))
+      const controls = [
+        'input.iui-input',
+        'textarea.iui-input',
+        'button.iui-input',
+        '.iui-button',
+        '.iui-pressable',
+        '.iui-segmented > button:first-of-type',
+        '.iui-popover-trigger',
+      ]
+      const outline = locator =>
+        locator.evaluate(el => {
+          const style = getComputedStyle(el)
+          return { style: style.outlineStyle, width: style.outlineWidth, color: style.outlineColor, border: style.borderTopColor }
+        })
+      for (const selector of controls) {
+        const control = page.locator(selector)
+        const before = await control.boundingBox()
+        await control.click()
+        assert.equal(await page.locator('html').getAttribute('data-input-modality'), 'pointer')
+        assert.equal((await outline(control)).style, 'none', `pointer outline on ${selector}`)
+        if (selector === '.iui-popover-trigger') assert.equal((await outline(page.locator('.iui-popover'))).style, 'none')
+        await page.keyboard.press('Escape')
+        await page.keyboard.press('Tab')
+        await control.focus()
+        const keyboard = await outline(control)
+        assert.equal(await page.locator('html').getAttribute('data-input-modality'), 'keyboard')
+        assert.equal(await control.evaluate(el => el === document.activeElement), true)
+        if (selector.includes('.iui-input')) {
+          assert.equal(keyboard.style, 'none', `keyboard field gained an outer ring: ${selector}`)
+          const after = await control.boundingBox()
+          assert.equal(after.width, before.width)
+          assert.equal(after.height, before.height)
+          continue
+        }
+        assert.equal(keyboard.style, 'solid', `keyboard outline on ${selector}`)
+        assert.equal(keyboard.width, '2px')
+        const channels = keyboard.color
+          .match(/[\d.]+/g)
+          .slice(0, 3)
+          .map(Number)
+        assert.equal(channels[0], channels[1], keyboard.color)
+        assert.equal(channels[1], channels[2], keyboard.color)
+        assert.notEqual(keyboard.border, 'rgb(0, 0, 255)')
+      }
+    } finally {
+      await context.close()
+    }
+  })
+
+  test(`initial automatic field focus has no extra ring before input modality is known (${scheme})`, async () => {
+    const { context, page } = await openShowcase({
+      dark,
+      reducedMotion: 'reduce',
+      code: 'root = Col([Input("Sample", "Name"), TextArea("Draft", "Draft text"), Select("A", ["A", "B"], "Choice")])',
+    })
+    try {
+      assert.equal(await page.locator('html').getAttribute('data-input-modality'), null)
+      for (const selector of ['input.iui-input', 'textarea.iui-input', 'button.iui-input']) {
+        const field = page.locator(selector)
+        const rest = await field.boundingBox()
+        const border = await field.evaluate(el => getComputedStyle(el).borderTopWidth)
+        await field.focus()
+        assert.equal(await field.evaluate(el => el === document.activeElement), true)
+        assert.equal(await page.locator('html').getAttribute('data-input-modality'), null)
+        assert.equal(await field.evaluate(el => getComputedStyle(el).outlineStyle), 'none')
+        assert.equal(await field.evaluate(el => getComputedStyle(el).borderTopWidth), border)
+        const focused = await field.boundingBox()
+        assert.equal(focused.width, rest.width)
+        assert.equal(focused.height, rest.height)
+      }
+      await page.locator('input.iui-input').focus()
+      for (const selector of ['textarea.iui-input', 'button.iui-input']) {
+        await page.keyboard.press('Tab')
+        assert.equal(await page.locator(selector).evaluate(el => el === document.activeElement), true, `Tab reaches ${selector}`)
+        assert.equal(await page.locator(selector).evaluate(el => getComputedStyle(el).outlineStyle), 'none')
+      }
+    } finally {
+      await context.close()
+    }
+  })
+
+  test(`filled control edges remain clean and content stays centered through interaction (${scheme})`, async () => {
+    const { context, page } = await openShowcase({
+      dark,
+      code: '$choice = "A"\nroot = Col([Button("展开更多"), IconButton("plus", null, "Add", "solid"), RadioGroup($choice, ["A", "B"], "Choice", "pills"), SegmentedControl($choice, ["A", "B"], false, "Mode")])',
+    })
+    try {
+      // Use the real host token ladder: the pale button rim must not reach filled controls.
+      await page.addStyleTag({ content: await readFile(path.join(repo, 'packages/modern-ui/src/vendor/theme/styles/design-platform.css'), 'utf8') })
+      await page.evaluate(() => Promise.all(document.getAnimations().map(animation => animation.finished)))
+      for (const selector of [
+        '.iui-button-solid',
+        '.iui-icon-button-solid',
+        '.iui-radio-pills .iui-choice.is-selected',
+        '.iui-segmented > button.is-selected',
+      ]) {
+        const control = page.locator(selector)
+        const inspect = () =>
+          control.evaluate(el => {
+            const style = getComputedStyle(el),
+              box = el.getBoundingClientRect()
+            const content = el.querySelector('.iui-button-label, svg, .iui-choice-text')
+            const range = document.createRange()
+            range.selectNodeContents(content ?? el)
+            const ink = content?.tagName.toLowerCase() === 'svg' ? content.getBoundingClientRect() : range.getBoundingClientRect()
+            const reference = document.createElement('span')
+            reference.style.cssText = 'position:absolute;box-shadow:var(--shadow-thumb)'
+            el.append(reference)
+            const expectedShadow = getComputedStyle(reference).boxShadow
+            reference.remove()
+            const surface = el.closest('.iui-segmented')?.querySelector('[data-segment-indicator]') ?? el
+            return {
+              width: box.width,
+              height: box.height,
+              cx: box.x + box.width / 2,
+              cy: box.y + box.height / 2,
+              offsetX: ink.x + ink.width / 2 - box.x - box.width / 2,
+              offsetY: ink.y + ink.height / 2 - box.y - box.height / 2,
+              radius: style.borderRadius,
+              shadow: getComputedStyle(surface).boxShadow,
+              expectedShadow,
+            }
+          })
+        const clean = state => {
+          assert.equal(state.shadow, state.expectedShadow, `filled surface received an extra rim: ${selector}`)
+          assert.ok(Math.abs(state.offsetX) < 1 && Math.abs(state.offsetY) < 1, JSON.stringify(state))
+        }
+        await page.mouse.move(1, 1)
+        const rest = await inspect()
+        clean(rest)
+        await control.hover()
+        await control.evaluate(el => Promise.all(el.getAnimations().map(animation => animation.finished)))
+        clean(await inspect())
+        await page.mouse.down()
+        await control.evaluate(el => Promise.all(el.getAnimations().map(animation => animation.finished)))
+        const pressed = await inspect()
+        clean(pressed)
+        assert.ok(Math.abs(pressed.cx - rest.cx) < 0.05 && Math.abs(pressed.cy - rest.cy) < 0.05)
+        await page.mouse.up()
+        await control.evaluate(el => Promise.all(el.getAnimations().map(animation => animation.finished)))
+        const released = await inspect()
+        clean(released)
+        assert.equal(released.radius, rest.radius)
+        assert.ok(Math.abs(released.width - rest.width) < 0.05 && Math.abs(released.height - rest.height) < 0.05)
+        if (await control.evaluate(el => el.tagName === 'BUTTON')) {
+          await control.evaluate(el => {
+            el.disabled = true
+          })
+          clean(await inspect())
+        }
+      }
     } finally {
       await context.close()
     }
@@ -273,7 +484,7 @@ test('forced colors clears backdrop blur, hides underlay and draws explicit stru
       cardBorder: getComputedStyle(document.querySelector('.iui-card:not(.iui-card-glass)')).borderTopWidth,
       glassBorder: getComputedStyle(document.querySelector('.iui-card.iui-card-glass')).borderTopWidth,
       buttonBorder: getComputedStyle(document.querySelector('.iui-button')).borderTopWidth,
-      segmentedBorder: getComputedStyle(document.querySelector('.iui-segmented')).borderTopWidth,
+      segmentedBorder: getComputedStyle(document.querySelector('.iui-segmented')).outlineWidth,
     }))
     assert.equal(state.forced, true)
     assert.equal(state.glassBlur, 'none')
@@ -316,7 +527,7 @@ test('ordinary OpenUI controls scale around center on press while anchored trigg
       return { width: r.width, cx: r.x + r.width / 2, cy: r.y + r.height / 2, transform: getComputedStyle(el).transform }
     })
     await page.mouse.up()
-    await page.waitForTimeout(190)
+    await actionBtn.evaluate(el => Promise.all(el.getAnimations().map(animation => animation.finished)))
     const released = await actionBtn.evaluate(el => {
       const r = el.getBoundingClientRect()
       return { width: r.width, cx: r.x + r.width / 2, cy: r.y + r.height / 2 }
@@ -472,7 +683,7 @@ async function selectionColors(page) {
           description = element.querySelector('.iui-choice-description')
         return {
           text: element.textContent,
-          background: style.backgroundColor,
+          background: getComputedStyle(element.closest('.iui-segmented')?.querySelector('[data-segment-indicator]') ?? element).backgroundColor,
           color: style.color,
           adjustment: style.forcedColorAdjust,
           title: title ? getComputedStyle(title).color : style.color,
@@ -551,7 +762,7 @@ for (const dark of [false, true]) {
   test(`ordinary selection colors retain Paper Widgets design (${dark ? 'dark' : 'light'})`, async () => {
     const { context, page } = await openShowcase({ dark, reducedMotion: 'reduce', code: SELECTION_SHOWCASE })
     try {
-      const styles = await page.evaluate(dark => {
+      const styles = await page.evaluate(() => {
         const block = document.querySelector('#block'),
           reference = document.createElement('span')
         reference.style.cssText = 'position:absolute;forced-color-adjust:none'
@@ -562,7 +773,7 @@ for (const dark of [false, true]) {
           return { color: style.color, background: style.backgroundColor }
         }
         const expected = {
-          segment: color('color:var(--iui-ink);background:' + (dark ? 'color-mix(in srgb, var(--iui-ink) 10%, var(--iui-canvas))' : 'var(--iui-card-bg)')),
+          segment: color('color:var(--iui-ink);background:var(--dsw-segment-thumb-fill, var(--iui-card-bg))'),
           cards: color('color:var(--iui-ink);background:color-mix(in srgb, var(--iui-ink) 3%, var(--iui-card-bg))'),
           pills: color('color:var(--iui-on-ink);background:var(--iui-ink)'),
           description: color('color:var(--iui-muted)').color,
@@ -574,15 +785,15 @@ for (const dark of [false, true]) {
               description = element.querySelector('.iui-choice-description')
             return {
               color: style.color,
-              background: style.backgroundColor,
+              background: getComputedStyle(element.closest('.iui-segmented')?.querySelector('[data-segment-indicator]') ?? element).backgroundColor,
               description: description ? getComputedStyle(description).color : null,
-              shadow: style.boxShadow,
+              shadow: getComputedStyle(element.closest('.iui-segmented')?.querySelector('[data-segment-indicator]') ?? element).boxShadow,
             }
           },
         )
         reference.remove()
         return { expected, actual, forced: matchMedia('(forced-colors:active)').matches }
-      }, dark)
+      })
       assert.equal(styles.forced, false)
       for (const [index, key] of ['segment', 'cards', 'pills'].entries()) {
         assert.equal(styles.actual[index].color, styles.expected[key].color)

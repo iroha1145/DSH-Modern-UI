@@ -2,6 +2,12 @@ import { createContext, useContext } from "react";
 
 /** Interface words inside components; the block supplies them in the reader's language. */
 export const UI_TEXT = {
+  chooseDate: "Choose date",
+  previousMonth: "Previous month",
+  nextMonth: "Next month",
+  clearDate: "Clear date",
+  dateFormat: "Format: YYYY-MM-DD",
+  invalidDate: "Enter a valid date within the allowed range (YYYY-MM-DD).",
   diagram: "Diagram",
   selection: "Selection",
   details: "Details",

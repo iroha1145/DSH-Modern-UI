@@ -5,13 +5,34 @@
   box-sizing: border-box;
   height: var(--control-h-sm);
   padding: 0 8px;
-  border: 0.5px solid var(--dsw-alias-border-l4);
+  border: 0.5px solid var(--field-border, var(--dsw-alias-border-l4));
   border-radius: var(--dsw-radius-lg);
-  background: var(--dsw-alias-bg-module-platform);
+  background: var(--surface, var(--dsw-alias-bg-module-platform));
+  box-shadow: var(--shadow-field);
+  transition: border-color var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve),
+    box-shadow var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve);
+}
+
+@media (hover: hover) {
+  .wrap:hover:not(:focus-within):not(:has(:disabled, [aria-invalid='true'])) {
+    border-color: var(--ink-3);
+    box-shadow: var(--shadow-field-hover);
+  }
 }
 
 .wrap:focus-within {
-  border-color: var(--dsw-alias-state-business-primary);
+  border-color: var(--field-border);
+  box-shadow: var(--shadow-field-focus);
+}
+
+.wrap:has(:disabled) {
+  background: var(--inset);
+  box-shadow: none;
+  opacity: 0.6;
+}
+
+.wrap:has([aria-invalid='true']) {
+  border-color: var(--dsw-alias-state-error-primary);
 }
 
 .icon {
@@ -40,13 +61,4 @@
 
 @media (pointer: coarse) {
   .input { font-size: 16px; }
-}
-
-:global(html:not([data-input-modality='pointer'])) .wrap:has(.input:focus-visible) {
-  outline: var(--dsw-focus-ring-width, 2px) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
-  outline-offset: 2px;
-}
-
-@media (forced-colors: active) {
-  :global(html:not([data-input-modality='pointer'])) .wrap:has(.input:focus-visible) { outline-color: Highlight; }
 }

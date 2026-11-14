@@ -45,8 +45,8 @@
         prices: {}
         # Model-visible: appends the response-presentation guidance to the system prompt.
         presentation:
-          prompt: false
+          prompt: true
           # Model-visible: appends the progressive result delivery guidance to the system prompt.
-          progressive: false
+          progressive: true
     - id: modern-plugin-documents
       name: '@iroha1145/dsh-modern-ui/plugin-documents'

@@ -104,6 +104,58 @@ const record = page =>
     return frames
   })
 
+test('long menus indicate only remaining scroll directions and keep keyboard rows readable', async () => {
+  const { context, page } = await fixture({}, { reducedMotion: 'reduce' })
+  try {
+    await page.evaluate(() => window.resizeMenu(40))
+    await page.locator('#trigger').click()
+    const viewport = page.locator('[data-menu-viewport]')
+    const hints = () =>
+      viewport.evaluate(element => ({
+        top: Number(getComputedStyle(element, '::before').opacity),
+        bottom: Number(getComputedStyle(element, '::after').opacity),
+        height: element.clientHeight,
+        scrollHeight: element.scrollHeight,
+      }))
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('[data-menu-viewport]'), '::after').opacity === '1')
+    assert.equal((await hints()).top, 0)
+    await viewport.evaluate(element => {
+      element.scrollTop = (element.scrollHeight - element.clientHeight) / 2
+    })
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('[data-menu-viewport]'), '::before').opacity === '1')
+    assert.equal((await hints()).bottom, 1)
+    await page.keyboard.press('End')
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('[data-menu-viewport]'), '::after').opacity === '0')
+    assert.equal((await hints()).top, 1)
+    assert.equal(
+      await page
+        .locator('[role="menuitem"]')
+        .last()
+        .evaluate(element => element === document.activeElement),
+      true,
+    )
+    assert.ok(
+      await viewport.evaluate(element => {
+        const focused = document.activeElement.getBoundingClientRect(),
+          bounds = element.getBoundingClientRect()
+        return focused.top >= bounds.top && focused.bottom <= bounds.bottom + 1
+      }),
+    )
+    await page.keyboard.press('Home')
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('[data-menu-viewport]'), '::before').opacity === '0')
+    await page.evaluate(() => window.resizeMenu(0))
+    await page.waitForFunction(() => {
+      const element = document.querySelector('[data-menu-viewport]')
+      return element.scrollHeight <= element.clientHeight + 1 && getComputedStyle(element, '::after').opacity === '0'
+    })
+    const short = await hints()
+    assert.equal(short.top, 0)
+    assert.ok(short.height > 50 && short.height < 80, 'hints add no space to a two-row menu')
+  } finally {
+    await context.close()
+  }
+})
+
 test('menu placement stays still while the trigger releases its pressed scale', async () => {
   const { context, page } = await fixture()
   try {

@@ -13,6 +13,7 @@
   align-items: center;
   justify-content: center;
   padding: 40px;
+  overflow: hidden;
 }
 
 /* Shared dimming mask below the preview and its controls. */
@@ -25,8 +26,10 @@
 
 .image {
   position: relative;
-  max-width: min(100%, 1600px);
-  max-height: 100%;
+  max-width: none;
+  max-height: none;
+  user-select: none;
+  cursor: zoom-in;
   object-fit: contain;
   border-radius: var(--dsw-radius-lg);
   background: var(--dsw-specific-input-major);
@@ -52,3 +55,57 @@
 }
 
 .close:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary)); outline-offset: 3px; }
+
+.viewport {
+  position: absolute;
+  inset: 40px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.canvas {
+  display: grid;
+  place-items: center;
+  width: max-content;
+  min-width: 100%;
+  min-height: 100%;
+}
+
+.image[data-zoomed] { cursor: grab; }
+.image[data-zoomed]:active { cursor: grabbing; }
+
+.controls {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 0.5px solid var(--dsw-alias-border-l2-darkmode-thin);
+  border-radius: 999px;
+  background: var(--dsw-specific-input-major);
+  color: var(--dsw-alias-label-primary);
+}
+
+.controls button {
+  min-width: 36px;
+  height: 32px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.controls button:disabled { opacity: .45; cursor: default; }
+.controls button:focus-visible, .viewport:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 3px;
+}
+
+@media (forced-colors: active) {
+  .controls, .close { border: 1px solid ButtonText; }
+  .controls button:disabled { color: GrayText; opacity: 1; }
+}

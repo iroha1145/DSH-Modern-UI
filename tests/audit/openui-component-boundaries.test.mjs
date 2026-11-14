@@ -90,7 +90,7 @@ test('an SVG shape cannot claim a click outside its viewport; the composer remai
   }
 })
 
-test('popover font, native select, card shadow and keyboard focus survive the SVG boundary', async () => {
+test('popover font, unified select, card shadow and keyboard focus survive the SVG boundary', async () => {
   const page = await pageFor(
     '$choice = "A"\nroot = Col([Card([Popover("Definition", [Text("Panel outside its trigger")]), Select($choice, ["A", "B"], "Choice"), Button("Action", @ToAssistant("ok"))])])',
   )
@@ -111,9 +111,10 @@ test('popover font, native select, card shadow and keyboard focus survive the SV
     const box = await panel.boundingBox()
     assert.ok(box.x >= 0 && box.y >= 0 && box.x + box.width <= 800 && box.y + box.height <= 600)
     await page.keyboard.press('Escape')
-    await page.locator('select').selectOption('B')
-    assert.equal(await page.locator('select').inputValue(), 'B')
-    await page.locator('select').focus()
+    await page.getByRole('combobox', { name: 'Choice' }).click()
+    await page.getByRole('option', { name: 'B', exact: true }).click()
+    assert.equal(await page.getByRole('combobox').evaluate(el => el.value), 'B')
+    await page.getByRole('combobox').focus()
     await page.keyboard.press('Tab')
     const focus = await page.evaluate(() => ({
       visible: document.activeElement.matches(':focus-visible'),

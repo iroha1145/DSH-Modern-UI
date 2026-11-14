@@ -18,14 +18,21 @@ await build({
 import React from 'react'; import {createRoot} from 'react-dom/client';
 import {Button} from './packages/modern-ui/src/vendor/primitives/Button.tsx';
 import {Tooltip} from './packages/modern-ui/src/vendor/primitives/Tooltip.tsx';
+import {Input} from './packages/modern-ui/src/vendor/primitives/Input.tsx';
 import modal from './packages/modern-ui/src/vendor/primitives/Modal.module.css';
+import composer from './packages/modern-ui/src/vendor/conversation/client/skeleton/InputBar.module.css';
 import './packages/modern-ui/src/vendor/theme/styles/feel.css';
 import './packages/modern-ui/src/vendor/theme/styles/base.css';
+import './packages/modern-ui/src/vendor/theme/styles/design-platform.css';
+import './packages/modern-ui/src/vendor/theme/styles/beautiful-ui.css';
+import './packages/modern-ui/src/vendor/theme/styles/gradient-shadow-text.css';
+import './packages/modern-ui/src/vendor/theme/styles/focus.css';
 import './packages/modern-ui/src/official-controls.css';
 import './packages/modern-ui/src/official-surfaces.css';
 const app=createRoot(document.getElementById('app'));let revision=0;let mode='buttons';
 function Fixture({revision}) {return <><span id="revision">{revision}</span>
 {mode==='buttons' && <div className="buttons"><Button id="action">Action</Button><Button id="anchor" aria-haspopup="menu">Anchored</Button><button id="official" className="_button_1rv3m_2">Official</button><button id="official-anchor" className="_button_1rv3m_2" aria-haspopup="menu">Official anchored</button><button id="official-next" className="_button_1ulci_2">Official 0.2.2</button><button id="official-next-anchor" className="_button_1ulci_2" aria-haspopup="menu">Official 0.2.2 anchored</button></div>}
+{mode==='fields' && <><button id="before-field">Before field</button><Input id="field" aria-label="Search"/><button id="before-composer">Before composer</button><div id="composer-card" className={composer.card}><div id="composer" role="textbox" aria-label="Message" contentEditable className={composer.input}/></div></>}
 {mode==='tooltip' && <Tooltip label="A stable tooltip" side="bottom" portal><Button id="tooltip-trigger">Tooltip trigger</Button></Tooltip>}
 {mode==='modal' && <div className={modal.root}><div id="mask" className={modal.mask}/><div id="modal" className={modal.dialog} role="dialog" aria-label="Motion fixture"><div className={modal.header}>Modal fixture</div><div className={modal.body}>Stable content</div></div></div>}
 {mode==='prompt' && <div id="prompt-host"><div id="prompt" data-trigger-menu>Official prompt menu fixture</div></div>}
@@ -129,6 +136,43 @@ function stableGeometry(samples, position = true) {
       assert.ok(Math.abs(sample[key] - samples[0][key]) < 0.02, key + ': ' + JSON.stringify(samples))
     }
 }
+
+for (const dark of [false, true])
+  test(`fields keep their thin edge after automatic, pointer and keyboard focus (${dark ? 'dark' : 'light'})`, async () => {
+    const { context, page } = await open('fields')
+    try {
+      await page.evaluate(dark => document.body.toggleAttribute('data-ds-dark-theme', dark), dark)
+      for (const [id, before] of [
+        ['field', 'before-field'],
+        ['composer', 'before-composer'],
+      ]) {
+        const input = page.locator('#' + id)
+        const read = () =>
+          input.evaluate(element => {
+            const style = getComputedStyle(element.parentElement)
+            return { outline: style.outlineStyle, color: style.outlineColor, width: style.outlineWidth, border: style.borderColor, shadow: style.boxShadow }
+          })
+        // A refresh can autofocus the composer before pointer modality exists.
+        await page.evaluate(() => document.documentElement.removeAttribute('data-input-modality'))
+        await input.focus()
+        assert.equal((await read()).outline, 'none', 'automatic focus must not draw a large outer frame')
+        await input.click()
+        await input.press('a')
+        await page.waitForTimeout(150)
+        const clicked = await read()
+        assert.ok(clicked.outline === 'none' || clicked.color === 'rgba(0, 0, 0, 0)', 'clicking and typing must not add a focus outline')
+        for (const match of (clicked.border + clicked.shadow).matchAll(/rgba?\((\d+),\s*(\d+),\s*(\d+)/g))
+          assert.ok(Math.max(...match.slice(1).map(Number)) - Math.min(...match.slice(1).map(Number)) < 5, 'field edges and shadows are neutral, not blue')
+        await page.locator('#' + before).focus()
+        await page.keyboard.press('Tab')
+        assert.equal(await input.evaluate(element => element === document.activeElement), true)
+        const keyboard = await read()
+        assert.equal(keyboard.outline, 'none', 'Tab focus also keeps the original thin field edge')
+      }
+    } finally {
+      await context.close()
+    }
+  })
 
 test('vendored and official action feedback stays centered and releases monotonically without overshoot', async () => {
   const { context, page } = await open('buttons')
@@ -279,7 +323,20 @@ test('reduced motion disables button shrink and tooltip, modal and official prom
         samples.every(s => s.transform === 'none' && Math.abs(s.width - box.width) < 0.02),
         id + ' does not scale',
       )
-      assert.equal(await page.locator('#' + id).evaluate(el => el.getAnimations().length), 0)
+      // Color feedback remains available; reduced motion suppresses spatial effects.
+      assert.equal(
+        await page
+          .locator('#' + id)
+          .evaluate(
+            el =>
+              el
+                .getAnimations()
+                .filter(animation =>
+                  animation.effect.getKeyframes().some(frame => ['transform', 'translate', 'scale', 'rotate'].some(property => property in frame)),
+                ).length,
+          ),
+        0,
+      )
     }
     for (const [mode, selector] of [
       ['tooltip', '[role=tooltip]'],

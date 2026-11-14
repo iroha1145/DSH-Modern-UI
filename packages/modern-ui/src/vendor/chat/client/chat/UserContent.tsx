@@ -3,6 +3,7 @@ import { Fragment } from 'react'
 import type { FactoryComponentPropsOf } from '@deepseek-ai/dsh-client-ui-slots'
 import { FileTypeIcon, fileExtension, fileSizeText, JsonBlock, UserMessageBubble } from '@iroha1145/dsh-modern-ui/primitives'
 import css from './MessageItem.module.css'
+import { AttachmentFilename } from '../../../../attachment-filename.tsx'
 
 const EMPTY_LABELS: readonly string[] = []
 
@@ -34,7 +35,7 @@ FactoryComponentPropsOf<'conversation.chat.user.content'>) {
               <span key={`file:${index}`} className={css.fileCard} title={attachment.file.name}>
                 <FileTypeIcon path={attachment.file.name} className={css.fileIcon} />
                 <span className={css.fileContent}>
-                  <span className={css.fileName}>{attachment.file.name}</span>
+                  <AttachmentFilename className={css.fileName} name={attachment.file.name} />
                   <span className={css.fileMeta}>
                     {[fileExtension(attachment.file.name).toUpperCase().slice(0, 8), fileSizeText(attachment.file.bytes)]
                       .filter(Boolean).join(' ')}

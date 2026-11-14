@@ -47,10 +47,10 @@ function sectionsFor(config) {
 }
 
 const states = [
-  ['absent', {}, []],
+  ['absent', {}, ['modern-ui:response-presentation', 'modern-ui:progressive-results']],
   ['off', { presentation: { prompt: false, progressive: false } }, []],
-  ['components on', { presentation: { prompt: true } }, ['modern-ui:response-presentation']],
-  ['progressive on', { presentation: { progressive: true } }, ['modern-ui:progressive-results']],
+  ['components off', { presentation: { prompt: false } }, ['modern-ui:progressive-results']],
+  ['progressive off', { presentation: { progressive: false } }, ['modern-ui:response-presentation']],
   ['both on', { presentation: { prompt: true, progressive: true } }, ['modern-ui:response-presentation', 'modern-ui:progressive-results']],
 ]
 
@@ -128,18 +128,18 @@ test('a disabled Modern UI entry adds no prompt even when the switch is on', () 
   assert.deepEqual(sectionsFor({ enabled: false, presentation: { prompt: true, progressive: true } }), [])
 })
 
-test('the bundle patch declares the prompt off explicitly', async () => {
+test('the bundle patch enables both prompts by default', async () => {
   const patch = await readFile(path.join(root, 'packages/modern-ui/cordis.patch.yml'), 'utf8')
-  assert.match(patch, /presentation:\r?\n\s+prompt: false/)
-  assert.match(patch, /\n\s+progressive: false/)
+  assert.match(patch, /presentation:\r?\n\s+prompt: true/)
+  assert.match(patch, /\n\s+progressive: true/)
 })
 
 test('client switches read the accepted section and keep defaults for missing fields', async () => {
   const { readPresentation, DEFAULT_PRESENTATION, presentationLocale } = await load('presentation-switches.ts')
   assert.deepEqual(readPresentation(undefined), DEFAULT_PRESENTATION)
-  assert.deepEqual(readPresentation({ prompt: true }), { prompt: true, progressive: false, openui: true, followups: true })
-  assert.deepEqual(readPresentation({ progressive: true }), { prompt: false, progressive: true, openui: true, followups: true })
-  assert.deepEqual(readPresentation({ openui: false, followups: 'no' }), { prompt: false, progressive: false, openui: false, followups: true })
+  assert.deepEqual(readPresentation({ prompt: false }), { prompt: false, progressive: true, openui: true, followups: true })
+  assert.deepEqual(readPresentation({ progressive: false }), { prompt: true, progressive: false, openui: true, followups: true })
+  assert.deepEqual(readPresentation({ openui: false, followups: 'no' }), { prompt: true, progressive: true, openui: false, followups: true })
   const keys = Object.keys(presentationLocale.zh).sort()
   for (const language of ['en', 'ja', 'es', 'fr', 'de', 'ru', 'pt']) assert.deepEqual(Object.keys(presentationLocale[language]).sort(), keys)
 })

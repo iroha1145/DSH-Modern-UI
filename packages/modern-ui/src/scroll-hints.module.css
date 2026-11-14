@@ -1,0 +1,38 @@
+/* Vertical menu hints leave text and focus indicators opaque. */
+.viewport {
+  scroll-padding-block: 8px;
+}
+
+.viewport::before,
+.viewport::after {
+  content: '';
+  display: block;
+  position: sticky;
+  flex: 0 0 8px;
+  height: 8px;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.viewport::before {
+  top: 0;
+  margin-bottom: -8px;
+  background: radial-gradient(farthest-side at 50% 0, color-mix(in srgb, var(--dsw-alias-label-primary) 14%, transparent), transparent);
+}
+
+.viewport::after {
+  bottom: 0;
+  margin-top: -8px;
+  background: radial-gradient(farthest-side at 50% 100%, color-mix(in srgb, var(--dsw-alias-label-primary) 14%, transparent), transparent);
+}
+
+/* The current CSS compiler cannot parse scroll-state queries. The observer also
+   clears hints when a filtered menu stops overflowing, without an animation. */
+.viewport[data-scroll-before]::before { opacity: 1; }
+.viewport[data-scroll-after]::after { opacity: 1; }
+
+@media (forced-colors: active) {
+  .viewport::before,
+  .viewport::after { display: none; }
+}

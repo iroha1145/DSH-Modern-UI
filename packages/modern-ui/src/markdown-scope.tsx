@@ -33,7 +33,17 @@ export function MarkdownScope({
       fileDrag: inherited.fileImages?.fileDrag,
       resourceAddress: inherited.fileImages?.resourceAddress,
       resolve: (path: string) => fileMediaUrl(document.baseURI, resolveWorkspacePath(cwd, path)),
-      labels: { open: t('image.open'), loading: t('image.loading'), failed: t('image.failed'), dialog: t('image.dialog'), close: t('image.close') },
+      labels: {
+        open: t('image.open'),
+        loading: t('image.loading'),
+        failed: t('image.failed'),
+        dialog: t('image.dialog'),
+        close: t('image.close'),
+        zoomIn: t('image.zoomIn'),
+        zoomOut: t('image.zoomOut'),
+        resetZoom: t('image.resetZoom'),
+        zoomHelp: t('image.zoomHelp'),
+      },
     }),
     [cwd, t, inherited.fileImages],
   )

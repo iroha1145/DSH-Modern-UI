@@ -264,6 +264,11 @@ test('F12: first/last Pressable cards retain hover, selected and keyboard focus 
               const track = el.closest('.iui-carousel-track').getBoundingClientRect(),
                 box = el.getBoundingClientRect(),
                 style = getComputedStyle(el)
+              const reference = document.createElement('span')
+              reference.style.cssText = 'position:absolute;pointer-events:none;box-shadow:var(--iui-card-shadow)'
+              el.append(reference)
+              const restingCardShadow = getComputedStyle(reference).boxShadow
+              reference.remove()
               return {
                 left: box.left - track.left,
                 right: track.right - box.right,
@@ -271,13 +276,15 @@ test('F12: first/last Pressable cards retain hover, selected and keyboard focus 
                 bottom: track.bottom - box.bottom,
                 shadow: style.boxShadow,
                 cardShadow: getComputedStyle(el.firstElementChild).boxShadow,
+                restingCardShadow,
                 cardBlur: getComputedStyle(el.firstElementChild, '::before').backdropFilter,
                 cardSheen: getComputedStyle(el.firstElementChild, '::before').backgroundImage,
                 outline: style.outlineWidth,
               }
             })
             assert(decoration.left >= 23 && decoration.right >= 23 && decoration.top >= 21 && decoration.bottom >= 23, JSON.stringify(decoration))
-            assert(decoration.cardShadow.includes('12px') || state === 'focus', JSON.stringify(decoration))
+            assert.notEqual(decoration.cardShadow, 'none', JSON.stringify(decoration))
+            if (state === 'hover') assert.notEqual(decoration.cardShadow, decoration.restingCardShadow, JSON.stringify(decoration))
             if (variant === 'glass') {
               const outside = await page
                 .locator('.iui-card-glass')

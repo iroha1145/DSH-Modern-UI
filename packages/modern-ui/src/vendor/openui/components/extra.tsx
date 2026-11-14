@@ -1,7 +1,7 @@
 import { defineComponent } from "@openuidev/react-lang";
 import "katex/dist/katex.min.css";
 import { Check, ChevronLeft, ChevronRight, Copy } from "lucide-react";
-import { createContext, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { z } from "zod/v4";
 import { renderBoundedTex } from "../../primitives/markdown/katex-render";
@@ -9,6 +9,7 @@ import { copy as copyText } from "../actions";
 import { inline } from "./markdown";
 import { children, cx, space } from "./style";
 import { useUiText } from "./ui-text";
+import { FaceActivityContext, PortalTheme, containsOpenUiPortal, hasOpenUiPortal } from "../../../openui-portal";
 
 const str = (value: unknown) => (value == null ? "" : String(value));
 /** A slot that takes a component, a list of them, or plain text. */
@@ -22,9 +23,6 @@ const CONTROLS = 'button, a[href], input, select, textarea, [role="button"], [ta
 // control (a Pressable is a focusable div) acts on the keys itself, so the trigger takes them first.
 const keysAreItsOwn = (element: Element) =>
   ["BUTTON", "INPUT", "SELECT", "TEXTAREA"].includes(element.tagName) || (element as HTMLElement).isContentEditable === true;
-
-// React ownership crosses portals, unlike the inert DOM boundary of a card face.
-const FaceActivityContext = createContext(true);
 
 // Carousel
 export const Carousel = defineComponent({
@@ -170,12 +168,12 @@ export const Popover = defineComponent({
       if (!shown) return;
       const close = (event: Event) => {
         const target = event.target as Node;
-        if (!panel.current?.contains(target) && !button.current?.contains(target)) setOpen(false);
+        if (!containsOpenUiPortal(panel.current, target) && !button.current?.contains(target)) setOpen(false);
       };
       // The panel takes its own Escape, so the composer or a panel around the answer does not also close; a modal
       // dialog opened above it keeps the key.
       const onKeyDown = (event: KeyboardEvent) => {
-        if (event.key !== "Escape" || (event.target as Element | null)?.closest?.('[role="dialog"][aria-modal="true"]')) return;
+        if (event.key !== "Escape" || hasOpenUiPortal(panel.current) || (event.target as Element | null)?.closest?.('[role="dialog"][aria-modal="true"]')) return;
         event.stopPropagation();
         const focused = panel.current?.contains(document.activeElement) === true;
         setOpen(false);
@@ -183,7 +181,7 @@ export const Popover = defineComponent({
       };
       // Scrolling the page moves the trigger away; scrolling inside the panel (a table, code) does not.
       const onScroll = (event: Event) => {
-        if (!panel.current?.contains(event.target as Node)) setOpen(false);
+        if (!containsOpenUiPortal(panel.current, event.target as Node)) setOpen(false);
       };
       document.addEventListener("pointerdown", close);
       document.addEventListener("keydown", onKeyDown, true);
@@ -244,14 +242,14 @@ export const Popover = defineComponent({
           createPortal(
             // The panel leaves the block's DOM, so it carries its own scope for the tokens and styles. It is laid out
             // hidden once, to be measured, before it is placed.
-            <div className="iui-root iui-portal" data-theme={button.current?.closest("[data-theme]")?.getAttribute("data-theme") ?? undefined}>
+            <PortalTheme source={button}>
               <div ref={panel} id={`${id}-panel`} role="dialog" tabIndex={-1} aria-labelledby={title ? `${id}-title` : typeof props.trigger === "string" ? `${id}-trigger` : undefined} aria-label={!title && typeof props.trigger !== "string" ? (control?.getAttribute("aria-label") || control?.textContent || button.current?.textContent)?.trim() || text.details : undefined} className="iui-popover" style={at ? { left: at.left, top: at.top, maxHeight: at.maxHeight } : { left: 0, top: 0, visibility: "hidden" }}>
                 <div ref={body} className="iui-popover-body">
                   {title && <div id={`${id}-title`} className="iui-label">{title}</div>}
                   {renderSlot(props.content, renderNode)}
                 </div>
               </div>
-            </div>,
+            </PortalTheme>,
             document.body,
           )}
       </>

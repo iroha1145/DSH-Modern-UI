@@ -88,7 +88,7 @@ export function ChatView({
     resourceAddress: (path: string) => sessionFileAddress(sessionId, resolveWorkspacePath(cwd, path)),
     labels: {
       open: t('image.open'), loading: t('image.loading'), failed: t('image.failed'),
-      dialog: t('image.dialog'), close: t('image.close'),
+      dialog: t('image.dialog'), close: t('image.close'), zoomIn: t('image.zoomIn'), zoomOut: t('image.zoomOut'), resetZoom: t('image.resetZoom'), zoomHelp: t('image.zoomHelp'),
     },
   }), [cwd, t, fileDrag, sessionId])
   const running = useSession(s => s.running)

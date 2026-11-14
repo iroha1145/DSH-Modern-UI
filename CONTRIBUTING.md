@@ -4,7 +4,7 @@
 
 - Node.js 24（CI 使用 `24.22.1`），仓库用 npm 与 `package-lock.json`。
 - `npm ci --ignore-scripts` 安装依赖，`npm run build` 编译插件，`npm run preview` 生成 `.artifacts/plugin-preview`。
-- `npm run dev:layout` 构建当前插件并启动真实 DSH 布局预览，终端会打印本地地址。预览使用仓库的官方 rc.4 依赖、本地示例模型和独立的 `../.tools/conversation-layout-preview/home`，不调用外部模型、不使用日常 DSH 数据；发送任意普通消息可查看中文长文、代码和表格。Ctrl+C 停止。
+- `npm run dev:layout` 构建当前插件并启动真实 DSH 布局预览，终端会打印本地地址。预览使用仓库的官方 rc.4 依赖、本地示例模型和本仓库独立的 `.artifacts/layout-preview/home`，不调用外部模型、不使用日常 DSH 数据；发送任意普通消息可查看中文长文、代码和表格。`npm run dev:layout -- --demo surfaces` 展示卡片、输入控件、表格、图表、Popover 和 HtmlView；可用 `--repo <工作副本>` 与 `--root <独立目录>` 并行比较不同版本，root 会记录所属仓库以防串用。Ctrl+C 停止。
 - 提交前：
   ```bash
   node node_modules/playwright-core/cli.js install --with-deps chromium firefox webkit

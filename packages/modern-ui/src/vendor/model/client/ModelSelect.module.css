@@ -48,7 +48,7 @@
   line-height: 18px;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 140ms ease, color 140ms ease, transform 120ms var(--ease-spring);
+  transition: background-color var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve), color var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve), transform 120ms var(--ease-spring);
 }
 
 @media (hover: hover) {
@@ -63,12 +63,12 @@
   color: var(--bui-ink);
 }
 
-.trigger:active:not(:disabled) {
-  transform: translateY(1px) scale(0.98);
-}
+/* Keep the measured menu anchor still while pressed. */
+.trigger:active:not(:disabled) { background: var(--hover-2); }
 
 .trigger:focus-visible:not([data-selection-focus]) {
-  box-shadow: 0 0 0 2px var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline: var(--dsw-focus-ring-width, 2px) solid var(--dsw-focus-ring-color, var(--primary));
+  outline-offset: 2px;
 }
 
 .trigger:disabled {
@@ -259,19 +259,17 @@
   padding: 4px;
   border: 0;
   border-radius: var(--bui-radius-card);
-  box-shadow:
-    inset 0 1px 0 oklch(1 0 0 / 0.92),
-    0 0 0 0.5px oklch(0 0 0 / 0.075),
-    0 4px 12px -2px oklch(0 0 0 / 0.05),
-    0 18px 40px -10px oklch(0 0 0 / 0.14);
+  box-shadow: 0 0 0 var(--dsh-hairline-width, 0.5px) var(--card-border), var(--shadow-dropdown);
   color: var(--bui-ink);
   transform-origin: bottom right;
   --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
   --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
 }
 
+@media (prefers-reduced-motion: no-preference) {
 .menu[data-menu-positioned='true'] {
   animation: pickerIn var(--dsh-feel-control-duration) var(--dsh-feel-control-curve);
+}
 }
 
 .menu[data-menu-side='bottom'] {
@@ -279,9 +277,6 @@
   --picker-enter-y: -2px;
 }
 
-:global(body[data-ds-dark-theme]) .menu {
-  box-shadow: var(--bui-shadow-overlay);
-}
 
 /* Opacity animation on the menu would isolate its material from the page. */
 @keyframes pickerIn {
@@ -456,7 +451,7 @@
   padding: 6px 8px;
   border-radius: var(--dsw-radius-xs);
   cursor: pointer;
-  transition: background-color 90ms ease-out, opacity 200ms ease;
+  transition: background-color var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve), opacity 200ms ease;
 }
 
 .option[data-active] {
@@ -572,7 +567,7 @@
   font-size: 13px;
   line-height: 18px;
   cursor: pointer;
-  transition: background-color 90ms ease-out;
+  transition: background-color var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve);
 }
 
 @media (hover: hover) {
@@ -643,25 +638,15 @@
 }
 
 .pills {
-  box-sizing: border-box;
-  display: inline-flex;
   flex: 0 1 auto;
-  flex-wrap: wrap;
-  min-width: 0;
-  max-width: 100%;
-  gap: 2px;
-  padding: 4px;
-  border-radius: 999px;
-  corner-shape: round;
-  background: var(--picker-fill);
 }
 
 .pill {
   box-sizing: border-box;
-  min-height: 24px;
+  min-height: 30px;
   max-width: 100%;
   overflow-wrap: anywhere;
-  padding: 0 9px;
+  padding: 3px 9px;
   border: 0;
   border-radius: 999px;
   corner-shape: round;
@@ -672,13 +657,11 @@
   line-height: 24px;
   white-space: normal;
   cursor: pointer;
-  transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+  transition: background-color var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve), color var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve), box-shadow var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve);
 }
 
 .pill[aria-checked='true'] {
-  background: var(--bui-surface);
   color: var(--bui-ink);
-  box-shadow: 0 0 0 0.5px oklch(0 0 0 / 0.08), 0 1px 2px oklch(0 0 0 / 0.12);
 }
 
 @media (hover: hover) {

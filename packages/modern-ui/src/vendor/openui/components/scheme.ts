@@ -1,9 +1,9 @@
-import { useEffect, useState, type RefObject } from "react";
+import { useLayoutEffect, useState, type RefObject } from "react";
 
 /** "dark" when the element sits inside data-theme="dark" (its used color-scheme), else "light". */
 export function useColorScheme(ref: RefObject<HTMLElement | null>): "light" | "dark" {
   const [scheme, setScheme] = useState<"light" | "dark">("light");
-  useEffect(() => {
+  useLayoutEffect(() => {
     const read = () => {
       const value = ref.current ? getComputedStyle(ref.current).colorScheme : "";
       setScheme(value.trim() === "dark" ? "dark" : "light");

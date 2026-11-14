@@ -39,6 +39,7 @@ import { sidebarOwner } from './sidebar-owner.ts'
 import { settingsOwner } from './settings-owner.ts'
 import { modelOwner } from './model-owner.ts'
 import { installFileDrag } from './file-drag.ts'
+import { installComposerAttachments } from './composer-attachments.tsx'
 import { bindHostContract } from './host-contract.ts'
 import { installQuotes } from './quotes.ts'
 import { installPresentationParity } from './presentation-parity.ts'
@@ -71,6 +72,7 @@ export async function apply(ctx: Context): Promise<void> {
   installCommunityMarkdown(ctx)
   installLanguages(ctx)
   installFileDrag(ctx)
+  installComposerAttachments(ctx)
   installDesktopOnboarding(ctx)
   installConversationLayout(ctx)
   const owners = [

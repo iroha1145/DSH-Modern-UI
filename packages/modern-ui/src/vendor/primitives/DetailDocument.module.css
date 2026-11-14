@@ -51,11 +51,19 @@
   height: 12px;
   border-radius: var(--dsw-radius-xs);
   background: var(--dsw-alias-bg-skeleton);
-  animation: dsh-plugin-detail-skeleton 2s cubic-bezier(0.36, 0, 0.64, 1) infinite;
+  /* Reserve the lines immediately, but avoid painting them for fast reads. */
+  visibility: hidden;
+  animation:
+    dsh-plugin-detail-skeleton-reveal 0s linear 150ms forwards,
+    dsh-plugin-detail-skeleton 2s cubic-bezier(0.36, 0, 0.64, 1) 150ms infinite;
 }
 
 .long { width: min(480px, 90%); }
 .short { width: min(240px, 50%); }
+
+@keyframes dsh-plugin-detail-skeleton-reveal {
+  to { visibility: visible; }
+}
 
 @keyframes dsh-plugin-detail-skeleton {
   0% { opacity: 1; }
@@ -64,5 +72,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bar { animation: none; }
+  .bar { animation: dsh-plugin-detail-skeleton-reveal 0s linear 150ms forwards; }
 }

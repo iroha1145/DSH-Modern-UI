@@ -1,0 +1,25 @@
+.name {
+  display: inline-block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  white-space: pre;
+}
+
+.prefix {
+  white-space: pre;
+  display: inline-block;
+  max-width: calc(100% - var(--filename-extension-width, 0px));
+  vertical-align: bottom;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.extension {
+  display: inline-block;
+  vertical-align: bottom;
+  max-width: min(calc(100% - 1px), max(50%, 4em));
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

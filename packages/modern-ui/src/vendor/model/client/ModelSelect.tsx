@@ -38,11 +38,14 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import clsx from 'clsx'
+import scrollHints from '../../../scroll-hints.module.css'
+import { observeScrollHints } from '../../../scroll-hints.ts'
 import type { ModelSelection } from '@deepseek-ai/dsh-api-remotes/client'
 import type { ModelCatalogModel } from '@deepseek-ai/dsh-api-session-controller/types'
 import type { InjectFace, PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ModelLabelOwner, ModelSelectInjected } from './slots.ts'
 import css from './ModelSelect.module.css'
+import { SegmentedTrack } from '../../../segmented-control.tsx'
 import { orderModelProviders } from './provider-order.ts'
 import {
   EFFORT_SHORT, isOffEffort, preferredEffort, profileOf, thinkingLatency, visibleEfforts, type ModelProfile,
@@ -232,7 +235,9 @@ export function ModelSelect({
   useEffect(() => {
     const viewport = listRef.current
     if (!open || viewport === null) return
-    return observeStickyMenuGroups(viewport)
+    const stopGroups = observeStickyMenuGroups(viewport)
+    const stopHints = observeScrollHints(viewport)
+    return () => { stopGroups(); stopHints() }
   }, [open, filteredGroups])
 
   useLayoutEffect(() => {
@@ -679,7 +684,7 @@ export function ModelSelect({
           <div
             ref={listRef}
             id={`${id}-models`}
-            className={clsx(css.list, 'scrollable')}
+            className={clsx(css.list, scrollHints.viewport, 'scrollable')}
             role="listbox"
             aria-label={t('menu.model')}
             tabIndex={showSearch ? -1 : 0}
@@ -720,7 +725,7 @@ export function ModelSelect({
                   <div className={css.clip}>
                     <div className={css.effort}>
                       <span className={css.effortLabel} id={`${id}-effort`}>{t('menu.effort')}</span>
-                      <div className={css.pills} role="radiogroup" aria-labelledby={`${id}-effort`} onKeyDown={onEffortKeyDown}>
+                      <SegmentedTrack className={css.pills} count={thinkingLevels.length} selectedIndex={thinkingLevels.findIndex(level => level.id === effort)} role="radiogroup" aria-labelledby={`${id}-effort`} onKeyDown={onEffortKeyDown}>
                         {thinkingLevels.map((level, index) => {
                           const checked = level.id === effort
                           const entry = checked || (index === 0 && !thinkingLevels.some(other => other.id === effort))
@@ -742,7 +747,7 @@ export function ModelSelect({
                             </button>
                           )
                         })}
-                      </div>
+                      </SegmentedTrack>
                     </div>
                   </div>
                 </div>

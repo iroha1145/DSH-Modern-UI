@@ -579,7 +579,7 @@
 }
 
 .customBlock:focus-within {
-  border-color: var(--dsw-alias-state-business-primary);
+  border-color: var(--field-border);
 }
 
 .footer {

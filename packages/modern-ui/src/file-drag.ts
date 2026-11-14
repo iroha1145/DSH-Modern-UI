@@ -31,7 +31,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
       scope: 'root'
       props: MessageImagesOwnerProps & { labels?: MessageImageLabels }
       locale: 'conversation'
-      inject: { fileDrag: FileDragActions }
+      inject: { fileDrag: FileDragActions; imageZoomT: TranslateNS<'modern-chat'> }
     }
   }
 }
@@ -43,12 +43,43 @@ function imageLabels(t: TranslateNS<'conversation'>): MessageImageLabels {
     openNamed: label => t('image.openOriginalLabel', { label }),
     loading: t('image.loading'),
     loadFailed: t('image.loadFailed'),
-    lightbox: { dialog: t('image.preview'), close: t('image.closePreview') },
+    lightbox: {
+      dialog: t('image.preview'),
+      close: t('image.closePreview'),
+    },
   }
 }
 
-function ImageContent({ images, loadImage, align, compact = false, thumbnail = false, labels, t, fileDrag }: FactoryComponentPropsOf<'modern.images.content'>) {
-  return createElement(ImageGallery, { images, load: loadImage, align, compact, thumbnail, labels: labels ?? imageLabels(t), fileDrag })
+function ImageContent({
+  images,
+  loadImage,
+  align,
+  compact = false,
+  thumbnail = false,
+  labels,
+  t,
+  fileDrag,
+  imageZoomT,
+}: FactoryComponentPropsOf<'modern.images.content'>) {
+  const baseLabels = labels ?? imageLabels(t)
+  return createElement(ImageGallery, {
+    images,
+    load: loadImage,
+    align,
+    compact,
+    thumbnail,
+    labels: {
+      ...baseLabels,
+      lightbox: {
+        ...baseLabels.lightbox,
+        zoomIn: imageZoomT('image.zoomIn'),
+        zoomOut: imageZoomT('image.zoomOut'),
+        resetZoom: imageZoomT('image.resetZoom'),
+        zoomHelp: imageZoomT('image.zoomHelp'),
+      },
+    },
+    fileDrag,
+  })
 }
 
 function MessageImages({ images, loadImage, align, compact, thumbnail, renderFactorySlot }: MessageImagesOwnerProps & PropsRenderFactories) {
@@ -117,7 +148,15 @@ export function installFileDrag(ctx: Context): void {
         owner()?.actions.reportFailure()
       },
     }
-    scope.slots.registerFactory({ name: 'modern.images.content', scope: 'root', locale: 'conversation', inject: () => ({ fileDrag: actions }) }, ImageContent)
+    scope.slots.registerFactory(
+      {
+        name: 'modern.images.content',
+        scope: 'root',
+        locale: 'conversation',
+        inject: () => ({ fileDrag: actions, imageZoomT: scope.locale.bind('modern-chat') }),
+      },
+      ImageContent,
+    )
     for (const name of ['conversation.chat.message.images', 'conversation.chat.user.images', 'conversation.trajectory.images'] as const) {
       scope.slots.inject(name, () => scope.slots.register({ name, priority: -200 }, MessageImages))
     }
