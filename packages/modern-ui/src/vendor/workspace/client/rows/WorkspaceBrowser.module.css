@@ -587,6 +587,26 @@
   color: var(--dsw-alias-label-dimmed);
 }
 
+/* Keep the thin field boundary as the keyboard focus cue, without an outer ring. */
+.renameInput:focus-visible {
+  border-color: var(--ink-3, var(--dsw-alias-label-secondary));
+}
+
+@media (forced-colors: active) {
+  .renameInput:focus-visible {
+    border-color: Highlight;
+    outline: 1px solid Highlight;
+    outline-offset: -1px;
+  }
+}
+
+@media (pointer: coarse) {
+  .searchInput,
+  .renameInput {
+    font-size: max(16px, 1rem);
+  }
+}
+
 .renameError {
   margin-top: 8px;
   font-size: 12px;

@@ -772,7 +772,7 @@
       "source": "packages/client/ui-conversation/src/client/skeleton/HeroShell.module.css",
       "target": "src/vendor/conversation/client/skeleton/HeroShell.module.css",
       "sourceSha256": "725f0454ab60f765d9ea54085545b208a4422e6d07a35daa3a05105e5fa988c7",
-      "targetSha256": "f8847e1c310f98d6a2e203835fb0dfe5b26fe6e8f5afc40fc213cdf02abcad48",
+      "targetSha256": "6ad23bb9cec3fb385ff131e7ddaa2c700a8e82647591c85b226b5d88566f37ba",
       "adapted": true
     },
     {
@@ -794,14 +794,14 @@
       "source": "packages/client/ui-conversation/src/client/skeleton/TodoPanel.module.css",
       "target": "src/vendor/conversation/client/skeleton/TodoPanel.module.css",
       "sourceSha256": "5602cd8990c6c09b87d094bbdc0e9a367b91974cecda0574925e2667116fc5fb",
-      "targetSha256": "aa4c450e264a282eee9d9471acdaf73736172066c28805bb82c14950bcce5b16",
+      "targetSha256": "38571c3d70c401abb6162e916d98c686d8b5dba82d0ba54c59fea6afe01166da",
       "adapted": true
     },
     {
       "source": "packages/client/ui-conversation/src/client/skeleton/TodoPanel.tsx",
       "target": "src/vendor/conversation/client/skeleton/TodoPanel.tsx",
       "sourceSha256": "39199c4c794d405c76a34933621295bb33a8aed0576ba247a852cdbf2c2fc602",
-      "targetSha256": "3f316e3c73c4a8c4f9fa94e7da9bc241305964de91e568df50170b99caa60f2b",
+      "targetSha256": "10fb0ce55090c91b2b97a82a0615439ce128cdbaf637bf22eb18c847f842566c",
       "adapted": true
     },
     {
@@ -1327,14 +1327,14 @@
       "source": "packages/client/ui-primitives/src/HoverCard.module.css",
       "target": "src/vendor/primitives/HoverCard.module.css",
       "sourceSha256": "ae4aa2190d338b3da76a766b08aff192a26ebcbdd9c8a59e31cb441d1cdcf8b0",
-      "targetSha256": "ae4aa2190d338b3da76a766b08aff192a26ebcbdd9c8a59e31cb441d1cdcf8b0",
-      "adapted": false
+      "targetSha256": "4b83c3b24b348ece83c5f0cba5a0503101f0af4cf113b0b45029f8aa5f056ec6",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-primitives/src/HoverCard.tsx",
       "target": "src/vendor/primitives/HoverCard.tsx",
       "sourceSha256": "2374c83b864c9f15c9891b8b838c463cdb45f57c06e679952a48c7cf90df52f5",
-      "targetSha256": "6f775ae9d0d17d2ea4c5b2a25a3032a39b9765b67b48fed5010a52ba8c2c52bc",
+      "targetSha256": "9495a3fa4853c6e6ba1c78fd2a0b27dd652d31102bb703b520dbe4c1805b00e3",
       "adapted": true
     },
     {
@@ -1383,7 +1383,7 @@
       "source": "packages/client/ui-primitives/src/ImageLightbox.module.css",
       "target": "src/vendor/primitives/ImageLightbox.module.css",
       "sourceSha256": "cc2b6346c0a6443fbe94c274c129ccbf8cd8ca4dd0dac672cf64402fd22e25eb",
-      "targetSha256": "2070acb54f52870e5c67cc7bd84d332890bd8c1792e2732608c5e48e6cc4da63",
+      "targetSha256": "b37e8c56a5c70dd2b8cb5f396b3fe969c1c2829af9b2e5a0e3e251f35905c07c",
       "adapted": true
     },
     {
@@ -2093,7 +2093,7 @@
       "source": "packages/client/ui-subagent/src/client/SubagentHeaderLineage.module.css",
       "target": "src/vendor/subagent/client/SubagentHeaderLineage.module.css",
       "sourceSha256": "8669584a4f467c4f6bab29c8dee8584762058d5bbc0c2c1f9c69ec660c68949a",
-      "targetSha256": "085604504be17417eaadc6f7a9731110559fcde2d89ef371f53057cdec97cbcd",
+      "targetSha256": "e30c23c27b0e076b7013a689dea065cc29f8d4a97f0280a0820aa9a277cc1af4",
       "adapted": true
     },
     {
@@ -2114,7 +2114,7 @@
       "source": "packages/client/ui-theme/src/styles/base.css",
       "target": "src/vendor/theme/styles/base.css",
       "sourceSha256": "eca218aa6a72c1c69dcb991b0cac7f0252248a6db710906bec214a18fcf55940",
-      "targetSha256": "f27b9ca49d1282d54d3855bd9ed39f6c528c5897a845c2e442d096cf92d214f2",
+      "targetSha256": "90c3d83b04682f0e0a588fea4dc0e7dd137ebef78ed97f1d24a0efd604bd79f2",
       "adapted": true
     },
     {
@@ -2577,7 +2577,7 @@
       "source": "packages/client/ui-workspace/src/client/rows/Rows.module.css",
       "target": "src/vendor/workspace/client/rows/Rows.module.css",
       "sourceSha256": "7de834ab539a77ac47a6bd2aa6cd548eea9caec33db51007c739b3b04d82ef1f",
-      "targetSha256": "2fc109488662c46b323c6eaeb73100ca8f354c5614bd89adabef025f81842703",
+      "targetSha256": "c0b1be8b877c55ebd143422f4f16dc8ab1253b9a30fc0ef3286b6dc6de28ea36",
       "adapted": true
     },
     {
@@ -2591,7 +2591,7 @@
       "source": "packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.module.css",
       "target": "src/vendor/workspace/client/rows/WorkspaceBrowser.module.css",
       "sourceSha256": "177921134100acc06b6e49c442f0595b7f35d2933b690712dfe65a8d3570201b",
-      "targetSha256": "9ba9f031ebd5064b59e308a7cd931e116d5e47349c573540b84a65d1028a3130",
+      "targetSha256": "fef31e8c5ed81ab6c586b1d36a595031a8e2b165fadaac6837b38bae2cebef0a",
       "adapted": true
     },
     {
@@ -2689,14 +2689,14 @@
       "source": "packages/client/ui-workspace/src/client/WorkspacePicker.module.css",
       "target": "src/vendor/workspace/client/WorkspacePicker.module.css",
       "sourceSha256": "bd1fea15e55afbfacdae5f97c98bb831b080996bf4d920430f1fd31e304abd14",
-      "targetSha256": "a641c245e8ee9e02e94b1e2862ef5278f1d87fba71dde4beba165d9d1a54fc7c",
+      "targetSha256": "6c8ca05c93c3cdafd6f00b04c1bb1556a378f19733c837d5b2b124557c2c0d4c",
       "adapted": true
     },
     {
       "source": "packages/client/ui-workspace/src/client/WorkspacePicker.tsx",
       "target": "src/vendor/workspace/client/WorkspacePicker.tsx",
       "sourceSha256": "37431a4bf706729c16a6502f8e57222a373f182bf165011f1cdb4f21678f04f8",
-      "targetSha256": "753b957d74a17cf0c0cd33c5532654aaff6e8693bc1b58c4d89e21acb7494993",
+      "targetSha256": "2853b9234ebb1847af3335665534847cdb8e1c7aa50326e5414172eb21d3ceff",
       "adapted": true
     },
     {
@@ -2825,15 +2825,15 @@
       "source": "packages/client/ui-chat/src/client/chat/TurnNavigator.module.css",
       "target": "src/vendor/chat/client/chat/TurnNavigator.module.css",
       "sourceSha256": "4cb912c94384efd35a08100e43f068728f57a6699916f2a27c18a5b98c4437c5",
-      "targetSha256": "e3b08d9dc3741d5c7c66e7d9279978c22b8bc274058100955f724f6e36f1a8ac",
+      "targetSha256": "a07fddfb7b2ef76eff71727dfb67e70c490623d81f17e10aea9326524e0617fc",
       "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/chat/TurnNavigator.tsx",
       "target": "src/vendor/chat/client/chat/TurnNavigator.tsx",
       "sourceSha256": "be03cfad53e5b0211651ba17a3d5170872139c8f3d7c086e60625f5d38a0998f",
-      "targetSha256": "be03cfad53e5b0211651ba17a3d5170872139c8f3d7c086e60625f5d38a0998f",
-      "adapted": false
+      "targetSha256": "5546dc3aee5e0eb0f987690bc5256204cb8593a944a16610941373ad9a1ace2e",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/chat/TurnTailNodeView.module.css",
@@ -3512,7 +3512,7 @@
       "source": "packages/client/ui-user-questions/src/client/QuestionComposer.module.css",
       "sourceSha256": "bb27a8bc81153824ea2dd0b7b9fe0fb66329262b75088554d73b942d9ab185d2",
       "target": "src/vendor/questions/QuestionComposer.module.css",
-      "targetSha256": "ef9162dbb326eab2e15e3b4e7105a8c7455a08538de3d3a4956ea1033b639c25",
+      "targetSha256": "adf4029f95317564379e5ffe0a6e9974b5b77ef975148e7ef3b9f5606efc57cf",
       "adapted": true
     },
     {
@@ -3974,7 +3974,7 @@
     },
     {
       "target": "src/official-controls.css",
-      "targetSha256": "375319167b3f16bc4d2e0c0876b890cbb287f51a4649423523284f68b57aee4a",
+      "targetSha256": "4ae7c953b13ded54d00c087e40dd878bedeb4feeeb304c94ca4137b784d8d965",
       "sources": [
         {
           "source": "packages/client/ui-primitives/src/Button.module.css",
@@ -4128,7 +4128,7 @@
     },
     {
       "target": "src/vendor/settings-models/client/ReasoningDeclarationCard.module.css",
-      "targetSha256": "2471f7e30f2946d645f6bdf05dd850ea7764f3f145212c0ff83066ef652a5970",
+      "targetSha256": "a37f5dcd9279c8555e1b316df85051b7d282c0ceed7d0497025e78111a47d3b1",
       "sources": [
         {
           "source": "packages/client/ui-settings-models/src/client/ModelsSection.module.css",

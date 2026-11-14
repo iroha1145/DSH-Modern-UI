@@ -283,3 +283,14 @@ body[data-ds-dark-theme] .shimmer-text {
     color: var(--dsw-alias-label-secondary);
   }
 }
+
+/* Gradient-clipped transparent text loses its paint in system contrast themes. */
+@media (forced-colors: active) {
+  .shimmer-text,
+  body[data-ds-dark-theme] .shimmer-text {
+    background: none;
+    color: CanvasText;
+    -webkit-text-fill-color: currentColor;
+    animation: none;
+  }
+}

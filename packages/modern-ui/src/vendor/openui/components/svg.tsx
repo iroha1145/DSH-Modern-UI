@@ -1,5 +1,6 @@
 import { defineComponent } from "@openuidev/react-lang";
 import { useId } from "react";
+import { completeSvgPath } from "../../../svg-path";
 import { useUiText } from "./ui-text";
 import { z } from "zod/v4";
 import { children, color, fg, length, size } from "./style";
@@ -8,7 +9,6 @@ import { children, color, fg, length, size } from "./style";
 const n = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? value : undefined);
 const opacity = (value: unknown) => (n(value) === undefined ? undefined : Math.min(1, Math.max(0, value as number)));
 const POINTS = /^[\d\s,.eE+-]*$/;
-const PATH = /^[MmLlHhVvCcSsQqTtAaZz\d\s,.eE+-]*$/;
 // Each transform function with a valid argument count, so a value built from
 // state that is not set yet (like "rotate( 90 80)") is dropped, not sent to the DOM.
 const TRANSFORM_ARGS: Record<string, number[]> = { translate: [1, 2], rotate: [1, 3], scale: [1, 2], skewX: [1], skewY: [1], matrix: [6] };
@@ -101,7 +101,7 @@ export const Path = defineComponent({
   name: "Path",
   props: z.object({ d: z.string(), ...paint }),
   description: "",
-  component: ({ props }) => <path d={ok(props.d, PATH)} {...paintAttrs(props, props.fill !== undefined)} />,
+  component: ({ props }) => <path d={completeSvgPath(props.d)} {...paintAttrs(props, props.fill !== undefined)} />,
 });
 
 export const Polyline = defineComponent({

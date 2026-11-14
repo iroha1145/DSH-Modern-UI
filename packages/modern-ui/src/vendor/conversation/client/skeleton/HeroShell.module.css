@@ -127,8 +127,7 @@
   transition:
     background-color var(--dsh-paper-micro-duration, 180ms) var(--dsh-paper-micro-curve, ease),
     border-color var(--dsh-paper-micro-duration, 180ms) var(--dsh-paper-micro-curve, ease),
-    box-shadow var(--dsh-paper-micro-duration, 180ms) var(--dsh-paper-micro-curve, ease),
-    transform var(--dsh-paper-micro-duration, 180ms) var(--dsh-paper-micro-curve, ease);
+    box-shadow var(--dsh-paper-micro-duration, 180ms) var(--dsh-paper-micro-curve, ease);
 }
 
 .workspace[aria-expanded='true'] {
@@ -141,12 +140,7 @@
     background: var(--surface);
     border-color: var(--line-strong);
     box-shadow: var(--shadow-panel-hover, var(--shadow-panel));
-    transform: translateY(-1px);
   }
-}
-
-.workspace:not(:disabled):active {
-  transform: translateY(1px) scale(0.98);
 }
 
 .workspace:disabled {
@@ -198,9 +192,5 @@
   }
   .workspace {
     transition: none;
-  }
-  .workspace:not(:disabled):hover,
-  .workspace:not(:disabled):active {
-    transform: none;
   }
 }

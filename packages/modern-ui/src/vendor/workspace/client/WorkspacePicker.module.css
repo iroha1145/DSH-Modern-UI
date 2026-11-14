@@ -5,9 +5,14 @@
   min-width: 72px;
 }
 
-.modalError,
-.menuStatus {
+.modalError {
   margin-top: 8px;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.menuStatus {
+  padding: 8px 12px;
   font-size: 12px;
   line-height: 18px;
 }

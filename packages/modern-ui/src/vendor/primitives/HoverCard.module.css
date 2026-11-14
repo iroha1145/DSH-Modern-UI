@@ -19,6 +19,12 @@
   box-shadow: var(--dsw-elevation-panel);
 }
 
+.compact {
+  overflow: auto;
+  overflow-wrap: anywhere;
+  overscroll-behavior: contain;
+}
+
 .copyable {
   cursor: pointer;
 }

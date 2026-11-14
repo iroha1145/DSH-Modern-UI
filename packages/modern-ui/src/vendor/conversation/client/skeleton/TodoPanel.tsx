@@ -121,7 +121,7 @@ export function TodoPanel({ todos, t }: TodoPanelProps) {
                   <span className={css.statusCompleted}>{t('todo.status.completed')}</span>
                 )}
                 {item.status === 'in_progress' && (
-                  <span className="shimmer-text" style={{ fontSize: '11.5px', fontWeight: 500 }}>
+                  <span className={`shimmer-text ${css.statusProgress}`} style={{ fontSize: '11.5px', fontWeight: 500 }}>
                     {t('todo.status.inProgress')}
                   </span>
                 )}

@@ -3,7 +3,7 @@ import path from 'node:path'
 import { readFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { build } from 'esbuild'
-import { chromium } from 'playwright-core'
+import { chromium, firefox, webkit } from 'playwright-core'
 import { afterAll, test } from 'vitest'
 
 const repo = path.resolve(import.meta.dirname, '../..')
@@ -71,7 +71,8 @@ const result = await build({
     },
   ],
 })
-const browser = await chromium.launch({ headless: true })
+const engine = { chromium, firefox, webkit }[process.env.MODERN_UI_TEST_ENGINE ?? 'chromium']
+const browser = await engine.launch({ headless: true })
 afterAll(() => browser.close())
 
 async function composerFixture(options = {}) {
@@ -169,7 +170,7 @@ test('composer rail pages, wheels, exposes removal on touch, observes resizing a
       .first()
       .locator('span[title]')
       .evaluate(element => getComputedStyle(element).paddingRight)
-    assert.equal(padding, '18px')
+    assert.equal(padding, '32px')
     await page.setViewportSize({ width: 1000, height: 700 })
     await page.getByRole('button', { name: 'attachment.scrollRight' }).waitFor({ state: 'detached' })
     await page.setViewportSize({ width: 320, height: 700 })
@@ -385,3 +386,50 @@ test('history and both queue cards preserve extensions, complete selectable name
     await page.close()
   }
 }, 30_000)
+for (const hasTouch of [false, true]) {
+  test(`audit failed filenames avoid removal target before hover (${hasTouch ? 'touch' : 'mouse'})`, async () => {
+    const page = await composerFixture({ hasTouch })
+    try {
+      const name = 'failed-report.' + 'verylongextension'.repeat(12)
+      await page.evaluate(name => window.renderComposer({ names: [name], uploads: { file0: { status: 'error', message: 'failed' } } }), name)
+      await page.waitForFunction(
+        name => document.querySelectorAll('[data-state]').length === 1 && document.querySelector('[data-state] span[title]')?.textContent === name,
+        name,
+      )
+      const card = page.locator('[data-state="error"]')
+      await card.waitFor()
+      const geometry = await card.evaluate(el => {
+        const name = el.querySelector('span[title]'),
+          button = el.querySelector('button:last-of-type')
+        const extension = name.lastElementChild.getBoundingClientRect(),
+          remove = button.getBoundingClientRect()
+        const selection = getSelection(),
+          range = document.createRange()
+        range.selectNodeContents(name)
+        selection.removeAllRanges()
+        selection.addRange(range)
+        return {
+          extension: extension.toJSON(),
+          remove: remove.toJSON(),
+          coarse: matchMedia('(pointer: coarse)').matches,
+          opacity: getComputedStyle(button).opacity,
+          copy: selection.toString(),
+        }
+      })
+      assert.equal(geometry.copy, name)
+      assert.equal(geometry.opacity, '1')
+      assert.ok(geometry.extension.right <= geometry.remove.x, JSON.stringify(geometry))
+      assert.equal(geometry.remove.width, geometry.coarse ? 32 : 24, JSON.stringify(geometry))
+      assert.equal(geometry.remove.height, geometry.coarse ? 32 : 24, JSON.stringify(geometry))
+      await card.getByRole('button', { name: /^file.retry:/ }).click()
+      // Hit the expanded left edge inside the circular button, outside its old 18px footprint.
+      await card.getByRole('button', { name: /^file.remove:/ }).click({ position: { x: 1, y: geometry.remove.height / 2 } })
+      assert.deepEqual(await page.evaluate(() => window.events), [
+        { type: 'retry', id: 'file0' },
+        { type: 'remove', id: 'file0' },
+      ])
+    } finally {
+      await page.close()
+    }
+  })
+}

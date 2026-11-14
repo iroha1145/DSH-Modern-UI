@@ -5,7 +5,7 @@ import { createServer } from 'node:http'
 import { existsSync } from 'node:fs'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { chromium } from 'playwright-core'
+import { chromium, firefox, webkit } from 'playwright-core'
 
 const root = path.resolve(import.meta.dirname, '../..')
 await mkdir(path.join(root, '.artifacts/frontend-audit-20261111'), { recursive: true })
@@ -79,8 +79,8 @@ afterAll(async () => {
   await new Promise(resolve => server.close(resolve))
   await rm(directory, { recursive: true, force: true })
 })
-async function fixture(props = {}, options = {}) {
-  const context = await browser.newContext({ viewport: { width: 800, height: 600 }, ...options }),
+async function fixture(props = {}, options = {}, fixtureBrowser = browser) {
+  const context = await fixtureBrowser.newContext({ viewport: { width: 800, height: 600 }, ...options }),
     page = await context.newPage()
   await page.goto(`http://127.0.0.1:${server.address().port}`)
   await page.waitForFunction(() => typeof window.show === 'function')
@@ -100,6 +100,50 @@ test('changing selected models preserves extension row state', async () => {
     await context.close()
   }
 })
+
+for (const engine of [chromium, firefox, webkit])
+  test(`the extras trigger stays still and respects frame clearance in ${engine.name()}`, async () => {
+    const fixtureBrowser = engine === chromium ? browser : await engine.launch({ headless: true })
+    const { context, page } = await fixture({}, {}, fixtureBrowser)
+    try {
+      const trigger = page.locator('[aria-haspopup="menu"]')
+      const before = await trigger.boundingBox()
+      await trigger.hover()
+      await page.mouse.down()
+      await page.waitForTimeout(160)
+      const pressed = await trigger.boundingBox()
+      await page.mouse.up()
+      assert.deepEqual(pressed, before, 'press feedback must not move a measured menu anchor')
+      await page.keyboard.press('Escape')
+      await page.setViewportSize({ width: 800, height: 300 })
+      await page.evaluate(() => {
+        document.documentElement.style.setProperty('--dsh-frame-top-clearance', '56px')
+        document.getElementById('moving').style.top = '240px'
+        document.getElementById('first').style.height = '400px'
+      })
+      await trigger.click()
+      await page.waitForTimeout(300)
+      const menu = await page.getByRole('menu').boundingBox()
+      assert.ok(menu.y >= 76 && menu.y + menu.height <= 288, JSON.stringify(menu))
+      await page.keyboard.press('Escape')
+      await page.emulateMedia({ forcedColors: 'active' })
+      await page.keyboard.press('Tab')
+      await trigger.focus()
+      if (await page.evaluate(() => matchMedia('(forced-colors: active)').matches)) {
+        const focus = await trigger.evaluate(el => ({
+          style: getComputedStyle(el).outlineStyle,
+          width: getComputedStyle(el).outlineWidth,
+          color: getComputedStyle(el).outlineColor,
+        }))
+        assert.equal(focus.style, 'solid')
+        assert.equal(focus.width, '2px')
+        assert.notEqual(focus.color, 'rgba(0, 0, 0, 0)')
+      }
+    } finally {
+      await context.close()
+      if (fixtureBrowser !== browser) await fixtureBrowser.close()
+    }
+  })
 test('mouse opening starts on the panel and Tab enters its first control before leaving at the edge', async () => {
   const { context, page } = await fixture()
   try {

@@ -24,8 +24,10 @@
   }
 }
 
-.projectRow:active,
-.sessionRow:active {
+/* Child actions anchor portal menus; pressing one must not move that anchor.
+ * Keep the ordinary row's press feedback when the row itself is activated. */
+.projectRow:active:not(:has(button:active)),
+.sessionRow:active:not(:has(button:active)) {
   transform: translateY(1px);
 }
 

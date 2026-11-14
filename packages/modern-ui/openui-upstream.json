@@ -138,7 +138,7 @@
       "source": "src/lib/components/svg.tsx",
       "target": "src/vendor/openui/components/svg.tsx",
       "sourceSha256": "b4607d3889eea6566ab489b60b845a1c70c5c4a29f62b5d5db5dd72f057006fa",
-      "targetSha256": "08753596d337d86dc9429c7a4828b9448c8bc294d24f4dee60807cad67ea8df3",
+      "targetSha256": "10acbfe68a7290bfe1a66f63cc68addc66adfdeeece4958dda8341deadf6fc4e",
       "adapted": true
     },
     {
