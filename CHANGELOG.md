@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.1.22] - 2026-11-14
+
 ### 修复
 
 - 待发送的文件上传失败时，文件名会为删除按钮留出空间；删除按钮的可点击范围在桌面为 24px，触屏为 32px，扩展名仍然完整显示。
@@ -626,7 +628,8 @@ macOS 桌面客户端里，左侧栏四周不再有一圈灰边：整个窗口�
 
 - 会话里的联网开关（`/web on|off`）和它用的协议。联网工具统一在官方的插件管理里开关。
 
-[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.21...HEAD
+[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.22...HEAD
+[0.1.22]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.21...v0.1.22
 [0.1.21]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.20...v0.1.21
 [0.1.20]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.19...v0.1.20
 [0.1.19]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.18...v0.1.19
