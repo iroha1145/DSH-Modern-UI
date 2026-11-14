@@ -237,8 +237,18 @@ export const InputBar = memo(function InputBar({
 
   const onToggleCommandMenu = (): void => {
     if (keyboard === undefined) return
-    if (editor !== null) focusDraftEditor(editor, revealSelection)
-    toggleCommandMenu?.(keyboard.caretSpan())
+    if (commandMenuOpen || editor === null) {
+      toggleCommandMenu?.(keyboard.caretSpan())
+      if (editor !== null) focusDraftEditor(editor, revealSelection)
+      return
+    }
+    // A focus commit feeds trigger tracking, which clears the official launcher.
+    // Launch after that commit; close an existing launcher before restoring focus.
+    editor.getRootElement()?.focus({ preventScroll: true })
+    editor.focus(() => {
+      revealSelection()
+      toggleCommandMenu?.(keyboard.caretSpan())
+    })
   }
 
   const onWorkspaceKeyDown = (e: KeyboardEvent<HTMLDivElement>): void => {

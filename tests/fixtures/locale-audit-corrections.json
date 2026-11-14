@@ -352,6 +352,22 @@
           "highlight.retry": {
             "before": null,
             "after": "Volver a cargar el resaltado"
+          },
+          "image.zoomIn": {
+            "before": null,
+            "after": "Acercar"
+          },
+          "image.zoomOut": {
+            "before": null,
+            "after": "Alejar"
+          },
+          "image.resetZoom": {
+            "before": null,
+            "after": "Ajustar a la ventana"
+          },
+          "image.zoomHelp": {
+            "before": null,
+            "after": "Haz doble clic o desplázate para ampliar; arrastra o usa las flechas para mover la imagen ampliada. + / − amplía, 0 ajusta a la ventana."
           }
         },
         "fr": {
@@ -382,6 +398,22 @@
           "highlight.retry": {
             "before": null,
             "after": "Réessayer la coloration"
+          },
+          "image.zoomIn": {
+            "before": null,
+            "after": "Agrandir"
+          },
+          "image.zoomOut": {
+            "before": null,
+            "after": "Réduire"
+          },
+          "image.resetZoom": {
+            "before": null,
+            "after": "Ajuster à la fenêtre"
+          },
+          "image.zoomHelp": {
+            "before": null,
+            "after": "Double-cliquez ou faites défiler pour zoomer ; faites glisser ou utilisez les flèches pour déplacer l’image agrandie. + / − pour zoomer, 0 pour ajuster."
           }
         },
         "de": {
@@ -412,6 +444,22 @@
           "highlight.retry": {
             "before": null,
             "after": "Syntaxhervorhebung erneut laden"
+          },
+          "image.zoomIn": {
+            "before": null,
+            "after": "Vergrößern"
+          },
+          "image.zoomOut": {
+            "before": null,
+            "after": "Verkleinern"
+          },
+          "image.resetZoom": {
+            "before": null,
+            "after": "An Fenster anpassen"
+          },
+          "image.zoomHelp": {
+            "before": null,
+            "after": "Doppelklicken oder scrollen zum Zoomen; vergrößerte Bilder ziehen oder mit Pfeiltasten verschieben. + / − zum Zoomen, 0 passt ans Fenster an."
           }
         },
         "ru": {
@@ -442,6 +490,22 @@
           "highlight.retry": {
             "before": null,
             "after": "Загрузить подсветку повторно"
+          },
+          "image.zoomIn": {
+            "before": null,
+            "after": "Увеличить"
+          },
+          "image.zoomOut": {
+            "before": null,
+            "after": "Уменьшить"
+          },
+          "image.resetZoom": {
+            "before": null,
+            "after": "По размеру окна"
+          },
+          "image.zoomHelp": {
+            "before": null,
+            "after": "Двойной щелчок или прокрутка — масштаб; перетаскивание или стрелки — перемещение увеличенного изображения. + / − — масштаб, 0 — по размеру окна."
           }
         },
         "pt": {
@@ -472,6 +536,22 @@
           "highlight.retry": {
             "before": null,
             "after": "Tentar carregar o realce novamente"
+          },
+          "image.zoomIn": {
+            "before": null,
+            "after": "Ampliar"
+          },
+          "image.zoomOut": {
+            "before": null,
+            "after": "Reduzir"
+          },
+          "image.resetZoom": {
+            "before": null,
+            "after": "Ajustar à janela"
+          },
+          "image.zoomHelp": {
+            "before": null,
+            "after": "Clique duas vezes ou role para ampliar; arraste ou use as setas para mover a imagem ampliada. + / − amplia, 0 ajusta à janela."
           }
         },
         "zh": {
@@ -490,6 +570,22 @@
           "highlight.retry": {
             "before": null,
             "after": "重新加载高亮"
+          },
+          "image.zoomIn": {
+            "before": null,
+            "after": "放大"
+          },
+          "image.zoomOut": {
+            "before": null,
+            "after": "缩小"
+          },
+          "image.resetZoom": {
+            "before": null,
+            "after": "适合窗口"
+          },
+          "image.zoomHelp": {
+            "before": null,
+            "after": "双击或滚轮缩放；放大后拖动或用方向键平移。+ / − 缩放，0 适合窗口。"
           }
         },
         "en": {
@@ -508,6 +604,22 @@
           "highlight.retry": {
             "before": null,
             "after": "Retry highlighting"
+          },
+          "image.zoomIn": {
+            "before": null,
+            "after": "Zoom in"
+          },
+          "image.zoomOut": {
+            "before": null,
+            "after": "Zoom out"
+          },
+          "image.resetZoom": {
+            "before": null,
+            "after": "Fit to window"
+          },
+          "image.zoomHelp": {
+            "before": null,
+            "after": "Double-click or scroll to zoom; drag or use arrow keys to pan when zoomed. + / − zoom, 0 fits to window."
           }
         },
         "ja": {
@@ -526,6 +638,22 @@
           "highlight.retry": {
             "before": null,
             "after": "ハイライトを再読み込み"
+          },
+          "image.zoomIn": {
+            "before": null,
+            "after": "拡大"
+          },
+          "image.zoomOut": {
+            "before": null,
+            "after": "縮小"
+          },
+          "image.resetZoom": {
+            "before": null,
+            "after": "ウィンドウに合わせる"
+          },
+          "image.zoomHelp": {
+            "before": null,
+            "after": "ダブルクリックまたはホイールで拡大・縮小。拡大後はドラッグまたは矢印キーで移動。+ / − で拡大・縮小、0 で全体表示。"
           }
         }
       }
@@ -812,48 +940,240 @@
           "chartRangeExceeded": {
             "before": null,
             "after": "堆叠总值超出了图表的数值范围。下方显示完整数据。"
+          },
+          "chooseDate": {
+            "before": null,
+            "after": "选择日期"
+          },
+          "previousMonth": {
+            "before": null,
+            "after": "上一月"
+          },
+          "nextMonth": {
+            "before": null,
+            "after": "下一月"
+          },
+          "clearDate": {
+            "before": null,
+            "after": "清空日期"
+          },
+          "dateFormat": {
+            "before": null,
+            "after": "格式：YYYY-MM-DD"
+          },
+          "invalidDate": {
+            "before": null,
+            "after": "请输入有效且在允许范围内的日期（YYYY-MM-DD）。"
           }
         },
         "en": {
           "chartRangeExceeded": {
             "before": null,
             "after": "The stacked total is outside the chart’s numeric range. The complete data is shown below."
+          },
+          "chooseDate": {
+            "before": null,
+            "after": "Choose date"
+          },
+          "previousMonth": {
+            "before": null,
+            "after": "Previous month"
+          },
+          "nextMonth": {
+            "before": null,
+            "after": "Next month"
+          },
+          "clearDate": {
+            "before": null,
+            "after": "Clear date"
+          },
+          "dateFormat": {
+            "before": null,
+            "after": "Format: YYYY-MM-DD"
+          },
+          "invalidDate": {
+            "before": null,
+            "after": "Enter a valid date within the allowed range (YYYY-MM-DD)."
           }
         },
         "ja": {
           "chartRangeExceeded": {
             "before": null,
             "after": "積み上げの合計値がグラフの数値範囲を超えています。完全なデータを以下に表示します。"
+          },
+          "chooseDate": {
+            "before": null,
+            "after": "日付を選択"
+          },
+          "previousMonth": {
+            "before": null,
+            "after": "前の月"
+          },
+          "nextMonth": {
+            "before": null,
+            "after": "次の月"
+          },
+          "clearDate": {
+            "before": null,
+            "after": "日付をクリア"
+          },
+          "dateFormat": {
+            "before": null,
+            "after": "形式：YYYY-MM-DD"
+          },
+          "invalidDate": {
+            "before": null,
+            "after": "指定範囲内の有効な日付（YYYY-MM-DD）を入力してください。"
           }
         },
         "de": {
           "chartRangeExceeded": {
             "before": null,
             "after": "Die gestapelte Summe liegt außerhalb des Zahlenbereichs des Diagramms. Die vollständigen Daten werden unten angezeigt."
+          },
+          "chooseDate": {
+            "before": null,
+            "after": "Datum auswählen"
+          },
+          "previousMonth": {
+            "before": null,
+            "after": "Vorheriger Monat"
+          },
+          "nextMonth": {
+            "before": null,
+            "after": "Nächster Monat"
+          },
+          "clearDate": {
+            "before": null,
+            "after": "Datum löschen"
+          },
+          "dateFormat": {
+            "before": null,
+            "after": "Format: YYYY-MM-DD"
+          },
+          "invalidDate": {
+            "before": null,
+            "after": "Geben Sie ein gültiges Datum im zulässigen Bereich ein (YYYY-MM-DD)."
           }
         },
         "es": {
           "chartRangeExceeded": {
             "before": null,
             "after": "El total apilado está fuera del rango numérico del gráfico. Los datos completos se muestran a continuación."
+          },
+          "chooseDate": {
+            "before": null,
+            "after": "Elegir fecha"
+          },
+          "previousMonth": {
+            "before": null,
+            "after": "Mes anterior"
+          },
+          "nextMonth": {
+            "before": null,
+            "after": "Mes siguiente"
+          },
+          "clearDate": {
+            "before": null,
+            "after": "Borrar fecha"
+          },
+          "dateFormat": {
+            "before": null,
+            "after": "Formato: YYYY-MM-DD"
+          },
+          "invalidDate": {
+            "before": null,
+            "after": "Introduce una fecha válida dentro del intervalo permitido (YYYY-MM-DD)."
           }
         },
         "fr": {
           "chartRangeExceeded": {
             "before": null,
             "after": "Le total empilé dépasse la plage numérique du graphique. Les données complètes sont affichées ci-dessous."
+          },
+          "chooseDate": {
+            "before": null,
+            "after": "Choisir une date"
+          },
+          "previousMonth": {
+            "before": null,
+            "after": "Mois précédent"
+          },
+          "nextMonth": {
+            "before": null,
+            "after": "Mois suivant"
+          },
+          "clearDate": {
+            "before": null,
+            "after": "Effacer la date"
+          },
+          "dateFormat": {
+            "before": null,
+            "after": "Format : YYYY-MM-DD"
+          },
+          "invalidDate": {
+            "before": null,
+            "after": "Saisissez une date valide dans la plage autorisée (YYYY-MM-DD)."
           }
         },
         "ru": {
           "chartRangeExceeded": {
             "before": null,
             "after": "Сумма значений выходит за числовой диапазон диаграммы. Полные данные приведены ниже."
+          },
+          "chooseDate": {
+            "before": null,
+            "after": "Выбрать дату"
+          },
+          "previousMonth": {
+            "before": null,
+            "after": "Предыдущий месяц"
+          },
+          "nextMonth": {
+            "before": null,
+            "after": "Следующий месяц"
+          },
+          "clearDate": {
+            "before": null,
+            "after": "Очистить дату"
+          },
+          "dateFormat": {
+            "before": null,
+            "after": "Формат: YYYY-MM-DD"
+          },
+          "invalidDate": {
+            "before": null,
+            "after": "Введите допустимую дату в разрешённом диапазоне (YYYY-MM-DD)."
           }
         },
         "pt": {
           "chartRangeExceeded": {
             "before": null,
             "after": "O total empilhado está fora do intervalo numérico do gráfico. Os dados completos são mostrados abaixo."
+          },
+          "chooseDate": {
+            "before": null,
+            "after": "Escolher data"
+          },
+          "previousMonth": {
+            "before": null,
+            "after": "Mês anterior"
+          },
+          "nextMonth": {
+            "before": null,
+            "after": "Próximo mês"
+          },
+          "clearDate": {
+            "before": null,
+            "after": "Limpar data"
+          },
+          "dateFormat": {
+            "before": null,
+            "after": "Formato: YYYY-MM-DD"
+          },
+          "invalidDate": {
+            "before": null,
+            "after": "Introduza uma data válida dentro do intervalo permitido (YYYY-MM-DD)."
           }
         }
       }

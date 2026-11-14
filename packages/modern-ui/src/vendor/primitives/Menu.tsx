@@ -12,6 +12,8 @@ import { focusWithoutRing } from './focus.ts'
 import { ShortcutKeys } from './ShortcutKeys.tsx'
 import { MenuSurface } from './MenuSurface.tsx'
 import css from './Menu.module.css'
+import scrollHints from '../../scroll-hints.module.css'
+import { observeScrollHints } from '../../scroll-hints.ts'
 
 /** Selectable row (optionally with a nested submenu). */
 export interface MenuItem {
@@ -206,6 +208,8 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
   const rootRef = useRef<HTMLSpanElement>(null)
   useDismissBehindModal(rootRef, open, onClose)
   const listRef = useRef<HTMLDivElement>(null)
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const submenuViewportRef = useRef<HTMLDivElement>(null)
   /** Index the arrow walk last focused, the resume point when focus left the rows. */
   const walkIndex = useRef<number | null>(null)
   /**
@@ -528,6 +532,13 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
     if (!open) cancelClose()
   }, [open, cancelClose])
 
+  useEffect(() => {
+    if (open && viewportRef.current) return observeScrollHints(viewportRef.current)
+  }, [open])
+  useEffect(() => {
+    if (open && openSubmenuId !== null && submenuViewportRef.current) return observeScrollHints(submenuViewportRef.current)
+  }, [open, openSubmenuId])
+
   const renderEntry = (entry: MenuEntry): ReactNode => {
     if ('type' in entry && entry.type === 'group') {
       return <div key={entry.id} role="group" aria-label={entry.label}>
@@ -579,7 +590,7 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
         </button>
         {subOpen && entry.submenu !== undefined && createPortal(
           <MenuSurface compact={compact} ref={submenuRef} className={clsx(css.submenu, compact && css.compactList)} style={submenuPos ?? MEASURE_STYLE} data-menu-side={submenuSide} role="menu">
-            <div className={css.viewport} role="presentation">
+            <div ref={submenuViewportRef} className={clsx(css.viewport, scrollHints.viewport)} role="presentation">
             {entry.submenu.map(sub => (
               <button
                 key={sub.id}
@@ -640,7 +651,7 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
       onPointerMove={collapseSubmenuFrom}
       onFocus={collapseSubmenuFrom}
     >
-      <div className={css.viewport} role="presentation" data-menu-viewport="">
+      <div ref={viewportRef} className={clsx(css.viewport, scrollHints.viewport)} role="presentation" data-menu-viewport="">
         {items.map(renderEntry)}
         {children}
       </div>

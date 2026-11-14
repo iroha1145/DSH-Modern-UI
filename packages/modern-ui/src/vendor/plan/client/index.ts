@@ -31,7 +31,7 @@ export function registerPlanPreview(ctx: Context): void {
       hooks: { sessions: ctx.sessions.list },
       navigation: (address: string) => planNavigation(ctx, address, {
         open: t('image.open'), loading: t('image.loading'), failed: t('image.failed'),
-        dialog: t('image.dialog'), close: t('image.close'),
+        dialog: t('image.dialog'), close: t('image.close'), zoomIn: t('image.zoomIn'), zoomOut: t('image.zoomOut'), resetZoom: t('image.resetZoom'), zoomHelp: t('image.zoomHelp'),
       }),
     }),
   }, PlanPreview))

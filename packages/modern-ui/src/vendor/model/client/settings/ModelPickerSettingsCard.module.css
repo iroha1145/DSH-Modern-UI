@@ -343,8 +343,9 @@
 
 .select:focus {
   outline: none;
-  border-color: var(--dsw-alias-state-business-primary);
+  border-color: var(--field-border);
 }
+
 
 .select:disabled {
   opacity: 0.6;

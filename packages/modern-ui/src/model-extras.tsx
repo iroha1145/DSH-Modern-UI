@@ -23,6 +23,7 @@
  * of session options); Escape closes back to the button (a row may take the first Escape to fold its own list); Tab
  * visits row controls, then leaves and closes.
  */
+import { SegmentedTrack } from './segmented-control.tsx'
 import {
   Component,
   useCallback,
@@ -534,7 +535,7 @@ function ModelExtras({ locked, useModelDirectory, useModelParameters, useModelOp
                   <span className={css.speedLabel} id={`${id}-speed`}>
                     {t('extras.speed.label')}
                   </span>
-                  <span className={css.pills} data-speeds="">
+                  <SegmentedTrack className={css.pills} count={speeds.length} selectedIndex={speeds.indexOf(chosenSpeed)} data-speeds="">
                     {speeds.map(mode => (
                       <button
                         key={mode}
@@ -550,7 +551,7 @@ function ModelExtras({ locked, useModelDirectory, useModelParameters, useModelOp
                         {t(`extras.speed.${mode}`)}
                       </button>
                     ))}
-                  </span>
+                  </SegmentedTrack>
                 </div>
               )}
               {hostsRows && (

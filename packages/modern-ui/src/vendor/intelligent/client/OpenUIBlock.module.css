@@ -1,33 +1,15 @@
-@keyframes openuiStageIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
 .block { position: relative; min-width: 0; max-width: 100%; margin: 16px 0; }
 .stage { min-width: 0; }
-.block[data-state='complete'] > .stage { animation: openuiStageIn var(--dsh-paper-micro-duration, 180ms) var(--dsh-paper-micro-curve, cubic-bezier(0.215, 0.61, 0.355, 1)) both; }
 .stage > :global(.iui-root) { min-width: 0; color: var(--ink); font-size: 14px; line-height: 1.55; }
 .status { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0 0; font-size: 13px; color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
-.copied { max-width: 100%; padding: 1px 6px; border-radius: 6px; background: color-mix(in srgb, var(--ink, #171717) 6%, transparent); font-family: var(--ds-font-family-code, ui-monospace, monospace); font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
-.placeholder { position: relative; isolation: isolate; display: flex; flex-direction: column; justify-content: center; gap: 4px; min-height: 88px; padding: 16px 18px; border-radius: var(--dsw-radius-xl, 20px); background: transparent; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.55), inset 0 0 0 1px color-mix(in srgb, var(--ink, #171717) 6%, transparent); color: var(--dsw-alias-label-secondary); font-size: 13px; }
-:global(body[data-ds-dark-theme]) .placeholder { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), inset 0 0 0 1px rgb(255 255 255 / 0.065); }
-.placeholder::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--dsw-composer-surface-fill, color-mix(in srgb, var(--page, #ffffff) 68%, transparent)); -webkit-backdrop-filter: var(--dsw-composer-backdrop-filter, blur(20px) saturate(140%)); backdrop-filter: var(--dsw-composer-backdrop-filter, blur(20px) saturate(140%)); pointer-events: none; }
-.card { min-width: 0; max-width: 100%; margin: 14px 0; border: 0.5px solid var(--card-border, var(--dsw-alias-border-l3)); border-radius: var(--dsw-radius-xl, 20px); overflow: hidden; background: var(--dsw-alias-bg-base); box-shadow: var(--shadow-panel); }
+.copied { max-width: 100%; padding: 1px 6px; border-radius: 6px; background: var(--inset, color-mix(in srgb, var(--ink, #171717) 6%, transparent)); font-family: var(--ds-font-family-code, ui-monospace, monospace); font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.placeholder { display: flex; flex-direction: column; justify-content: center; gap: 4px; min-height: 88px; padding: 16px 18px; border: 1px solid var(--line, var(--dsw-alias-border-l3)); border-radius: var(--dsw-radius-xl, 20px); background: var(--inset, var(--dsw-alias-bg-layer-2)); color: var(--dsw-alias-label-secondary); font-size: 13px; }
+.card { min-width: 0; max-width: 100%; margin: 14px 0; border: 0.5px solid var(--card-border, var(--dsw-alias-border-l3)); border-radius: var(--dsw-radius-xl, 20px); overflow: hidden; background: var(--surface, var(--dsw-alias-bg-base)); box-shadow: var(--shadow-card, var(--shadow-panel)); }
 .toolbar { display: flex; align-items: center; min-height: 40px; padding: 6px 14px; }
 .title { min-width: 0; font-size: 13px; font-weight: 500; letter-spacing: var(--tracking-title, -0.015em); overflow-wrap: anywhere; }
 .card .status { margin: 0; padding: 0 14px 10px; }
 .card > :global(*):last-child:not(.status):not(.toolbar) { margin: 0; border: 0; border-top: 0.5px solid var(--dsw-alias-border-l3); border-radius: 0; box-shadow: none; }
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .placeholder::before { background: var(--dsw-alias-bg-layer-2, var(--page, #ffffff)); -webkit-backdrop-filter: none; backdrop-filter: none; }
-}
-@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
-  .placeholder::before { background: var(--dsw-alias-bg-layer-2, var(--page, #ffffff)); -webkit-backdrop-filter: none; backdrop-filter: none; }
-}
 @media (forced-colors: active) {
   .placeholder { border: 1px solid ButtonBorder; box-shadow: none; }
-  .placeholder::before { background: Canvas; }
   .card { border: 1px solid ButtonBorder; box-shadow: none; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .block[data-state='complete'] > .stage { animation: none; }
 }

@@ -18,6 +18,8 @@ import {deriveFlat} from './packages/modern-ui/src/vendor/workspace/client/tree.
 import rowsCss from './packages/modern-ui/src/vendor/workspace/client/rows/Rows.module.css';
 import {createFlowMotion} from './packages/modern-ui/src/vendor/chat/client/chat/flow-motion.ts';
 import {ScrollFollow,scrollMetrics} from './packages/modern-ui/src/vendor/chat/client/chat/use-scroll-follow.ts';
+import './packages/modern-ui/src/vendor/theme/styles/base.css';
+import './packages/modern-ui/src/vendor/theme/styles/design-platform.css';
 import './packages/modern-ui/src/vendor/settings-shell/settings-shell.css';
 const list={phase:'ready',ids:['one'],byId:{one:{id:'one',title:'A long session title whose final words need to remain readable '.repeat(12),blank:false,running:false,retainedBy:{},updatedAt:1}},projectionsBySession:{}};
 const node=deriveFlat(list,list.ids,{pinnedSessionIds:[],archivedSessionIds:[],archivedFilter:'default'},new Map())[0];
@@ -71,7 +73,7 @@ async function open() {
   await page.setContent(`<style>
 body{margin:0;font:14px Arial;--ease-spring:ease;--ink-2:#555;--ink:#111;--hover:#eee}
 #app{width:240px}button{font:inherit}
-#controls{display:flex;gap:20px;margin:40px}#controls button{display:block;width:140px;background:white;border:0}
+#controls{display:flex;gap:20px;margin:40px}#controls button{display:block;width:140px;border:0}
 #closing{height:200px;margin-top:12px}#opening{height:120px;margin-top:8px}
 #scroller{height:200px;width:300px;overflow:auto;overflow-anchor:none}#long-content{height:3000px}
 </style><div id="app"></div>
@@ -92,23 +94,22 @@ async function reduce(page) {
 }
 
 for (const id of ['account', 'settings', 'section'])
-  test(`settings ${id} stops a running press transition at its unshifted position`, async () => {
+  test(`settings ${id} keeps its anchor stable when pressed and motion preferences change`, async () => {
     const { context, page, errors } = await open()
     try {
       const button = page.locator('#' + id)
       const before = await button.boundingBox()
+      const restingColor = await button.evaluate(element => getComputedStyle(element).backgroundColor)
       await button.hover()
       await page.mouse.down()
-      await page.waitForFunction(
-        id => {
-          const button = document.getElementById(id)
-          return button.getBoundingClientRect().y > Number(button.dataset.initialY) + 0.1
-        },
-        await button.evaluate((element, top) => {
-          element.dataset.initialY = String(top)
-          return element.id
-        }, before.y),
-      )
+      await button.evaluate(element => Promise.all(element.getAnimations().map(animation => animation.finished)))
+      const pressed = await button.evaluate(element => ({
+        top: element.getBoundingClientRect().y,
+        color: getComputedStyle(element).backgroundColor,
+      }))
+      assert.equal(pressed.top, before.y, 'press feedback must not move a popup anchor')
+      if (await button.getAttribute('aria-current')) assert.equal(pressed.color, restingColor, 'the current section keeps its selected fill')
+      else assert.notEqual(pressed.color, restingColor, 'the pressed fill remains visible')
       await reduce(page)
       const after = await button.evaluate(element => ({
         top: element.getBoundingClientRect().y,

@@ -7,6 +7,7 @@ import { createRequire, Module } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { build } from './helpers/client-build.mjs'
+import { officialModalLayerPlugin } from './helpers/official-modal-layer.mjs'
 import { JSDOM } from 'jsdom'
 import { eachCounterPlugin } from '../../scripts/openui-each-counter.mjs'
 
@@ -77,6 +78,7 @@ const result = await build({
   jsx: 'automatic',
   define: { 'process.env.NODE_ENV': '"production"' },
   plugins: [
+    officialModalLayerPlugin(),
     // The OpenUI runtime is bundled with the same @Each patch as the plugin build.
     eachCounterPlugin(),
     {
@@ -84,7 +86,9 @@ const result = await build({
       setup(builder) {
         builder.onResolve({ filter: /@iroha1145\/dsh-modern-ui\/primitives$/ }, () => ({ path: 'primitives', namespace: 'stub' }))
         builder.onResolve({ filter: /\.css$/ }, args => ({ path: args.path, namespace: 'style' }))
-        builder.onResolve({ filter: /^[^./]/ }, args => (args.path.startsWith('@openuidev/') ? undefined : { path: args.path, external: true }))
+        builder.onResolve({ filter: /^[^./]/ }, args =>
+          args.path.startsWith('@openuidev/') || args.path === '@deepseek-ai/dsh-client-ui-primitives' ? undefined : { path: args.path, external: true },
+        )
         builder.onLoad({ filter: /.*/, namespace: 'stub' }, () => ({
           contents:
             "const React = require('react'); export const CodeBlock = ({code}) => React.createElement('pre', {'data-source': true}, code); export const TextShimmer = ({children}) => React.createElement('span', null, children)",
@@ -290,7 +294,7 @@ test('a Select or RadioGroup whose options lose its value is cleared everywhere 
     '$opts = ["A", "B"]\n$v = "B"\n$w = "B"\nroot = Form([Select($v, $opts, "Choice"), Text("Selected: [" + $v + "]"), RadioGroup($w, $opts, "Pick"), Text("Picked: [" + $w + "]"), Button("Only A", @Set($opts, ["A"])), Button("Go", @ToAssistant("Use values"))])'
   const view = await mount(code)
   await click(button(view.host, 'Only A'))
-  assert.equal(view.host.querySelector('select').value, '')
+  assert.equal(view.host.querySelector('[role=combobox]').value, '')
   assert.match(view.host.textContent, /Selected: \[\]/)
   assert.equal(view.host.querySelector('input[type="radio"]:checked'), null)
   assert.match(view.host.textContent, /Picked: \[\]/)
@@ -332,7 +336,7 @@ test('controls an earlier @Set mounts are normalised before the @ToAssistant in 
   const view = await mount(code)
   await click(button(view.host, 'Pro'))
   assert.equal(view.host.querySelector('input[type="range"]').value, '50')
-  assert.equal(view.host.querySelector('select').value, '')
+  assert.equal(view.host.querySelector('[role=combobox]').value, '')
   assert.deepEqual(view.calls.setDraft, ['Apply\n\n- ProLimit: 50'])
   await view.unmount()
 })
@@ -752,6 +756,36 @@ test('a popover with a component trigger nests no button and stays open while it
   await view.unmount()
 })
 
+test('an open popover follows its trigger theme without replacing the panel or losing focus', async () => {
+  const view = await mount('root = Col([Popover("Details", [Text("detail")])])')
+  const trigger = view.host.querySelector('.iui-popover-trigger')
+  await click(trigger)
+  const panel = document.querySelector('.iui-popover')
+  const scope = panel.closest('.iui-portal')
+  assert.equal(scope.getAttribute('data-theme'), 'light')
+  assert.equal(document.activeElement, panel)
+  const root = view.host.querySelector('.iui-root')
+  for (const [scheme, target] of [
+    ['dark', document.body],
+    ['light', root],
+    ['dark', root],
+  ]) {
+    await act(async () => {
+      // This harness omits CSS, so set the same used color-scheme a theme stylesheet supplies.
+      trigger.style.colorScheme = scheme
+      if (target === document.body) root.removeAttribute('data-theme')
+      target.setAttribute('data-theme', scheme)
+      await new Promise(resolve => setTimeout(resolve, 0))
+    })
+    assert.equal(scope.getAttribute('data-theme'), scheme)
+    assert.equal(document.querySelector('.iui-popover'), panel)
+    assert.equal(document.activeElement, panel)
+    assert.equal(trigger.getAttribute('aria-expanded'), 'true')
+  }
+  await view.unmount()
+  document.body.removeAttribute('data-theme')
+})
+
 test('a Button trigger opens its popover instead of proposing its label, and Escape closes only the popover', async () => {
   const view = await mount('root = Col([Popover(Button("Details"), [Text("detail")])])')
   const control = button(view.host, 'Details')
@@ -835,12 +869,18 @@ test('an HtmlView stops growing with viewport-sized content, keeps its page acro
   for (const height of [376, 392, 408, 424, 440]) await report(height)
   assert.equal(box().style.height, '408px')
   const before = frame().getAttribute('srcdoc')
+  const themedFrame = frame()
+  const posted = []
+  themedFrame.contentWindow.postMessage = message => posted.push(message)
   await act(async () => {
     box().style.colorScheme = 'dark'
     view.host.setAttribute('data-theme', 'dark')
     await new Promise(resolve => setTimeout(resolve, 0))
   })
   assert.equal(frame().getAttribute('srcdoc'), before, 'the page is not rebuilt for a theme switch')
+  assert.equal(frame(), themedFrame, 'the sandbox keeps its running document')
+  assert.equal(posted.at(-1)?.scheme, 'dark', 'the running sandbox receives the new theme')
+  assert.equal(typeof posted.at(-1)?.palette?.bg, 'string')
   await act(async () => {
     dom.window.dispatchEvent(
       new dom.window.MessageEvent('message', { data: { type: 'dsh:openui-html-view:v1', token, state: 'failed' }, source: frame().contentWindow }),

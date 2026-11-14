@@ -272,7 +272,7 @@
   background: transparent;
   color: var(--ink);
   cursor: pointer;
-  transition: opacity 140ms ease;
+  transition: opacity var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve);
 }
 
 @media (hover: hover) {
@@ -362,7 +362,7 @@
   background: transparent;
   cursor: pointer;
   color: var(--ink-2);
-  transition: background-color 140ms ease, color 140ms ease, transform 120ms var(--ease-spring);
+  transition: background-color var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve), color var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve), transform var(--dsh-motion-press-duration) var(--dsh-motion-feedback-curve);
 }
 
 @media (hover: hover) {
@@ -372,8 +372,8 @@
   }
 }
 
-.iconButton:active {
-  transform: translateY(1px);
+@media (prefers-reduced-motion: no-preference) {
+  .iconButton:active:not(:disabled):not([aria-haspopup]) { transform: scale(0.98); }
 }
 
 .iconButton.toggle:focus-visible {
@@ -446,9 +446,9 @@
   cursor: pointer;
   overflow: hidden;
   transition:
-    background-color 140ms ease,
-    color 140ms ease,
-    transform 120ms var(--ease-spring);
+    background-color var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve),
+    color var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve),
+    transform var(--dsh-motion-press-duration) var(--dsh-motion-feedback-curve);
 }
 
 @media (hover: hover) {
@@ -459,9 +459,9 @@
   }
 }
 
-.newSession:active,
-.panelRow:active {
-  transform: translateY(1px);
+@media (prefers-reduced-motion: no-preference) {
+  .newSession:active:not(:disabled),
+  .panelRow:active:not(:disabled) { transform: scale(0.99); }
 }
 
 .panelRow.panelActive {
@@ -519,7 +519,7 @@
 .newSessionContent > svg {
   flex: none;
   color: var(--ink-2);
-  transition: color 140ms ease, transform 220ms var(--ease-spring);
+  transition: color var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve), transform 220ms var(--ease-spring);
 }
 
 .newSessionShortcut {
@@ -528,7 +528,7 @@
   flex: none;
   pointer-events: none;
   font-weight: 400;
-  transition: opacity 140ms ease;
+  transition: opacity var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve);
 }
 
 .newSession:focus-visible .newSessionShortcut {
@@ -564,13 +564,12 @@
   width: 18px;
   height: 18px;
   color: var(--ink-2);
-  transition: color 140ms ease, transform 220ms var(--ease-spring);
+  transition: color var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve), transform 220ms var(--ease-spring);
 }
 
 @media (hover: hover) {
   .panelRow:hover .panelGlyph {
     color: var(--ink);
-    transform: translateY(-0.5px) scale(1.03);
   }
 }
 

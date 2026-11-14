@@ -29,6 +29,10 @@ export interface AnchoredPositionOptions {
   gap: number
   /** Distance kept between the panel and each viewport edge; the frame's overlay inset widens the top margin. */
   margin: number
+  /** Constrain a scrollable picker to the available side of its anchor. */
+  maxHeight?: number
+  /** Give a picker the width of its field, within the visible viewport. */
+  matchAnchorWidth?: boolean
 }
 
 /**
@@ -37,7 +41,7 @@ export interface AnchoredPositionOptions {
  * @returns `left`/`top` for the panel, or `null` before the first measurement.
  */
 export function useAnchoredPosition(options: AnchoredPositionOptions): CSSProperties | null {
-  const { open, anchorRef, panelRef, side = 'bottom', align = 'start', gap, margin } = options
+  const { open, anchorRef, panelRef, side = 'bottom', align = 'start', gap, margin, maxHeight, matchAnchorWidth = false } = options
   const [position, setPosition] = useState<CSSProperties | null>(null)
   useLayoutEffect(() => {
     if (!open) {
@@ -51,18 +55,32 @@ export function useAnchoredPosition(options: AnchoredPositionOptions): CSSProper
       const rect = anchorRef.current?.getBoundingClientRect()
       if (rect === undefined) return
       const panel = panelRef.current
-      const width = panel?.offsetWidth ?? 0
-      const height = panel?.offsetHeight ?? 0
-      let left = align === 'end' ? rect.right - width : rect.left
-      let top = side === 'top' ? rect.top - gap - height : rect.bottom + gap
-      const topMargin = overlayTopMargin(margin, rect, gap)
-      const above = rect.top - gap - topMargin
-      const below = window.innerHeight - margin - rect.bottom - gap
-      if (height > 0 && (side === 'bottom' ? height > below && above > below : height > above && below > above)) {
-        top = side === 'bottom' ? rect.top - gap - height : rect.bottom + gap
+      const viewport = window.visualViewport
+      const viewLeft = viewport?.offsetLeft ?? 0
+      const viewTop = viewport?.offsetTop ?? 0
+      const viewWidth = viewport?.width ?? window.innerWidth
+      const viewHeight = viewport?.height ?? window.innerHeight
+      const maxWidth = Math.max(0, viewWidth - 2 * margin)
+      if (panel && maxHeight !== undefined) {
+        panel.style.maxWidth = `${maxWidth}px`
+        if (matchAnchorWidth) panel.style.width = `${Math.min(maxWidth, rect.width)}px`
       }
-      if (width > 0) left = Math.max(margin, Math.min(left, window.innerWidth - width - margin))
-      if (height > 0) top = Math.max(topMargin, Math.min(top, window.innerHeight - height - margin))
+      const width = panel?.offsetWidth ?? 0
+      let height = panel?.offsetHeight ?? 0
+      let left = align === 'end' ? rect.right - width : rect.left
+      const topMargin = Math.max(viewTop + margin, overlayTopMargin(margin, rect, gap))
+      const above = rect.top - gap - topMargin
+      const below = viewTop + viewHeight - margin - rect.bottom - gap
+      const natural = maxHeight === undefined ? height : Math.min(maxHeight, (panel?.scrollHeight ?? 0) + height - (panel?.clientHeight ?? 0))
+      const flip = natural > 0 && (side === 'bottom' ? natural > below && above > below : natural > above && below > above)
+      const up = side === 'top' ? !flip : flip
+      if (panel && maxHeight !== undefined) {
+        panel.style.maxHeight = `${Math.max(0, Math.min(maxHeight, viewHeight - 2 * margin, Math.max(120, up ? above : below)))}px`
+        height = panel.offsetHeight
+      }
+      let top = up ? rect.top - gap - height : rect.bottom + gap
+      if (width > 0) left = Math.max(viewLeft + margin, Math.min(left, viewLeft + viewWidth - width - margin))
+      if (height > 0) top = Math.max(topMargin, Math.min(top, viewTop + viewHeight - height - margin))
       /* v8 ignore stop */
       setPosition(previous => previous?.left === left && previous.top === top ? previous : { left, top })
     }
@@ -76,6 +94,8 @@ export function useAnchoredPosition(options: AnchoredPositionOptions): CSSProper
     }
     window.addEventListener('scroll', schedule, { capture: true, passive: true })
     window.addEventListener('resize', schedule)
+    window.visualViewport?.addEventListener('resize', schedule)
+    window.visualViewport?.addEventListener('scroll', schedule)
     // The panel's own height changes without either event — a status line
     // appearing inside it, or a `resize: vertical` textarea dragged taller —
     // and a stale clamp would let a panel near the bottom edge cross the
@@ -86,13 +106,16 @@ export function useAnchoredPosition(options: AnchoredPositionOptions): CSSProper
     if (typeof ResizeObserver !== 'undefined' && panel !== null) {
       observer = new ResizeObserver(schedule)
       observer.observe(panel)
+      if (anchorRef.current) observer.observe(anchorRef.current)
     }
     return () => {
       observer?.disconnect()
       if (frame !== undefined) window.cancelAnimationFrame(frame)
       window.removeEventListener('scroll', schedule, true)
       window.removeEventListener('resize', schedule)
+      window.visualViewport?.removeEventListener('resize', schedule)
+      window.visualViewport?.removeEventListener('scroll', schedule)
     }
-  }, [open, anchorRef, panelRef, side, align, gap, margin])
+  }, [open, anchorRef, panelRef, side, align, gap, margin, maxHeight, matchAnchorWidth])
   return position
 }

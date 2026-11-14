@@ -15,7 +15,7 @@ const { createRoot } = require('react-dom/client')
 const { act } = React
 const source = path.join(repo, 'packages/modern-ui/src')
 const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'http://localhost/', pretendToBeVisual: true })
-for (const key of ['window', 'document', 'Node', 'HTMLElement', 'SVGElement', 'getComputedStyle'])
+for (const key of ['window', 'document', 'Node', 'HTMLElement', 'SVGElement', 'MutationObserver', 'getComputedStyle'])
   globalThis[key] = key === 'getComputedStyle' ? dom.window.getComputedStyle.bind(dom.window) : dom.window[key]
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 // jsdom has no layout engine; geometry is covered by the browser audits.

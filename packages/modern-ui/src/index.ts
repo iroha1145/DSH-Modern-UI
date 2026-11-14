@@ -18,13 +18,13 @@ export const Config = z.object({
   collapsedViews: z.array(z.string()).default([]).volatile(),
   // Patch-only chat preference; the official chat schema has no field for it.
   foldedReplies: z.union(['all', 'final']).default('all').volatile(),
-  // Model-visible behavior is opt-in; the two renderers only draw what a model already wrote.
+  // Presentation guidance is enabled by default; each switch still accepts an explicit opt-out.
   // Volatile so the Settings row can write it and every assembly reads the current value.
   presentation: z
     .object({
-      prompt: z.boolean().default(false),
-      // Progressive result delivery guidance, separate from the components prompt and just as opt-in.
-      progressive: z.boolean().default(false),
+      prompt: z.boolean().default(true),
+      // Progressive delivery remains independent of the components prompt.
+      progressive: z.boolean().default(true),
       openui: z.boolean().default(true),
       followups: z.boolean().default(true),
     })
@@ -39,7 +39,7 @@ type Presentation = { prompt?: boolean; progressive?: boolean }
 /** Read one live switch; a Loader-mounted config holds a volatile reference, a plain object is accepted too. */
 function switchOn(section: Volatile<Presentation> | Presentation | undefined, key: keyof Presentation): boolean {
   const value = section !== undefined && 'get' in section && typeof section.get === 'function' ? section.get() : (section as Presentation | undefined)
-  return value?.[key] === true
+  return value?.[key] !== false
 }
 
 const promptEnabled = (section: Volatile<Presentation> | Presentation | undefined) => switchOn(section, 'prompt')

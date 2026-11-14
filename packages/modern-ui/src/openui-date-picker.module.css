@@ -1,0 +1,24 @@
+:is(:global(.iui-root), :global(#iui-scope)) .field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+:is(:global(.iui-root), :global(#iui-scope)) .control { display: flex; align-items: center; position: relative; min-width: 0; }
+:is(:global(.iui-root), :global(#iui-scope)) .control > input { width: 100%; min-width: 0; padding-right: 42px; }
+:is(:global(.iui-root), :global(#iui-scope)) .trigger { position: absolute; right: 3px; display: grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 8px; background: transparent; color: inherit; cursor: pointer; }
+:is(:global(.iui-root), :global(#iui-scope)) .trigger:hover { background: var(--iui-surface); }
+:is(:global(.iui-root), :global(#iui-scope)) .hint { color: var(--iui-muted); font-size: 11px; overflow-wrap: anywhere; }
+:is(:global(.iui-root), :global(#iui-scope)) .error { color: var(--iui-danger, #c43434); font-size: 12px; }
+:is(:global(.iui-root), :global(#iui-scope)) .panel { box-sizing: border-box; padding: 12px; color: var(--iui-ink); }
+:is(:global(.iui-root), :global(#iui-scope)) .header { display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 8px; font-weight: 600; }
+:is(:global(.iui-root), :global(#iui-scope)) .header > span { text-align: center; overflow-wrap: anywhere; }
+:is(:global(.iui-root), :global(#iui-scope)) .header button, :is(:global(.iui-root), :global(#iui-scope)) .calendar button, :is(:global(.iui-root), :global(#iui-scope)) .clear { border: 0; border-radius: 8px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+:is(:global(.iui-root), :global(#iui-scope)) .header button { flex-shrink: 0; width: 32px; height: 32px; font-size: 22px; }
+:is(:global(.iui-root), :global(#iui-scope)) .calendar { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 12px; }
+:is(:global(.iui-root), :global(#iui-scope)) .calendar th { padding: 5px 0; font-weight: 500; color: var(--iui-muted); overflow-wrap: anywhere; }
+:is(:global(.iui-root), :global(#iui-scope)) .calendar td { padding: 1px; text-align: center; }
+:is(:global(.iui-root), :global(#iui-scope)) .calendar button { width: 100%; min-height: 32px; padding: 4px 0; }
+:is(:global(.iui-root), :global(#iui-scope)) .calendar button[data-outside] { color: var(--iui-muted); }
+:is(:global(.iui-root), :global(#iui-scope)) .calendar button[aria-pressed='true'] { background: var(--iui-ink); color: var(--iui-on-ink); }
+:is(:global(.iui-root), :global(#iui-scope)) .header button:hover:not(:disabled), :is(:global(.iui-root), :global(#iui-scope)) .calendar button:hover:not(:disabled), :is(:global(.iui-root), :global(#iui-scope)) .clear:hover { background: var(--iui-surface); }
+:is(:global(.iui-root), :global(#iui-scope)) .calendar button[aria-pressed='true']:hover { background: var(--iui-ink); }
+:is(:global(.iui-root), :global(#iui-scope)) .panel button:disabled { opacity: .35; cursor: default; }
+:is(:global(.iui-root), :global(#iui-scope)) .trigger:focus-visible, :is(:global(.iui-root), :global(#iui-scope)) .panel button:focus-visible { outline: 2px solid var(--iui-focus, Highlight); outline-offset: 1px; }
+:is(:global(.iui-root), :global(#iui-scope)) .clear { width: 100%; margin-top: 8px; padding: 8px; text-align: center; }
+@media (forced-colors: active) { :is(:global(.iui-root), :global(#iui-scope)) .calendar button[aria-pressed='true'] { background: Highlight; color: HighlightText; } :is(:global(.iui-root), :global(#iui-scope)) .trigger, :is(:global(.iui-root), :global(#iui-scope)) .panel button { border: 1px solid ButtonBorder; } }

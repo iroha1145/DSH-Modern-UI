@@ -93,11 +93,11 @@
   border-radius: var(--bui-radius-window, var(--dsw-radius-lg));
   background: transparent;
   isolation: isolate;
-  --dsw-elevation-stroke-color: var(--bui-line, var(--line));
-  box-shadow: var(--dsw-elevation-soft);
+  --dsw-elevation-stroke-color: var(--card-border);
+  box-shadow: 0 0 0 1px var(--dsw-elevation-stroke-color), var(--shadow-field);
   font-size: 14px;
   line-height: 22px;
-  transition: box-shadow 180ms var(--bui-ease-out), border-radius 180ms var(--bui-ease-out);
+  transition: box-shadow var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve);
   --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
   --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
 }
@@ -116,10 +116,15 @@
   pointer-events: none;
 }
 
-.card:focus-within {
-  outline: none;
-  --dsw-elevation-stroke-color: var(--bui-line-strong, var(--line-strong));
-  box-shadow: var(--dsw-elevation-prominent);
+@media (hover: hover) {
+  .card:hover:not(:focus-within):not(:has(.inputDisabled)) {
+    --dsw-elevation-stroke-color: var(--field-border);
+    box-shadow: 0 0 0 1px var(--dsw-elevation-stroke-color), var(--shadow-field-hover);
+  }
+}
+
+.card:has(.inputDisabled):not(.cardWorkspaceTrigger) {
+  box-shadow: 0 0 0 1px var(--line);
 }
 
 .hero .card {
@@ -157,7 +162,7 @@
   border: 1px dashed currentColor;
   border-radius: var(--dsw-radius-panel);
   color: var(--line-strong);
-  transition: color 100ms ease;
+  transition: color var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve);
   pointer-events: none;
 }
 
@@ -339,10 +344,10 @@
   color: var(--bui-ink-3);
   cursor: pointer;
   transition:
-    background-color 140ms ease,
-    border-color 140ms ease,
-    color 140ms ease,
-    transform 120ms var(--ease-spring);
+    background-color var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve),
+    border-color var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve),
+    color var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve),
+    transform var(--dsh-motion-press-duration) var(--dsh-motion-feedback-curve);
 }
 
 @media (hover: hover) {
@@ -353,8 +358,8 @@
   }
 }
 
-.add:active:not(:disabled) {
-  transform: translateY(1px) scale(0.98);
+@media (prefers-reduced-motion: no-preference) {
+  .add:active:not(:disabled):not([aria-haspopup]) { transform: scale(0.98); }
 }
 
 .add:disabled {
@@ -376,11 +381,11 @@
   box-shadow: var(--shadow-thumb);
   cursor: pointer;
   transition:
-    background-color 140ms ease,
-    color 140ms ease,
-    opacity 140ms ease,
-    box-shadow 140ms ease,
-    transform 120ms var(--ease-spring);
+    background-color var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve),
+    color var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve),
+    opacity var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve),
+    box-shadow var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve),
+    transform var(--dsh-motion-press-duration) var(--dsh-motion-feedback-curve);
 }
 
 @media (hover: hover) {
@@ -389,8 +394,8 @@
   }
 }
 
-.primary:active:not(:disabled) {
-  transform: translateY(1px) scale(0.98);
+@media (prefers-reduced-motion: no-preference) {
+  .primary:active:not(:disabled) { transform: scale(0.98); }
 }
 
 .primary:disabled {
@@ -422,17 +427,6 @@
   }
 }
 
-@keyframes suggestionFadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .suggestionRow {
   display: flex;
   flex-direction: column;
@@ -450,7 +444,6 @@
   line-height: 1.48;
   text-align: left;
   cursor: pointer;
-  animation: suggestionFadeUp 420ms var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
   transition:
     background-color var(--dsh-paper-micro-duration, 180ms) var(--dsh-paper-micro-curve, ease),
     border-color var(--dsh-paper-micro-duration, 180ms) var(--dsh-paper-micro-curve, ease),
@@ -508,20 +501,16 @@
     background: var(--surface);
     border-color: color-mix(in srgb, var(--primary) 22%, var(--card-border));
     box-shadow: var(--shadow-panel-hover, var(--shadow-panel-lift));
-    transform: translateY(-2px);
   }
 
-  .suggestionRow:hover:not(:disabled) .suggestionIcon {
-    transform: scale(1.05);
-  }
 
   .suggestionRow:hover:not(:disabled) .suggestionText {
     color: var(--ink);
   }
 }
 
-.suggestionRow:active:not(:disabled) {
-  transform: scale(0.985);
+@media (prefers-reduced-motion: no-preference) {
+  .suggestionRow:active:not(:disabled) { transform: scale(0.985); }
 }
 
 .shuffleRow {
@@ -558,7 +547,6 @@
   .shuffleButton:hover {
     color: var(--ink);
     background: var(--inset);
-    transform: translateY(-1px);
   }
 }
 
@@ -586,21 +574,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .suggestionRow,
-  .suggestionIcon,
-  .shuffleButton,
-  .card,
-  .add,
-  .primary {
-    animation: none;
-    transition: none;
-  }
-  .suggestionRow:hover:not(:disabled),
-  .suggestionRow:active:not(:disabled),
-  .suggestionRow:hover:not(:disabled) .suggestionIcon,
-  .shuffleButton:hover {
-    transform: none;
-  }
+  .pending { animation: none; }
 }
 
 @media (max-width: 640px) {

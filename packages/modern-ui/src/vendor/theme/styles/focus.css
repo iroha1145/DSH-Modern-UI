@@ -18,3 +18,7 @@ html[data-input-modality='pointer'] body :focus-visible {
   --dsw-focus-ring-color: transparent;
   outline-color: transparent;
 }
+
+@media (forced-colors: active) {
+  :focus-visible { outline-color: Highlight; }
+}

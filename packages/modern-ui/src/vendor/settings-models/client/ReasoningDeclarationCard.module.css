@@ -243,8 +243,9 @@ select.input {
 
 .input:focus {
   outline: none;
-  border-color: var(--dsw-alias-state-business-primary);
+  border-color: var(--field-border);
 }
+
 
 .input::placeholder {
   color: var(--dsw-alias-label-dimmed);

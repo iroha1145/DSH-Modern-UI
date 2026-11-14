@@ -26,7 +26,13 @@
    * the material opaque so its backdrop filter continues sampling the page. */
   --menu-enter-x: 0px;
   --menu-enter-y: -2px;
-  animation: menu-enter var(--dsh-feel-control-duration) var(--dsh-feel-control-curve);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .list,
+  .submenu {
+    animation: menu-enter var(--dsh-feel-control-duration) var(--dsh-feel-control-curve);
+  }
 }
 
 .list[data-menu-side='top'] {
@@ -53,13 +59,6 @@
 @keyframes menu-enter {
   from { transform: translate(var(--menu-enter-x), var(--menu-enter-y)); }
   to { transform: none; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .list,
-  .submenu {
-    animation: none;
-  }
 }
 
 /* Primary cards grow with their content between compact and readable bounds. */
@@ -144,6 +143,8 @@
   line-height: 20px;
   color: var(--dsw-alias-label-primary);
   text-align: left;
+  transition: background-color var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve),
+    color var(--dsh-motion-feedback-duration) var(--dsh-motion-feedback-curve);
 }
 
 @media (hover: hover) {
@@ -152,12 +153,11 @@
   }
 }
 
-/* Arrow navigation moves real focus, so the row the keyboard is on carries the
-   same fill the pointer gets: the fill is the row's focus indication, and the
-   browser's default ring would double it. */
+/* The focus outline stays inside the row so the menu's scroll clip cannot hide it. */
 .item:focus-visible:not(:disabled) {
   background: var(--dsw-alias-interactive-bg-hover);
-  outline: none;
+  outline: var(--dsw-focus-ring-width, 2px) solid var(--dsw-focus-ring-color, var(--primary));
+  outline-offset: -2px;
 }
 
 .denseList .item {
@@ -284,7 +284,6 @@
 
 .danger:focus-visible:not(:disabled) {
   background: var(--dsw-alias-interactive-bg-hover-danger);
-  outline: none;
 }
 
 /* Heading row: non-interactive small grey text, padding aligned with items. */

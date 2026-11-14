@@ -5,8 +5,16 @@ import path from 'node:path'
 import { promisify } from 'node:util'
 import { ensurePreviewDependency } from './preview-dependency.mjs'
 
-const repo = path.resolve(import.meta.dirname, '..')
-const root = path.resolve(repo, '../.tools/conversation-layout-preview')
+const options = new Map()
+for (let at = 2; at < process.argv.length; at += 2) {
+  const key = process.argv[at]
+  if (!['--repo', '--root', '--demo'].includes(key) || !process.argv[at + 1])
+    throw new Error('Usage: dev-layout-preview.mjs [--repo path] [--root path] [--demo surfaces]')
+  options.set(key, process.argv[at + 1])
+}
+const repo = path.resolve(options.get('--repo') ?? path.resolve(import.meta.dirname, '..'))
+const root = path.resolve(options.get('--root') ?? path.join(repo, '.artifacts/layout-preview'))
+if (options.has('--demo') && options.get('--demo') !== 'surfaces') throw new Error('Unknown demo; use --demo surfaces')
 const home = path.join(root, 'home')
 const workspace = path.join(root, 'workspace')
 const fixture = path.join(root, 'model')
@@ -14,12 +22,19 @@ const cli = path.join(repo, 'node_modules/@deepseek-ai/dsh/lib/bin.js')
 const execute = promisify(execFile)
 const environment = { ...process.env, DSH_HOME: home, DSH_TELEMETRY_DISABLED: '1', DO_NOT_TRACK: '1', COMPAT_OFFICIAL_CLI: cli, DEMO_WORKSPACE: workspace }
 for (const key of Object.keys(environment)) if (/API_KEY|ACCESS_TOKEN|AUTH_TOKEN|SECRET_KEY|NODE_PATH|NODE_OPTIONS/i.test(key)) delete environment[key]
+const ownerPath = path.join(root, 'preview-owner.json')
+const owner = await readFile(ownerPath, 'utf8').catch(error => {
+  if (error.code === 'ENOENT') return null
+  throw error
+})
+if (owner && JSON.parse(owner).repo !== repo) throw new Error(`Preview root belongs to another checkout; choose a separate --root: ${root}`)
 await Promise.all([home, workspace, fixture].map(directory => mkdir(directory, { recursive: true })))
+await writeFile(ownerPath, JSON.stringify({ repo }, null, 2))
 console.log('Building Modern UI for the isolated layout preview…')
 await execute(process.execPath, [path.join(repo, 'scripts/build-plugin.mjs')], { cwd: repo, env: environment, windowsHide: true, timeout: 180_000 })
 await execute(process.execPath, [cli, '--profile', 'web', '--dump-default-config'], { cwd: root, env: environment, windowsHide: true })
 
-const answer = [
+let answer = [
   '## 给长回答一个更舒展的阅读空间',
   '',
   '这个预览运行的是真正的 DSH 和当前工作区里的 Modern UI。在「设置 → 通用 → 对话宽度」可以选择「阅读」「标准」「宽屏」或「自定义」。只有选择「自定义」才会临时出现调节线，松手后自动隐藏。标题、正文、列表与输入框围绕同一条中心轴排列，正文不再在居中的消息列内部单独按 65ch 收窄。',
@@ -57,6 +72,7 @@ const answer = [
   '',
   '这份预览使用本地固定的示例回答，不会调用外部模型，也不会读取日常 DSH 的会话或密钥。可以继续发送消息，观察相同结构的长回答在三种宽度下如何排版。',
 ].join('\n')
+if (options.get('--demo') === 'surfaces') answer = await readFile(new URL('./fixtures/surface-preview.md', import.meta.url), 'utf8')
 let provider = await readFile(path.join(repo, 'tests/compat/fixtures/demo-provider.mjs'), 'utf8')
 const begin = provider.indexOf('const overview = ')
 const end = provider.indexOf('\n\nconst textOf', begin)
@@ -118,6 +134,7 @@ child.once('error', error => {
   console.error(error.message)
   process.exitCode = 1
 })
+await writeFile(path.join(root, 'preview-processes.json'), JSON.stringify({ launcher: process.pid, host: child.pid, repo, root }, null, 2))
 child.once('exit', code => {
   void writeFile(path.join(root, 'host.log'), log.replace(/([?&]token=)[^\s&]+/g, '$1[redacted]'))
   if (!announced) console.error(log.replace(/([?&]token=)[^\s&]+/g, '$1[redacted]'))

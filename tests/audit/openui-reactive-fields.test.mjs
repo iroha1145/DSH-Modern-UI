@@ -1,6 +1,7 @@
 import { test } from 'vitest'
 import assert from 'node:assert/strict'
 import { build } from './helpers/client-build.mjs'
+import { officialModalLayerPlugin } from './helpers/official-modal-layer.mjs'
 import { readFile, mkdtemp, rm } from 'node:fs/promises'
 import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
@@ -47,7 +48,7 @@ async function mount(code){
 }
 async function run(){
  const results=[];
- for(const [name,control,selector] of [['Input','Input($x,"Value")','input'],['TextArea','TextArea($x,"Value")','textarea'],['Select','Select($x,["start","12.5"],"Value")','select'],['SegmentedControl','SegmentedControl($x,["start","12.5"],false,"Value")',null],['RadioGroup','RadioGroup($x,["start","12.5"],"Value")',null],['Timer','Timer($x,"Value")',null]]){
+ for(const [name,control,selector] of [['Input','Input($x,"Value")','input'],['TextArea','TextArea($x,"Value")','textarea'],['Select','Select($x,["start","12.5"],"Value")','[role=combobox]'],['SegmentedControl','SegmentedControl($x,["start","12.5"],false,"Value")',null],['RadioGroup','RadioGroup($x,["start","12.5"],"Value")',null],['Timer','Timer($x,"Value")',null]]){
   lastState={};const view=await mount('$data = 0\\n$x = "start"\\nroot = Col(['+control+',Button("Grow",@Set($data,[$data,$data])),Button("Bind",@Set($x,$data)),Button("Reset",@Set($x,12.5))])');
   for(let n=0;n<12;n++)await view.click('Grow');
   assert.equal(lastState.$data[0],lastState.$data[1]);
@@ -98,6 +99,7 @@ globalThis.getComputedStyle=__testDom.window.getComputedStyle.bind(__testDom.win
 globalThis.ResizeObserver=class{observe(){}disconnect(){}};`,
       },
       plugins: [
+        officialModalLayerPlugin(),
         {
           name: 'real-field-runtime',
           setup(builder) {
@@ -110,7 +112,9 @@ globalThis.ResizeObserver=class{observe(){}disconnect(){}};`,
             }))
             builder.onResolve({ filter: /^\.\/glyph$/ }, () => ({ path: 'glyph', namespace: 'test-icon' }))
             builder.onLoad({ filter: /.*/, namespace: 'test-icon' }, () => ({ contents: 'export const Glyph=()=>null', loader: 'js' }))
-            builder.onResolve({ filter: /^[^./]/ }, args => (args.path.startsWith('@openuidev/') ? undefined : { path: args.path, external: true }))
+            builder.onResolve({ filter: /^[^./]/ }, args =>
+              args.path.startsWith('@openuidev/') || args.path === '@deepseek-ai/dsh-client-ui-primitives' ? undefined : { path: args.path, external: true },
+            )
           },
         },
       ],

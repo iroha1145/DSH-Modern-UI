@@ -2,6 +2,12 @@
 
 /** zh dictionary. */
 export const zh = {
+  chooseDate: "选择日期",
+  previousMonth: "上一月",
+  nextMonth: "下一月",
+  clearDate: "清空日期",
+  dateFormat: "格式：YYYY-MM-DD",
+  invalidDate: "请输入有效且在允许范围内的日期（YYYY-MM-DD）。",
   stopView: "停止视图",
   restartView: "重新运行视图",
   viewUnresponsive: "交互视图无响应，已关闭。",
@@ -54,6 +60,12 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
 /** en dictionary. */
 export const en = {
+  chooseDate: "Choose date",
+  previousMonth: "Previous month",
+  nextMonth: "Next month",
+  clearDate: "Clear date",
+  dateFormat: "Format: YYYY-MM-DD",
+  invalidDate: "Enter a valid date within the allowed range (YYYY-MM-DD).",
   stopView: "Stop view",
   restartView: "Restart view",
   viewUnresponsive: "This interactive view stopped responding and was closed.",
@@ -97,6 +109,12 @@ export const en = {
 
 /** ja dictionary. */
 export const ja = {
+  chooseDate: "日付を選択",
+  previousMonth: "前の月",
+  nextMonth: "次の月",
+  clearDate: "日付をクリア",
+  dateFormat: "形式：YYYY-MM-DD",
+  invalidDate: "指定範囲内の有効な日付（YYYY-MM-DD）を入力してください。",
   stopView: "表示を停止",
   restartView: "表示を再実行",
   viewUnresponsive: "応答しなくなったため、この対話型ビューを閉じました。",
@@ -140,6 +158,12 @@ export const ja = {
 
 /** de dictionary. */
 export const de = {
+  chooseDate: "Datum auswählen",
+  previousMonth: "Vorheriger Monat",
+  nextMonth: "Nächster Monat",
+  clearDate: "Datum löschen",
+  dateFormat: "Format: YYYY-MM-DD",
+  invalidDate: "Geben Sie ein gültiges Datum im zulässigen Bereich ein (YYYY-MM-DD).",
   stopView: "Ansicht stoppen",
   restartView: "Ansicht neu starten",
   viewUnresponsive: "Diese interaktive Ansicht reagierte nicht mehr und wurde geschlossen.",
@@ -183,6 +207,12 @@ export const de = {
 
 /** es dictionary. */
 export const es = {
+  chooseDate: "Elegir fecha",
+  previousMonth: "Mes anterior",
+  nextMonth: "Mes siguiente",
+  clearDate: "Borrar fecha",
+  dateFormat: "Formato: YYYY-MM-DD",
+  invalidDate: "Introduce una fecha válida dentro del intervalo permitido (YYYY-MM-DD).",
   stopView: "Detener vista",
   restartView: "Reiniciar vista",
   viewUnresponsive: "La vista interactiva dejó de responder y se cerró.",
@@ -226,6 +256,12 @@ export const es = {
 
 /** fr dictionary. */
 export const fr = {
+  chooseDate: "Choisir une date",
+  previousMonth: "Mois précédent",
+  nextMonth: "Mois suivant",
+  clearDate: "Effacer la date",
+  dateFormat: "Format : YYYY-MM-DD",
+  invalidDate: "Saisissez une date valide dans la plage autorisée (YYYY-MM-DD).",
   stopView: "Arrêter la vue",
   restartView: "Relancer la vue",
   viewUnresponsive: "Cette vue interactive ne répondait plus et a été fermée.",
@@ -269,6 +305,12 @@ export const fr = {
 
 /** ru dictionary. */
 export const ru = {
+  chooseDate: "Выбрать дату",
+  previousMonth: "Предыдущий месяц",
+  nextMonth: "Следующий месяц",
+  clearDate: "Очистить дату",
+  dateFormat: "Формат: YYYY-MM-DD",
+  invalidDate: "Введите допустимую дату в разрешённом диапазоне (YYYY-MM-DD).",
   stopView: "Остановить просмотр",
   restartView: "Перезапустить просмотр",
   viewUnresponsive: "Интерактивный просмотр перестал отвечать и был закрыт.",
@@ -312,6 +354,12 @@ export const ru = {
 
 /** pt dictionary. */
 export const pt = {
+  chooseDate: "Escolher data",
+  previousMonth: "Mês anterior",
+  nextMonth: "Próximo mês",
+  clearDate: "Limpar data",
+  dateFormat: "Formato: YYYY-MM-DD",
+  invalidDate: "Introduza uma data válida dentro do intervalo permitido (YYYY-MM-DD).",
   stopView: "Parar visualização",
   restartView: "Reiniciar visualização",
   viewUnresponsive: "Esta visualização interativa parou de responder e foi fechada.",

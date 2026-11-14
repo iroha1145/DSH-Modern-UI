@@ -48,25 +48,26 @@
  * SOFTWARE.
  */
 
-:root {
-  --bui-shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 0 0 0.5px rgba(0, 0, 0, 0.02);
-  --bui-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 4px 12px -2px rgba(0, 0, 0, 0.035), 0 14px 28px -12px rgba(0, 0, 0, 0.045);
-  --bui-shadow-md: 0 2px 4px -1px rgba(0, 0, 0, 0.035), 0 8px 20px -4px rgba(0, 0, 0, 0.05), 0 20px 38px -14px rgba(0, 0, 0, 0.065);
-  --bui-shadow-lg: 0 4px 10px -2px rgba(0, 0, 0, 0.04), 0 14px 32px -6px rgba(0, 0, 0, 0.065), 0 28px 56px -14px rgba(0, 0, 0, 0.09);
+/* Surface aliases resolve beside the host palette on body; accents and geometry stay local. */
+body {
+  --bui-shadow-xs: var(--shadow-field);
+  --bui-shadow-sm: var(--shadow-panel-lift);
+  --bui-shadow-md: var(--shadow-dropdown);
+  --bui-shadow-lg: var(--shadow-float);
   --bui-page: oklch(0.985 0.001 286.376);
   --bui-canvas: oklch(0.961 0.002 247.84);
-  --bui-surface: oklch(1 0 0);
-  --bui-inset: oklch(0.979 0.002 247.839);
-  --bui-hover: oklch(0.97 0.002 247.839);
-  --bui-hover-2: oklch(0.933 0.003 247.86);
+  --bui-surface: var(--surface);
+  --bui-inset: var(--inset);
+  --bui-hover: var(--hover);
+  --bui-hover-2: var(--hover-2);
   --bui-ink: oklch(0.247 0.006 258.361);
   --bui-ink-2: oklch(0.506 0.01 264.477);
   --bui-ink-3: oklch(0.52 0.009 264.505);
-  --bui-line: oklch(0.946 0.003 264.542);
-  --bui-line-strong: oklch(0.912 0.005 258.326);
-  --bui-line-soft: oklch(0.966 0.002 264.542);
+  --bui-line: var(--line);
+  --bui-line-strong: var(--line-strong);
+  --bui-line-soft: var(--line-soft);
   --bui-grid-line: color-mix(in srgb, var(--bui-line) 78%, transparent);
-  --bui-field: oklch(0.961 0.001 286.375);
+  --bui-field: var(--field);
   --bui-stripe: oklch(0.405 0 0 / 0.075);
   --bui-stripe-bg: oklch(0.97 0 0);
   --bui-accent: oklch(0.626 0.205 254.947);
@@ -82,12 +83,12 @@
   --bui-tooltip-fg: oklch(0.976 0.002 247.839);
   --bui-tooltip-muted: oklch(0.731 0.008 260.731);
   --bui-tooltip-border: oklch(0.356 0.007 264.474);
-  --bui-shadow-hairline: 0 0 0 1px var(--bui-line);
-  --bui-shadow-btn: inset 0 1px 0 oklch(1 0 0 / 0.85), 0 0 0 1px var(--bui-line-strong), var(--bui-shadow-xs);
-  --bui-shadow-card: inset 0 1px 0 oklch(1 0 0 / 0.9), 0 0 0 1px color-mix(in srgb, var(--bui-line) 82%, transparent), var(--bui-shadow-sm);
-  --bui-shadow-raised: inset 0 1px 0 oklch(1 0 0 / 0.92), 0 0 0 1px color-mix(in srgb, var(--bui-line) 88%, transparent), var(--bui-shadow-md);
-  --bui-shadow-overlay: inset 0 1px 0 oklch(1 0 0 / 0.94), 0 0 0 1px color-mix(in srgb, var(--bui-line) 92%, transparent), var(--bui-shadow-lg);
-  --bui-shadow-inset-field: inset 0 1px 2px oklch(0 0 0 / 0.08);
+  --bui-shadow-hairline: var(--shadow-hairline);
+  --bui-shadow-btn: var(--shadow-btn);
+  --bui-shadow-card: 0 0 0 var(--dsh-hairline-width, 0.5px) var(--card-border), var(--shadow-card);
+  --bui-shadow-raised: 0 0 0 var(--dsh-hairline-width, 0.5px) var(--card-border), var(--shadow-dropdown);
+  --bui-shadow-overlay: 0 0 0 var(--dsh-hairline-width, 0.5px) var(--card-border), var(--shadow-float);
+  --bui-shadow-inset-field: var(--shadow-field);
   --bui-radius-chip: 8px;
   --bui-radius-control: 10px;
   --bui-radius-card: 16px;
@@ -99,17 +100,9 @@
 body[data-ds-dark-theme] {
   --bui-page: oklch(0.209 0.004 264.477);
   --bui-canvas: oklch(0.231 0.004 264.487);
-  --bui-surface: oklch(0.26 0.006 271.191);
-  --bui-inset: oklch(0.243 0.004 264.492);
-  --bui-hover: oklch(0.289 0.006 271.22);
-  --bui-hover-2: oklch(0.318 0.007 274.747);
   --bui-ink: oklch(0.964 0.002 247.839);
   --bui-ink-2: oklch(0.731 0.008 260.731);
   --bui-ink-3: oklch(0.70 0.01 264.484);
-  --bui-line: oklch(0.308 0.006 258.354);
-  --bui-line-strong: oklch(0.356 0.007 264.474);
-  --bui-line-soft: oklch(0.278 0.006 258.354);
-  --bui-field: oklch(0.293 0.006 271.223);
   --bui-stripe: oklch(1 0 0 / 0.055);
   --bui-stripe-bg: oklch(0.226 0.004 264.485);
   --bui-accent: oklch(0.68 0.173 253.301);
@@ -125,10 +118,4 @@ body[data-ds-dark-theme] {
   --bui-tooltip-fg: oklch(0.964 0.002 247.839);
   --bui-tooltip-muted: oklch(0.731 0.008 260.731);
   --bui-tooltip-border: oklch(0.308 0.006 258.354);
-  --bui-shadow-hairline: 0 0 0 1px var(--bui-line);
-  --bui-shadow-btn: inset 0 1px 0 oklch(1 0 0 / 0.06), 0 0 0 1px oklch(1 0 0 / 0.09), 0 1px 2px oklch(0 0 0 / 0.28);
-  --bui-shadow-card: inset 0 1px 0 oklch(1 0 0 / 0.045), 0 0 0 1px oklch(1 0 0 / 0.075), 0 1px 3px oklch(0 0 0 / 0.24), 0 8px 20px -6px oklch(0 0 0 / 0.36), 0 18px 36px -16px oklch(0 0 0 / 0.42);
-  --bui-shadow-raised: inset 0 1px 0 oklch(1 0 0 / 0.055), 0 0 0 1px oklch(1 0 0 / 0.095), 0 3px 8px oklch(0 0 0 / 0.28), 0 14px 32px -8px oklch(0 0 0 / 0.48);
-  --bui-shadow-overlay: inset 0 1px 0 oklch(1 0 0 / 0.065), 0 0 0 1px oklch(1 0 0 / 0.11), 0 6px 16px oklch(0 0 0 / 0.34), 0 24px 56px -12px oklch(0 0 0 / 0.62);
-  --bui-shadow-inset-field: inset 0 1px 2px oklch(0 0 0 / 0.36);
 }

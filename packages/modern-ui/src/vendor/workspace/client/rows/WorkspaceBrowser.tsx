@@ -929,7 +929,14 @@ function SearchResults({
         {pending && (
           /* Two skeleton rows on an empty list, one when local matches already
              show and only the content hits are outstanding. */
-          <div role="status" aria-label={t('search.pending')}>
+          <div
+            key={query}
+            role="status"
+            aria-label={t('search.pending')}
+            aria-busy="true"
+            // Pending starts before the request debounce; give the request its own grace period.
+            style={{ '--dsh-search-placeholder-delay': `${SEARCH_DEBOUNCE_MS + 150}ms` } as CSSProperties}
+          >
             {(results.items.length === 0 ? [0, 1] : [0]).map(i => (
               <div key={i} className={css.skeletonRow} aria-hidden="true">
                 <span className={css.skeletonDot} />

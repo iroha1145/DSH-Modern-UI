@@ -14,6 +14,7 @@ import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
 import type { UserTextFacts } from '../index.ts'
 import { NS } from '../locales.ts'
 import css from './QueueDock.module.css'
+import { AttachmentFilename } from '../../../../attachment-filename.tsx'
 
 const EMPTY_QUEUE = [] as const
 const QUEUE_TEXT_FACTS: Readonly<Partial<UserTextFacts>> = {
@@ -67,7 +68,7 @@ function QueueFile({ attachment, label }: { attachment: FileAttachmentRef; label
   return (
     <span className={css.file} aria-label={label} title={attachment.name}>
       <span className={css.fileIcon} aria-hidden><FileTypeIcon path={attachment.name} size={16} /></span>
-      <span className={css.fileName}>{attachment.name}</span>
+      <AttachmentFilename className={css.fileName} name={attachment.name} />
       <span className={css.fileSize}>{fileSizeText(attachment.bytes)}</span>
     </span>
   )

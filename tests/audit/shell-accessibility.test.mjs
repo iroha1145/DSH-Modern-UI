@@ -128,7 +128,7 @@ test('pinned and nested tooltips only describe bubbles that remain mounted', asy
     await context.close()
   }
 })
-test('input focus indicators keep geometry in light, dark, zoom and forced colors', async () => {
+test('text field focus keeps thin edges and geometry in light, dark, zoom and forced colors', async () => {
   const { context, page } = await open('focus')
   try {
     for (const theme of ['light', 'dark'])
@@ -148,9 +148,8 @@ test('input focus indicators keep geometry in light, dark, zoom and forced color
             const s = getComputedStyle(target)
             return { style: s.outlineStyle, width: s.outlineWidth, color: s.outlineColor }
           })
-          assert.equal(ring.style, 'solid')
-          assert.equal(ring.width, '2px')
-          assert.notEqual(ring.color, 'rgba(0, 0, 0, 0)')
+          assert.equal(ring.style, 'none', 'text entry does not add an outer focus frame')
+          assert.equal(await field.evaluate(el => document.activeElement === el), true)
           assert.deepEqual(await field.boundingBox(), before)
         }
       }
@@ -158,7 +157,10 @@ test('input focus indicators keep geometry in light, dark, zoom and forced color
     await page.getByRole('textbox', { name: 'Search' }).click()
     assert.equal(await page.getByRole('textbox', { name: 'Search' }).evaluate(el => getComputedStyle(el.parentElement).outlineStyle), 'none')
     await page.keyboard.press('Tab')
-    assert.equal(await page.getByRole('textbox', { name: 'Draft' }).evaluate(el => getComputedStyle(el).outlineStyle), 'solid')
+    assert.equal(
+      await page.getByRole('textbox', { name: 'Draft' }).evaluate(el => document.activeElement === el && getComputedStyle(el).outlineStyle === 'none'),
+      true,
+    )
   } finally {
     await context.close()
   }

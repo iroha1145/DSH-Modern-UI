@@ -9,6 +9,9 @@ import {
 } from "@openuidev/react-lang";
 import { useContext, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import { z } from "zod/v4";
+import { SegmentedTrack } from "../../../segmented-control.tsx";
+import { OpenUiSelect } from "../../../openui-select.tsx";
+import { OpenUiDatePicker } from "../../../openui-date-picker.tsx";
 import { FieldRegistryContext, fieldScalar, useField, useFieldName } from "./fields";
 import { Glyph } from "./glyph";
 import { bg, children, color, onColor, cx, option, radius, radiusSchema, space, textOf, toOption, type Option } from "./style";
@@ -284,26 +287,12 @@ export const Select = defineComponent({
   }),
   description: "Dropdown, for long option lists.",
   component: function SelectView({ props, statementId }) {
-    const text = useUiText();
     const field = useField(props.label, statementId, props.value, fieldScalar);
     const choices = optionList(props.options);
     useClearMissingChoice(field, choices.map((o) => o.value));
     const value = String(fieldScalar(field.value));
     return (
-      <Field label={props.label}>
-        <select className="iui-input iui-select" value={value} aria-label={props.label ? undefined : props.placeholder} onChange={(event) => field.setValue(event.target.value)}>
-          {(props.placeholder || !choices.some((o) => o.value === value)) && (
-            <option value="" disabled>
-              {props.placeholder ?? text.choose}
-            </option>
-          )}
-          {choices.map((o, i) => (
-            <option key={`${o.value}-${i}`} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </Field>
+      <OpenUiSelect value={value} choices={choices} label={props.label} placeholder={props.placeholder} onChange={field.setValue} />
     );
   },
 });
@@ -314,6 +303,7 @@ export const SegmentedControl = defineComponent({
   description: "2 to 4 short choices in a row. Supply a label naming the choice and optional description.",
   component: function SegmentedView({ props, statementId }) {
     const text = useUiText();
+    const streaming = useIsStreaming();
     const id = useId();
     const field = useField(props.label, statementId, props.value, fieldScalar);
     const choices = optionList(props.options);
@@ -335,7 +325,8 @@ export const SegmentedControl = defineComponent({
       <div className={props.block ? "iui-block" : undefined} style={{ maxWidth: "100%", alignSelf: props.block ? "stretch" : "flex-start" }}>
         {props.label && <div id={id + "-label"} className="iui-label">{props.label}</div>}
         {props.description && <p id={id + "-description"}>{props.description}</p>}
-        <div ref={group} className={cx("iui-segmented", props.block && "iui-block")} role="radiogroup"
+        <SegmentedTrack ref={group} count={choices.length} selectedIndex={selected} animate={!streaming}
+          className={cx("iui-segmented", props.block && "iui-block")} role="radiogroup"
           aria-labelledby={props.label ? id + "-label" : undefined} aria-label={props.label ? undefined : text.selection}
           aria-describedby={props.description ? id + "-description" : undefined}
           onFocus={() => { focused.current = true; }}
@@ -354,7 +345,7 @@ export const SegmentedControl = defineComponent({
                 group.current?.querySelectorAll<HTMLButtonElement>('[role="radio"]')[next]?.focus();
               }}>{o.label}</button>
           ))}
-        </div>
+        </SegmentedTrack>
       </div>
     );
   },
@@ -512,8 +503,6 @@ export const RadioGroup = defineComponent({
   },
 });
 
-const DATE = /^\d{4}-\d{2}-\d{2}$/;
-
 export const DatePicker = defineComponent({
   name: "DatePicker",
   props: z.object({
@@ -524,21 +513,10 @@ export const DatePicker = defineComponent({
   }),
   description: 'Dates are "YYYY-MM-DD".',
   component: function DatePickerView({ props, statementId }) {
-    const text = useUiText();
     const field = useField(props.label, statementId, props.value);
-    const value = typeof field.value === "string" && DATE.test(field.value) ? field.value : "";
+    const value = typeof field.value === "string" ? field.value : "";
     return (
-      <Field label={props.label}>
-        <input
-          className="iui-input iui-date"
-          type="date"
-          value={value}
-          min={props.min && DATE.test(props.min) ? props.min : undefined}
-          max={props.max && DATE.test(props.max) ? props.max : undefined}
-          aria-label={props.label ? undefined : text.date}
-          onChange={(event) => field.setValue(event.target.value)}
-        />
-      </Field>
+      <OpenUiDatePicker value={value} onChange={field.setValue} label={props.label} min={props.min} max={props.max} />
     );
   },
 });

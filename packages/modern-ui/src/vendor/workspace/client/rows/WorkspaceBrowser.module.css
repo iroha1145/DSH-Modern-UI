@@ -186,9 +186,7 @@
 }
 
 .searchExpanded:focus-within {
-  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
-  outline-offset: 2px;
-  border-color: var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  border-color: var(--field-border);
   background: var(--surface);
 }
 
@@ -400,6 +398,9 @@
    opacity (same pulse as the input-trigger menu skeleton). */
 .skeletonRow {
   display: flex;
+  /* Keep the row seat while quick searches settle without a placeholder flash. */
+  visibility: hidden;
+  animation: search-skeleton-reveal 0s linear var(--dsh-search-placeholder-delay) forwards;
   /* Top alignment lines the 16px dot up with the equally tall title bar;
      the paddings center the 35px content in the 48px row. */
   align-items: flex-start;
@@ -440,6 +441,10 @@
 .skeletonBarWide {
   width: 90%;
   height: 13px;
+}
+
+@keyframes search-skeleton-reveal {
+  to { visibility: visible; }
 }
 
 @keyframes search-skeleton {
@@ -629,13 +634,4 @@
   .headerActions {
     transition: none;
   }
-}
-
-.renameInput:focus-visible {
-  outline: var(--dsw-focus-ring-width, 2px) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
-  outline-offset: 2px;
-}
-
-@media (forced-colors: active) {
-  .renameInput:focus-visible { outline-color: Highlight; }
 }

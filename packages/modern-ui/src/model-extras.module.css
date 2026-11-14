@@ -145,25 +145,15 @@
 }
 
 .pills {
-  box-sizing: border-box;
-  display: inline-flex;
   flex: 0 1 auto;
-  flex-wrap: wrap;
-  min-width: 0;
-  max-width: 100%;
-  gap: 2px;
-  padding: 4px;
-  border-radius: 999px;
-  corner-shape: round;
-  background: var(--extras-fill);
 }
 
 .pill {
   box-sizing: border-box;
-  min-height: 24px;
+  min-height: 30px;
   max-width: 100%;
   overflow-wrap: anywhere;
-  padding: 0 9px;
+  padding: 3px 9px;
   border: 0;
   border-radius: 999px;
   corner-shape: round;
@@ -178,9 +168,7 @@
 }
 
 .pill[aria-checked='true'] {
-  background: var(--bui-surface);
   color: var(--bui-ink);
-  box-shadow: 0 0 0 0.5px oklch(0 0 0 / 0.08), 0 1px 2px oklch(0 0 0 / 0.12);
 }
 
 .pill:focus-visible {

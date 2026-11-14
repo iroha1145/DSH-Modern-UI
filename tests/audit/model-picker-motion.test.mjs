@@ -22,10 +22,10 @@ import './packages/modern-ui/src/vendor/theme/styles/base.css';
 import './packages/modern-ui/src/vendor/theme/styles/design-platform.css';
 import './packages/modern-ui/src/vendor/theme/styles/beautiful-ui.css';
 const app=createRoot(document.getElementById('app'));
-const models=n=>Array.from({length:n},(_,i)=>({id:'example-'+i,name:'Example model '+i,description:'Model description '+i}));
-function Fixture({x=600,y=540,count=4,asyncLoad=false,width=160,label}) {
- const [state,setState]=useState({groups:[{id:'provider',name:'Example provider',models:models(count)}],current:{provider:'provider',model:'example-0'},pending:null,status:'ready',error:null,failures:[]});
- window.catalog=n=>setState(v=>({...v,status:'ready',groups:[{id:'provider',name:'Example provider',models:models(n)}]}));
+const models=(n,reasoning)=>Array.from({length:n},(_,i)=>({id:'example-'+i,name:'Example model '+i,description:'Model description '+i,...(reasoning?{reasoning:{defaultEffort:'medium',efforts:[{id:'medium',name:'Medium'},{id:'high',name:'High'}]}}:{})}));
+function Fixture({x=600,y=540,count=4,asyncLoad=false,width=160,label,reasoning=false}) {
+ const [state,setState]=useState({groups:[{id:'provider',name:'Example provider',models:models(count,reasoning)}],current:{provider:'provider',model:'example-0'},pending:null,status:'ready',error:null,failures:[]});
+ window.catalog=n=>setState(v=>({...v,status:'ready',groups:[{id:'provider',name:'Example provider',models:models(n,reasoning)}]}));
  return <div id="moving" style={{position:'absolute',left:x,top:y,width}}><ModelSelect available locked={false}
  useModelDirectory={selector=>selector(state)} useModelPicker={selector=>selector(undefined)}
  t={(key,values)=>key+(values ? ' '+Object.values(values).join(' ') : '')}
@@ -121,6 +121,41 @@ const record = page =>
     }
     return frames
   })
+
+test('model list scroll hints follow overflow and clear when the catalog shrinks', async () => {
+  const { context, page } = await fixture({ count: 30 }, { reducedMotion: 'reduce', colorScheme: 'dark' })
+  try {
+    await page.locator('[aria-haspopup="dialog"]').click()
+    const list = page.getByRole('listbox')
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('[role="listbox"]'), '::after').opacity === '1')
+    assert.equal(await list.evaluate(element => getComputedStyle(element, '::before').opacity), '0')
+    await list.focus()
+    await list.press('End')
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('[role="listbox"]'), '::after').opacity === '0')
+    assert.equal(await list.evaluate(element => getComputedStyle(element, '::before').opacity), '1')
+    const active = await list.getAttribute('aria-activedescendant')
+    assert.ok(
+      await page.locator(`[id="${active}"]`).evaluate(element => {
+        const bounds = element.closest('[role="listbox"]').getBoundingClientRect(),
+          row = element.getBoundingClientRect()
+        return row.top >= bounds.top && row.bottom <= bounds.bottom + 1
+      }),
+    )
+    await page.evaluate(() => window.catalog(1))
+    await page.waitForFunction(() => {
+      const list = document.querySelector('[role="listbox"]')
+      return (
+        list.scrollHeight <= list.clientHeight + 1 && getComputedStyle(list, '::before').opacity === '0' && getComputedStyle(list, '::after').opacity === '0'
+      )
+    })
+    await page.emulateMedia({ forcedColors: 'active' })
+    assert.equal(await list.evaluate(element => getComputedStyle(element, '::before').display), 'none')
+    await page.keyboard.press('Escape')
+    assert.equal(await page.locator('[aria-haspopup="dialog"]').evaluate(element => element === document.activeElement), true)
+  } finally {
+    await context.close()
+  }
+})
 test('pressed model trigger leaves stable placement while its menu enters without scaling or overshoot', async () => {
   const { context, page } = await fixture()
   try {
@@ -340,3 +375,62 @@ test('simulated macOS backing stays aligned during model-picker entrance', async
     await context.close()
   }
 })
+
+for (const options of [
+  { dark: false, reducedMotion: 'no-preference', forcedColors: 'none' },
+  { dark: true, reducedMotion: 'no-preference', forcedColors: 'none' },
+  { dark: false, reducedMotion: 'reduce', forcedColors: 'none' },
+  { dark: true, reducedMotion: 'reduce', forcedColors: 'active' },
+])
+  test(`model effort uses one aligned sliding thumb (${JSON.stringify(options)})`, async () => {
+    const { context, page } = await fixture({ reasoning: true }, { reducedMotion: options.reducedMotion, forcedColors: options.forcedColors })
+    try {
+      await page.evaluate(dark => document.body.toggleAttribute('data-ds-dark-theme', dark), options.dark)
+      await page.locator('[aria-haspopup="dialog"]').click()
+      const group = page.getByRole('radiogroup')
+      const thumb = group.locator('[data-segment-indicator]')
+      await group.waitFor()
+      await page.locator('[role="dialog"]').evaluate(el => Promise.all(el.getAnimations({ subtree: true }).map(animation => animation.finished)))
+      assert.equal(await thumb.count(), 1)
+      assert.equal(await thumb.evaluate(el => el.getAnimations().length), 0, 'mount starts at the selected segment without an entrance')
+      const before = await thumb.boundingBox()
+      await group.locator('[data-effort="high"]').click()
+      await page.waitForFunction(() => document.querySelector('[data-effort="high"]')?.getAttribute('aria-checked') === 'true')
+      const frames = await thumb.evaluate(async el => {
+        const frames = []
+        const started = performance.now()
+        while (performance.now() - started < 280) {
+          frames.push(el.getBoundingClientRect().x)
+          await new Promise(requestAnimationFrame)
+        }
+        return frames
+      })
+      const selected = await group.getByRole('radio', { checked: true }).boundingBox()
+      const after = await thumb.boundingBox()
+      for (const key of ['x', 'y', 'width', 'height']) assert.ok(Math.abs(selected[key] - after[key]) < 0.6, `${key}: thumb stays inside the selected segment`)
+      if (options.reducedMotion === 'no-preference')
+        assert.ok(
+          frames.some(x => x > before.x + 0.5 && x < after.x - 0.5),
+          'selection traverses an intermediate position',
+        )
+      else
+        assert.ok(
+          frames.every(x => Math.abs(x - after.x) < 0.6),
+          'reduced motion reaches the target immediately',
+        )
+      await group.locator('[data-effort="high"]').press('Home')
+      assert.equal(await group.locator('[data-effort="medium"]').getAttribute('aria-checked'), 'true')
+      assert.equal(await group.locator('[data-effort="medium"]').evaluate(el => el === document.activeElement), true)
+      if (options.forcedColors === 'active') {
+        const colors = await group.evaluate(el => ({
+          background: getComputedStyle(el.querySelector('[data-segment-indicator]')).backgroundColor,
+          foreground: getComputedStyle(el.querySelector('[aria-checked="true"]')).color,
+          track: getComputedStyle(el).backgroundColor,
+        }))
+        assert.notEqual(colors.background, colors.foreground, 'forced colors keep selected text readable')
+        assert.notEqual(colors.background, colors.track, 'forced colors keep the selected block visible')
+      }
+    } finally {
+      await context.close()
+    }
+  })

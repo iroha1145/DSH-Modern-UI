@@ -14,8 +14,8 @@ export interface PresentationSettings {
   followups: boolean
 }
 
-/** Defaults matching the Host schema: no prompt change, both renderers on. */
-export const DEFAULT_PRESENTATION: PresentationSettings = { prompt: false, progressive: false, openui: true, followups: true }
+/** Defaults matching the Host schema; saved choices take precedence over these defaults. */
+export const DEFAULT_PRESENTATION: PresentationSettings = { prompt: true, progressive: true, openui: true, followups: true }
 
 /** Locale namespace of the settings row. */
 export const PRESENTATION_LOCALE = 'modern-presentation-settings'

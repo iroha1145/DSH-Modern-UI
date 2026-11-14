@@ -43,7 +43,7 @@
     min-width: 0;
     width: 100%;
     padding: 20px;
-    border: 1px solid transparent;
+    border: 1px solid var(--iui-border);
     border-radius: var(--iui-radius-xl);
     background: var(--iui-card-bg);
     box-shadow: var(--iui-card-shadow);
@@ -53,13 +53,13 @@
     line-height: 1.55;
     transition: box-shadow var(--iui-duration-paper) var(--iui-ease-paper), border-color var(--iui-duration-feedback) var(--iui-ease-feedback);
   }
-  .iui-card-soft { border-color: transparent; border-radius: var(--iui-radius-lg); background: var(--iui-surface); box-shadow: var(--iui-well-shadow); padding: 20px; }
+  .iui-card-soft { border-color: var(--iui-border); border-radius: var(--iui-radius-lg); background: var(--iui-surface); box-shadow: var(--iui-well-shadow); padding: 20px; }
   /* Frosted glass card: backdrop blur lives on ::before so fixed overlays and nested components keep their viewport containing block. */
-  .iui-card-glass { position: relative; isolation: isolate; border-color: transparent; background: transparent; box-shadow: var(--iui-glass-card-shadow); }
+  .iui-card-glass { position: relative; isolation: isolate; border-color: var(--iui-border); background: transparent; box-shadow: var(--iui-glass-card-shadow); }
   .iui-card-glass::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background-color: var(--iui-glass-card-bg); background-image: var(--iui-glass-card-sheen); -webkit-backdrop-filter: var(--iui-backdrop-blur); backdrop-filter: var(--iui-backdrop-blur); pointer-events: none; }
-  /* A standard card inside a card is a quiet recessed well; an explicit glass card keeps its frosted material. */
+  /* Nested cards use a quiet well, including explicit glass cards. */
   .iui-card .iui-card:not(.iui-card-glass) { border-radius: var(--iui-radius-md); padding: 16px; background: var(--iui-surface); box-shadow: var(--iui-well-shadow); }
-  .iui-card .iui-card-glass { border-radius: var(--iui-radius-lg); padding: 16px; background: transparent; box-shadow: var(--iui-glass-card-shadow); }
+  .iui-card .iui-card-glass { border-radius: var(--iui-radius-lg); padding: 16px; background: transparent; box-shadow: var(--iui-well-shadow); }
   /* Header row: the icon sits on a sculpted rounded base with a subtle top rim, its caption is the card's label. */
   .iui-card > .iui-row:first-child > .iui-icon:first-child { width: 28px; height: 28px; border-radius: 9px; corner-shape: superellipse(1.5); background: var(--iui-chip); color: var(--iui-ink); box-shadow: inset 0 1px 0 rgb(255 255 255 / 55%), 0 0 0 1px color-mix(in srgb, var(--iui-ink) 6%, transparent); }
   &[data-theme="dark"] .iui-card > .iui-row:first-child > .iui-icon:first-child { box-shadow: inset 0 1px 0 rgb(255 255 255 / 7%), 0 0 0 1px rgb(255 255 255 / 6%); }
@@ -173,18 +173,18 @@
 
   /* Buttons: shared Feel press feedback & Paper Widgets sculpted rims */
   .iui-button { min-width: 0; max-width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 7px; align-self: flex-start; flex: none; min-height: 36px; padding: 8px 16px; border: 1px solid transparent; border-radius: 999px; corner-shape: round; font-size: 13.5px; line-height: 1.25; font-weight: 500; letter-spacing: -0.006em; white-space: nowrap; cursor: pointer; transition: background-color var(--iui-duration-feedback) var(--iui-ease-feedback), border-color var(--iui-duration-feedback) var(--iui-ease-feedback), box-shadow var(--iui-duration-feedback) var(--iui-ease-feedback), color var(--iui-duration-feedback) var(--iui-ease-feedback), filter var(--iui-duration-feedback) var(--iui-ease-feedback), transform var(--iui-btn-motion-duration, var(--iui-duration-control)) var(--iui-btn-motion-curve, var(--iui-ease-control)); }
-  .iui-button:not(:disabled):not([aria-haspopup]):active { --iui-btn-motion-duration: var(--iui-duration-press); --iui-btn-motion-curve: var(--iui-ease-feedback); transform: scale(0.985); }
+  @media (prefers-reduced-motion: no-preference) { .iui-button:not(:disabled):not([aria-haspopup]):active { --iui-btn-motion-duration: var(--iui-duration-press); --iui-btn-motion-curve: var(--iui-ease-feedback); transform: scale(0.985); } }
   .iui-button > svg { flex: none; }
   .iui-row > .iui-button { align-self: center; flex-shrink: 1; }
   .iui-button-sm { min-height: 30px; padding: 5px 12px; font-size: 12.5px; }
   .iui-button-lg { min-height: 42px; padding: 10px 20px; font-size: 14.5px; }
   .iui-button-solid { background: var(--iui-ink); color: var(--iui-on-ink); box-shadow: var(--iui-btn-solid-shadow); }
   .iui-button-solid:not(:disabled):hover { background: var(--iui-ink-hover); }
-  .iui-button-outline { border-color: var(--iui-border-strong); background: var(--iui-card-bg); color: var(--iui-ink); box-shadow: var(--iui-btn-outline-shadow); }
+  .iui-button-outline { border-color: transparent; background: var(--iui-card-bg); color: var(--iui-ink); box-shadow: var(--iui-btn-outline-shadow); }
   .iui-button-soft { background: var(--iui-surface); color: var(--iui-ink); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--iui-ink) 5%, transparent); }
   .iui-button-ghost { background: transparent; color: var(--iui-ink); padding-inline: 10px; }
   :is(.iui-button-outline, .iui-button-ghost):not(:disabled):hover { background: var(--iui-hover); }
-  .iui-button-outline:not(:disabled):hover { border-color: color-mix(in srgb, var(--iui-ink) 16%, transparent); }
+  /* The shared button shadow supplies the outline; avoid a second border ring. */
   .iui-button-soft:not(:disabled):hover, :is(.iui-button-outline, .iui-button-ghost):not(:disabled):active { background: var(--iui-pressed); }
   .iui-button-solid.iui-button-danger { background: var(--iui-danger); color: #fff; }
   .iui-button-solid.iui-button-success { background: var(--iui-success); color: #fff; }
@@ -194,29 +194,27 @@
   :is(.iui-button-outline, .iui-button-soft, .iui-button-ghost).iui-button-success { color: var(--iui-success); }
   .iui-button:disabled { opacity: .4; cursor: not-allowed; }
   .iui-block { width: 100%; align-self: stretch; }
-  .iui-icon-button { display: grid; place-items: center; flex: none; width: 34px; height: 34px; border: 1px solid var(--iui-border-strong); border-radius: 50%; corner-shape: round; background: var(--iui-card-bg); color: var(--iui-ink); box-shadow: var(--iui-btn-outline-shadow); cursor: pointer; transition: background-color var(--iui-duration-feedback) var(--iui-ease-feedback), border-color var(--iui-duration-feedback) var(--iui-ease-feedback), box-shadow var(--iui-duration-paper) var(--iui-ease-paper), transform var(--iui-duration-paper) var(--iui-ease-paper); }
+  .iui-icon-button { display: grid; place-items: center; flex: none; width: 34px; height: 34px; border: 1px solid transparent; border-radius: 50%; corner-shape: round; background: var(--iui-card-bg); color: var(--iui-ink); box-shadow: var(--iui-btn-outline-shadow); cursor: pointer; transition: background-color var(--iui-duration-feedback) var(--iui-ease-feedback), border-color var(--iui-duration-feedback) var(--iui-ease-feedback), box-shadow var(--iui-duration-paper) var(--iui-ease-paper), transform var(--iui-duration-paper) var(--iui-ease-paper); }
   .iui-icon-button-ghost { border-color: transparent; background: transparent; color: var(--iui-muted); box-shadow: none; }
   .iui-icon-button-solid { border-color: var(--iui-ink); background: var(--iui-ink); color: var(--iui-on-ink); box-shadow: var(--iui-btn-solid-shadow); }
   .iui-icon-button:not(:disabled):hover { background: var(--iui-hover); color: var(--iui-ink); }
-  .iui-icon-button:not(:disabled):not([aria-haspopup]):hover { transform: translateY(-1px); }
   .iui-icon-button:not(:disabled):active { background: var(--iui-pressed); }
-  .iui-icon-button:not(:disabled):not([aria-haspopup]):active { transform: scale(0.96); }
+  @media (prefers-reduced-motion: no-preference) { .iui-icon-button:not(:disabled):not([aria-haspopup]):active { transform: scale(0.96); } }
   .iui-icon-button-solid:not(:disabled):hover { background: var(--iui-ink-hover); color: var(--iui-on-ink); }
   .iui-icon-button:disabled { opacity: .4; cursor: not-allowed; }
 
   /* The hover and selection rings are outlines drawn inside the tile (painted over
      its content), so a scrolling row, a clipped Box or a Table cell never cuts them off. */
-  /* Pressable: Paper Widgets tactile lift (-2px + elevated ambient dispersion) on hover and crisp 0.985 press;
+  /* Pressable: shared host elevation on hover and crisp 0.985 press;
      anchored triggers ([aria-haspopup]) stay still, and a selected tile keeps a light wash, hairline ring and check badge. */
   .iui-pressable { position: relative; display: flex; flex-direction: column; min-width: 0; border-radius: var(--iui-radius-lg); cursor: pointer; outline: none; transition: transform var(--iui-duration-paper) var(--iui-ease-paper), box-shadow var(--iui-duration-paper) var(--iui-ease-paper); }
   .iui-pressable:has(> .iui-card) { border-radius: var(--iui-radius-xl); }
   .iui-pressable::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--iui-ink); opacity: 0; pointer-events: none; transition: opacity var(--iui-duration-paper) var(--iui-ease-paper); }
-  .iui-pressable:not([aria-disabled="true"]):not([aria-haspopup]):hover { transform: translateY(-2px); }
   .iui-card.iui-pressable:not([aria-disabled="true"]):hover { box-shadow: var(--iui-card-shadow-hover); }
   .iui-pressable:has(> .iui-card):not([aria-disabled="true"]):hover > .iui-card { box-shadow: var(--iui-card-shadow-hover); }
   .iui-pressable:has(> .iui-card-glass):not([aria-disabled="true"]):hover > .iui-card-glass { box-shadow: var(--iui-glass-card-shadow-hover); }
   .iui-pressable:not([aria-disabled="true"]):hover::after { opacity: 0.03; }
-  .iui-pressable:not([aria-disabled="true"]):not([aria-haspopup]):active { transform: scale(0.985); }
+  @media (prefers-reduced-motion: no-preference) { .iui-pressable:not([aria-disabled="true"]):not([aria-haspopup]):active { transform: scale(0.985); } }
   .iui-pressable:not([aria-disabled="true"]):active::after { opacity: 0.065; }
   .iui-pressable.is-selected { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--iui-ink) 20%, transparent); }
   .iui-pressable.is-selected::after { opacity: 0.06; }
@@ -235,26 +233,30 @@
   /* Fields */
   .iui-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
   .iui-input { width: 100%; min-width: 0; min-height: 40px; padding: 9px 12px; border: 1px solid var(--iui-border-strong); border-radius: var(--iui-radius-md); background-color: var(--iui-card-bg); box-shadow: var(--iui-field-shadow); color: var(--iui-ink); font-size: 14px; line-height: 1.45; font-variant-numeric: tabular-nums; outline: none; transition: border-color var(--iui-duration-feedback) var(--iui-ease-feedback), box-shadow var(--iui-duration-feedback) var(--iui-ease-feedback); }
-  @media (hover: hover) { .iui-input:hover:not(:focus):not(:disabled) { border-color: color-mix(in srgb, var(--iui-ink) 18%, transparent); } }
+  @media (hover: hover) { .iui-input:hover:not(:focus):not(:disabled):not([aria-invalid="true"]) { border-color: color-mix(in srgb, var(--iui-ink) 18%, transparent); box-shadow: var(--shadow-field-hover, var(--iui-field-shadow)); } }
   @media (pointer: coarse) { .iui-input { font-size: 16px; } }
   .iui-input::placeholder { color: var(--iui-faint); opacity: 1; }
-  .iui-input:focus, .iui-input:focus-visible { border-color: var(--iui-field-focus); box-shadow: 0 0 0 3px color-mix(in srgb, var(--iui-field-focus) 14%, transparent); outline: none; }
+  .iui-input:focus { border-color: var(--iui-field-focus); box-shadow: var(--shadow-field-focus, var(--iui-field-shadow)); }
   .iui-textarea { min-height: 96px; resize: vertical; }
-  .iui-select { appearance: none; padding-right: 38px; cursor: pointer; background: var(--iui-card-bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23676767' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E") no-repeat right 12px center / 16px; }
-  &[data-theme="dark"] .iui-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ababab' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E"); }
-  .iui-date::-webkit-calendar-picker-indicator { opacity: .55; cursor: pointer; }
+  .iui-select { display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: start; cursor: pointer; }
+  .iui-select > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .iui-select > svg { flex: none; color: var(--iui-muted); transition: transform var(--iui-duration-feedback) var(--iui-ease-feedback); }
+  .iui-select[aria-expanded="true"] > svg { transform: rotate(180deg); }
+  .iui-select-placeholder { color: var(--iui-faint); }
+  .iui-input:disabled { background-color: var(--iui-surface); color: var(--iui-faint); box-shadow: none; opacity: .65; cursor: not-allowed; }
+  .iui-input[aria-invalid="true"] { border-color: var(--iui-danger); }
 
-  .iui-segmented { display: inline-flex; align-self: flex-start; gap: 2px; max-width: 100%; padding: 3px; overflow-x: auto; border-radius: 999px; corner-shape: round; background: var(--iui-surface); box-shadow: var(--iui-well-shadow); scrollbar-width: none; }
+  .iui-segmented { align-self: flex-start; min-width: 0; max-width: 100%; padding: 1px; corner-shape: round; overflow-x: auto; scrollbar-width: none; }
+  .iui-segmented > [data-segment-indicator] { corner-shape: round; }
   .iui-segmented::-webkit-scrollbar { display: none; }
-  .iui-segmented.iui-block { display: flex; }
-  .iui-segmented > button { flex: 1 0 auto; padding: 6px 14px; border: 0; border-radius: 999px; corner-shape: round; background: transparent; color: var(--iui-muted); font-size: 13px; line-height: 1.4; white-space: nowrap; cursor: pointer; transition: background-color var(--iui-duration-paper) var(--iui-ease-paper), color var(--iui-duration-feedback) var(--iui-ease-feedback), box-shadow var(--iui-duration-paper) var(--iui-ease-paper); }
+  .iui-segmented.iui-block { width: 100%; align-self: stretch; }
+  .iui-segmented > button { min-width: 0; padding: 6px 14px; border: 0; border-radius: 999px; corner-shape: round; background: transparent; color: var(--iui-muted); font-size: 13px; line-height: 1.4; white-space: normal; overflow-wrap: anywhere; text-align: center; cursor: pointer; transition: color var(--iui-duration-feedback) var(--iui-ease-feedback); }
   .iui-segmented > button:hover:not(.is-selected) { color: var(--iui-ink); }
-  .iui-segmented > button.is-selected { background: var(--iui-card-bg); color: var(--iui-ink); font-weight: 500; box-shadow: var(--iui-thumb-shadow); }
-  &[data-theme="dark"] .iui-segmented > button.is-selected { background: color-mix(in srgb, var(--iui-ink) 10%, var(--iui-canvas)); }
+  .iui-segmented > button.is-selected { color: var(--iui-ink); font-weight: 500; }
 
   /* Range: a 24px pill track with an 18px thumb inside a 40px hit area. */
   .iui-slider { display: flex; flex-direction: column; min-width: 0; }
-  .iui-timer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; min-width: 0; padding: 14px 18px; border: 0; border-radius: var(--iui-radius-xl); background: var(--iui-card-bg); box-shadow: var(--iui-card-shadow); }
+  .iui-timer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; min-width: 0; padding: 14px 18px; border: 1px solid var(--iui-border); border-radius: var(--iui-radius-xl); background: var(--iui-card-bg); box-shadow: var(--iui-card-shadow); }
   .iui-timer-read { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .iui-timer-time { font-size: 34px; line-height: 1.08; font-weight: 400; font-variant-numeric: tabular-nums lining-nums; letter-spacing: -0.03em; }
   .iui-timer.is-running .iui-timer-time { color: var(--iui-ink); }
@@ -266,10 +268,10 @@
   .iui-range { appearance: none; -webkit-appearance: none; display: block; width: 100%; min-width: 0; height: 40px; margin: 0; padding: 0; border: 0; background: transparent; cursor: pointer; }
   .iui-range::-webkit-slider-runnable-track { height: 24px; border: 3px solid transparent; border-radius: 999px; corner-shape: round; background: var(--iui-range-track); box-shadow: var(--iui-well-shadow); }
   .iui-range::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 18px; height: 18px; margin: 0; border: 0; border-radius: 50%; corner-shape: round; background: var(--iui-range-thumb); box-shadow: 0 0 0 2px var(--iui-card-bg), var(--iui-shadow-sm); transition: transform var(--iui-duration-feedback) var(--iui-ease-feedback), box-shadow var(--iui-duration-feedback) var(--iui-ease-feedback); }
-  .iui-range:active::-webkit-slider-thumb { transform: scale(1.08); }
+  @media (prefers-reduced-motion: no-preference) { .iui-range:active::-webkit-slider-thumb { transform: scale(1.08); } }
   .iui-range::-moz-range-track { height: 24px; border-radius: 999px; corner-shape: round; background: var(--iui-range-track); box-shadow: var(--iui-well-shadow); }
   .iui-range::-moz-range-thumb { width: 18px; height: 18px; border: 0; border-radius: 50%; corner-shape: round; background: var(--iui-range-thumb); box-shadow: 0 0 0 2px var(--iui-card-bg), var(--iui-shadow-sm); transition: transform var(--iui-duration-feedback) var(--iui-ease-feedback), box-shadow var(--iui-duration-feedback) var(--iui-ease-feedback); }
-  .iui-range:active::-moz-range-thumb { transform: scale(1.08); }
+  @media (prefers-reduced-motion: no-preference) { .iui-range:active::-moz-range-thumb { transform: scale(1.08); } }
   .iui-range::-moz-range-progress { background: transparent; }
   .iui-range:focus-visible { outline: 2px solid var(--iui-focus); outline-offset: 2px; border-radius: 12px; }
   .iui-slider-marks { position: relative; height: 18px; margin-top: -2px; color: var(--iui-muted); font-size: 11px; line-height: 18px; }
@@ -278,7 +280,14 @@
   .iui-slider-marks > span.is-end { transform: translateX(calc(-100% + 9px)); }
 
   .iui-check { display: inline-flex; align-items: center; gap: 9px; min-height: 28px; color: var(--iui-ink); cursor: pointer; }
-  .iui-check > input { flex: none; width: 17px; height: 17px; margin: 0; accent-color: var(--iui-ink); cursor: pointer; }
+  .iui-check > input { appearance: none; flex: none; display: grid; place-content: center; width: 17px; height: 17px; margin: 0; border: 1px solid var(--iui-muted); border-radius: 5px; background: var(--iui-card-bg); color: var(--iui-on-ink); box-shadow: var(--iui-field-shadow); cursor: pointer; }
+  .iui-check > input[type="radio"] { border-radius: 50%; corner-shape: round; }
+  .iui-check > input:checked { background: var(--iui-ink); border-color: var(--iui-ink); box-shadow: var(--iui-shadow-sm); }
+  .iui-check > input::before { content: ""; width: 9px; height: 9px; background: currentColor; transform: scale(0); }
+  .iui-check > input[type="checkbox"]::before { clip-path: polygon(8% 44%, 39% 74%, 92% 12%, 100% 28%, 40% 100%, 0 61%); }
+  .iui-check > input[type="radio"]::before { width: 7px; height: 7px; border-radius: 50%; corner-shape: round; }
+  .iui-check > input:checked::before { transform: scale(1); }
+  .iui-check > input:focus-visible { outline: 2px solid var(--iui-focus); outline-offset: 3px; }
   .iui-check > span { transition: color var(--iui-duration-feedback) var(--iui-ease-feedback); }
   .iui-check.is-done > span { color: var(--iui-muted); text-decoration: line-through; }
   .iui-radio-group { display: flex; flex-direction: column; gap: 10px; min-width: 0; margin: 0; padding: 0; border: 0; }
@@ -288,13 +297,13 @@
   /* Short choices are pills; explanatory choices are Paper Widgets cards */
   .iui-radio-pills > div { flex-direction: row; flex-wrap: wrap; gap: var(--iui-control-gap); }
   .iui-radio-cards > div { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: var(--iui-control-gap); }
-  .iui-choice { position: relative; display: flex; align-items: center; min-height: 40px; padding: 8px 16px; border: 1px solid var(--iui-border-strong); border-radius: 999px; corner-shape: round; background: var(--iui-card-bg); box-shadow: var(--iui-btn-outline-shadow); color: var(--iui-ink); font-size: 14px; line-height: 20px; cursor: pointer; transition: background-color var(--iui-duration-feedback) var(--iui-ease-feedback), border-color var(--iui-duration-feedback) var(--iui-ease-feedback), box-shadow var(--iui-duration-paper) var(--iui-ease-paper), transform var(--iui-duration-paper) var(--iui-ease-paper); }
+  .iui-choice { position: relative; display: flex; align-items: center; min-height: 40px; padding: 8px 16px; border: 1px solid transparent; border-radius: 999px; corner-shape: round; background: var(--iui-card-bg); box-shadow: var(--iui-btn-outline-shadow); color: var(--iui-ink); font-size: 14px; line-height: 20px; cursor: pointer; transition: background-color var(--iui-duration-feedback) var(--iui-ease-feedback), border-color var(--iui-duration-feedback) var(--iui-ease-feedback), box-shadow var(--iui-duration-paper) var(--iui-ease-paper), transform var(--iui-duration-paper) var(--iui-ease-paper); }
   .iui-choice > input { position: absolute; opacity: 0; width: 1px; height: 1px; }
   .iui-choice:hover { background: var(--iui-hover); }
   .iui-radio-pills .iui-choice.is-selected { border-color: var(--iui-ink); background: var(--iui-ink); color: var(--iui-on-ink); box-shadow: var(--iui-btn-solid-shadow); }
   .iui-radio-cards .iui-choice { align-items: flex-start; padding: 14px 16px; border-color: transparent; border-radius: var(--iui-radius-xl); corner-shape: superellipse(1.5); background: var(--iui-card-bg); box-shadow: var(--iui-card-shadow); }
-  .iui-radio-cards .iui-choice:hover { background: var(--iui-card-bg); box-shadow: var(--iui-card-shadow-hover); transform: translateY(-1px); }
-  .iui-radio-cards .iui-choice:active { transform: scale(0.985); }
+  .iui-radio-cards .iui-choice:hover { background: var(--iui-card-bg); box-shadow: var(--iui-card-shadow-hover); }
+  @media (prefers-reduced-motion: no-preference) { .iui-radio-cards .iui-choice:active { transform: scale(0.985); } }
   .iui-radio-cards .iui-choice.is-selected { border-color: transparent; background: color-mix(in srgb, var(--iui-ink) 3%, var(--iui-card-bg)); box-shadow: inset 0 0 0 1.5px var(--iui-ink), var(--iui-card-shadow); }
   .iui-radio-cards .iui-choice > .iui-choice-text > span:first-child { font-weight: 500; }
   .iui-choice-description { color: var(--iui-muted); font-size: 13px; line-height: 19px; }
@@ -310,7 +319,7 @@
   .iui-image-empty { width: 26px; height: 26px; color: var(--iui-photo-empty-icon); }
 
   /* A framed table: 20px Paper Widgets card corners, soft elevation, a surface header row, hover rows. */
-  .iui-table-scroll { width: 100%; min-width: 0; overflow-x: auto; border: 0; border-radius: var(--iui-radius-xl); background: var(--iui-card-bg); box-shadow: var(--iui-card-shadow); --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2); --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2); }
+  .iui-table-scroll { width: 100%; min-width: 0; overflow-x: auto; border: 1px solid var(--iui-border); border-radius: var(--iui-radius-xl); background: var(--iui-card-bg); box-shadow: var(--iui-card-shadow); --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2); --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2); }
   /* A table on a card drops its own frame: rows sit on the tile, the header is a muted caption row. */
   .iui-card .iui-table-scroll { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
   .iui-card .iui-table th { background: transparent; color: var(--iui-muted); font-size: 12px; font-weight: 400; }
@@ -323,6 +332,8 @@
   .iui-table tbody tr { transition: background-color var(--iui-duration-feedback) var(--iui-ease-feedback); }
   .iui-table tbody tr:hover { background: color-mix(in srgb, var(--iui-surface) 70%, transparent); }
   .iui-table .is-numeric { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  /* Keep compact statuses intact in auto-sized columns; long labels still wrap within a bounded pill. */
+  .iui-table .iui-badge { inline-size: max-content; max-inline-size: 16em; }
   .iui-table tbody tr:last-child td { border-bottom: 0; }
 
   .iui-chart { position: relative; width: 100%; min-width: 0; margin: 0; }
@@ -348,14 +359,14 @@
 
   .iui-svg { display: block; max-width: 100%; height: auto; margin-inline: auto; overflow: hidden; color: var(--iui-ink); }
 
-  .iui-html-view { position: relative; width: 100%; min-width: 0; overflow: hidden; border: 1px solid transparent; border-radius: var(--iui-radius-xl); background: var(--iui-card-bg); box-shadow: var(--iui-card-shadow); }
+  .iui-html-view { position: relative; width: 100%; min-width: 0; overflow: hidden; border: 1px solid var(--iui-border); border-radius: var(--iui-radius-xl); background: var(--iui-card-bg); box-shadow: var(--iui-card-shadow); }
   .iui-card .iui-html-view { border-color: var(--iui-border); border-radius: var(--iui-radius-lg); box-shadow: none; }
   .iui-html-view > iframe { display: block; width: 100%; height: 100%; border: 0; background: transparent; }
   .iui-html-view-wait { display: grid; place-items: center; height: 100%; color: var(--iui-muted); font-size: 13px; }
   .iui-html-view-controls { display: flex; justify-content: flex-end; margin-bottom: 6px; }
-  .iui-html-view-controls button { font: 500 12px/1.4 var(--iui-font); color: var(--iui-muted); background: var(--iui-card-bg); border: 1px solid var(--iui-border-strong); border-radius: var(--iui-radius-sm); box-shadow: var(--iui-btn-outline-shadow); padding: 4px 10px; cursor: pointer; transition: background-color var(--iui-duration-feedback) var(--iui-ease-feedback), color var(--iui-duration-feedback) var(--iui-ease-feedback), transform var(--iui-duration-press) var(--iui-ease-feedback); }
+  .iui-html-view-controls button { font: 500 12px/1.4 var(--iui-font); color: var(--iui-muted); background: var(--iui-card-bg); border: 1px solid transparent; border-radius: var(--iui-radius-sm); box-shadow: var(--iui-btn-outline-shadow); padding: 4px 10px; cursor: pointer; transition: background-color var(--iui-duration-feedback) var(--iui-ease-feedback), color var(--iui-duration-feedback) var(--iui-ease-feedback), transform var(--iui-duration-press) var(--iui-ease-feedback); }
   .iui-html-view-controls button:hover { background: var(--iui-hover); color: var(--iui-ink); }
-  .iui-html-view-controls button:active { transform: scale(0.985); }
+  @media (prefers-reduced-motion: no-preference) { .iui-html-view-controls button:active { transform: scale(0.985); } }
   .iui-html-view-controls button:focus-visible, .iui-html-view-stopped summary:focus-visible { outline: 2px solid var(--iui-focus); outline-offset: 2px; }
   .iui-html-view-stopped { padding: 12px; }
   .iui-html-view-stopped p { margin: 0 0 8px; }
@@ -367,13 +378,12 @@
   .iui-carousel { position: relative; min-width: 0; }
   .iui-carousel-track { display: flex; gap: 12px; padding: 24px; scroll-padding-inline: 24px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: none; }
   .iui-carousel-track::-webkit-scrollbar { display: none; }
-  .iui-carousel-item { --iui-card-shadow: var(--iui-shadow-sm); --iui-card-shadow-hover: 0 4px 12px -2px rgb(0 0 0 / 14%); --iui-glass-card-shadow: var(--iui-card-shadow); --iui-glass-card-shadow-hover: var(--iui-card-shadow-hover); flex: none; max-width: 85%; min-width: 0; scroll-snap-align: start; display: flex; flex-direction: column; }
-  &[data-theme="dark"] .iui-carousel-item { --iui-card-shadow-hover: 0 4px 12px -2px rgb(0 0 0 / 48%); }
+  .iui-carousel-item { --iui-card-shadow: var(--iui-shadow-sm); --iui-glass-card-shadow: var(--iui-card-shadow); --iui-glass-card-shadow-hover: var(--iui-card-shadow-hover); flex: none; max-width: 85%; min-width: 0; scroll-snap-align: start; display: flex; flex-direction: column; }
   .iui-carousel-item > .iui-card, .iui-carousel-item > .iui-pressable { height: 100%; }
   /* Frosted circular controls floating over photos and cards. */
-  .iui-carousel-nav { position: absolute; top: 50%; z-index: 2; display: grid; place-items: center; width: 34px; height: 34px; margin-top: -17px; border: 1px solid transparent; border-radius: 50%; corner-shape: round; background: var(--iui-glass); -webkit-backdrop-filter: var(--iui-control-blur); backdrop-filter: var(--iui-control-blur); color: var(--iui-ink); box-shadow: inset 0 0 0 1px var(--iui-glass-ring), 0 2px 10px rgb(0 0 0 / 10%); cursor: pointer; transition: background-color var(--iui-duration-feedback) var(--iui-ease-feedback), box-shadow var(--iui-duration-feedback) var(--iui-ease-feedback), opacity var(--iui-duration-feedback) var(--iui-ease-feedback), transform var(--iui-duration-press) var(--iui-ease-feedback); }
-  .iui-carousel-nav:hover { background: var(--iui-glass-hover); box-shadow: inset 0 0 0 1px var(--iui-glass-ring-hover), 0 4px 14px rgb(0 0 0 / 14%); }
-  .iui-carousel-nav:active { transform: scale(0.95); }
+  .iui-carousel-nav { position: absolute; top: 50%; z-index: 2; display: grid; place-items: center; width: 34px; height: 34px; margin-top: -17px; border: 1px solid transparent; border-radius: 50%; corner-shape: round; background: var(--iui-glass); -webkit-backdrop-filter: var(--iui-control-blur); backdrop-filter: var(--iui-control-blur); color: var(--iui-ink); box-shadow: var(--iui-btn-outline-shadow); cursor: pointer; transition: background-color var(--iui-duration-feedback) var(--iui-ease-feedback), box-shadow var(--iui-duration-feedback) var(--iui-ease-feedback), opacity var(--iui-duration-feedback) var(--iui-ease-feedback), transform var(--iui-duration-press) var(--iui-ease-feedback); }
+  .iui-carousel-nav:hover { background: var(--iui-glass-hover); box-shadow: var(--iui-btn-outline-shadow); }
+  @media (prefers-reduced-motion: no-preference) { .iui-carousel-nav:active { transform: scale(0.95); } }
   .iui-carousel-nav.is-prev { left: 8px; }
   .iui-carousel-nav.is-next { right: 8px; }
   @media (hover: none) { .iui-carousel-nav { display: none; } }
@@ -384,13 +394,21 @@
   /* The script sets a max-height that fits the side of the trigger it opens on; this one holds until it does. */
   .iui-popover { position: fixed; z-index: 2000; width: max-content; max-width: min(280px, calc(100vw - 24px)); max-height: min(420px, calc(100vh - 24px)); overflow-y: auto; overscroll-behavior: contain; padding: 12px 14px; border: 1px solid var(--iui-border); border-radius: var(--iui-radius-lg); background-color: var(--iui-popover-bg); background-image: var(--iui-glass-card-sheen); -webkit-backdrop-filter: var(--iui-overlay-blur); backdrop-filter: var(--iui-overlay-blur); color: var(--iui-ink); box-shadow: var(--iui-popover-shadow); --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2); --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2); font: 400 14px/1.5 var(--iui-font); }
   .iui-popover-body { display: flex; flex-direction: column; gap: 8px; }
+  .iui-picker-popup { inset: auto; margin: 0; max-width: calc(100vw - 24px); }
+  .iui-select-popup { padding: 5px; --dsw-alias-label-primary: var(--iui-ink); }
+  .iui-select-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; padding: 8px 10px; border-radius: var(--iui-radius-sm); cursor: pointer; }
+  .iui-select-option > span { min-width: 0; overflow-wrap: anywhere; }
+  .iui-select-option > svg { flex: none; }
+  .iui-select-option.is-active { background: var(--iui-hover); box-shadow: inset 0 0 0 1px var(--iui-border); }
+  .iui-select-option[aria-selected="true"] { font-weight: 500; }
+  @media (pointer: coarse) { .iui-select-option { min-height: 44px; } }
 
-  .iui-codeblock { min-width: 0; overflow: hidden; border: 1px solid transparent; border-radius: var(--iui-radius-lg); background: var(--iui-card-bg); box-shadow: var(--iui-card-shadow); --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2); --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2); }
+  .iui-codeblock { min-width: 0; overflow: hidden; border: 1px solid var(--iui-border); border-radius: var(--iui-radius-lg); background: var(--iui-card-bg); box-shadow: var(--iui-card-shadow); --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2); --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2); }
   .iui-card .iui-codeblock { background: var(--iui-surface); box-shadow: var(--iui-well-shadow); }
   .iui-codeblock-head { display: flex; align-items: center; justify-content: space-between; min-height: 38px; padding: 6px 10px 6px 14px; border-bottom: 1px solid var(--iui-border); background: color-mix(in srgb, var(--iui-ink) 2%, transparent); color: var(--iui-muted); font-family: var(--iui-mono); font-size: 12px; font-weight: 500; letter-spacing: -0.01em; }
   .iui-codeblock-head button { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border: 0; border-radius: var(--iui-radius-sm); background: none; color: inherit; font: 500 12px/1.4 var(--iui-font); cursor: pointer; transition: background-color var(--iui-duration-feedback) var(--iui-ease-feedback), color var(--iui-duration-feedback) var(--iui-ease-feedback), transform var(--iui-duration-press) var(--iui-ease-feedback); }
   .iui-codeblock-head button:hover { background: var(--iui-hover); color: var(--iui-ink); }
-  .iui-codeblock-head button:active { transform: scale(0.97); }
+  @media (prefers-reduced-motion: no-preference) { .iui-codeblock-head button:active { transform: scale(0.97); } }
   .iui-codeblock pre { margin: 0; padding: 14px 16px; overflow-x: auto; font: 13px/1.6 var(--iui-mono); }
 
   .iui-quote { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 14px 16px; border-radius: var(--iui-radius-lg); background: var(--iui-surface); box-shadow: var(--iui-well-shadow); }
@@ -405,7 +423,7 @@
   .iui-flashcard { position: relative; display: block; width: 100%; min-height: 168px; padding: 0; border: 0; background: none; color: var(--iui-ink); font: inherit; text-align: center; perspective: 900px; }
   .iui-flashcard-inner { position: relative; display: grid; width: 100%; height: 100%; min-height: inherit; transition: transform .45s cubic-bezier(.3, .7, .3, 1); transform-style: preserve-3d; }
   .iui-flashcard.is-flipped .iui-flashcard-inner { transform: rotateY(180deg); }
-  .iui-flashcard-face { grid-area: 1 / 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 20px 18px 44px; border: 0; border-radius: var(--iui-radius-xl); background: var(--iui-card-bg); box-shadow: var(--iui-card-shadow); backface-visibility: hidden; -webkit-backface-visibility: hidden; transition: box-shadow var(--iui-duration-paper) var(--iui-ease-paper); }
+  .iui-flashcard-face { grid-area: 1 / 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 20px 18px 44px; border: 1px solid var(--iui-border); border-radius: var(--iui-radius-xl); background: var(--iui-card-bg); box-shadow: var(--iui-card-shadow); backface-visibility: hidden; -webkit-backface-visibility: hidden; transition: box-shadow var(--iui-duration-paper) var(--iui-ease-paper); }
   .iui-flashcard-face.is-back { transform: rotateY(180deg); background: var(--iui-surface); }
   .iui-flashcard-word { font-size: 21px; line-height: 1.3; font-weight: 500; letter-spacing: -0.022em; }
   .iui-flashcard-face.is-back .iui-flashcard-word { font-size: 16px; font-weight: 500; letter-spacing: 0; }
@@ -444,6 +462,13 @@
   /* Focus, forced colors and motion */
   :is(.iui-button, .iui-icon-button, .iui-pressable, .iui-segmented > button, .iui-link, .iui-check > input):focus-visible { outline: 2px solid var(--iui-focus); outline-offset: 3px; }
 
+  .iui-segmented > button:focus-visible { outline-offset: -2px; }
+
+  /* Text fields remain :focus-visible after a click. Follow the host's input
+     modality so pointer focus keeps neutral field feedback without a ring. */
+  html[data-input-modality="pointer"] & :is(:focus, :focus-visible),
+  html[data-input-modality="pointer"] & .iui-choice:has(:focus-visible) { outline: none; }
+
   @media (max-width: 640px) {
     .iui-card { padding: 16px; }
     .iui-table th, .iui-table td { padding: 11px 12px; }
@@ -458,9 +483,11 @@
   }
 
   @media (forced-colors: active) {
-    .iui-card, .iui-card-soft, .iui-card-glass, .iui-box-glass, .iui-popover, .iui-chart-tooltip, .iui-diagram-node, .iui-table-scroll, .iui-timer, .iui-codeblock, .iui-quote, .iui-html-view, .iui-flashcard-face, .iui-flashcard-toggle, .iui-button, .iui-segmented, .iui-carousel-nav, .iui-badge { border: 1px solid ButtonBorder; box-shadow: none; }
-    :is(.iui-button-solid, .iui-icon-button-solid, .iui-segmented > button.is-selected, .iui-radio-pills .iui-choice.is-selected, .iui-radio-cards .iui-choice.is-selected) { background: Highlight; color: HighlightText; border-color: Highlight; box-shadow: none; forced-color-adjust: none; }
-    &[data-theme="dark"] .iui-segmented > button.is-selected { background: Highlight; color: HighlightText; }
+    .iui-check > input:checked { background: Highlight; border-color: Highlight; color: HighlightText; forced-color-adjust: none; }
+    .iui-select-option.is-active { background: Highlight; color: HighlightText; forced-color-adjust: none; }
+    .iui-card, .iui-card-soft, .iui-card-glass, .iui-box-glass, .iui-popover, .iui-chart-tooltip, .iui-diagram-node, .iui-table-scroll, .iui-timer, .iui-codeblock, .iui-quote, .iui-html-view, .iui-flashcard-face, .iui-flashcard-toggle, .iui-button, .iui-carousel-nav, .iui-badge { border: 1px solid ButtonBorder; box-shadow: none; }
+    :is(.iui-button-solid, .iui-icon-button-solid, .iui-radio-pills .iui-choice.is-selected, .iui-radio-cards .iui-choice.is-selected) { background: Highlight; color: HighlightText; border-color: Highlight; box-shadow: none; forced-color-adjust: none; }
+    .iui-segmented > button.is-selected { background: transparent; color: HighlightText; forced-color-adjust: none; }
     :is(.iui-radio-pills, .iui-radio-cards) .iui-choice.is-selected .iui-choice-description { color: inherit; }
   }
 

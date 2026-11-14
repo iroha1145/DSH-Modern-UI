@@ -2,13 +2,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import { IconLoadingOutlineRegular, IconRefreshOutlineRegular } from '@iroha1145/dsh-modern-ui/primitives'
-import { ImageLightbox } from '../primitives/ImageLightbox.tsx'
+import { ImageLightbox, type ImageLightboxLabels } from '../primitives/ImageLightbox.tsx'
 import { DraggableImage } from '../primitives/DraggableImage.tsx'
 import type { FileDragActions } from '../primitives/file-drag-actions.ts'
-import type { MessageImageLabels } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { MessageImageLabels as HostMessageImageLabels } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import css from './MessageImage.module.css'
 
-export type { MessageImageLabels } from '@deepseek-ai/dsh-client-ui-conversation/client'
+export type MessageImageLabels = Omit<HostMessageImageLabels, 'lightbox'> & { lightbox: ImageLightboxLabels }
 
 /** Loads a session-authorized durable image URL and may expose a cached URL synchronously. */
 export type ImageLoader = ((attachment: ImageAttachmentRef) => Promise<string>) & {

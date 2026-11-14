@@ -35,8 +35,8 @@ const STYLES = [
 /**
  * Tokens that media/platform rules in design-platform.css re-declare (macOS desktop menus, no
  * backdrop-filter, reduced transparency, forced colors). The presenter writes override tokens as
- * body inline styles, which would beat those rules, so these stay with the stylesheet; their base
- * values are identical in the official and Modern themes.
+ * body inline styles, which would beat those rules, so these material values stay with the
+ * plugin-owned stylesheet and its media/platform fallbacks.
  */
 const CONDITIONAL_TOKENS = new Set(['--dsw-menu-surface-fill', '--dsw-specific-menu'])
 
