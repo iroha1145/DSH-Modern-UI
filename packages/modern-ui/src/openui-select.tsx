@@ -23,6 +23,8 @@ export function OpenUiSelect({ value, choices, label, placeholder, onChange }: O
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
   const search = useRef({ text: '', at: 0 })
+  // A type-ahead search that matched nothing leaves no candidate: Tab, Enter and Alt+Up then close without committing.
+  const missed = useRef(false)
   const selected = choices.findIndex(option => option.value === value)
   const active = Math.min(activeIndex, choices.length - 1)
   const shown = selected >= 0 ? choices[selected].label : (placeholder ?? text.choose)
@@ -30,6 +32,7 @@ export function OpenUiSelect({ value, choices, label, placeholder, onChange }: O
   const show = (index = Math.max(selected, 0)) => {
     setActiveIndex(index)
     search.current = { text: '', at: 0 }
+    missed.current = false
     setOpen(true)
   }
   const commit = (index: number) => {
@@ -58,19 +61,20 @@ export function OpenUiSelect({ value, choices, label, placeholder, onChange }: O
     if (event.nativeEvent.isComposing || event.ctrlKey || event.metaKey) return
     if (Date.now() - search.current.at >= 700) search.current.text = ''
     const key = event.key
+    const settle = () => (missed.current ? setOpen(false) : commit(active))
     if (key === 'Tab') {
-      if (open) commit(active)
+      if (open) settle()
       return
     }
     if (key === 'Enter' || (key === ' ' && search.current.text === '')) {
       event.preventDefault()
-      if (open) commit(active)
+      if (open) settle()
       else show()
       return
     }
     if (key === 'ArrowUp' && event.altKey && open) {
       event.preventDefault()
-      commit(active)
+      settle()
       return
     }
     if (['ArrowDown', 'ArrowUp', 'Home', 'End', 'PageDown', 'PageUp'].includes(key)) {
@@ -81,6 +85,7 @@ export function OpenUiSelect({ value, choices, label, placeholder, onChange }: O
       setActiveIndex(next)
       setOpen(true)
       search.current = { text: '', at: 0 }
+      missed.current = false
       return
     }
     if (key.length !== 1 || event.altKey) return
@@ -92,13 +97,21 @@ export function OpenUiSelect({ value, choices, label, placeholder, onChange }: O
     const prefix = repeated ? query[0] : query
     const from = open ? active : selected
     const start = repeated ? from + 1 : Math.max(0, from)
+    let match = -1
     for (let offset = 0; offset < choices.length; offset++) {
       const index = (start + offset + choices.length) % choices.length
       if (choices[index].label.trim().toLocaleLowerCase(locale).startsWith(prefix)) {
-        setActiveIndex(index)
+        match = index
         break
       }
     }
+    if (match < 0) {
+      // Nothing matches: do not open a closed list on a stale highlight, and keep an open one from committing it.
+      missed.current = true
+      return
+    }
+    missed.current = false
+    setActiveIndex(match)
     setOpen(true)
   }
 
@@ -153,7 +166,10 @@ export function OpenUiSelect({ value, choices, label, placeholder, onChange }: O
               aria-selected={index === selected}
               className={`iui-select-option${index === active ? ' is-active' : ''}`}
               data-option-index={index}
-              onPointerMove={() => setActiveIndex(index)}
+              onPointerMove={() => {
+                missed.current = false
+                setActiveIndex(index)
+              }}
               onMouseDown={event => event.preventDefault()}
               onClick={() => {
                 commit(index)

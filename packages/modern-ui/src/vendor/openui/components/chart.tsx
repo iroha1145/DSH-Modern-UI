@@ -22,10 +22,26 @@ type Spec = {
 
 const COLORS = 6;
 const seriesColor = (i: number) => `var(--iui-chart-${(i % COLORS) + 1})`;
-const num = (value: unknown) => {
-  const number = typeof value === "number" ? value : typeof value === "string" ? Number(value) : 0;
-  return Number.isFinite(number) ? number : 0;
+/** A cell's number, or null when the data has none (absent, empty, not a number): that is no data, not zero. */
+const cell = (value: unknown): number | null => {
+  const number = typeof value === "number" ? value : typeof value === "string" && value.trim() !== "" ? Number(value) : Number.NaN;
+  return Number.isFinite(number) ? number : null;
 };
+/** A cell that no data may stand for in a sum or an extent (stacking, pie totals): it adds nothing. */
+const num = (value: unknown) => cell(value) ?? 0;
+/** What a cell without data reads as in tooltips, legends and the data table. */
+const NO_DATA = "\u2014";
+/** Consecutive runs of present points, so a line or area breaks where data is missing instead of dropping to 0. */
+function runs<T>(points: readonly (T | null)[]): T[][] {
+  const result: T[][] = [];
+  let run: T[] | null = null;
+  for (const point of points) {
+    if (point === null) run = null;
+    else if (run) run.push(point);
+    else result.push((run = [point]));
+  }
+  return result;
+}
 const label = (row: Row, x: string) => String(row[x] ?? "");
 
 function useWidth() {
@@ -74,7 +90,7 @@ function Cartesian({ spec, width }: { spec: Spec; width: number }) {
   });
   // A stacked area also splits each series where it crosses zero between two categories.
   const layers = stacked && type === "area" ? stackAreas(rows.map((row) => series.map((s) => num(row[s])))) : null;
-  const values = stacked ? spans.flatMap((row) => row.map(([, to]) => to)) : rows.flatMap((row) => series.map((s) => num(row[s])));
+  const values = stacked ? spans.flatMap((row) => row.map(([, to]) => to)) : rows.flatMap((row) => series.flatMap((s) => cell(row[s]) ?? []));
   // The axis this chart last drew: values changed by a Slider or Input keep it while they fit (valueDomain).
   const held = useRef<Domain | null>(null);
   const { lo, hi, step } = valueDomain(Math.min(0, ...values), Math.max(0, ...values), held.current, spec.range);
@@ -146,28 +162,32 @@ function Cartesian({ spec, width }: { spec: Spec; width: number }) {
             }
             const each = inner / series.length;
             return series.map((s, si) => {
-              const v = num(row[s]);
+              const v = cell(row[s]);
+              if (v === null) return null;
               return <path key={`${i}-${s}`} d={bar(xAt(i) - inner / 2 + each * si + 1, Math.min(y(v), y(0)), Math.max(1, each - 2), Math.abs(y(0) - y(v)), v >= 0)} fill={seriesColor(si)} />;
             });
           })}
         {(type === "line" || type === "area") &&
           series.map((s, si) => {
-            const top = (i: number) => (stacked ? spans[i][si][1] : num(rows[i][s]));
+            const top = (i: number) => (stacked ? spans[i][si][1] : (cell(rows[i][s]) ?? 0));
+            // A missing value breaks the line and the area: nothing is drawn, nor interpolated, across it.
+            const present = (i: number) => stacked || cell(rows[i][s]) !== null;
+            const segments = runs(rows.map((_, i) => (present(i) ? i : null)));
             const at = ([position, value]: readonly [number, number]) => [xAt(position), y(value)] as const;
             // Stacked layers keep straight edges: two separately smoothed boundaries can cross and give a layer
             // negative thickness, while straight ones keep every layer between its neighbours. Each band retraces
             // the layer it rests on backwards, so stacked areas meet exactly; a single area closes on the baseline.
             const layer = layers?.[si];
-            const line = layer ? layer.edge.map((run) => polyline(run.map(at))).join("") : curve(rows.map((_, i) => [xAt(i), y(top(i))] as const));
+            const line = layer ? layer.edge.map((run) => polyline(run.map(at))).join("") : segments.map((run) => curve(run.map((i) => [xAt(i), y(top(i))] as const))).join("");
             const fill = layer
               ? layer.bands.map((band) => `${polyline(band.map(at))}Z`).join("")
-              : `${line}${curve(rows.map((_, i) => [xAt(i), y(0)] as const).reverse()).replace(/^M/, "L")}Z`;
+              : segments.filter((run) => run.length > 1).map((run) => `${curve(run.map((i) => [xAt(i), y(top(i))] as const))}${curve(run.map((i) => [xAt(i), y(0)] as const).reverse()).replace(/^M/, "L")}Z`).join("");
             return (
               <g key={s}>
-                {type === "area" && rows.length > 1 && <path d={fill} fill={`url(#${gradient}-${si})`} />}
+                {type === "area" && rows.length > 1 && fill !== "" && <path d={fill} fill={`url(#${gradient}-${si})`} />}
                 <path d={line} fill="none" stroke={seriesColor(si)} strokeWidth={2.2} strokeLinejoin="round" strokeLinecap="round" />
-                {(rows.length <= 16 || hover !== null) &&
-                  rows.map((_, i) => (rows.length <= 16 || i === hover ? <circle key={i} cx={xAt(i)} cy={y(top(i))} r={i === hover ? 4.5 : 3} fill={seriesColor(si)} stroke="var(--iui-canvas)" strokeWidth={1.5} /> : null))}
+                {(rows.length <= 16 || hover !== null || segments.some((run) => run.length === 1)) &&
+                  rows.map((_, i) => (present(i) && (rows.length <= 16 || i === hover || segments.some((run) => run.length === 1 && run[0] === i)) ? <circle key={i} cx={xAt(i)} cy={y(top(i))} r={i === hover ? 4.5 : 3} fill={seriesColor(si)} stroke="var(--iui-canvas)" strokeWidth={1.5} /> : null))}
               </g>
             );
           })}
@@ -180,7 +200,7 @@ function Cartesian({ spec, width }: { spec: Spec; width: number }) {
             <span key={s}>
               <i style={{ background: seriesColor(si) }} />
               {series.length > 1 ? `${s} ` : ""}
-              <b>{format(num(tip[s]), false, step)}</b>
+              <b>{cell(tip[s]) === null ? NO_DATA : format(cell(tip[s]) as number, false, step)}</b>
             </span>
           ))}
         </div>
@@ -209,8 +229,10 @@ function Scatter({ spec, width }: { spec: Spec; width: number }) {
   const name = pointNameKey(spec);
   // Fixed min and max widen the value axis the same way they do for bars and lines.
   const bounds = [spec.range.min, spec.range.max].filter((v): v is number => v !== undefined);
-  const ya = axis([...rows.flatMap((r) => series.map((s) => num(r[s]))), ...bounds], false);
-  const xa = axis(rows.map((r) => num(r[x])), false);
+  // A point missing its x or y value has no place on the plot: it is left out, not drawn at 0.
+  const plotted = (r: Row, s: string) => cell(r[x]) !== null && cell(r[s]) !== null;
+  const ya = axis([...rows.flatMap((r) => series.flatMap((s) => (plotted(r, s) ? [num(r[s])] : []))), ...bounds], false);
+  const xa = axis(rows.flatMap((r) => (series.some((s) => plotted(r, s)) ? [num(r[x])] : [])), false);
   const left = Math.max(0, ...ya.ticks.map((t) => format(t, true, ya.step).length)) * 6.4 + 12;
   const pad = { top: 10, right: 8, bottom: 26, left };
   const w = Math.max(10, width - pad.left - pad.right);
@@ -234,7 +256,7 @@ function Scatter({ spec, width }: { spec: Spec; width: number }) {
         ))}
         {xa.ticks.map((t, k) => (k % every === 0 ? <text key={`x${t}`} x={px(t)} y={height - 6} textAnchor="middle" className="iui-chart-tick">{xLabels[k]}</text> : null))}
         {series.map((s, si) =>
-          rows.map((r, i) => (
+          rows.map((r, i) => !plotted(r, s) ? null : (
             <circle key={`${si}-${i}`} cx={px(num(r[x]))} cy={py(num(r[s]))} r={hover?.i === i && hover.si === si ? 6.5 : 5} fill={seriesColor(si)} fillOpacity={0.78} stroke="var(--iui-canvas)" strokeWidth={1.5} onPointerEnter={() => setHover({ i, si })} />
           )),
         )}
@@ -242,8 +264,8 @@ function Scatter({ spec, width }: { spec: Spec; width: number }) {
       {tip && hover && (
         <div className="iui-chart-tooltip" style={{ left: Math.min(Math.max(px(num(tip[x])), 70), width - 70), top: Math.max(0, py(num(tip[series[hover.si]])) - 70) }}>
           <strong>{name ? label(tip, name) : series[hover.si]}</strong>
-          <span>{x} <b>{xFormat(num(tip[x]), false, xa.step)}</b></span>
-          <span><i style={{ background: seriesColor(hover.si) }} />{series[hover.si]} <b>{format(num(tip[series[hover.si]]), false, ya.step)}</b></span>
+          <span>{x} <b>{cell(tip[x]) === null ? NO_DATA : xFormat(num(tip[x]), false, xa.step)}</b></span>
+          <span><i style={{ background: seriesColor(hover.si) }} />{series[hover.si]} <b>{cell(tip[series[hover.si]]) === null ? NO_DATA : format(num(tip[series[hover.si]]), false, ya.step)}</b></span>
         </div>
       )}
     </div>
@@ -252,7 +274,8 @@ function Scatter({ spec, width }: { spec: Spec; width: number }) {
 
 function Pie({ spec, width }: { spec: Spec; width: number }) {
   const key = spec.series[0];
-  const items = spec.rows.map((row) => ({ label: label(row, spec.x), value: Math.max(0, num(key ? row[key] : 0)) }));
+  // A slice without data is no share at all: it takes no angle and reads as no data, not as 0%.
+  const items = spec.rows.map((row) => ({ label: label(row, spec.x), value: Math.max(0, num(key ? row[key] : 0)), missing: !key || cell(row[key]) === null }));
   const largest = Math.max(0, ...items.map(item => item.value)) || 1;
   const total = items.reduce((sum, item) => sum + item.value / largest, 0) || 1;
   const share = (value: number) => value / largest / total;
@@ -280,7 +303,7 @@ function Pie({ spec, width }: { spec: Spec; width: number }) {
             : `M${r},${r}L${point(r, a0)}A${r},${r} 0 ${large} 1 ${point(r, a1)}Z`;
           return (
             <path key={i} d={d} fill={seriesColor(i)} stroke="var(--iui-canvas)" strokeWidth={2}>
-              <title>{`${item.label}: ${spec.format(item.value)}`}</title>
+              <title>{`${item.label}: ${item.missing ? NO_DATA : spec.format(item.value)}`}</title>
             </path>
           );
         })}
@@ -290,7 +313,7 @@ function Pie({ spec, width }: { spec: Spec; width: number }) {
           <div key={i}>
             <i style={{ background: seriesColor(i) }} />
             <span>{item.label}</span>
-            <b>{share(item.value).toLocaleString(spec.locale, { style: "percent", maximumFractionDigits: 1 })}</b>
+            <b>{item.missing ? NO_DATA : share(item.value).toLocaleString(spec.locale, { style: "percent", maximumFractionDigits: 1 })}</b>
           </div>
         ))}
       </div>
@@ -380,8 +403,8 @@ export const Chart = defineComponent({
             <caption>{props.summary || spec.name}</caption>
             <thead><tr>{pointName && <th scope="col">{pointName}</th>}<th scope="col">{spec.x}</th>{(pie ? spec.series.slice(0, 1) : spec.series).map(s => <th key={s} scope="col">{s}</th>)}</tr></thead>
             <tbody>{spec.rows.map((row, i) => <tr key={i}>
-              {pointName ? <><th scope="row">{label(row, pointName)}</th><td>{xData(num(row[spec.x]))}</td></> : <th scope="row">{spec.type === "scatter" ? xData(num(row[spec.x])) : label(row, spec.x)}</th>}
-              {(pie ? spec.series.slice(0, 1) : spec.series).map(s => <td key={s}>{yData(pie ? Math.max(0, num(row[s])) : num(row[s]))}</td>)}
+              {pointName ? <><th scope="row">{label(row, pointName)}</th><td>{cell(row[spec.x]) === null ? NO_DATA : xData(num(row[spec.x]))}</td></> : <th scope="row">{spec.type === "scatter" ? (cell(row[spec.x]) === null ? NO_DATA : xData(num(row[spec.x]))) : label(row, spec.x)}</th>}
+              {(pie ? spec.series.slice(0, 1) : spec.series).map(s => <td key={s}>{cell(row[s]) === null ? NO_DATA : yData(pie ? Math.max(0, num(row[s])) : num(row[s]))}</td>)}
             </tr>)}</tbody>
           </table></div>
         </details>}
