@@ -4,7 +4,9 @@
 
 ## [Unreleased]
 
-复核了一份代码审计，十条结论都属实，这里一并修掉。最要紧的三条：发出去的消息在切换会话时可能整条丢失；新会话页的工作区选择器会用新草稿盖掉目标工作区里原有的草稿；macOS 和 Linux 上一键升级失败后，原来的启动入口可能打不开。
+## [0.1.23] - 2026-11-21
+
+这一版修的是一份代码审计查出来的十个问题。最要紧的三条：发出去的消息在切换会话时可能整条丢失；新会话页的工作区选择器会用新草稿盖掉目标工作区里原有的草稿；macOS 和 Linux 上一键升级失败后，原来的启动入口可能打不开。
 
 ### 修复
 
@@ -29,7 +31,8 @@
 - 工作区选择器遇到草稿冲突时只是拒绝切换并提示，没有提供合并或二选一的界面。
 - 图表里的「—」是一个符号，屏幕阅读器读出来的不是「无数据」。
 - 启动自检仍然在真实的数据目录上进行，没有改成隔离的数据目录。配置里有 `cordis:include` 行、或者调度器写在安装器停不到的位置时，自检会拒绝启动，这类配置以前能装、现在会停下并说明原因。
-- 这些修复在本机用 Chromium 和 Node 的测试环境验证过，表单和草稿冲突另外在本地预览里手动核对过。没有做真实的升级失败演练，没有在 Windows、Linux 和 Firefox、Safari 上重跑。
+- 「升级失败后入口仍可用」是用替身测试验证的：真实安装演练里注入过升级失败，但演练用的是系统自带的 Node，没有覆盖到私有 Node 被清理的情形。
+- 表单和草稿冲突在本地预览里手动核对过，用的是 Chromium；Firefox 和 Safari 上只有自动测试。
 
 ### 给开发者
 
@@ -691,7 +694,8 @@ macOS 桌面客户端里，左侧栏四周不再有一圈灰边：整个窗口�
 
 - 会话里的联网开关（`/web on|off`）和它用的协议。联网工具统一在官方的插件管理里开关。
 
-[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.22...HEAD
+[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.23...HEAD
+[0.1.23]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.22...v0.1.23
 [0.1.22]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.21...v0.1.22
 [0.1.21]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.20...v0.1.21
 [0.1.20]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.19...v0.1.20
