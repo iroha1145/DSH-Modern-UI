@@ -19,7 +19,7 @@ import type {
 } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import { workspaceDisplayTitle } from '@deepseek-ai/dsh-api-workspace-controller/default-workspace'
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots'
-import type { DirectoryFlowOwnerProps, WorkspacePickerProps } from './contract/slots.ts'
+import type { DirectoryFlowOwnerProps, WorkspacePickerFactoryProps, WorkspacePickerProps } from './contract/slots.ts'
 import { distinguishingPathSuffixes } from './path-suffix.ts'
 import css from './WorkspacePicker.module.css'
 
@@ -277,6 +277,40 @@ export function WorkspacePicker({
       createWorkspace={createWorkspace}
       useDirectoryFlow={useDirectoryFlow}
       renderDirectoryFlow={owner => renderSlot('conversation.hero.workspace.directoryFlow', owner)}
+      selectedId={selectedId}
+      onPick={onPick}
+      onClose={onClose}
+    />
+  )
+}
+
+/**
+ * The `workspace.picker` Factory definition (official 0.2.2-rc.3 and later): the same flow for
+ * another plugin's surface, under the Factory's own directory-flow hole.
+ * @param props - caller input, injected creation share, and the locale seat.
+ * @returns the flow element.
+ */
+export function WorkspacePickerFactory({
+  open,
+  anchorRef,
+  useWorkspaces,
+  selectedId,
+  onPick,
+  onClose,
+  createWorkspace,
+  useDirectoryFlow,
+  renderSlot,
+  t,
+}: WorkspacePickerFactoryProps) {
+  return (
+    <WorkspacePickFlow
+      t={t}
+      open={open}
+      anchorRef={anchorRef}
+      useWorkspaces={useWorkspaces}
+      createWorkspace={createWorkspace}
+      useDirectoryFlow={useDirectoryFlow}
+      renderDirectoryFlow={owner => renderSlot('workspace.picker.directoryFlow', owner)}
       selectedId={selectedId}
       onPick={onPick}
       onClose={onClose}

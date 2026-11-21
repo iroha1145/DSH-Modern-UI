@@ -41,7 +41,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 // Type-only: pulls the Session root standard-hook merge.
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import {
-  type ArchiveSessionInjected, type ForkSessionInjected, menuOpenStateFactory, type PinSessionInjected,
+  type ArchiveSessionInjected, type DirectoryFlowSlotName, type ForkSessionInjected, menuOpenStateFactory, type PinSessionInjected,
   type SessionArchiveConfirmInjected, type SessionArchiveConfirmRequest,
   type RenameSessionInjected, type RowToast, type RowToastInjected, type RowToastState, type SessionRenameDialogInjected,
   type SessionIdInjected, type WorkspaceBrowserInjected, type WorkspacePickerInjected,
@@ -58,7 +58,7 @@ import { RenameSessionMenuItem, SessionRenameDialog } from './session-actions/Re
 import { RowActionToast } from './session-actions/RowActionToast.tsx'
 import { registerToasts } from './toast/register.ts'
 import { SessionIdMenuItem } from './session-actions/SessionId.tsx'
-import { WorkspacePicker } from './WorkspacePicker.tsx'
+import { WorkspacePicker, WorkspacePickerFactory } from './WorkspacePicker.tsx'
 import { en, ja, es, fr, de, ru, pt, zh } from './locales.ts'
 
 export type { StartSessionOptions, UiWorkspace } from './navigation.ts'
@@ -67,7 +67,7 @@ export type {
   MenuOpenState, RowToast, SessionRenameTarget, SessionRowOwnerProps, UseMenuOpenState, WorkspaceBrowserInjected,
   SessionRowScheduleOwnerProps,
   WorkspaceBrowserProps,
-  WorkspacePickerInjected, WorkspacePickerProps,
+  WorkspacePickerInjected, WorkspacePickerInput, WorkspacePickerProps,
 } from './contract/slots.ts'
 export type { WorkspaceKey } from './locales.ts'
 
@@ -131,7 +131,7 @@ export function apply(ctx: Context): void {
 
   // Stable per-surface occupancy sources (the renderer's hook cache keys by
   // source identity): true while the surface's directory-flow hole is filled.
-  const flowSource = (hole: 'sidebar.workspaces.directoryFlow' | 'conversation.hero.workspace.directoryFlow'): HostObservable<boolean> => ({
+  const flowSource = (hole: DirectoryFlowSlotName): HostObservable<boolean> => ({
     getSnapshot: () => ctx.slots.entries(hole).length > 0,
     subscribe: listener => ctx.slots.subscribe(hole, listener),
   })
@@ -141,6 +141,7 @@ export function apply(ctx: Context): void {
     subscribe: listener => ctx.on('connection/reset', listener),
   }
   const pickerFlowSource = flowSource('conversation.hero.workspace.directoryFlow')
+  const factoryFlowSource = flowSource('workspace.picker.directoryFlow')
   const openSession: WorkspaceBrowserInjected['open'] = (sessionId) => {
     uiWorkspace.openSession(sessionId)
   }
@@ -272,9 +273,9 @@ export function apply(ctx: Context): void {
     setDirectoryBusy: shortcutControls.directoryBusy,
     hooks: { directoryFlow: browserFlowSource, hostInfo, workspaceShortcuts: shortcutControls.state, shortcuts: ctx.shortcuts.catalog },
   })
-  const pickerInjected = (): WorkspacePickerInjected => ({
+  const pickerInjected = (directoryFlow: HostObservable<boolean>) => (): WorkspacePickerInjected => ({
     createWorkspace: input => workspaces.create(input),
-    hooks: { directoryFlow: pickerFlowSource },
+    hooks: { directoryFlow },
   })
   // Each registration declares its owned children in the same call; slot
   // injection follows both the owner and declaration HMR lifetimes.
@@ -332,11 +333,22 @@ export function apply(ctx: Context): void {
     {
       name: 'conversation.hero.workspace',
       children: { 'conversation.hero.workspace.directoryFlow': { kind: 'single', scope: 'root' } },
-      inject: pickerInjected,
+      inject: pickerInjected(pickerFlowSource),
       locale: NS,
     },
     WorkspacePicker,
   ))
+  // Official 0.2.2-rc.3 and later: the reusable `workspace.picker` Factory and its directory-flow
+  // hole. The official directory pickers register into all three directory-flow holes at once and
+  // wait while any is undeclared, so without this declaration neither the sidebar nor the hero
+  // offers "Add workspace". It depends on no other declaration and lives for this plugin's lifetime.
+  ctx.slots.registerFactory({
+    name: 'workspace.picker',
+    scope: 'root',
+    children: { 'workspace.picker.directoryFlow': { kind: 'single', scope: 'root' } },
+    inject: pickerInjected(factoryFlowSource),
+    locale: NS,
+  }, WorkspacePickerFactory)
 }
 
 /**
