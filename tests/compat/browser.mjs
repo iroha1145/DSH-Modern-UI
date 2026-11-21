@@ -512,6 +512,14 @@ export async function runBrowserChecks({ state, output, executablePath, checkHos
       await defaultWorkspace.click()
       await page.getByRole('menuitem', { name: /workspace/ }).click()
     }
+    await check('add-workspace-entry', async () => {
+      // The official directory picker fills every directory-flow hole it knows in one step and waits while any of
+      // them is undeclared (0.2.2-rc.3 added a third). An unfilled hole hides "Add workspace" without any error.
+      await page
+        .getByRole('button', { name: /^(添加工作区|Add workspace)$/ })
+        .first()
+        .waitFor({ state: 'visible', timeout: 10_000 })
+    })
     await check('model-selection-reasoning-and-public-label', async () => {
       const picker = page.getByRole('button', { name: /compat-balanced/ })
       await picker.click()

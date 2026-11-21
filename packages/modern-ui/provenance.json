@@ -2528,7 +2528,7 @@
       "source": "packages/client/ui-workspace/src/client/contract/slots.ts",
       "target": "src/vendor/workspace/client/contract/slots.ts",
       "sourceSha256": "4981001cb8024cc1e9169cc00fd51558999b802069835e359211156572973886",
-      "targetSha256": "dccb019348bfb7a382d330c4a3caac00a5f46fcc846c2e94cfd0656ef7a9f538",
+      "targetSha256": "7861d994e976ad89b362b5327255eeee8efa41e35cccd3541b61551a839efdce",
       "adapted": true
     },
     {
@@ -2542,7 +2542,7 @@
       "source": "packages/client/ui-workspace/src/client/index.ts",
       "target": "src/vendor/workspace/client/index.ts",
       "sourceSha256": "4509fac9293877f1f55be3b8c58e96daffcb238847c84656237003620e202ecb",
-      "targetSha256": "10c58a7afdfcf0990d0d986947d9503e820a28cf94771c81cd351c28b3dccc6a",
+      "targetSha256": "ef4e0ba02e6a05c471633e2476ef408a5098f4bc3e067aaff2e16ae53482984a",
       "adapted": true
     },
     {
@@ -2696,7 +2696,7 @@
       "source": "packages/client/ui-workspace/src/client/WorkspacePicker.tsx",
       "target": "src/vendor/workspace/client/WorkspacePicker.tsx",
       "sourceSha256": "37431a4bf706729c16a6502f8e57222a373f182bf165011f1cdb4f21678f04f8",
-      "targetSha256": "2853b9234ebb1847af3335665534847cdb8e1c7aa50326e5414172eb21d3ceff",
+      "targetSha256": "9939dc9f0dc206e26cab9b96596f8e14f6b432ca9c75dd74c2dcba0e59a29097",
       "adapted": true
     },
     {

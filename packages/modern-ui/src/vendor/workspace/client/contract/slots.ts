@@ -41,12 +41,12 @@ import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
  * every listed Session.
  */
 import type {
-  HostObservable, InjectFace, PropsHooks, PropsLocale, PropsRenderSlots, PropsRuntime, PropsStore, SlotHookFactory,
+  FactoryComponentPropsOf, HostObservable, InjectFace, PropsHooks, PropsLocale, PropsRenderSlots, PropsRuntime, PropsStore, SlotHookFactory,
 } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pull the owner SlotMap merges into programs that resolve the
 // runtime shares below.
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
-import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { EmptyWorkspaceOwnerProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { SessionSearchResultItem } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { RemoteHostFacts } from '@deepseek-ai/dsh-api-remotes/client'
@@ -123,10 +123,14 @@ export interface SessionRowTrailingOwnerProps {
 
 
 
-/** The two directory-flow holes; a flow package's client half registers its one component into both. */
+/**
+ * The directory-flow holes; a flow package's client half registers its one component into each.
+ * Official 0.2.2-rc.3 added the third, under the reusable `workspace.picker` Factory.
+ */
 export type DirectoryFlowSlotName =
   | 'conversation.hero.workspace.directoryFlow'
   | 'sidebar.workspaces.directoryFlow'
+  | 'workspace.picker.directoryFlow'
 
 /**
  * Directory-picking share both trigger surfaces consume. Occupancy rides the
@@ -438,3 +442,29 @@ export type WorkspacePickerProps =
   & PropsLocale<'modern-workspace'>
 
 declare module '@deepseek-ai/dsh-client-ui-slots' { interface SlotMap { 'sidebar.session.row.trailing': {kind:'list';scope:'root';inline:true;owner:SessionRowTrailingOwnerProps} } }
+
+/**
+ * Caller input of one `workspace.picker` occurrence: the hero picker's owner props, so both
+ * surfaces take the same values.
+ */
+export type WorkspacePickerInput = EmptyWorkspaceOwnerProps
+
+/** Complete props of the `workspace.picker` Factory definition. */
+export type WorkspacePickerFactoryProps = FactoryComponentPropsOf<'workspace.picker'>
+
+// The official package of the pinned host (0.2.1-rc.4) predates the reusable picker, so its Factory
+// and directory-flow hole are declared here in the shapes official 0.2.2-rc.5 gives them.
+declare module '@deepseek-ai/dsh-client-ui-slots' {
+  interface SlotMap {
+    'workspace.picker.directoryFlow': { kind: 'single'; scope: 'root'; owner: DirectoryFlowOwnerProps }
+  }
+  interface SlotFactoryMap {
+    'workspace.picker': {
+      scope: 'root'
+      props: WorkspacePickerInput
+      inject: WorkspacePickerInjected
+      locale: 'modern-workspace'
+      children: { 'workspace.picker.directoryFlow': { kind: 'single'; scope: 'root' } }
+    }
+  }
+}
