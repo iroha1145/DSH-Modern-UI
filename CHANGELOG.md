@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+## [0.1.24] - 2026-11-21
+
+这一版只修一个问题：在官方 DSH 0.2.2-rc.3 及以后的版本上，「添加工作区」的入口不见了。还在用官方 0.2.2-rc.2 或更早版本的，升不升这一版没有区别。
+
 ### 修复
 
 - 官方 DSH 0.2.2-rc.3 及以后的版本上，「添加工作区」的入口不见了：左侧栏「工作区」标题旁的添加按钮、新会话页工作区菜单里的「添加工作区…」都没有，添加工作区的快捷键提示没有目录选择器。原因是官方从这个版本起多了一个可以给别的插件用的工作区选择器，目录选择要等它也就位才会出现，而 Modern UI 的工作区模块里没有它。现在补上了，三处入口都恢复。官方 0.2.2-rc.2 及更早的版本不受这个问题影响。
@@ -708,7 +712,8 @@ macOS 桌面客户端里，左侧栏四周不再有一圈灰边：整个窗口�
 
 - 会话里的联网开关（`/web on|off`）和它用的协议。联网工具统一在官方的插件管理里开关。
 
-[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.23...HEAD
+[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.24...HEAD
+[0.1.24]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.23...v0.1.24
 [0.1.23]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.22...v0.1.23
 [0.1.22]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.21...v0.1.22
 [0.1.21]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.20...v0.1.21
