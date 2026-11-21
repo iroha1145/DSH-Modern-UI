@@ -83,7 +83,7 @@ Windows 私有 PowerShell 固定微软官方 **7.6.5 x64 自包含 ZIP**，来�
 
 安装器沿真实声明包 canonical 路径解析依赖闭包，去重 realpath，required 缺失拒绝，未安装 optional 单列。对每个实际包核验精确 npm 发布 tgz 的 integrity 与原始文件字节，同版本预先篡改也拒绝；source-ledger.json 保存来源。正常安装后的文件/权限摘要作为 baseline，插件安装和关键运行后再次比较，不能修改官方 JS、原生模块、前端 dist 或模板。
 
-安装成功运行程序目录的 dsh-ui.cmd / dsh-ui。Windows 的 `.cmd` 与 PowerShell 桥是纯 ASCII，从相邻 UTF-8 JSON 读取私有程序路径；不依赖控制台代码页。私有 pnpm 同样使用自包含桥，不依赖官方插件管理服务会清理掉的额外环境变量。参数以 Windows argv 规则传递，中文、空格、引号和尾反斜杠有真实 CP932 子进程回归。桥只给本次 PowerShell 进程传执行策略，不修改全局设置。
+安装成功运行程序目录的 dsh-ui.cmd / dsh-ui。macOS 和 Linux 的 `dsh-ui` 每次启动都从程序目录的 `current.json` 读出当前选中版本的私有 Node 路径，脚本里不写死某一代的路径；升级中途失败、回退之后，它启动的都是 `current.json` 里已经提交的那一版。为此私有 Node 的路径不能含双引号、反斜杠或控制字符，含有时安装会拒绝。Windows 的 `.cmd` 与 PowerShell 桥是纯 ASCII，从相邻 UTF-8 JSON 读取私有程序路径；不依赖控制台代码页。私有 pnpm 同样使用自包含桥，不依赖官方插件管理服务会清理掉的额外环境变量。参数以 Windows argv 规则传递，中文、空格、引号和尾反斜杠有真实 CP932 子进程回归。桥只给本次 PowerShell 进程传执行策略，不修改全局设置。
 
 纯 JS manager 随 generation 复制，运行不依赖 checkout、开发 node_modules 或外部 CI store。移除 checkout 后仍可管理：
 
@@ -103,9 +103,9 @@ POSIX 启动器把官方 DSH 放进自己的进程组启动，并将发给启动
 
 启动器以**调用它的目录**为官方进程的工作目录，与直接运行官方 `dsh` 一致；不带工作区的会话创建和沙箱的回退根目录都从这里算。传给官方进程的环境只比调用环境多三样：`DSH_HOME`、PATH 最前面的 `<代际>/bin`（只含固定版本 pnpm 的包装脚本，官方插件管理器按 PATH 找 `pnpm`）和 PATH 末尾的私有 Node 目录；Windows 另加私有 PowerShell 目录。安装器自己用的 `npm_config_ignore_scripts`、`npm_config_store_dir`、`NODE_OPTIONS`/`NODE_PATH` 清空等开关不进入启动环境，因此不会传给代理在用户项目里运行的 shell。代理的 shell 里 `pnpm` 会解析到这个固定版本的包装脚本。
 
-新建的 profile 若 `pnpm-workspace.yaml` 没有写 `storeDir`，安装器会补上 `<程序目录>/store`，使安装时与运行时（官方插件管理器）使用同一个 pnpm 仓库；已经写了 `storeDir` 的 profile 保持原样。
+新建的 profile 若 `pnpm-workspace.yaml` 没有写 `storeDir`，安装器会补上 `<程序目录>/store`，使安装时与运行时（官方插件管理器）使用同一个 pnpm 仓库；已经写了 `storeDir` 的 profile 保持原样。有没有写是按 YAML 解析后的顶层键判断的，键带引号（`"storeDir"`、`'storeDir'`）或整份文件写成流式映射（`{ storeDir: … }`）都算已经写了。补上的那一行路径用双引号写；流式映射的文件无法追加一行，会按原有全部条目重写成普通写法（注释不保留）。这些改动只发生在复制出来的新 profile 上，源 profile 不动。文件不是合法的 YAML 映射时安装会停下并指出文件路径，文件保持原样。
 
-stage 自检包含官方 Web 启动审计、token 到 Cookie 的正常交换、准确 release/插件 boot graph、revisioned 同源插件资源 HTTP200、无 Cookie API401 和恶意 Host403。响应 Cookie / token 不写入报告。 自检在真实数据目录上短暂启动官方进程，为此附带一个只在自检生效的 `--patch` 覆盖层停用 `schedule` 条目（否则到期的定时提醒会在这几秒里被触发又被打断而丢失），并对这次运行关闭遥测；写入代际目录的 `self-test-overlay.yml` 只在自检使用，正常启动不带它。
+stage 自检包含官方 Web 启动审计、token 到 Cookie 的正常交换、准确 release/插件 boot graph、revisioned 同源插件资源 HTTP200、无 Cookie API401 和恶意 Host403。响应 Cookie / token 不写入报告。 自检在真实数据目录上短暂启动官方进程，为此附带一个只在自检生效的 `--patch` 覆盖层，停用配置里全部的官方调度器（`@deepseek-ai/dsh-schedule`）实例（否则到期的定时提醒会在这几秒里被触发又被打断而丢失），并对这次运行关闭遥测；写入代际目录的 `self-test-overlay.yml` 只在自检使用，正常启动不带它。覆盖层按合成后的配置生成：不论实例用的是默认的 `schedule` 还是别的 id、是否嵌在分组里，都会各写一行停用；写完再带着覆盖层合成一次，确认没有任何实例仍然启用。确认不了时自检不会启动，安装停下并保留原来的选择，包括这几种情况：调度实例没有 id、id 与别的条目重复、嵌在覆盖层够不到的位置，或者配置里有未停用的 `cordis:include` 行（合成结果不展开它引入的文件，看不到里面有没有调度实例）。
 
 按需执行以下命令中的一项（先读取 current.json；不是要求依次执行所有操作）：
 

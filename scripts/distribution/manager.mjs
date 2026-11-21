@@ -6,6 +6,7 @@ import { basename, delimiter, dirname, join, relative, resolve } from 'node:path
 import { fileURLToPath } from 'node:url'
 import { createHash, randomUUID } from 'node:crypto'
 import { createRequire } from 'node:module'
+import { isDeepStrictEqual } from 'node:util'
 import { checkIntegrity, snapshot, verifySnapshot } from './integrity.mjs'
 import { webSelfTest } from './web-self-test.mjs'
 import { dependencyInventory } from './dependency-inventory.mjs'
@@ -170,8 +171,12 @@ export function launchEnvironment(state) {
  * The installer installs with this store; the official plugin manager later runs pnpm from
  * the launch environment, which carries no npm_config_store_dir, so the workspace file is the
  * one place both agree on. A profile that already names a store keeps it.
+ * The key is looked up in the parsed top-level mapping (any quoting or flow style), and the file
+ * is only extended when the result parses back to the same entries plus the store; a file that
+ * cannot take an appended line (a flow mapping) is rewritten from its parsed entries.
+ * @param yaml the official backend's js-yaml.
  */
-export async function ensureProfileStore(profile, root) {
+export async function ensureProfileStore(profile, root, yaml) {
   const file = join(profile, 'pnpm-workspace.yaml')
   let text = ''
   try {
@@ -179,11 +184,38 @@ export async function ensureProfileStore(profile, root) {
   } catch (error) {
     if (error.code !== 'ENOENT') throw error
   }
-  if (/^storeDir\s*:/m.test(text)) return { pinned: false, file }
+  const parse = source => {
+    const value = yaml.load(source)
+    if (value === undefined || value === null) return {}
+    if (typeof value !== 'object' || Array.isArray(value)) throw new Error('its top level is not a mapping')
+    return value
+  }
+  let workspace
+  try {
+    workspace = parse(text)
+  } catch (error) {
+    throw new Error(`Cannot pin the pnpm store in ${file}: ${error.message.split('\n')[0]}`, { cause: error })
+  }
+  if (Object.hasOwn(workspace, 'storeDir')) return { pinned: false, file }
   const store = join(root, 'store')
   if (/[\r\n#]/.test(store)) throw new Error('Program root path cannot be written into pnpm-workspace.yaml')
-  await writeFile(file, `${text}${text && !text.endsWith('\n') ? '\n' : ''}storeDir: ${store}\n`)
-  return { pinned: true, file, store }
+  const expected = { ...workspace, storeDir: store }
+  const matches = source => {
+    try {
+      return isDeepStrictEqual(parse(source), expected)
+    } catch {
+      return false
+    }
+  }
+  const appended = `${text}${text && !text.endsWith('\n') ? '\n' : ''}storeDir: ${JSON.stringify(store)}\n`
+  if (matches(appended)) {
+    await writeFile(file, appended)
+    return { pinned: true, file, store }
+  }
+  const rewritten = yaml.dump(expected, { lineWidth: -1 })
+  if (!matches(rewritten)) throw new Error(`Cannot pin the pnpm store in ${file} without changing its other entries`)
+  await writeFile(file, rewritten)
+  return { pinned: true, file, store, rewritten: true }
 }
 function dsh(state, args, cwd = state.generation) {
   return run(state.node, [state.cli, ...args], { cwd, env: runtimeEnvironment(state), timeout: 180000 })
@@ -210,8 +242,46 @@ export async function privatePnpm(state) {
       { mode: 0o755 },
     )
 }
+/**
+ * POSIX `dsh-ui` takes the runtime from the committed selection on every start, as the Windows
+ * bridge does, so a failed upgrade (whose cleanup deletes its staged private Node) never leaves
+ * the root entry pointing at a deleted runtime, and rollback needs no launcher rewrite.
+ * `save` writes current.json with two-space indentation, so the selected runtime is the one
+ * `  "node": "..."` line; nested `node` keys are indented deeper. The path is read back verbatim,
+ * hence no JSON escapes in it.
+ */
+function posixLauncher(root, marker) {
+  const quote = value => `'${value.replaceAll("'", "'\\''")}'`
+  return `#!/bin/sh
+# ${marker}
+root=${quote(root)}
+if [ ! -f "$root/current.json" ]; then
+  echo 'Modern UI is not installed. Reinstall to recover retained data and profiles.' >&2
+  exit 1
+fi
+node=
+while IFS= read -r line || [ -n "$line" ]; do
+  case $line in
+    '  "node": "'*'",'|'  "node": "'*'"')
+      node=\${line#'  "node": "'}
+      node=\${node%,}
+      node=\${node%\\"}
+      break
+      ;;
+  esac
+done < "$root/current.json"
+if [ -z "$node" ]; then
+  echo "Modern UI selection $root/current.json names no runtime. Reinstall to recover retained data and profiles." >&2
+  exit 1
+fi
+exec "$node" "$root/launch.mjs" "$@"
+`
+}
 export async function installEntrypoint(state) {
   const marker = 'DSH Modern UI managed dispatcher'
+  // dsh-ui reads the path back from current.json verbatim, so it must need no JSON escape.
+  if (process.platform !== 'win32' && JSON.stringify(state.node) !== `"${state.node}"`)
+    throw new Error('The runtime path cannot contain double quotes, backslashes or control characters')
   await cp(here, join(state.generation, 'manager'), { recursive: true })
   state.manager = join(state.generation, 'manager', 'manager.mjs')
   const dispatcher = `// ${marker}\nimport { readFile } from 'node:fs/promises'\nimport { dirname, join } from 'node:path'\nimport { fileURLToPath, pathToFileURL } from 'node:url'\nconst root = dirname(fileURLToPath(import.meta.url))\nlet state\ntry { state = JSON.parse(await readFile(join(root, 'current.json'), 'utf8')) } catch (error) { if (error.code !== 'ENOENT') throw error; console.error('Modern UI is not installed. Reinstall to recover retained data and profiles.'); process.exit(1) }\nconst { main } = await import(pathToFileURL(state.manager).href)\nawait main(['launch', '--root', root, '--', ...process.argv.slice(2)])\n`
@@ -220,11 +290,7 @@ export async function installEntrypoint(state) {
     // ASCII wrappers let Windows use Unicode paths without a console code-page dependency.
     const powershell = windowsNodeBridge('current.json', "(Join-Path $PSScriptRoot 'launch.mjs')")
     files.push([join(state.root, 'launch.ps1'), powershell], [join(state.root, 'dsh-ui.cmd'), windowsCommandBridge('launch.ps1')])
-  } else
-    files.push([
-      join(state.root, 'dsh-ui'),
-      `#!/bin/sh\n# ${marker}\nexec '${state.node.replaceAll("'", "'\\''")}' '${join(state.root, 'launch.mjs').replaceAll("'", "'\\''")}' "$@"\n`,
-    ])
+  } else files.push([join(state.root, 'dsh-ui'), posixLauncher(state.root, marker)])
   for (const [path, content] of files) {
     if (existsSync(path)) {
       if (!(await readFile(path, 'utf8')).includes(marker)) throw new Error(`Refusing to replace an unrelated entrypoint ${path}`)
@@ -437,6 +503,7 @@ async function stage(state, options, bytes, previousReference) {
   const plugin = await json(join(generation, 'inspect-plugin', 'package', 'package.json'))
   verifyPluginCompatibility(plugin, state.compatibility)
   const profile = join(home, 'profiles', state.profile)
+  const backendRequire = createRequire(state.backend)
   const sourceName = options['from-profile'] ?? previous?.profile ?? (existsSync(join(home, 'profiles', 'web', 'package.json')) ? 'web' : undefined)
   if (sourceName !== undefined) {
     if (!/^[a-zA-Z0-9_-]+$/.test(sourceName)) throw new Error('Invalid source profile name')
@@ -445,14 +512,13 @@ async function stage(state, options, bytes, previousReference) {
     await cp(source, profile, { recursive: true, filter: path => relative(join(source, 'node_modules'), path) !== '' })
     state.sourceProfile = { name: sourceName, path: source, baseline: before }
     // Rehydrate dependencies into the new generation via the official profile manager.
-    state.profileStore = await ensureProfileStore(profile, root)
+    state.profileStore = await ensureProfileStore(profile, root, backendRequire('js-yaml'))
     dsh(state, ['plugin', '--profile', state.profile, 'install', '--ignore-scripts'])
   } else {
     dsh(state, [state.profile, '--from-default-profile', 'web', '--dump-config'])
-    state.profileStore = await ensureProfileStore(profile, root)
+    state.profileStore = await ensureProfileStore(profile, root, backendRequire('js-yaml'))
   }
   const originalEffective = dsh(state, [state.profile, '--dump-config'])
-  const backendRequire = createRequire(state.backend)
   state.ownerBindings = validateUiOwnerBindings(
     await readFile(join(generation, 'inspect-plugin', 'package', 'cordis.patch.yml'), 'utf8'),
     originalEffective,
