@@ -550,7 +550,7 @@ test('emptying an automatically restored draft keeps its text as an explicit bac
   }
 })
 
-test('reverse failures stay distinct in send order; discard releases only that message and teardown ignores stale settlements', async () => {
+test('consecutive failures stay distinct in send order; discard releases only that message and teardown ignores stale settlements', async () => {
   const { shell, sends, released } = shellFixture()
   shell.setDraft('first')
   shell.addAttachments(['A'])
@@ -559,9 +559,10 @@ test('reverse failures stay distinct in send order; discard releases only that m
   shell.addAttachments(['B'])
   shell.submit()
   shell.setDraft('working')
-  sends[1].reject(new Error('second failed'))
-  await tick()
+  assert.equal(sends.length, 1, 'the second message waits for the first admission')
   sends[0].reject(new Error('first failed'))
+  await tick()
+  sends[1].reject(new Error('second failed'))
   await tick()
   assert.deepEqual(
     shell.snapshot.failedSends.map(row => row.draft.text),
@@ -1007,6 +1008,164 @@ test('a rejected active-draft storage write leaves its backup visible and restor
     shell.dispose()
     Object.defineProperty(globalThis, 'localStorage', prior)
     storage.clear()
+  }
+})
+
+// A reference chip resolves through its owner asynchronously; this controller holds each resolution until the test settles it.
+function referenceTriggers() {
+  const pending = []
+  const lexicon = new Map()
+  const still = value => ({ getSnapshot: () => value, subscribe: () => () => {} })
+  return {
+    pending,
+    controller: {
+      launcher: still(null),
+      lexicon: still(lexicon),
+      track() {},
+      arbitrate: () => 'pass',
+      onSpace: () => false,
+      openReference: () => false,
+      resolveClaim: async () => undefined,
+      adjudicate: async () => undefined,
+      serializeReference(source, ref, signal) {
+        const result = deferred()
+        pending.push({ source, ref, signal, ...result })
+        return result.promise
+      },
+    },
+  }
+}
+const referenceDraft = (before, chip) => ({
+  text: `${before}${chip}`,
+  references: [{ source: 'file', ref: chip, offset: before.length, length: chip.length, label: chip, clipboardText: chip }],
+})
+async function settled(condition) {
+  for (let attempt = 0; attempt < 200; attempt++) {
+    if (condition()) return
+    await tick()
+  }
+  assert.fail('the controlled operation did not settle')
+}
+
+test('messages reach the Host in Enter order while an earlier one still resolves its reference', async () => {
+  const triggers = referenceTriggers()
+  const { shell, sends } = shellFixture({ inputTriggers: () => triggers.controller })
+  try {
+    shell.setDraft(referenceDraft('first ', '@notes'))
+    shell.submit()
+    assert.equal(shell.snapshot.draft, '', 'the composer is free for the next message at once')
+    shell.setDraft('second')
+    shell.submit()
+    shell.addAttachments(['C'])
+    shell.submit()
+    assert.equal(shell.snapshot.draft, '')
+    await tick()
+    assert.deepEqual(
+      sends.map(send => send.text),
+      [],
+      'nothing overtakes the first message',
+    )
+    triggers.pending[0].resolve('<notes>')
+    await settled(() => sends.length === 1)
+    assert.equal(sends[0].text, 'first <notes>')
+    await tick()
+    assert.equal(sends.length, 1, 'the second message waits for the first admission to settle')
+    sends[0].resolve({ kind: 'success' })
+    await settled(() => sends.length === 2)
+    assert.equal(sends[1].text, 'second')
+    sends[1].resolve({ kind: 'success' })
+    await settled(() => sends.length === 3)
+    assert.deepEqual([sends[2].text, sends[2].attachmentIds], ['', ['C']], 'an attachment-only message keeps its place too')
+    sends[2].resolve({ kind: 'success' })
+    await tick()
+    assert.deepEqual(shell.snapshot.failedSends, [])
+  } finally {
+    shell.dispose()
+  }
+})
+
+test('a message that fails before or at admission releases the next one and stays recoverable', async () => {
+  const triggers = referenceTriggers()
+  const { shell, sends } = shellFixture({ inputTriggers: () => triggers.controller })
+  try {
+    shell.setDraft(referenceDraft('first ', '@gone'))
+    shell.submit()
+    shell.setDraft('second')
+    shell.submit()
+    shell.setDraft('third')
+    shell.submit()
+    shell.setDraft('working')
+    triggers.pending[0].reject(new Error('reference owner missing'))
+    await settled(() => sends.length === 1)
+    assert.equal(sends[0].text, 'second')
+    sends[0].reject(new Error('offline'))
+    await settled(() => sends.length === 2)
+    assert.equal(sends[1].text, 'third')
+    sends[1].resolve({ kind: 'success' })
+    await tick()
+    assert.deepEqual(
+      shell.snapshot.failedSends.map(row => row.draft.text),
+      ['first @gone', 'second'],
+    )
+    assert.equal(shell.snapshot.draft, 'working')
+  } finally {
+    shell.dispose()
+  }
+})
+
+test('teardown keeps every message that never reached the Host as a recovery backup', async () => {
+  const triggers = referenceTriggers()
+  let stored = []
+  const { shell, sends } = shellFixture({ inputTriggers: () => triggers.controller, persistFailedSends: records => (stored = records) })
+  shell.setDraft(referenceDraft('unsent ', '@notes'))
+  shell.addAttachments(['A'])
+  shell.submit()
+  shell.setDraft('queued behind it')
+  shell.submit()
+  assert.deepEqual(shell.dispose(), ['A'])
+  assert.deepEqual(
+    stored.map(row => [row.draft.text, row.attachmentCount, row.missingAttachments, row.retrying]),
+    [
+      ['unsent @notes', 1, 1, undefined],
+      ['queued behind it', 0, 0, undefined],
+    ],
+  )
+  assert.equal(stored[0].draft.references.length, 1, 'the backup keeps the reference chip')
+  triggers.pending[0].resolve('<notes>')
+  await tick()
+  assert.equal(sends.length, 0, 'a disposed input sends nothing afterwards')
+})
+
+test('leaving the page stores queued messages as backups without disturbing them; a later admission clears the stored copy', async () => {
+  const triggers = referenceTriggers()
+  let stored = []
+  const { shell, sends } = shellFixture({ inputTriggers: () => triggers.controller, persistFailedSends: records => (stored = records) })
+  try {
+    shell.setDraft(referenceDraft('waiting ', '@notes'))
+    shell.submit()
+    shell.setDraft('queued behind it')
+    shell.submit()
+    shell.storeUnsentSends()
+    assert.deepEqual(
+      stored.map(row => row.draft.text),
+      ['waiting @notes', 'queued behind it'],
+    )
+    assert.deepEqual(shell.snapshot.failedSends, [], 'the live input still treats both as on their way')
+    triggers.pending[0].resolve('<notes>')
+    await settled(() => sends.length === 1)
+    shell.storeUnsentSends()
+    assert.deepEqual(
+      stored.map(row => row.draft.text),
+      ['queued behind it'],
+      'a message already handed to the Host is not backed up again',
+    )
+    sends[0].resolve({ kind: 'success' })
+    await settled(() => sends.length === 2)
+    sends[1].resolve({ kind: 'success' })
+    await tick()
+    assert.deepEqual(stored, [], 'the page survived, so the admitted messages leave no backup behind')
+  } finally {
+    shell.dispose()
   }
 })
 

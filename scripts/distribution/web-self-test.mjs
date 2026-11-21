@@ -1,6 +1,8 @@
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { writeFile } from 'node:fs/promises'
+import { createRequire } from 'node:module'
 import { join } from 'node:path'
+import { schemaFor } from './profile-settings.mjs'
 import { setTimeout as delay } from 'node:timers/promises'
 import { request } from 'node:http'
 
@@ -70,6 +72,90 @@ export function auditStartupOutput(raw) {
   return { skippedBundles: [...skippedBundles], unverified, problem }
 }
 
+const SCHEDULER = '@deepseek-ai/dsh-schedule'
+const INCLUDES = new Set(['cordis:include', '@deepseek-ai/cordis-plugin-include'])
+
+/** Every row with `name` anywhere in a composed tree, nested under any key. */
+function rowsNamed(value, names, found = [], seen = new Set()) {
+  if (!value || typeof value !== 'object' || seen.has(value)) return found
+  seen.add(value)
+  if (!Array.isArray(value) && names.has(value.name)) found.push(value)
+  for (const child of Array.isArray(value) ? value : Object.values(value)) rowsNamed(child, names, found, seen)
+  return found
+}
+
+/**
+ * Patch rows that disable every scheduler instance of a composed profile, or a refusal.
+ * An overlay row reaches an entry only by id, through top-level rows and `group` children
+ * (the include plugin's `applyEntryPatches`); a scheduler anywhere else, without an id, or
+ * sharing its id, cannot be disabled, and an active include hides rows the dump does not show.
+ */
+export function schedulerOverlay(composedYaml, yaml) {
+  const composed = yaml.load(composedYaml, { schema: schemaFor(yaml) })
+  if (!Array.isArray(composed)) throw new Error('The composed profile is not an entry list')
+  // The same rows the patch algorithm indexes by id.
+  const indexed = []
+  const visit = rows => {
+    for (const row of rows) {
+      if (!row || typeof row !== 'object') continue
+      indexed.push(row)
+      if (row.group && Array.isArray(row.config)) visit(row.config)
+    }
+  }
+  visit(composed)
+  const all = rowsNamed(composed, new Set([SCHEDULER]))
+  for (const row of all) {
+    const where = typeof row.id === 'string' && row.id ? `instance ${row.id}` : 'an instance without an id'
+    if (!indexed.includes(row)) throw new Error(`${where} is nested where a patch cannot reach it`)
+    if (typeof row.id !== 'string' || !row.id) throw new Error(`${where} cannot be patched`)
+    if (indexed.filter(other => other.id === row.id).length !== 1) throw new Error(`${where} shares its id with another entry`)
+  }
+  const include = rowsNamed(composed, INCLUDES).find(row => row.disabled !== true)
+  if (include) throw new Error(`include ${include.id ?? '(no id)'} loads entries the composed profile does not show`)
+  return all.map(row => ({ id: row.id, name: SCHEDULER, disabled: true }))
+}
+
+/** Throw unless every scheduler instance in the composed profile is literally disabled. */
+export function assertSchedulersDisabled(composedYaml, yaml) {
+  const composed = yaml.load(composedYaml, { schema: schemaFor(yaml) })
+  const active = rowsNamed(composed, new Set([SCHEDULER])).filter(row => row.disabled !== true)
+  if (active.length) throw new Error(`instance ${active.map(row => row.id ?? '(no id)').join(', ')} is still enabled with the self-test overlay`)
+}
+
+function composeProfile(state, env, patches) {
+  const args = [state.cli, '--profile', state.profile, ...patches.flatMap(patch => ['--patch', patch]), '--dump-config']
+  const result = spawnSync(state.node, args, {
+    cwd: state.generation,
+    env: { ...env, DSH_TELEMETRY_DISABLED: '1' },
+    encoding: 'utf8',
+    timeout: 180000,
+    windowsHide: true,
+  })
+  if (result.error || result.status !== 0) throw new Error(`dsh --dump-config failed: ${result.error?.message ?? result.stderr.trim()}`)
+  return result.stdout
+}
+
+/**
+ * Write the self-test overlay from the composed profile and prove, by composing again with it,
+ * that no scheduler instance is left running against the real data home.
+ */
+async function writeSchedulerOverlay(state, env, overlay) {
+  const yaml = createRequire(state.backend)('js-yaml')
+  try {
+    const rows = schedulerOverlay(composeProfile(state, env, []), yaml)
+    await writeFile(
+      overlay,
+      `# Written by the Modern UI installer for its startup self-test only.\n${rows.length ? yaml.dump(rows, { lineWidth: -1 }) : '[]\n'}`,
+    )
+    assertSchedulersDisabled(composeProfile(state, env, [overlay]), yaml)
+  } catch (error) {
+    throw new Error(
+      `The installation self-test was not started because it boots the real data home and could not keep every ${SCHEDULER} scheduler off: ${error.message}. No reminder was delivered; the previous selection is retained`,
+      { cause: error },
+    )
+  }
+}
+
 // The official URL is announced before the Loader startup audit. A listening port alone
 // does not prove that the Modern UI Host plugin activated (schema failures can be nonfatal).
 export async function webSelfTest(state, env) {
@@ -77,15 +163,12 @@ export async function webSelfTest(state, env) {
   const started = performance.now()
   let readyAt
   let readyElapsedMs
-  // The self-test boots the real data home for a few seconds. Without this overlay the official
-  // scheduler would start any reminder that is already due and the SIGTERM below would cut that
-  // turn short, losing it; telemetry stays off for the same throwaway run. Everything else is the
-  // profile exactly as it will launch.
+  // The self-test boots the real data home for a few seconds. Without this overlay an official
+  // scheduler instance (under any id) would start any reminder that is already due and the SIGTERM
+  // below would cut that turn short, losing it; telemetry stays off for the same throwaway run.
+  // Everything else is the profile exactly as it will launch.
   const overlay = join(state.generation, 'self-test-overlay.yml')
-  await writeFile(
-    overlay,
-    "# Written by the Modern UI installer for its startup self-test only.\n- id: schedule\n  name: '@deepseek-ai/dsh-schedule'\n  disabled: true\n",
-  )
+  await writeSchedulerOverlay(state, env, overlay)
   const child = spawn(state.node, [state.cli, '--profile', state.profile, '--patch', overlay, '--no-open', '--host', '127.0.0.1', '--port', '0'], {
     cwd: state.generation,
     env: { ...env, DSH_TELEMETRY_DISABLED: '1' },

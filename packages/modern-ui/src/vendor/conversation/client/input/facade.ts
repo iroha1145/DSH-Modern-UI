@@ -51,6 +51,12 @@ export interface SessionInputDeps {
   submissionState?: () => MessageSubmissionState
   /** Notify one ordinary message attempt before reference serialization. */
   messageSubmitted?: (submission: MessageSubmission) => void
+  /**
+   * Keep this input's Session scope alive for one unsettled ordinary send, so leaving the
+   * Session cannot dispose the input before the Host answers.
+   * @returns the release, or undefined when the scope is already gone.
+   */
+  holdSession?: () => (() => void) | undefined
   /** Enter adjudication face resolver; absent/undefined answer = every '/' line falls to the default sink. */
   inputTriggers?: (() => InputTriggerController | undefined) | undefined
   /** PopupSelect shell face resolver (dismissal on submit lock / escape). */
@@ -121,7 +127,12 @@ interface DetachedDraft {
   readonly quotes: readonly DraftQuote[]
   readonly attachmentIds: readonly DraftAttachmentId[]
   restoreEpoch?: number
+  /** Set once the message is handed to the default sink; before that the Host cannot have received it. */
+  handedOff?: boolean
 }
+
+/** Outcome of a Workspace draft handoff: moved, refused while a submit is in flight, or refused by an existing target draft. */
+export type DraftTransferResult = 'moved' | 'locked' | 'occupied'
 
 /**
  * The per-session input facade: scoped-event application verbs +
@@ -190,7 +201,10 @@ export class SessionInputShell implements SessionInput {
     readonly controller: AbortController
     readonly attachmentIds: readonly DraftAttachmentId[]
     readonly recoveryId: number
+    handedOff?: boolean
   }>()
+  /** Settlement of the latest ordinary send still unsettled; the next one starts after it. */
+  private sendTail: Promise<void> | undefined
 
   private readonly unsubscribeInbox: (() => void) | undefined
 
@@ -472,20 +486,25 @@ export class SessionInputShell implements SessionInput {
         this.commitSend(attachmentIds)
         const record: DetachedDraft = { recoveryId, draft: '', occurrences: [], quotes: [], attachmentIds, restoreEpoch: this.editEpoch }
         this.notifySubmission(submission)
-        void this.deps.defaultSink('', attachmentIds, mode, controller.signal).then((outcome) => {
-          if (this.disposed || !this.attachmentFlights.delete(flight)) return
-          if (outcome.kind === 'success') {
-            this.failedDetached.delete(recoveryId)
-            this.persistFailures()
-            this.publish()
-            return
-          }
-          this.retainFailedSend(record)
-          if (outcome.text !== undefined) this.notify('error', outcome.text)
-        }, (error: unknown) => {
-          if (this.disposed || !this.attachmentFlights.delete(flight)) return
-          this.retainFailedSend(record)
-          this.notify('error', error instanceof Error ? error.message : String(error))
+        this.enqueueSend(() => {
+          const pending = this.attachmentFlights.get(flight)
+          if (this.disposed || pending === undefined) return undefined
+          pending.handedOff = true
+          return this.sinkOutcome('', attachmentIds, mode, controller.signal).then((outcome) => {
+            if (this.disposed || !this.attachmentFlights.delete(flight)) return
+            if (outcome.kind === 'success') {
+              this.failedDetached.delete(recoveryId)
+              this.persistFailures()
+              this.publish()
+              return
+            }
+            this.retainFailedSend(record)
+            if (outcome.text !== undefined) this.notify('error', outcome.text)
+          }, (error: unknown) => {
+            if (this.disposed || !this.attachmentFlights.delete(flight)) return
+            this.retainFailedSend(record)
+            this.notify('error', error instanceof Error ? error.message : String(error))
+          })
         })
       }
       return
@@ -690,6 +709,7 @@ export class SessionInputShell implements SessionInput {
       for (const attachmentId of flight.attachmentIds) retained.add(attachmentId)
       flight.controller.abort()
     }
+    this.keepUnsentSends()
     this.disposed = true
     this.cancelCommandRestore()
     this.dispatchRun(({ type: 'release' }))
@@ -699,6 +719,54 @@ export class SessionInputShell implements SessionInput {
     this.failedDetached.clear()
     this.attachmentFlights.clear()
     return [...retained]
+  }
+
+  /**
+   * Backups for every send not yet handed to the Host (still resolving references, or queued
+   * behind an earlier message): none of them can have been delivered. A send already handed over
+   * is left out, because the Host may have accepted it and a backup would invite a duplicate.
+   * Runtime attachments do not outlive this input, so each backup reports all of its own missing.
+   */
+  private unsentBackups(): FailedInputSend[] {
+    const unsent: DetachedDraft[] = [...this.detachedDrafts.values()].filter(record => record.handedOff !== true)
+    for (const flight of this.attachmentFlights.values()) {
+      if (flight.handedOff === true) continue
+      unsent.push({ recoveryId: flight.recoveryId, draft: '', occurrences: [], quotes: [], attachmentIds: flight.attachmentIds })
+    }
+    return unsent.map((record) => {
+      const id = record.recoveryId
+      const attachmentCount = Math.max(record.attachmentIds.length, this.failedDetached.get(id)?.value.attachmentCount ?? 0)
+      return {
+        id, draft: snapshotDraft(record.draft, record.occurrences, undefined, record.quotes),
+        attachmentCount, missingAttachments: attachmentCount,
+      }
+    })
+  }
+
+  /** Teardown: every send that never reached the Host becomes a stored recovery backup. */
+  private keepUnsentSends(): void {
+    const backups = this.unsentBackups()
+    if (backups.length === 0) return
+    // Nothing is retrying any more; cleared first so the stored rows do not claim otherwise.
+    this.detachedDrafts.clear()
+    this.attachmentFlights.clear()
+    for (const value of backups) this.failedDetached.set(value.id, { attachmentIds: [], value })
+    this.persistFailures()
+  }
+
+  /**
+   * The page is going away while sends still wait their turn: store their backups without
+   * touching live state. If the page survives (back/forward cache), each send's own settlement
+   * rewrites the stored list; if it does not, the messages are recoverable on the next visit.
+   */
+  storeUnsentSends(): void {
+    if (this.disposed) return
+    const backups = this.unsentBackups()
+    if (backups.length === 0) return
+    const pending = new Set(backups.map(value => value.id))
+    this.deps.persistFailedSends?.(
+      [...this.failedSends().filter(value => !pending.has(value.id)), ...backups].sort((a, b) => a.id - b.id),
+    )
   }
 
   /** Read the live input state (guard derivation reads here). */
@@ -721,37 +789,30 @@ export class SessionInputShell implements SessionInput {
   /**
    * Move the active document through the package's Workspace wiring. The target
    * must finish admission before the source relinquishes any runtime objects.
-   * Failed-message text backups stay in their original Session, without owning
-   * attachments that the target now owns.
+   * A target that already holds text, references, quotes, or attachments is a
+   * conflict and nothing moves: replacing its document would lose that message,
+   * and pooling attachments would mix two messages. Failed-message text backups
+   * stay in their original Session, without owning attachments that the target
+   * now owns.
    */
-  transferDraftTo(target: SessionInputShell, acceptAttachments: (ids: readonly DraftAttachmentId[]) => void): boolean {
-    if (target === this) return true
+  transferDraftTo(target: SessionInputShell, acceptAttachments: (ids: readonly DraftAttachmentId[]) => void): DraftTransferResult {
+    if (target === this) return 'moved'
     const locked = (shell: SessionInputShell): boolean => shell.disposed
       || shell.snapshot.phase === 'adjudicating' || shell.snapshot.phase === 'submitting'
-    if (locked(this) || locked(target)) return false
+    if (locked(this) || locked(target)) return 'locked'
     const draft = this.draftSnapshot
     const ids = this.attachmentIds
-    if (draft.text === '' && ids.length === 0) return true
-    const previousDraft = target.draftSnapshot
-    const previousIds = target.attachmentIds
+    if (draft.text === '' && ids.length === 0) return 'moved'
+    if (target.projection.clipboardText !== '' || target.attachmentIds.length > 0) return 'occupied'
     try {
-      target.attachmentIds = [...previousIds, ...ids]
+      target.attachmentIds = [...ids]
       if (draft.text !== '') target.setDraft(draft)
       acceptAttachments(ids)
     } catch (error: unknown) {
-      target.attachmentIds = previousIds
-      target.setDraft(previousDraft)
+      target.attachmentIds = []
+      target.setDraft('')
       target.publish()
       throw error
-    }
-    // Replacing a target draft must not make its older recovery backup belong
-    // to the incoming message. Its text remains explicitly recoverable.
-    if (draft.text !== '' && target.restoredRecordId !== undefined) {
-      const id = target.restoredRecordId
-      const record = target.failedDetached.get(id)
-      if (record !== undefined) target.failedDetached.set(id, { ...record, value: { ...record.value, restored: false } })
-      target.restoredRecordId = undefined
-      target.persistFailures()
     }
     const transferred = new Set(ids)
     this.attachmentIds = this.attachmentIds.filter(id => !transferred.has(id))
@@ -771,7 +832,7 @@ export class SessionInputShell implements SessionInput {
     this.persistFailures()
     this.publish()
     target.publish()
-    return true
+    return 'moved'
   }
 
   /**
@@ -866,7 +927,8 @@ export class SessionInputShell implements SessionInput {
    * Prompt serialization before the sink: expand each chip occurrence to its
    * owner's model form via the session controller's codec routing. Owner
    * missing or serialization failure rejects the detached send and restores
-   * its editor snapshot. Chip-free drafts skip the async detour.
+   * its editor snapshot. Serialization starts at Enter; the hand-off to the
+   * sink takes its turn in Enter order.
    */
   private sinkSerialized(
     attempt: SubmitAttempt,
@@ -885,15 +947,56 @@ export class SessionInputShell implements SessionInput {
       if (inputTriggers === undefined) throw new Error(`no serializer for reference source "${source}"`)
       return inputTriggers.serializeReference(source, ref, attempt.signal)
     })
-    const send = (text: string): void => {
-      if (this.dead(attempt)) return
-      this.settleSink(attempt, this.deps.defaultSink(text, attachmentIds, mode, attempt.signal))
+    const send = (text: string): Promise<void> | undefined => {
+      if (this.dead(attempt)) return undefined
+      record.handedOff = true
+      return this.settleSink(attempt, this.sinkOutcome(text, attachmentIds, mode, attempt.signal))
     }
-    if (!(prompt instanceof Promise)) { send(prompt); return }
-    void prompt.then(send, (error: unknown) => {
-      if (this.dead(attempt)) return
-      this.settleDetachedFailure(attempt, error instanceof Error ? error.message : String(error))
+    this.enqueueSend(() => {
+      if (!(prompt instanceof Promise)) return send(prompt)
+      return prompt.then(send, (error: unknown) => {
+        if (this.dead(attempt)) return
+        this.settleDetachedFailure(attempt, error instanceof Error ? error.message : String(error))
+      })
     })
+  }
+
+  /**
+   * Start one ordinary send once every earlier one has settled, so the Host admits a Session's
+   * messages in Enter order whatever each needs first (reference resolution, image encoding).
+   * Settlement is Host admission, never the end of the model's turn, and a failed message frees
+   * the next. With nothing ahead the send starts synchronously, inside the Enter gesture.
+   * @param start - begins the send; resolves once its outcome is recorded, undefined when there is nothing to wait for.
+   */
+  private enqueueSend(start: () => Promise<void> | undefined): void {
+    const release = this.deps.holdSession?.()
+    const ahead = this.sendTail
+    const done = (): void => {}
+    const started = ahead === undefined ? start() : ahead.then(start)
+    if (started === undefined) {
+      release?.()
+      return
+    }
+    const settled = started.then(done, done)
+    this.sendTail = settled
+    void settled.then(() => {
+      if (this.sendTail === settled) this.sendTail = undefined
+      release?.()
+    })
+  }
+
+  /** Call the default sink; a synchronous failure is that send's rejection, not an exception in the Enter gesture or a silent drop in the queue. */
+  private sinkOutcome(
+    text: string,
+    attachmentIds: readonly DraftAttachmentId[],
+    mode: InputSubmitMode,
+    signal: AbortSignal,
+  ): Promise<SubmitOutcome> {
+    try {
+      return this.deps.defaultSink(text, attachmentIds, mode, signal)
+    } catch (error: unknown) {
+      return Promise.reject(error)
+    }
   }
 
   private notifySubmission(submission: MessageSubmission | undefined): void {
@@ -901,12 +1004,15 @@ export class SessionInputShell implements SessionInput {
     try { this.deps.messageSubmitted?.(submission) } catch (_error) { /* Notification consumers cannot interrupt submission. */ }
   }
 
-  /** Settle one detached default send independently of other sends. */
+  /**
+   * Settle one detached default send independently of other sends.
+   * @returns resolves once the outcome is recorded.
+   */
   private settleSink(
     attempt: SubmitAttempt,
     pending: Promise<SubmitOutcome>,
-  ): void {
-    pending.then(
+  ): Promise<void> {
+    return pending.then(
       (outcome) => {
         if (this.dead(attempt)) return
         if (outcome.kind !== 'success') {

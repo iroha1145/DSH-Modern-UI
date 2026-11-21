@@ -319,13 +319,14 @@ test('scatter table retains point names shared with tooltips and numeric series'
     assert.deepEqual(await page.locator('table thead th').allTextContents(), ['name', 'x', 'y', 'z'])
     assert.deepEqual(await page.locator('table tbody th').allTextContents(), ['Store A', 'Store B'])
     assert.deepEqual(await page.locator('table tbody tr').first().locator('td').allTextContents(), ['1,0001', '2 €', '0,000005 €'])
-    assert.ok((await page.locator('table tbody tr').last().textContent()).includes('0 €'))
+    // Store B has no z value: the table reads it as no data and the plot leaves the point out instead of drawing 0.
+    assert.deepEqual(await page.locator('table tbody tr').last().locator('td').allTextContents(), ['1,0001', '2 €', '\u2014'])
     const circles = page.locator('.iui-chart-plot circle')
+    assert.equal(await circles.count(), 3)
     for (const [index, name] of [
       [0, 'Store A'],
       [1, 'Store B'],
       [2, 'Store A'],
-      [3, 'Store B'],
     ]) {
       await circles.nth(index).dispatchEvent('pointerover')
       await page.waitForFunction(expected => document.querySelector('.iui-chart-tooltip strong')?.textContent === expected, name)

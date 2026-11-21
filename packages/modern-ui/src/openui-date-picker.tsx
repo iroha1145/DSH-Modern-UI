@@ -84,6 +84,31 @@ export function OpenUiDatePicker({
       setFocused(day)
     }
   }, [value])
+  // The bound value must stay inside [min, max]: a date the bounds now exclude is cleared (the typed text stays,
+  // flagged invalid), and a date the bounds again admit is bound again, so forms and formulas never read an
+  // out-of-range date. Unparseable values (still streaming in) are left alone.
+  const bounds = useRef({ low, high, value })
+  const change = useRef(onChange)
+  change.current = onChange
+  useEffect(() => {
+    const previous = bounds.current
+    bounds.current = { low, high, value }
+    const day = parse(value)
+    if (day !== null && (day < low || day > high)) {
+      emitted.current = ''
+      setTouched(true)
+      change.current('')
+      return
+    }
+    // Only a change of bounds restores the typed date; an outside change of the value wins over stale text.
+    if (value === '' && previous.value === '' && (previous.low !== low || previous.high !== high)) {
+      const typed = parse(draft)
+      if (typed !== null && typed >= low && typed <= high) {
+        emitted.current = draft
+        change.current(draft)
+      }
+    }
+  }, [value, low, high, draft])
   useEffect(() => {
     if (!open) return
     const day = Math.max(low, Math.min(high, focused))

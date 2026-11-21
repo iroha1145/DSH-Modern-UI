@@ -44,6 +44,68 @@ const numberText = (value: number, step: number, min: number, locale: string) =>
   return value !== 0 && /^-?0$/.test(text) ? value.toLocaleString(locale, { maximumSignificantDigits: 2 }) : text;
 };
 
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** The decimal mark, grouping mark and digits a locale writes numbers with. */
+function numberMarks(locale: string) {
+  let parts: Intl.NumberFormatPart[];
+  let digits: string[];
+  try {
+    const format = new Intl.NumberFormat(locale, { useGrouping: true, minimumGroupingDigits: 1 } as Intl.NumberFormatOptions);
+    parts = format.formatToParts(-1234567.5);
+    digits = Array.from({ length: 10 }, (_, n) => new Intl.NumberFormat(locale, { useGrouping: false }).format(n));
+  } catch {
+    parts = new Intl.NumberFormat("en-US").formatToParts(-1234567.5);
+    digits = Array.from({ length: 10 }, (_, n) => String(n));
+  }
+  const mark = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
+  // Spaces and apostrophes are interchangeable ways of writing the same grouping mark.
+  let group = mark("group");
+  if (/^[\s\u00a0\u202f]$/.test(group)) group = " ";
+  const groups = group === " " ? " \u00a0\u202f" : /^['\u2019\u02bc]$/.test(group) ? "'\u2019\u02bc" : group;
+  return { decimal: mark("decimal") || ".", groups, digits, minus: mark("minusSign") || "-" };
+}
+
+/**
+ * Reads a number the way the interface locale writes it: "1,5" in German is 1.5 and "1.500" is 1500, while
+ * "1,500" in English is 1500. Where the locale's decimal mark is not a point, a plain point decimal that the
+ * locale cannot read as grouping ("1.5" in German or French, as typed on many keyboards and pasted from code)
+ * is still that decimal. Returns "" for no number at all (empty or only grouping marks) and null for text that
+ * cannot be read unambiguously, such as "1,5" in English.
+ */
+export function parseLocaleNumber(text: string, locale: string): number | "" | null {
+  const { decimal, groups, digits, minus } = numberMarks(locale);
+  const ascii = Array.from(text.trim())
+    .map((character) => {
+      const digit = digits.indexOf(character);
+      return digit >= 0 ? String(digit) : character === minus || character === "\u2212" ? "-" : character;
+    })
+    .join("");
+  const set = groups ? `[${escapeRegExp(groups)}]` : null;
+  if (ascii === "" || (set && new RegExp(`^${set}+$`).test(ascii))) return "";
+  const point = escapeRegExp(decimal);
+  const whole = set ? `(?:\\d{1,3}(?:${set}\\d{3})+|\\d+)` : "\\d+";
+  const match = new RegExp(`^([+-]?)(${whole}?)(?:${point}(\\d*))?(?:[eE]([+-]?\\d+))?$`).exec(ascii);
+  if (!match) {
+    if (decimal === "." || !/^[+-]?\d*\.\d+(?:[eE][+-]?\d+)?$/.test(ascii)) return null;
+    const value = Number(ascii);
+    return Number.isFinite(value) ? value : null;
+  }
+  const [, sign, integer, fraction = "", exponent] = match;
+  if (integer === "" && fraction === "") return null;
+  const value = Number(`${sign}${integer.replace(/\D/g, "") || "0"}${fraction ? `.${fraction}` : ""}${exponent ? `e${exponent}` : ""}`);
+  return Number.isFinite(value) ? value : null;
+}
+
+/**
+ * A number as a field shows it: exactly the digits a plain string shows (so 0.1 stays "0.1" in every engine and
+ * the text reads back to the same number), with the locale's decimal mark and no grouping.
+ */
+function fieldNumberText(value: number, locale: string) {
+  const { decimal } = numberMarks(locale);
+  return decimal === "." ? String(value) : String(value).replace(".", decimal);
+}
+
 /**
  * The value a range input keeps, as browsers sanitize it: clamped to the bounds, then the nearest min + k·step
  * (a tie goes up), never past max.
@@ -219,9 +281,11 @@ export const Input = defineComponent({
   component: function InputView({ props, statementId }) {
     const field = useField(props.label, statementId, props.value, fieldScalar);
     const numeric = props.type === "number";
+    const locale = useUiLocale();
     // A number field shows what is typed ("1." or "-") until it parses.
     const [draft, setDraft] = useState<string | null>(null);
-    const shown = draft ?? String(fieldScalar(field.value));
+    const current = fieldScalar(field.value);
+    const shown = draft ?? (numeric && typeof current === "number" ? fieldNumberText(current, locale) : String(current));
     return (
       <Field label={props.label}>
         <input
@@ -235,11 +299,12 @@ export const Input = defineComponent({
             const text = event.target.value;
             if (!numeric) return field.setValue(text);
             setDraft(text);
-            const plain = text.replace(/,/g, "").trim();
+            const parsed = parseLocaleNumber(text, locale);
             // Cleared (or only separators): a $variable becomes null; a literal field stores "", since an empty
-            // stored value would show its default again.
-            if (plain === "") field.setValue((field.isReactive ? null : "") as unknown as number);
-            else if (Number.isFinite(Number(plain))) field.setValue(Number(plain));
+            // stored value would show its default again. Text that is no unambiguous number in this language
+            // ("1,5" in English) keeps the stored value, like any other text that is not a number.
+            if (parsed === "") field.setValue((field.isReactive ? null : "") as unknown as number);
+            else if (parsed !== null) field.setValue(parsed);
           }}
           onBlur={() => setDraft(null)}
         />

@@ -32,7 +32,7 @@
       "source": "src/lib/components/chart.tsx",
       "target": "src/vendor/openui/components/chart.tsx",
       "sourceSha256": "61a270bc9aa80ead37631c90ea525052f60482ff904544b7d32cbd2d0e60bef3",
-      "targetSha256": "0f8417f0717c31037adc3a02eaf5c51e7bdc810c17833918f087d5f152add840",
+      "targetSha256": "5ada543d1e498600d645fed06455aa01061ebde1f4ab20db695911782f6213cf",
       "adapted": true
     },
     {
@@ -46,7 +46,7 @@
       "source": "src/lib/components/controls.tsx",
       "target": "src/vendor/openui/components/controls.tsx",
       "sourceSha256": "3a372d84ff59b02136eb1c78d72080b6b7ce41387b55bd455b8e757095414762",
-      "targetSha256": "5c0e72d3da24f3a44a7b04707e72d0eff83fd74dd295526e218427a3218a655a",
+      "targetSha256": "ff9bc5854e9dd213c9191f201b1eb239ed00a397f02c8242d6ec98350a32382f",
       "adapted": true
     },
     {

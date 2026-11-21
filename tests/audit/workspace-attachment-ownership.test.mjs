@@ -140,6 +140,20 @@ async function until(condition) {
 
 function fixture() {
   localStorage.clear()
+  // Reference chips resolve through this controller only when a test settles them.
+  const references = []
+  const still = value => ({ getSnapshot: () => value, subscribe: () => () => {} })
+  const triggers = {
+    launcher: still(null),
+    lexicon: still(new Map()),
+    track() {},
+    arbitrate: () => 'pass',
+    onSpace: () => false,
+    openReference: () => false,
+    resolveClaim: async () => undefined,
+    adjudicate: async () => undefined,
+    serializeReference: (source, ref, signal) => new Promise((resolve, reject) => references.push({ source, ref, signal, resolve, reject })),
+  }
   const nativeCreate = URL.createObjectURL,
     nativeRevoke = URL.revokeObjectURL
   const created = [],
@@ -276,6 +290,7 @@ function fixture() {
     },
   }
   rootServices.set('sessions', sessions)
+  rootServices.set('inputTriggers', { sessionOf: () => triggers })
   const panel = createSnapshotStore({ activePanelId: null })
   ctx.layout = new LayoutController({ selectPanel: id => panel.set({ activePanelId: id }) }, () => true, panel)
   ctx.locale = { bind: () => key => key }
@@ -337,6 +352,8 @@ function fixture() {
     revoked,
     uploads,
     prompts,
+    references,
+    reply,
     image,
     fail,
     shell,
@@ -559,12 +576,11 @@ test('a busy transfer target rejects navigation without releasing the source res
   }
 })
 
-test('target rebind failure rolls back its active draft and recovery identity while preserving source image and file ownership', async () => {
+test('target rebind failure leaves the target empty while preserving source image and file ownership', async () => {
   const f = fixture()
   const hold = f.sessions.retain('B', { source: 'sidePanel' })
   try {
-    const existing = f.image('B', 'target.png'),
-      target = await f.fail('B', 'target recovery', [existing])
+    const target = f.shell('B')
     const image = f.image('A', 'source.png')
     const file = f.conversation.createDrafts('A', [new File(['notes'], 'notes.txt', { type: 'text/plain' })])[0]
     await until(() => f.conversation.fileUploads.getSnapshot()[file.id]?.status === 'ready')
@@ -576,13 +592,12 @@ test('target rebind failure rolls back its active draft and recovery identity wh
     }
     await assert.rejects(f.selectWorkspace('A')('B'), /controlled rebind failure/)
     await until(() => f.conversation.fileUploads.getSnapshot()[file.id]?.status === 'ready')
-    assert.equal(target.snapshot.draft, 'target recovery')
-    assert.deepEqual(target.snapshot.attachmentIds, [existing.id])
-    assert.equal(target.snapshot.failedSends[0].restored, true)
+    assert.equal(target.snapshot.draft, '')
+    assert.deepEqual(target.snapshot.attachmentIds, [])
     assert.equal(source.snapshot.draft, 'source recovery')
     assert.deepEqual(source.snapshot.attachmentIds, [image.id, file.id])
     assert.equal(source.snapshot.failedSends[0].missingAttachments, 0)
-    assert.equal(f.conversation.resolveDraftAttachments([image.id, file.id, existing.id]).length, 3)
+    assert.equal(f.conversation.resolveDraftAttachments([image.id, file.id]).length, 2)
     assert.ok(f.conversation.fileUploads.getSnapshot()[file.id].receiptId.startsWith('A:receipt:'))
     assert.equal(f.revoked.length, 0)
   } finally {
@@ -591,26 +606,138 @@ test('target rebind failure rolls back its active draft and recovery identity wh
   }
 })
 
-test('accepted transfer detaches an existing target recovery identity from the incoming document', async () => {
+test('a target already holding a restored failed message refuses the transfer, so neither message replaces the other', async () => {
   const f = fixture()
   const hold = f.sessions.retain('B', { source: 'sidePanel' })
   try {
     const old = f.image('B', 'target.png'),
       target = await f.fail('B', 'target older failure', [old])
-    const oldId = target.snapshot.failedSends[0].id
-    const moved = f.image('A', 'source.png')
-    await f.fail('A', 'incoming source failure', [moved])
-    await f.selectWorkspace('A')('B')
+    const moved = f.image('A', 'source.png'),
+      source = await f.fail('A', 'incoming source failure', [moved])
+    await assert.rejects(f.selectWorkspace('A')('B'), /already holds a draft/)
     await f.drain()
-    assert.equal(target.snapshot.draft, 'incoming source failure')
-    assert.equal(target.snapshot.failedSends.find(record => record.id === oldId).restored, false)
-    const count = f.prompts.length
-    target.submit()
-    await until(() => f.prompts.length === count + 1)
-    assert.equal(target.snapshot.failedSends.find(record => record.id === oldId).draft.text, 'target older failure')
-    assert.equal(target.snapshot.failedSends.find(record => record.id === oldId).retrying, undefined)
+    assert.equal(target.snapshot.draft, 'target older failure')
+    assert.deepEqual(target.snapshot.attachmentIds, [old.id])
+    assert.equal(target.snapshot.failedSends[0].restored, true)
+    assert.equal(source.snapshot.draft, 'incoming source failure')
+    assert.deepEqual(source.snapshot.attachmentIds, [moved.id])
+    assert.equal(source.snapshot.failedSends[0].missingAttachments, 0)
+    assert.equal(f.revoked.length, 0)
   } finally {
     hold.release()
     await f.close()
   }
 })
+
+test('the Hero workspace selector keeps both drafts when the target workspace already holds one', async () => {
+  const f = fixture()
+  const hold = f.sessions.retain('A', { source: 'sidePanel' })
+  try {
+    const first = f.shell('A'),
+      firstImage = f.image('A', 'first.png')
+    first.setDraft('draft written in A')
+    first.addAttachments([firstImage.id])
+    f.navigation.openSession('B')
+    const second = f.shell('B'),
+      secondImage = f.image('B', 'second.png')
+    second.setDraft('draft written in B')
+    second.addAttachments([secondImage.id])
+    await assert.rejects(f.selectWorkspace('B')('A'), /already holds a draft/)
+    await f.drain()
+    assert.equal(first.snapshot.draft, 'draft written in A')
+    assert.deepEqual(first.snapshot.attachmentIds, [firstImage.id], 'attachments of the two drafts are not pooled')
+    assert.equal(f.sessions.binding('B')?.sessionId, 'B', 'the user stays where the newer draft is')
+    assert.equal(second.snapshot.draft, 'draft written in B')
+    assert.deepEqual(second.snapshot.attachmentIds, [secondImage.id])
+    assert.deepEqual([second.notices.getSnapshot()?.level, second.notices.getSnapshot()?.text], ['error', 'input.draftTransferConflict'])
+    assert.equal(f.conversation.resolveDraftAttachments([firstImage.id, secondImage.id]).length, 2)
+    assert.equal(f.revoked.length, 0)
+    assert.deepEqual(first.snapshot.failedSends, [])
+    // Once the older draft is out of the way the same gesture carries the newer one across.
+    first.setDraft('')
+    first.removeAttachment(firstImage.id)
+    await f.selectWorkspace('B')('A')
+    await f.drain()
+    assert.equal(first.snapshot.draft, 'draft written in B')
+    assert.deepEqual(first.snapshot.attachmentIds, [secondImage.id])
+  } finally {
+    hold.release()
+    await f.close()
+  }
+})
+
+const referenceDraft = (before, chip) => ({
+  text: `${before}${chip}`,
+  references: [{ source: 'file', ref: chip, offset: before.length, length: chip.length, label: chip, clipboardText: chip }],
+})
+
+test('a message still resolving its reference is delivered after the user opens another session', async () => {
+  const f = fixture()
+  try {
+    const input = f.shell('A')
+    input.setDraft(referenceDraft('summarize ', '@notes'))
+    input.submit()
+    assert.equal(input.snapshot.draft, '')
+    await until(() => f.references.length === 1)
+    f.navigation.openSession('B')
+    await f.drain()
+    assert.equal(f.sessions.binding('A')?.sessionId, 'A', 'the unsettled message keeps its own session alive')
+    assert.equal(f.sessions.list.getSnapshot().byId.A.retainedBy.mainView, undefined, 'without posing as the main view')
+    f.references[0].resolve('<notes>')
+    await until(() => f.prompts.length === 1)
+    assert.equal(f.prompts[0].sessionId, 'A')
+    assert.equal(f.prompts[0].content.find(block => block.type === 'text').text, 'summarize <notes>')
+    await until(() => f.sessions.binding('A') === undefined)
+    await f.drain()
+    assert.deepEqual(readFailedInputSends('A'), [])
+  } finally {
+    await f.close()
+  }
+})
+
+test('a reload while a message still resolves its reference leaves that message recoverable in its session', async () => {
+  const f = fixture()
+  try {
+    const input = f.shell('A')
+    input.setDraft(referenceDraft('summarize ', '@notes'))
+    input.submit()
+    await until(() => f.references.length === 1)
+    assert.deepEqual(readFailedInputSends('A'), [])
+    dom.window.dispatchEvent(new dom.window.Event('pagehide'))
+    assert.deepEqual(
+      readFailedInputSends('A').map(record => record.draft.text),
+      ['summarize @notes'],
+    )
+    assert.equal(f.prompts.length, 0)
+  } finally {
+    await f.close()
+  }
+})
+
+for (const failure of ['reference', 'admission'])
+  test(`a message whose ${failure} fails after the user opens another session is waiting there as a recoverable draft`, async () => {
+    const f = fixture()
+    try {
+      const input = f.shell('A')
+      input.setDraft(referenceDraft('summarize ', '@notes'))
+      input.submit()
+      await until(() => f.references.length === 1)
+      f.navigation.openSession('B')
+      await f.drain()
+      if (failure === 'reference') f.references[0].reject(new Error('reference owner missing'))
+      else {
+        f.reply('A', { ok: false, error: { code: 'fixture/rejected', message: 'not admitted' } })
+        f.references[0].resolve('<notes>')
+      }
+      await until(() => f.sessions.binding('A') === undefined)
+      await f.drain()
+      assert.equal(f.prompts.length, failure === 'reference' ? 0 : 1)
+      f.navigation.openSession('A')
+      const reopened = f.shell('A')
+      assert.notEqual(reopened, input)
+      assert.equal(reopened.snapshot.draft, 'summarize @notes', 'the message is back in its own composer')
+      assert.equal(reopened.draftSnapshot.references.length, 1)
+    } finally {
+      await f.close()
+    }
+  })

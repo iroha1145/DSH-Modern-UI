@@ -13,6 +13,8 @@ const addedKeys = new Set([
   'input.failedSend.missingAttachments',
   // The label of the session header's context-menu button, shown on official 0.2.2-rc.2 and later.
   'header.more',
+  // The notice shown when the Hero workspace selector would otherwise replace a draft the target workspace already holds.
+  'input.draftTransferConflict',
 ])
 
 // Export values captured from the audited 5b1acbd baseline, independently of the shared source.
