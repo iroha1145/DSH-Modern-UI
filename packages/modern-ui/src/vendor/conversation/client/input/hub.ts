@@ -23,11 +23,18 @@ import type {
 import type { ComposerKeyboard } from '../contract/draft-editor.ts'
 import type { ComposerBlocks } from '../contract/composer-blocks.ts'
 import type { InputSubmitMode } from '../contract/composer-submission.ts'
-import type { PopupDismissFace } from './facade.ts'
+import type { DraftTransferResult, PopupDismissFace } from './facade.ts'
 import { SessionInputShell } from './facade.ts'
 import { reportMessageSubmission } from './submission-analytics.ts'
 import { readConversationDraft, readFailedInputSends, writeFailedInputSends, writeRecoveredConversationDraft } from '../stores.ts'
 import { parentAvailability } from '../../../../host-contract.ts'
+
+declare module '@deepseek-ai/dsh-api-session-controller/client' {
+  interface SessionReferenceSourceMap {
+    /** One ordinary message between Enter and its Host admission. */
+    pendingSend: unknown
+  }
+}
 
 /** Structural command face for per-session popup resolution. */
 interface CommandFace {
@@ -75,6 +82,17 @@ export class InputHub implements SessionInputResolver {
       await Promise.all([...this.scopeDisposers.values()].map(dispose => dispose()))
       this.scopeDisposers.clear()
     }, 'Modern conversation input lifetime')
+    // A reload or close runs no teardown. Messages still waiting their turn exist only in memory
+    // then, so they are stored as recovery backups while the page can still write.
+    rootCtx.effect(() => {
+      const page = (globalThis as { window?: Pick<Window, 'addEventListener' | 'removeEventListener'> }).window
+      if (page === undefined) return () => {}
+      const store = (): void => {
+        for (const binding of this.scopeDisposers.keys()) this.shells.get(binding)?.storeUnsentSends()
+      }
+      page.addEventListener('pagehide', store)
+      return () => { page.removeEventListener('pagehide', store) }
+    }, 'Modern conversation input: unsent messages at page exit')
   }
 
   /**
@@ -141,6 +159,18 @@ export class InputHub implements SessionInputResolver {
         })
       },
       messageSubmitted: (submission) => { reportMessageSubmission(this.rootCtx, submission) },
+      holdSession: () => {
+        try {
+          // A binding already retired has no scope left to keep; retaining its id would open a second one.
+          const sessions = this.sessions()
+          if (sessions.binding(binding.sessionId) !== binding) return undefined
+          const reference = sessions.retain(binding.sessionId, { source: 'pendingSend' })
+          return () => { reference.release() }
+        } catch (_error: unknown) {
+          // A Controller that is shutting down keeps no scope; the send proceeds without one.
+          return undefined
+        }
+      },
       inputTriggers: () => this.controller(actx),
       popup: () => this.popup(actx),
       inbox: session.projections.faceOf('inbox') as ObservableSnapshot<InboxState | undefined>,
@@ -224,15 +254,23 @@ export class InputHub implements SessionInputResolver {
     const next = this.shell(nextId)
     const conversation = this.conversation()
     let rebound: readonly DraftAttachmentId[] | undefined
+    let result: DraftTransferResult
     try {
-      if (!from.transferDraftTo(next, (ids) => {
+      result = from.transferDraftTo(next, (ids) => {
         rebound = ids
         conversation.rebindDraftFiles(nextId, ids)
-      })) throw new Error(`ui-conversation: session "${nextId}" cannot accept a transferred draft`)
+      })
     } catch (error: unknown) {
       if (rebound !== undefined) conversation.rebindDraftFiles(fromId, rebound)
       throw error
     }
+    if (result === 'moved') return
+    // Both refusals stop the navigation; the conflict is the one the user can resolve, so it is explained where they are.
+    if (result === 'occupied') {
+      from.notify('error', this.t('input.draftTransferConflict'))
+      throw new Error(`ui-conversation: session "${nextId}" already holds a draft`)
+    }
+    throw new Error(`ui-conversation: session "${nextId}" cannot accept a transferred draft`)
   }
 
   /**

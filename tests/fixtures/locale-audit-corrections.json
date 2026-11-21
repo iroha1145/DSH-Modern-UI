@@ -41,18 +41,30 @@
           "header.more": {
             "before": null,
             "after": "更多操作"
+          },
+          "input.draftTransferConflict": {
+            "before": null,
+            "after": "那个工作区里还有一份没发出的草稿。请先把它发送或清空，再切换过去。"
           }
         },
         "en": {
           "header.more": {
             "before": null,
             "after": "More actions"
+          },
+          "input.draftTransferConflict": {
+            "before": null,
+            "after": "That workspace already has an unsent draft. Send or clear it first, then switch."
           }
         },
         "ja": {
           "header.more": {
             "before": null,
             "after": "その他の操作"
+          },
+          "input.draftTransferConflict": {
+            "before": null,
+            "after": "そのワークスペースには未送信の下書きがあります。先に送信または消去してから切り替えてください。"
           }
         },
         "es": {
@@ -107,6 +119,10 @@
           "header.more": {
             "before": null,
             "after": "Más acciones"
+          },
+          "input.draftTransferConflict": {
+            "before": null,
+            "after": "Ese espacio de trabajo ya tiene un borrador sin enviar. Envíalo o bórralo antes de cambiar."
           }
         },
         "fr": {
@@ -157,6 +173,10 @@
           "header.more": {
             "before": null,
             "after": "Autres actions"
+          },
+          "input.draftTransferConflict": {
+            "before": null,
+            "after": "Cet espace de travail contient déjà un brouillon non envoyé. Envoyez-le ou effacez-le avant de changer."
           }
         },
         "de": {
@@ -195,6 +215,10 @@
           "header.more": {
             "before": null,
             "after": "Weitere Aktionen"
+          },
+          "input.draftTransferConflict": {
+            "before": null,
+            "after": "In diesem Arbeitsbereich liegt bereits ein nicht gesendeter Entwurf. Bitte zuerst senden oder leeren, dann wechseln."
           }
         },
         "ru": {
@@ -237,6 +261,10 @@
           "header.more": {
             "before": null,
             "after": "Другие действия"
+          },
+          "input.draftTransferConflict": {
+            "before": null,
+            "after": "В этой рабочей области уже есть неотправленный черновик. Сначала отправьте или очистите его, затем переключайтесь."
           }
         },
         "pt": {
@@ -279,6 +307,10 @@
           "header.more": {
             "before": null,
             "after": "Mais ações"
+          },
+          "input.draftTransferConflict": {
+            "before": null,
+            "after": "Esse espaço de trabalho já tem um rascunho não enviado. Envie-o ou limpe-o antes de trocar."
           }
         }
       }

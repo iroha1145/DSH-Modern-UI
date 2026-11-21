@@ -603,14 +603,14 @@
       "source": "packages/client/ui-conversation/src/client/input/facade.ts",
       "target": "src/vendor/conversation/client/input/facade.ts",
       "sourceSha256": "9790e2207849606abfa31bdc54865ed0ef5cb2d76c76c2552e620fcf6ef25f9a",
-      "targetSha256": "6352cd49ebf0f15eebeb60438ff178571f9fec07ddc62eacf7add08fc208cfea",
+      "targetSha256": "084aa56c46478a12037c8e59dc8f7d2b2ff16b4c91657d19cbfc619c8f2f65c0",
       "adapted": true
     },
     {
       "source": "packages/client/ui-conversation/src/client/input/hub.ts",
       "target": "src/vendor/conversation/client/input/hub.ts",
       "sourceSha256": "c4f5dc61fc83acc3c6cad6b80ead070187c74766668833c0d4a2b20f6f015ca6",
-      "targetSha256": "740c8ac5ca317e7e1f926429f9a9c4d738d457eae4251f4f0cf245c3eb817f7e",
+      "targetSha256": "d7cc193e1c1f3515e4305583b27edc19d75f69eca858dd7ab598cd73cc3577e2",
       "adapted": true
     },
     {
@@ -3561,7 +3561,7 @@
       "source": "packages/client/ui-conversation/src/client/locales.ts",
       "target": "src/vendor/shared/conversation-dictionaries.ts",
       "sourceSha256": "b613c7b44f3c888a330581d372e7f0b2f439a085b0a5e12243fec4deb8c2711a",
-      "targetSha256": "11e0b6d147832dee6fa29c2a50479c94d8ab5e3c557a8c89b65e3433ecbaf446",
+      "targetSha256": "328abf9da257e06a91bc0b3623d648880dc520cb957ad5898c169440adbbfd19",
       "adapted": true,
       "description": "Moved the existing eight-language shared base here; Tool and Conversation retain their namespace adapters without duplicate key/value copies."
     },
