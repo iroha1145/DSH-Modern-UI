@@ -1,13 +1,48 @@
+<div align="center">
+
 # DSH Modern UI
 
-[中文](README.md) · English
+A cleaner, modern Web interface for the official DeepSeek Harness (DSH)
 
-A modern Web interface plugin for the official **DeepSeek Harness (DSH)**, published on npm as [`@iroha1145/dsh-modern-ui`](https://www.npmjs.com/package/@iroha1145/dsh-modern-ui). It leaves the official backend untouched, and you can switch back to the official interface at any time.
+[简体中文](README.md) · English
 
 <p>
-  <img src="docs/assets/screenshot-light.png" alt="Modern UI light theme: reasoning groups, official tool cards and the answer" width="49%">
-  <img src="docs/assets/screenshot-dark.png" alt="Modern UI dark theme: code block, table and follow-up suggestions" width="49%">
+  <a href="https://www.npmjs.com/package/@iroha1145/dsh-modern-ui"><img src="https://img.shields.io/npm/v/@iroha1145/dsh-modern-ui?style=for-the-badge&logo=npm&logoColor=white&color=4D6BFE" alt="npm"/></a>
+  <img src="https://img.shields.io/badge/DSH-0.2.x-4D6BFE?style=for-the-badge" alt="DSH 0.2"/>
+  <img src="https://img.shields.io/badge/Languages-8-0F9D58?style=for-the-badge" alt="8 interface languages"/>
+  <img src="https://img.shields.io/badge/License-MIT-3DA639?style=for-the-badge&logo=opensourceinitiative&logoColor=white" alt="MIT"/>
 </p>
+
+[Screenshots](#screenshots) · [Features](#features) · [Install](#install) · [FAQ](#faq) · [Compatibility](docs/compatibility.md) · [Changelog](CHANGELOG.md) · [Issues](https://github.com/iroha1145/DSH-Modern-UI/issues)
+
+</div>
+
+<p align="center">
+  <img src="docs/assets/readme/conversation-light.webp" width="1200" alt="Conversation: grouped reasoning, tool call rows and an inline code diff">
+</p>
+
+Published on npm as [`@iroha1145/dsh-modern-ui`](https://www.npmjs.com/package/@iroha1145/dsh-modern-ui). It leaves the official backend untouched, and you can switch back to the official interface at any time.
+
+## Screenshots
+
+Full desktop browser windows, light on the left and dark on the right, with the interface set to Chinese. Apart from the home page, they come from a local isolated instance driven by a scripted test model: the conversations and numbers are examples, and no external service was called.
+
+| View | Light | Dark |
+| --- | --- | --- |
+| Home | ![Home, light](docs/assets/home-light.webp) | ![Home, dark](docs/assets/home-dark.webp) |
+| Conversation | ![Conversation, light](docs/assets/readme/conversation-light.webp) | ![Conversation, dark](docs/assets/readme/conversation-dark.webp) |
+| Diff panel | ![Side-by-side diff, light](docs/assets/readme/diff-preview-light.webp) | ![Side-by-side diff, dark](docs/assets/readme/diff-preview-dark.webp) |
+| Team view | ![Team view, light](docs/assets/readme/fleet-light.webp) | ![Team view, dark](docs/assets/readme/fleet-dark.webp) |
+| Settings | ![General settings, light](docs/assets/readme/settings-presentation-light.webp) | ![General settings, dark](docs/assets/readme/settings-presentation-dark.webp) |
+
+### Close-ups
+
+| Close-up | Light | Dark |
+| --- | --- | --- |
+| Model picker | ![Model picker, light](docs/assets/readme/closeup-model-light.webp) | ![Model picker, dark](docs/assets/readme/closeup-model-dark.webp) |
+| Question card | ![Question card, light](docs/assets/readme/closeup-ask-light.webp) | ![Question card, dark](docs/assets/readme/closeup-ask-dark.webp) |
+| Turn timeline | ![Turn timeline, light](docs/assets/readme/closeup-timeline-light.webp) | ![Turn timeline, dark](docs/assets/readme/closeup-timeline-dark.webp) |
+| Quote selected text | ![Quote selection, light](docs/assets/readme/closeup-quote-light.webp) | ![Quote selection, dark](docs/assets/readme/closeup-quote-dark.webp) |
 
 ## Install
 
@@ -48,11 +83,52 @@ While Modern UI is on, Desktop's first-run onboarding is recorded as skipped. Na
 
 ## Features
 
-- Conversation: collapsible reasoning groups, message timeline navigation, collapsible code blocks and Markdown previews.
-- Input: quote selected text, paste or drop images at full quality, command and file reference chips.
-- Cards: interactive components built on [OpenUI](https://github.com/thesysdev/openui) (`openui-lang` fences: cards, diagrams, charts, tables and small working tools), `followups` suggestions, a sub-agent team view, tool call cards.
-- Model picker cards with reasoning effort settings.
-- 8 interface languages and several light and dark themes.
+### Reading
+
+- **Reasoning folds**: long reasoning is grouped into steps (analysis, search, edits) and folds away when the answer is done; open any step for details.
+- **Turn timeline**: marks on the right edge preview each turn on hover and jump to it on click.
+- **Conversation width**: Reading, Standard, Wide, or Custom with draggable guides (Settings → General → Conversation width).
+- **Collapsible long content**: code blocks, diffs, math and side-panel file and plan previews fold and unfold.
+
+### Answers as interactive cards
+
+With "Answer visual components" on, answers can use number cards, charts (bar, line, pie, scatter, with an expandable data table), flow diagrams, tables, flashcards and small calculators with sliders, all in the interface's own fonts and theme. `followups` fences become suggestion chips under the answer, and "Deliver results in stages" lets the model hand over finished parts of a long task first. Built on [OpenUI](https://github.com/thesysdev/openui) (`openui-lang` fences).
+
+| Light | Dark |
+| --- | --- |
+| ![Number cards and a line chart, light](docs/assets/readme/visual-chart-light.webp) | ![Number cards and a line chart, dark](docs/assets/readme/visual-chart-dark.webp) |
+| ![Flow diagram, slider calculator and follow-ups, light](docs/assets/readme/visual-flow-light.webp) | ![Flow diagram, slider calculator and follow-ups, dark](docs/assets/readme/visual-flow-dark.webp) |
+
+### Tools and changes
+
+- Terminal commands, file reads and edits, code and web search and to-do lists each get their own row; edits show added and removed lines inline, and the "Edited" card opens a side-by-side diff in the right panel.
+- The to-do list stays pinned above the input box and ticks off each step.
+- When the AI needs a decision it shows a question card with options (several questions, skip, or a free answer), and the sidebar marks the session as waiting for your answer; plans the AI proposes appear as cards for you to confirm.
+- **Team view**: when the main agent starts several sub-agents, the Team tab shows each one's model, usage, time and status as a tree.
+
+### Input
+
+- The model panel groups models by vendor, gives each a one-line description and compares speed, quality and cost with bars; hovering a model shows its typical first-token time and price per million tokens. Reasoning effort is set in the same panel; extra switches from third-party model plugins (context length, fast mode and so on) sit next to the input box.
+- Select any text in the conversation and use the quote button that appears to ask about it.
+- Paste or drop images at full quality, drag them out to save, and keep typing while the AI answers: the next message is queued.
+
+### Languages, themes and phones
+
+8 interface languages (Chinese, English, Japanese, Spanish, French, German, Russian, Portuguese) and light, dark or system themes. On narrow screens the sidebar becomes a drawer, and the input box and settings are rearranged for touch. The plugin market shows each plugin's full illustrated documentation.
+
+<table>
+  <tr><th>Home</th><th>Sidebar drawer</th><th>Conversation</th></tr>
+  <tr>
+    <td align="center"><img src="docs/assets/readme/mobile-home-light.webp" width="240" alt="Phone home, light" /></td>
+    <td align="center"><img src="docs/assets/readme/mobile-drawer-light.webp" width="240" alt="Phone drawer, light" /></td>
+    <td align="center"><img src="docs/assets/readme/mobile-chat-light.webp" width="240" alt="Phone conversation, light" /></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/assets/readme/mobile-home-dark.webp" width="240" alt="Phone home, dark" /></td>
+    <td align="center"><img src="docs/assets/readme/mobile-drawer-dark.webp" width="240" alt="Phone drawer, dark" /></td>
+    <td align="center"><img src="docs/assets/readme/mobile-chat-dark.webp" width="240" alt="Phone conversation, dark" /></td>
+  </tr>
+</table>
 
 "Answer visual components" does not change the model prompt by default. Turning it on under Settings → General adds about 30 KB (roughly 7,000 tokens) of instructions so answers use cards, diagrams and similar components. The components need Chrome/Edge 111, Safari 16.2, Firefox 121 or newer.
 
