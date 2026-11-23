@@ -45,6 +45,22 @@
           "input.draftTransferConflict": {
             "before": null,
             "after": "那个工作区里还有一份没发出的草稿。请先把它发送或清空，再切换过去。"
+          },
+          "context.title": {
+            "before": null,
+            "after": "上下文窗口"
+          },
+          "context.free": {
+            "before": null,
+            "after": "空闲空间"
+          },
+          "context.expand": {
+            "before": null,
+            "after": "展开明细"
+          },
+          "context.collapse": {
+            "before": null,
+            "after": "收起明细"
           }
         },
         "en": {
@@ -55,6 +71,22 @@
           "input.draftTransferConflict": {
             "before": null,
             "after": "That workspace already has an unsent draft. Send or clear it first, then switch."
+          },
+          "context.title": {
+            "before": null,
+            "after": "Context window"
+          },
+          "context.free": {
+            "before": null,
+            "after": "Free space"
+          },
+          "context.expand": {
+            "before": null,
+            "after": "Show breakdown"
+          },
+          "context.collapse": {
+            "before": null,
+            "after": "Hide breakdown"
           }
         },
         "ja": {
@@ -65,6 +97,22 @@
           "input.draftTransferConflict": {
             "before": null,
             "after": "そのワークスペースには未送信の下書きがあります。先に送信または消去してから切り替えてください。"
+          },
+          "context.title": {
+            "before": null,
+            "after": "コンテキストウィンドウ"
+          },
+          "context.free": {
+            "before": null,
+            "after": "空き容量"
+          },
+          "context.expand": {
+            "before": null,
+            "after": "内訳を表示"
+          },
+          "context.collapse": {
+            "before": null,
+            "after": "内訳を隠す"
           }
         },
         "es": {
@@ -123,6 +171,22 @@
           "input.draftTransferConflict": {
             "before": null,
             "after": "Ese espacio de trabajo ya tiene un borrador sin enviar. Envíalo o bórralo antes de cambiar."
+          },
+          "context.title": {
+            "before": null,
+            "after": "Ventana de contexto"
+          },
+          "context.free": {
+            "before": null,
+            "after": "Espacio libre"
+          },
+          "context.expand": {
+            "before": null,
+            "after": "Mostrar desglose"
+          },
+          "context.collapse": {
+            "before": null,
+            "after": "Ocultar desglose"
           }
         },
         "fr": {
@@ -177,6 +241,22 @@
           "input.draftTransferConflict": {
             "before": null,
             "after": "Cet espace de travail contient déjà un brouillon non envoyé. Envoyez-le ou effacez-le avant de changer."
+          },
+          "context.title": {
+            "before": null,
+            "after": "Fenêtre de contexte"
+          },
+          "context.free": {
+            "before": null,
+            "after": "Espace libre"
+          },
+          "context.expand": {
+            "before": null,
+            "after": "Afficher le détail"
+          },
+          "context.collapse": {
+            "before": null,
+            "after": "Masquer le détail"
           }
         },
         "de": {
@@ -219,6 +299,22 @@
           "input.draftTransferConflict": {
             "before": null,
             "after": "In diesem Arbeitsbereich liegt bereits ein nicht gesendeter Entwurf. Bitte zuerst senden oder leeren, dann wechseln."
+          },
+          "context.title": {
+            "before": null,
+            "after": "Kontextfenster"
+          },
+          "context.free": {
+            "before": null,
+            "after": "Freier Platz"
+          },
+          "context.expand": {
+            "before": null,
+            "after": "Aufschlüsselung anzeigen"
+          },
+          "context.collapse": {
+            "before": null,
+            "after": "Aufschlüsselung ausblenden"
           }
         },
         "ru": {
@@ -265,6 +361,22 @@
           "input.draftTransferConflict": {
             "before": null,
             "after": "В этой рабочей области уже есть неотправленный черновик. Сначала отправьте или очистите его, затем переключайтесь."
+          },
+          "context.title": {
+            "before": null,
+            "after": "Окно контекста"
+          },
+          "context.free": {
+            "before": null,
+            "after": "Свободно"
+          },
+          "context.expand": {
+            "before": null,
+            "after": "Показать разбивку"
+          },
+          "context.collapse": {
+            "before": null,
+            "after": "Скрыть разбивку"
           }
         },
         "pt": {
@@ -311,6 +423,22 @@
           "input.draftTransferConflict": {
             "before": null,
             "after": "Esse espaço de trabalho já tem um rascunho não enviado. Envie-o ou limpe-o antes de trocar."
+          },
+          "context.title": {
+            "before": null,
+            "after": "Janela de contexto"
+          },
+          "context.free": {
+            "before": null,
+            "after": "Espaço livre"
+          },
+          "context.expand": {
+            "before": null,
+            "after": "Mostrar detalhamento"
+          },
+          "context.collapse": {
+            "before": null,
+            "after": "Ocultar detalhamento"
           }
         }
       }

@@ -53,88 +53,122 @@
   position: fixed;
   z-index: 1100;
   box-sizing: border-box;
-  width: min(264px, calc(100vw - 24px));
-  padding: 12px;
+  width: min(320px, calc(100vw - 24px));
+  padding: 12px 14px;
   border: 0;
   border-radius: var(--dsw-radius-lg);
   background: var(--dsw-specific-menu);
   backdrop-filter: var(--dsw-menu-backdrop-filter);
   --dsw-elevation-stroke-color: var(--dsw-alias-border-l1);
   box-shadow: var(--dsw-elevation-prominent);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 20px;
   color: var(--dsw-alias-label-secondary);
   cursor: default;
 }
 
+/* The title line is the fold control for the rows below the bar. */
 .header {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.title {
+  color: var(--dsw-alias-label-tertiary);
 }
 
 .figures {
   margin-left: auto;
-  font-weight: 500;
   font-variant-numeric: tabular-nums;
-  color: var(--dsw-alias-label-primary);
-}
-
-.percent {
-  font-weight: 500;
-  color: var(--dsw-alias-label-primary);
-}
-
-.headline {
   color: var(--dsw-alias-label-tertiary);
+  white-space: nowrap;
 }
 
-/* The headline brackets the reading, so the side a locale leaves empty must
-   drop out of the flex row rather than spend a gap. */
-.headline:empty {
-  display: none;
+.chevron {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+  transition: transform 160ms ease;
+}
+
+.header[aria-expanded='false'] .chevron {
+  transform: rotate(-90deg);
+}
+
+@media (hover: hover) {
+  .header:hover .title,
+  .header:hover .figures,
+  .header:hover .chevron {
+    color: var(--dsw-alias-label-secondary);
+  }
+}
+
+.header:focus-visible {
+  outline: 2px solid var(--dsw-alias-border-focus, var(--dsw-static-blue-450));
+  outline-offset: 2px;
+  border-radius: var(--dsw-radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron {
+    transition: none;
+  }
 }
 
 .bar {
   display: flex;
-  gap: 1px;
-  margin: 10px 0 12px;
+  gap: 2px;
+  margin: 8px 0 4px;
   height: 4px;
+}
+
+.segment,
+.free {
+  flex-basis: 0;
+  min-width: 0;
+  height: 100%;
   border-radius: 999px;
-  corner-shape: round;
-  background: var(--dsw-alias-interactive-bg-hover);
-  overflow: hidden;
 }
 
 .segment {
-  flex: none;
-  min-width: 2px;
-  height: 100%;
-  border-radius: 1px;
   background: var(--meter-tint, var(--dsw-alias-label-tertiary));
 }
 
+.free {
+  background: light-dark(#e8e8e6, #3f3f3b);
+}
+
 .swatch {
-  display: inline-block;
-  margin-right: 6px;
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
   background: var(--meter-tint);
-  vertical-align: baseline;
 }
 
 .colorSystem {
-  --meter-tint: var(--dsw-static-neutral-bluish-400);
+  --meter-tint: light-dark(#1ead7c, #43c79b);
 }
 
 .colorTools {
-  /* The design platform ships no purple static token; violet-400 literal. */
-  --meter-tint: rgb(167, 139, 250);
+  --meter-tint: light-dark(#e96a33, #f0885a);
 }
 
 .colorMessages {
-  --meter-tint: var(--dsw-static-blue-450);
+  --meter-tint: light-dark(#8b6fd4, #a58fe6);
+}
+
+.colorFree {
+  --meter-tint: light-dark(#e8e8e6, #3f3f3b);
 }
 
 .rows {
@@ -142,19 +176,35 @@
 }
 
 .row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 52px;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  column-gap: 12px;
   padding: 2px 0;
 }
 
 .row dt {
-  color: var(--dsw-alias-label-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .row dd {
   margin: 0;
   font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tokens {
   color: var(--dsw-alias-label-primary);
+}
+
+.share {
+  color: var(--dsw-alias-label-tertiary);
 }

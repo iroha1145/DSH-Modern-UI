@@ -15,6 +15,11 @@ const addedKeys = new Set([
   'header.more',
   // The notice shown when the Hero workspace selector would otherwise replace a draft the target workspace already holds.
   'input.draftTransferConflict',
+  // The context ring's panel: its title, the free-space row and the fold control of the breakdown rows.
+  'context.title',
+  'context.free',
+  'context.expand',
+  'context.collapse',
 ])
 
 // Export values captured from the audited 5b1acbd baseline, independently of the shared source.

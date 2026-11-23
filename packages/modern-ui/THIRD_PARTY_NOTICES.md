@@ -18,6 +18,10 @@ The answer component library in `src/vendor/openui` (components, styles, generic
 
 The browser build embeds the OpenUI runtime `@openuidev/react-lang` and `@openuidev/lang-core` 1.0.2 (MIT, Thesys Inc.); the embedded lang-core is patched at build time so its evaluator charges `@Each` loops, the lists, objects and text it builds, what each loop pass produces and each component's props to the block's step budget, and its parser stops past a node limit, as recorded in [openui-upstream.json](openui-upstream.json). The build also embeds Zod 4 for component schemas, and `lucide-react` 0.562.0 for icons. Lucide is Copyright (c) 2026 Lucide Icons and Contributors, under ISC; Feather-derived icons are Copyright (c) 2013-present Cole Bemis, under MIT. Both notices are retained in [licenses/Lucide-ISC.txt](licenses/Lucide-ISC.txt), and each package's own license text is collected under `licenses/npm/`. No Next.js app, demo server route, OpenUI Cloud gateway, autofix client or CopilotKit code is distributed here.
 
+## Claude Desktop Theme for DSH
+
+The context ring's panel layout in `src/vendor/conversation/client/skeleton/ContextMeter.tsx` and `src/context-details.ts` (title line with the reading and a fold control, segmented bar, rows with token and share-of-window columns, and the category colors) follows zkforge/dsh-claude-desktop-theme. It is Copyright (c) 2026 zkforge, under MIT; see [licenses/dsh-claude-desktop-theme-zkforge-MIT.txt](licenses/dsh-claude-desktop-theme-zkforge-MIT.txt). No code of that project's host projection unit or DOM adapter is included.
+
 ## Vendor marks and Simple Icons
 
 The 21 monochrome model-vendor marks in `src/vendor/model/client/vendor-marks.ts` derive from `@lobehub/icons-static-svg` 1.98.0. Lobe Icons is Copyright (c) 2023 LobeHub, under MIT; see [licenses/LobeIcons-MIT.txt](licenses/LobeIcons-MIT.txt) and [vendor-marks-upstream.json](vendor-marks-upstream.json). Vendor names and marks remain trademarks of their respective owners and identify the provider of a model.

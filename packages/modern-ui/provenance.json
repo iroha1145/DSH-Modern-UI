@@ -687,14 +687,14 @@
       "source": "packages/client/ui-conversation/src/client/skeleton/ContextMeter.module.css",
       "target": "src/vendor/conversation/client/skeleton/ContextMeter.module.css",
       "sourceSha256": "450ad06764771e5f80064b352bce37bb33798ed4953fd6213e1c158ea0401008",
-      "targetSha256": "450ad06764771e5f80064b352bce37bb33798ed4953fd6213e1c158ea0401008",
-      "adapted": false
+      "targetSha256": "f61d94882b9273af675417e412e8741b06322b299af2b955c08945c5f81660b6",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx",
       "target": "src/vendor/conversation/client/skeleton/ContextMeter.tsx",
       "sourceSha256": "84e568164bb26fadc8cae50d82de7dbd4d14be0d957f5ae7fd9c4575a1f1568d",
-      "targetSha256": "0a608c73e3ff523e717a33b64c614d2fd3c3619c7d41844527f6d556667d0888",
+      "targetSha256": "bc43adb0bdc56f3c03e5fd34a84bb510161e33c96ee349fcf2ee223dd34adcce",
       "adapted": true
     },
     {
@@ -3561,7 +3561,7 @@
       "source": "packages/client/ui-conversation/src/client/locales.ts",
       "target": "src/vendor/shared/conversation-dictionaries.ts",
       "sourceSha256": "b613c7b44f3c888a330581d372e7f0b2f439a085b0a5e12243fec4deb8c2711a",
-      "targetSha256": "328abf9da257e06a91bc0b3623d648880dc520cb957ad5898c169440adbbfd19",
+      "targetSha256": "71236d514a8f9f76e396008996e664fbda346964e5703f5788936d07cb21b33a",
       "adapted": true,
       "description": "Moved the existing eight-language shared base here; Tool and Conversation retain their namespace adapters without duplicate key/value copies."
     },

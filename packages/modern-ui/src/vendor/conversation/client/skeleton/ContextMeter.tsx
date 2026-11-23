@@ -1,6 +1,8 @@
 /** Composer context-occupancy meter: a ring and percentage below the card fed by the
- * `contextPressure` projection, with a click-open panel of the heuristic
- * `contextBreakdown` composition (system prompt, tools, conversation).
+ * `contextPressure` projection, with a click-open "context window" panel: the
+ * reading (`used / window (percent)`), a segmented bar, and one row per
+ * `contextBreakdown` category plus the free space, each with its token count
+ * and share of the window. The title line folds the rows away.
  * Renders nothing until a provider reports both pressure and a route
  * capacity. */
 
@@ -12,25 +14,20 @@ import type {} from '@deepseek-ai/dsh-token-meter/client'
 import { Tooltip, useAnchoredPosition, useDismissOnOutsidePointer } from '@iroha1145/dsh-modern-ui/primitives'
 import type { ComposerBarProps } from '../contract/slots.ts'
 import { contextOccupancy } from '../context-occupancy.ts'
+import { barWeights, contextReading, formatShare, type ContextSliceKey } from '../../../../context-details.ts'
 import css from './ContextMeter.module.css'
 
 /** Ring geometry: 14px viewBox, 2px stroke. */
 const RADIUS = 5.5
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS
 
-/**
- * Marker the localized occupancy sentence is split on, so the panel headline
- * keeps the reading in its own tone while each locale still owns the word
- * order (`45% of context used` / `上下文已用 45%`).
- */
-const READING_SLOT = '\u0000'
-
-/** Panel legend rows, in bar-segment order; each color class carries the shared swatch/segment tint. */
-const ROWS = [
-  { key: 'systemTokens', label: 'context.system', color: css.colorSystem },
-  { key: 'toolsTokens', label: 'context.tools', color: css.colorTools },
-  { key: 'messageTokens', label: 'context.messages', color: css.colorMessages },
-] as const
+/** Row label and tint per panel category; the tint is shared by swatch and bar segment. */
+const ROWS: Record<ContextSliceKey, { label: 'context.system' | 'context.tools' | 'context.messages' | 'context.free'; color: string }> = {
+  system: { label: 'context.system', color: css.colorSystem },
+  tools: { label: 'context.tools', color: css.colorTools },
+  messages: { label: 'context.messages', color: css.colorMessages },
+  free: { label: 'context.free', color: css.colorFree },
+}
 
 /**
  * Format a token count for the compact context panel.
@@ -39,12 +36,13 @@ const ROWS = [
  * @returns Compact localized count using K or M when needed.
  */
 function formatTokens(value: number, t: ComposerBarProps['t']): string {
+  const rounded = Math.max(0, Math.round(value))
   const scaled = (candidate: number): string => candidate >= 100
     ? String(Math.round(candidate))
     : String(Math.round(candidate * 10) / 10)
-  if (value < 1_000) return String(value)
-  if (value < 1_000_000) return t('number.thousand', { value: scaled(value / 1_000) })
-  return t('number.million', { value: scaled(value / 1_000_000) })
+  if (rounded < 1_000) return String(rounded)
+  if (rounded < 1_000_000) return t('number.thousand', { value: scaled(rounded / 1_000) })
+  return t('number.million', { value: scaled(rounded / 1_000_000) })
 }
 
 export interface ContextMeterProps {
@@ -57,6 +55,8 @@ export function ContextMeter({ useProjection, t }: ContextMeterProps) {
   const pressure = useProjection('contextPressure')
   const breakdown = useProjection('contextBreakdown')
   const [open, setOpen] = useState(false)
+  // The breakdown rows stay shown until the reader folds them; the choice lasts while the composer is mounted.
+  const [expanded, setExpanded] = useState(true)
   const rootRef = useRef<HTMLSpanElement | null>(null)
   const panelRef = useRef<HTMLDivElement | null>(null)
   const context = contextOccupancy(pressure)
@@ -89,21 +89,8 @@ export function ContextMeter({ useProjection, t }: ContextMeterProps) {
   if (context === null) return null
   const percent = context.percent
   const reading = `${percent}%`
-  const [headBefore = '', headAfter = ''] = t('context.aria', { percent: READING_SLOT })
-    .split(READING_SLOT)
-    .map(part => part.trim())
-
-  // The bar's overall length stays the provider-exact percent; the heuristic
-  // breakdown only proportions its colored parts. A zero-width part is dropped
-  // instead of rendered: `.segment`'s min-width keeps a hairline part visible,
-  // which at 0% occupancy would draw a filled bar over an empty context.
-  const breakdownTotal = breakdown === undefined
-    ? 0
-    : breakdown.systemTokens + breakdown.toolsTokens + breakdown.messageTokens
-  const parts = breakdown === undefined || breakdownTotal === 0
-    ? [{ key: 'total', color: undefined, width: percent }]
-    : ROWS.map(row => ({ key: row.key, color: row.color, width: percent * breakdown[row.key] / breakdownTotal }))
-  const segments = parts.filter(part => part.width > 0)
+  const panel = contextReading({ window: context.contextWindow, used: context.usedTokens, breakdown })
+  const bar = barWeights(panel)
 
   return (
     <span ref={rootRef} className={css.root}>
@@ -136,38 +123,47 @@ export function ContextMeter({ useProjection, t }: ContextMeterProps) {
           className={css.panel}
           style={position ?? { visibility: 'hidden', left: 0, top: 0 }}
           role="dialog"
-          aria-label={t('context.used')}
+          aria-label={t('context.title')}
         >
-          <div className={css.header}>
-            {/* Empty sides collapse through `.headline:empty` so the locale that
-                needs no leading (or trailing) text spends no header gap. */}
-            <span className={css.headline}>{headBefore}</span>
-            <span className={css.percent}>{reading}</span>
-            <span className={css.headline}>{headAfter}</span>
+          <button
+            type="button"
+            className={css.header}
+            aria-expanded={expanded}
+            aria-label={`${t('context.title')}, ${t(expanded ? 'context.collapse' : 'context.expand')}`}
+            onClick={() => { setExpanded(!expanded) }}
+          >
+            <span className={css.title}>{t('context.title')}</span>
             {/* `~`: usedTokens prefers projectedTokens, whose surface delta is
                 heuristically repriced on top of the provider-anchored sample. */}
             <span className={css.figures}>
-              {`~${formatTokens(context.usedTokens, t)} / ${formatTokens(context.contextWindow, t)}`}
+              {`~${formatTokens(context.usedTokens, t)} / ${formatTokens(context.contextWindow, t)} (${reading})`}
             </span>
-          </div>
-          <div className={css.bar}>
-            {segments.map(segment => (
-              <div
+            <svg className={css.chevron} viewBox="0 0 16 16" width="12" height="12" aria-hidden>
+              <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <div className={css.bar} aria-hidden>
+            {bar.segments.map(segment => (
+              <span
                 key={segment.key}
-                className={segment.color === undefined ? css.segment : `${css.segment} ${segment.color}`}
-                style={{ width: `${segment.width}%` }}
+                className={segment.key === 'total' ? css.segment : `${css.segment} ${ROWS[segment.key].color}`}
+                style={{ flexGrow: segment.tokens }}
               />
             ))}
+            <span className={css.free} style={{ flexGrow: bar.free }} />
           </div>
-          {breakdown !== undefined && (
+          {expanded && (
             <dl className={css.rows}>
-              {ROWS.map(row => (
-                <div key={row.key} className={css.row}>
+              {panel.slices.map(slice => (
+                <div key={slice.key} className={css.row}>
                   <dt>
-                    <span className={`${css.swatch} ${row.color}`} aria-hidden />
-                    {t(row.label)}
+                    <span className={`${css.swatch} ${ROWS[slice.key].color}`} aria-hidden />
+                    {t(ROWS[slice.key].label)}
                   </dt>
-                  <dd>{`~${formatTokens(breakdown[row.key], t)}`}</dd>
+                  <dd className={css.tokens}>
+                    {slice.key === 'free' ? formatTokens(slice.tokens, t) : `~${formatTokens(slice.tokens, t)}`}
+                  </dd>
+                  <dd className={css.share}>{formatShare(slice.tokens, panel.window)}</dd>
                 </div>
               ))}
             </dl>
