@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+## [0.1.25] - 2026-11-26
+
+这一版只改运行中的样子：加载动画换成新的点阵，过程标题不再和底部的运行状态行重复「正在处理」。
+
 ### 调整
 
 - 运行中的加载动画换成新的点阵：中间的点有节奏地亮起，亮光一圈圈向外散开，其余的点随机闪亮，再慢慢暗下去。「正在思考」、过程标题和底部运行状态行用的都是这个动画。颜色仍然跟随浅色和深色主题。系统开启「减少动态效果」时，点阵不动，中间最亮、向外渐暗。
@@ -717,7 +721,8 @@ macOS 桌面客户端里，左侧栏四周不再有一圈灰边：整个窗口�
 
 - 会话里的联网开关（`/web on|off`）和它用的协议。联网工具统一在官方的插件管理里开关。
 
-[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.24...HEAD
+[Unreleased]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.25...HEAD
+[0.1.25]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.24...v0.1.25
 [0.1.24]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.23...v0.1.24
 [0.1.23]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.22...v0.1.23
 [0.1.22]: https://github.com/iroha1145/DSH-Modern-UI/compare/v0.1.21...v0.1.22
