@@ -1,0 +1,164 @@
+/* Scrambled dot-matrix loader (scramble-matrix.tsx). Colors come from the shared matrix tokens in
+   vendor/theme/styles/matrix-loader.css, so light, dark and forced colors follow the theme. Only opacity
+   animates: the ripple and the flares are separate layers, so they never fight over one property. */
+.matrix {
+  display: inline-grid;
+  flex-shrink: 0;
+  grid-template-columns: repeat(5, 2px);
+  grid-auto-rows: 2px;
+  gap: 1px;
+}
+
+.matrix i {
+  position: relative;
+  display: block;
+  border-radius: 0.5px;
+  background: var(--matrix-base);
+}
+
+.matrix i::before,
+.matrix i::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+}
+
+/* Ripple layer, tinted toward the active color by the dot's ring strength. */
+.matrix i::before {
+  background: color-mix(in srgb, var(--matrix-active) var(--ring-peak), var(--matrix-base));
+  animation: ring 667ms linear var(--ring-delay) infinite;
+}
+
+.matrix i[data-center]::before {
+  animation-name: pulse;
+}
+
+/* Flare layer: a scattered dot lights at once, then cools. */
+.matrix i::after {
+  background: var(--matrix-active);
+  animation: flare var(--flare-cycle) linear var(--flare-delay) infinite;
+}
+
+.matrix i[data-center]::after {
+  animation: none;
+}
+
+/* The centre fires, then dims to about a fifth before the next beat. */
+@keyframes pulse {
+  0%,
+  15% {
+    opacity: 1;
+  }
+  30% {
+    opacity: 0.79;
+  }
+  45% {
+    opacity: 0.62;
+  }
+  60% {
+    opacity: 0.46;
+  }
+  75% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 0.22;
+  }
+}
+
+/* A ring dot jumps in with the beat, peaks after about 0.17 s and is dark again by 0.47 s. */
+@keyframes ring {
+  0% {
+    opacity: 0.3;
+  }
+  5% {
+    opacity: 0.63;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  15% {
+    opacity: 0.91;
+  }
+  25%,
+  30% {
+    opacity: 1;
+  }
+  35% {
+    opacity: 0.8;
+  }
+  40% {
+    opacity: 0.57;
+  }
+  45% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.27;
+  }
+  55% {
+    opacity: 0.19;
+  }
+  60% {
+    opacity: 0.11;
+  }
+  70%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Percentages of a 6.4 s cycle: lit, down to 0.14 by 1.25 s, a dim tail out to 3.2 s, then dark. */
+@keyframes flare {
+  0% {
+    opacity: 1;
+  }
+  3% {
+    opacity: 0.96;
+  }
+  8% {
+    opacity: 0.77;
+  }
+  12.5% {
+    opacity: 0.54;
+  }
+  15.5% {
+    opacity: 0.33;
+  }
+  19.5% {
+    opacity: 0.14;
+  }
+  31% {
+    opacity: 0.1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Without motion the grid holds the ripple's brightest frame: a lit centre fading outwards. */
+@media (prefers-reduced-motion: reduce) {
+  .matrix i::before {
+    animation: none;
+    opacity: 1;
+  }
+
+  .matrix i::after {
+    animation: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .matrix i {
+    forced-color-adjust: none;
+    background: CanvasText;
+  }
+
+  .matrix i::before,
+  .matrix i::after {
+    display: none;
+  }
+}
