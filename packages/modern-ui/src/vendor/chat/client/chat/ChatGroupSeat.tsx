@@ -112,8 +112,12 @@ const ProcessGroupHeader = memo(function ProcessGroupHeader({
     : live.preparing ? t(`message.stepProcess.prepare.${live.activity === 'thinking' ? 'tools' : live.activity}`)
       : t(`message.stepProcess.${live.activity}`)
   const detail = detailed && !data.closed && live.activity !== 'thinking' ? live.detail : ''
+  // The running status row below names the phase next to its clock. Between tools a live header shows the
+  // work done so far instead of repeating that phrase; it names the phase only while collapsed during
+  // streamed reasoning, when the status row shows just the clock and the reasoning row is folded away.
   const statusLabel = data.closed || live.activity !== 'thinking' ? label
-    : open && runningPhase === 'thinking' ? t('message.think') : t(`chat.activity.${runningPhase}`)
+    : !open && runningPhase === 'thinking' ? t('chat.activity.thinking')
+      : data.summary.counts.length > 0 ? processTitle(data.summary, t) : t('message.think')
   const title = detail === '' ? statusLabel : `${statusLabel}${t('message.turnProcess.separator')}${detail}`
   const activity = data.closed ? data.summary.counts[0]?.kind ?? 'thinking' : live.activity
   return (

@@ -175,8 +175,8 @@
       "source": "packages/client/ui-chat/src/client/chat/RunningWhaleTail.tsx",
       "target": "src/vendor/chat/client/chat/RunningWhaleTail.tsx",
       "sourceSha256": "7907d96d46f0e78e63937e5f8ed654f95e49d2ddabd1a2f14bf1515a3af3976c",
-      "targetSha256": "7907d96d46f0e78e63937e5f8ed654f95e49d2ddabd1a2f14bf1515a3af3976c",
-      "adapted": false
+      "targetSha256": "79f12506f0c7352b35b8b6268cf0490db3f216547ba1a86cd51f49261039dd6e",
+      "adapted": true
     },
     {
       "source": "packages/client/ui-chat/src/client/chat/TurnProcessNodeView.module.css",
@@ -2753,7 +2753,7 @@
       "source": "packages/client/ui-chat/src/client/chat/ChatGroupSeat.tsx",
       "target": "src/vendor/chat/client/chat/ChatGroupSeat.tsx",
       "sourceSha256": "a4d5d0829710afeba72e8067a5aa8fb17adda5c14e5c737a70c5d0462d46c7fa",
-      "targetSha256": "24a7e6d3b0d625f16e0dbd699e9fab54ac28313f1984a244eb6f4667f1c14bda",
+      "targetSha256": "6413f3e7242dbbe26661328b5164679169d1d73bfa78c5703eec4e485e20a295",
       "adapted": true
     },
     {
